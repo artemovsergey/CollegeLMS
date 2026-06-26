@@ -115,6 +115,43 @@ dotnet ef database update
 | `EFCore.NamingConventions` | Snake_case naming |
 | `AspNetCore.HealthChecks.NpgSql` | DB health check |
 
+
+### 6. Seed Data (optional)
+
+For pre-populating database with initial data after migration.
+
+Path: CollegeLMS.API/Data/Seed/{Name}Seed.cs
+
+`csharp
+using CollegeLMS.API.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace CollegeLMS.API.Data.Seed;
+
+public static class {Name}Seed
+{
+    public static void Seed(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<{Name}>().HasData(
+            new {Name}
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                // fill required fields
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            }
+        );
+    }
+}
+`
+
+Register in AppDbContext.OnModelCreating:
+`csharp
+{Name}Seed.Seed(modelBuilder);
+`
+
+For WordPress bulk import -- create IImportService with AddRangeAsync instead of HasData.
+
 ## Convention rules
 
 - Table name: snake_case plural (`users`, `schedule_entries`)
@@ -129,3 +166,4 @@ dotnet ef database update
 - `dotnet build` succeeds
 - Migration file generated in `Migrations/` with proper Up/Down
 - `dotnet ef database update` applies without errors
+
