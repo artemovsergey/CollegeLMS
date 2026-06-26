@@ -24,6 +24,10 @@ next-env.d.ts
 appsettings.Production.json
 appsettings.*.local.json
 
+# Agent config dirs
+.mimocode/
+.opencode/
+
 # IDE
 .idea/
 *.swp
