@@ -7,6 +7,29 @@ description: Configure production deployment on VPS with Nginx reverse proxy, Do
 
 Set up full deployment pipeline: Nginx reverse proxy, Docker Compose production stack, GitHub Actions CI/CD workflows (test + deploy), and deployment scripts.
 
+## Pre-flight: обязательный опрос
+
+Перед любыми действиями по деплою агент **обязан** спросить у пользователя через `question` tool:
+
+| Данные | Переменная в skill | Требование |
+|--------|-------------------|------------|
+| IP или домен VPS | `VPS_HOST` | Обязательно |
+| SSH-пользователь | `VPS_USERNAME` | Обязательно |
+| SSH-ключ (приватный) | `SSH_PRIVATE_KEY` | Обязательно |
+| Пароль БД (production) | `DB_PASSWORD` | Обязательно |
+
+Если хотя бы одного нет — агент **не начинает деплой**, а сообщает: «Нет данных для деплоя. Нужны: VPS_HOST, VPS_USERNAME, SSH_PRIVATE_KEY, DB_PASSWORD».
+
+Формат вопроса:
+
+```
+question: "Есть ли VPS сервер и данные для деплоя?"
+options:
+  - "Да, всё есть" → агент продолжает
+  - "Нет, давай настроим" → агент генерирует SSH-ключи и пишет инструкцию
+  - "Пока нет, пропусти деплой" → агент ничего не делает, завершает фазу
+```
+
 ## Workflow
 
 ### 1. Nginx configuration
@@ -128,7 +151,7 @@ CMD ["node", "server.js"]
 
 ### 4. Docker Compose production
 
-Path: `docker-compose.prod.yml`
+Файл: `docker-compose.yml` (единый файл, профили `dev`/`prod` удалены).
 
 ```yaml
 networks:
@@ -209,14 +232,14 @@ cd /home/deploy/collegelms
 git pull origin master
 
 echo "Building and starting containers..."
-docker compose -f docker-compose.prod.yml down
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose down
+docker compose up -d --build
 
 echo "Running migrations..."
-docker compose -f docker-compose.prod.yml exec -T api dotnet ef database update
+docker compose exec -T api dotnet ef database update
 
 echo "Deployment complete"
-docker compose -f docker-compose.prod.yml ps
+docker compose ps
 ```
 
 ### 7. GitHub Actions — Test workflow
@@ -311,9 +334,9 @@ jobs:
           script: |
             cd /home/deploy/collegelms
             git pull origin master
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up -d --build
-            docker compose -f docker-compose.prod.yml exec -T api dotnet ef database update
+            docker compose down
+            docker compose up -d --build
+            docker compose exec -T api dotnet ef database update
 ```
 
 ### 9. Required GitHub secrets
@@ -363,20 +386,20 @@ ssh-copy-id -i ~/.ssh/deploy_key.pub deploy@ip
 
 ```bash
 # Full cleanup
-docker compose -f docker-compose.prod.yml down -v
+docker compose down -v
 docker system prune -a --volumes
 
 # Check logs
-docker compose -f docker-compose.prod.yml logs -f api
+docker compose logs -f api
 
 # Exec into container
-docker compose -f docker-compose.prod.yml exec api sh
+docker compose exec api sh
 ```
 
 ## Verification
 
-- `docker compose -f docker-compose.prod.yml config` validates YAML
-- `docker compose -f docker-compose.prod.yml build` builds without errors
+- `docker compose config` validates YAML
+- `docker compose build` builds without errors
 - Nginx reverse proxy routes `/api/` → API, `/` → Next.js
 - GitHub Actions test workflow passes
 - GitHub Actions deploy workflow completes without errors
