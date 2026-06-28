@@ -39,6 +39,9 @@ Thumbs.db
 # Docker
 docker-data/
 
+# Test results
+TestResults/
+
 # OS
 .DS_Store
 Thumbs.db
