@@ -9,7 +9,7 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`)
+    fetch(process.env.NEXT_PUBLIC_API_URL ?? "/api/users")
       .then(r => r.json())
       .then((body: Result<User[]>) => {
         if (body.isSuccess && body.data) {

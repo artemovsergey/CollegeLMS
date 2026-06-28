@@ -11,18 +11,19 @@ services:
     image: postgres:16-alpine
     container_name: collegelms-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: collegelms
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+      POSTGRES_DB: ${DB_NAME:-collegelms}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
     networks:
       - collegelms-net
 
@@ -30,7 +31,7 @@ services:
     image: redis:7-alpine
     container_name: collegelms-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -39,5 +40,48 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
+    networks:
+      - collegelms-net
+
+  api:
+    build:
+      context: .
+      dockerfile: CollegeLMS.API/Dockerfile
+    container_name: collegelms-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${DB_NAME:-collegelms};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-root}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - collegelms-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api/users
+    container_name: collegelms-frontend
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - collegelms-net
+
+  nginx:
+    build: ./nginx
+    container_name: collegelms-nginx
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
     networks:
       - collegelms-net
