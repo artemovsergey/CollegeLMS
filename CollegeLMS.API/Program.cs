@@ -1,6 +1,7 @@
 using System.Text;
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Middleware;
+using CollegeLMS.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -57,6 +58,8 @@ builder.Services.AddCors(o =>
         p.WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? ["http://localhost:3000"])
             .AllowAnyHeader().AllowAnyMethod().AllowCredentials());
 });
+
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
