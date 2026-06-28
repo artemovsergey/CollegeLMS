@@ -216,6 +216,7 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/
 - `AsNoTracking()` on read queries, `FindAsync()` for PK lookups
 - Error messages in Russian, Swagger summaries in Russian
 - Git prefixes: `feature:` / `fix:` / `docs:` / `test:`
+- `git add -A` to stage all changes (never list files individually)
 - Prefer `List<T>` over `IEnumerable<T>`
 - Flat DTOs with default values, file-scoped namespaces
 - `Result<T>.Ok()` for success, `Result<T>.Fail()` for errors
