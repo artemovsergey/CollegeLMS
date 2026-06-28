@@ -1,0 +1,50 @@
+@startuml
+!theme plain
+
+interface IUserService {
+  + GetAllAsync(CancellationToken): Result<List<UserResponse>>
+}
+
+class UserService {
+  - db: AppDbContext
+  + GetAllAsync(CancellationToken): Result<List<UserResponse>>
+}
+
+class UserController {
+  - service: IUserService
+  + GetAll(CancellationToken): ActionResult
+}
+
+class User {
+  - Id: Guid
+  - Email: string
+  - PasswordHash: string
+  - FullName: string
+  - Role: UserRole
+  - CreatedAt: DateTime
+  - UpdatedAt: DateTime
+}
+
+class UserResponse {
+  - Id: Guid
+  - Email: string
+  - FullName: string
+  - Role: string
+}
+
+class UserMapper {
+  + {static} ToDto(User): UserResponse
+}
+
+class AppDbContext {
+  - Users: DbSet<User>
+}
+
+IUserService <|.. UserService
+UserController --> IUserService
+UserService --> AppDbContext
+UserService --> UserMapper
+UserMapper --> UserResponse
+UserMapper --> User
+AppDbContext --> User
+@enduml

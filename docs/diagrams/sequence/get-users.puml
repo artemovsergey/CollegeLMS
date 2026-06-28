@@ -1,0 +1,17 @@
+@startuml
+!theme plain
+
+actor "Клиент" as Client
+participant "UserController" as Ctrl
+participant "UserService" as Svc
+database "PostgreSQL" as DB
+
+' Запрос списка всех пользователей
+Client -> Ctrl: GET /api/users
+Ctrl -> Svc: GetAllAsync(CancellationToken)
+Svc -> DB: SELECT * FROM users
+DB --> Svc: List<User>
+Svc -> Svc: mapper.ToDto(user)
+Svc --> Ctrl: Result<List<UserResponse>>
+Ctrl --> Client: 200 OK + JSON
+@enduml

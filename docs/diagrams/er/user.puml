@@ -1,0 +1,21 @@
+@startuml
+!theme plain
+
+' Сущность User — пользователь системы
+entity "User" {
+  * id: GUID (PK)
+  --
+  * email: string
+  * password_hash: string
+  * full_name: string
+  * role: UserRole (enum)
+  created_at: datetime
+  updated_at: datetime
+}
+
+note top of User
+  Enum UserRole:
+  None, Admin, Teacher,
+  Student, Dispatcher
+end note
+@enduml
