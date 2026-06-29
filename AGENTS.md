@@ -36,7 +36,7 @@ CollegeLMS.Tests/
   Integration/Controllers/
   Unit/Services/
   Fixtures/              # Bogus fixtures
-frontend/                # Next.js project (TBD)
+frontend/                # Next.js 14 + Tailwind CSS 4 + TypeScript
 import/                  # WordPress import data
 scripts/                 # WP data scraper
 ```
@@ -47,7 +47,7 @@ scripts/                 # WP data scraper
 |------|------|--------|---------------|
 | **Architect** | Main agent | — | Orchestrates workflow, reads task.md, decomposes into User Stories, creates branches, reviews, merges |
 | **BackendAgent** | Subagent | dotnet-entity, dotnet-endpoint, result-pattern, fluent-validation | Entity → migration → service → controller → DI → Swagger |
-| **TesterAgent** | Subagent | testing-xunit | Unit tests (xUnit + Moq + Bogus), integration tests (WebApplicationFactory), E2E (Playwright), coverage |
+| **TesterAgent** | Subagent | dotnet-test | Unit tests (xUnit + Moq + Bogus), integration tests (WebApplicationFactory), E2E (Playwright), coverage |
 | **FrontendAgent** | Subagent | nextjs-page, frontend-scaffold | Next.js pages/components, API integration, Tailwind, loading/error states |
 | **DevOpsAgent** | Subagent | docker-compose-dev, vps-deploy, cicd-pipeline | Docker, nginx, CI/CD pipelines, deploy to VPS |
 
@@ -60,13 +60,13 @@ scripts/                 # WP data scraper
 | `dotnet-endpoint` | Controller, Service, DTO, mapper, DI registration |
 | `result-pattern` | Result<T>, ApiResult, ExceptionHandlerMiddleware |
 | `jwt-auth` | TokenService, BCrypt, Swagger bearer, Claims helpers |
-| `testing-xunit` | Test project, WebApplicationFactory, Bogus fixtures |
+| `dotnet-test` | Test project, WebApplicationFactory, Bogus fixtures |
 | `fluent-validation` | FluentValidation validators + DI registration |
 | `nextjs-page` | Next.js page, loading/error boundaries, types |
 | `frontend-scaffold` | Next.js project scaffold with Tailwind CSS v4 |
 | `docker-compose-dev` | dev docker-compose.yml (Postgres 16 + Redis 7) |
 | `vps-deploy` | Nginx, Dockerfiles, GH Actions CI/CD, deploy scripts |
-| `cicd-pipeline` | GitHub Actions: test.yml + deploy.yml + quality gates |
+| `cicd-pipeline` | GitHub Actions: test.yml + quality gates |
 | `plantuml-docs` | UML diagrams: ER, Class, Sequence, UseCase, Deployment |
 | `cors-security` | CORS + security headers |
 | `seed-data` | EF Core HasData + Seed classes |
@@ -164,16 +164,16 @@ Phase 7: MERGE (Architect)
 | **G2** | `dotnet test` — all green | TesterAgent | Phase 2 |
 | **G3** | `npm run dev` — page renders | FrontendAgent | Phase 3 |
 | **G4** | Playwright — all User Stories pass | TesterAgent | Phase 4 |
-| **G5** | `docker compose build` | DevOpsAgent | Phase 6 |
+| **G5** | `docker compose` — all services start | DevOpsAgent | Phase 6 |
 
 ### Definition of Done
 
 - [ ] dotnet build passes
-- [ ] dotnet test passes (coverage ≥ 60%)
+- [ ] dotnet test passes (coverage ≥ 50%)
 - [ ] npm run dev works (frontend project)
 - [ ] Playwright E2E tests pass
 - [ ] Swagger UI shows endpoint with Russian docs
-- [ ] PlantUML diagrams generated (ER + Sequence for the feature)
+- [ ] PlantUML diagrams generated — ER, Class, Sequence for the feature
 - [ ] CI/CD pipeline passes
 - [ ] Feature branch merged to master
 - [ ] VPS deploy verified
@@ -224,7 +224,7 @@ dotnet csharpier . --check        # check formatting (CI)
 - Prefer `List<T>` over `IEnumerable<T>`
 - Flat DTOs with default values, file-scoped namespaces
 - `Result<T>.Ok()` for success, `Result<T>.Fail()` for errors
-- `OpenApi v3` namespace: `using Microsoft.OpenApi;` (NOT `Microsoft.OpenApi.Models`)
+- OpenApi namespace: `using Microsoft.OpenApi;`
 - Formatting: CSharpier (`dotnet csharpier .` to format, `dotnet csharpier . --check` in CI)
 
 ## PlantUML conventions

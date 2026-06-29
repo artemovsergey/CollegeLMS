@@ -5,157 +5,68 @@ description: Set up local development environment with PostgreSQL 16 and Redis v
 
 # docker-compose-dev
 
-Configure and manage local development infrastructure (PostgreSQL + Redis) using Docker Compose with named volumes, health checks, and consistent naming.
+Create or update `docker-compose.yml` for local development.
 
-## Workflow
+## Services
 
-### 1. Create docker-compose.yml
+| Service | Image | Port | Purpose |
+|---------|-------|------|---------|
+| `db` | postgres:16-alpine | 5432 | Main database |
+| `redis` | redis:7-alpine | 6379 | Session cache |
+| `api` | build from CollegeLMS.API/Dockerfile | 5026 | ASP.NET API |
+| `frontend` | build from frontend/Dockerfile | 3000 | Next.js UI |
+| `nginx` | custom ./nginx | 80/443 | Reverse proxy |
 
-Path: `docker-compose.yml` (project root)
+## docker-compose.yml
 
 ```yaml
-networks:
-  collegelms-net:
-    driver: bridge
-
-volumes:
-  postgres_data:
-  redis_data:
-
 services:
   db:
     image: postgres:16-alpine
     container_name: collegelms-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: collegelms
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-collegelms}
+    ports: ["${DB_PORT:-5432}:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - collegelms-net
 
   redis:
     image: redis:7-alpine
     container_name: collegelms-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
+    ports: ["${REDIS_PORT:-6379}:6379"]
+    volumes: [redis_data:/data]
     command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    networks:
-      - collegelms-net
+
+volumes:
+  postgres_data:
+  redis_data:
 ```
 
-### 2. Configure appsettings
+## Usage
 
-Path: `CollegeLMS.API/appsettings.Development.json`
-
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=collegelms;Username=postgres;Password=postgres"
-  }
-}
-```
-
-### 3. Create .dockerignore
-
-Path: `.dockerignore`
-
-```
-**/.env
-**/.git
-**/node_modules
-**/bin
-**/obj
-**/.vs
-**/.vscode
-```
-
-### 4. First time setup
-
-```powershell
-# Start containers
+```bash
+# Start all services
 docker compose up -d
 
-# Verify health
-docker compose ps
+# Start only DB + Redis (for local dev)
+docker compose up -d db redis
 
-# Apply EF migrations
-dotnet ef database update
-```
-
-### 5. Daily commands
-
-```powershell
-# Start services
-docker compose up -d
-
-# Stop (preserves volumes)
+# Stop all
 docker compose down
 
-# Stop + delete volumes (WARNING: destroys data)
+# Clean volumes (destroy data)
 docker compose down -v
-
-# View logs
-docker compose logs -f db
-
-# Rebuild after config change
-docker compose up -d --force-recreate
-
-# Cleanup (remove unused images, containers, volumes)
-docker system prune -a --volumes
 ```
-
-### 6. Connection string patterns
-
-| Environment | Host | Port | Notes |
-|-------------|------|------|-------|
-| Local dev | `localhost` | 5432 | API runs on host |
-| Docker compose | `db` | 5432 | Service name, not localhost |
-| Production | VPS IP | 5432 | From env variable via compose |
-
-### 7. Reset database
-
-```powershell
-docker compose down -v
-docker compose up -d
-dotnet ef database update
-```
-
-## Convention rules
-
-- PostgreSQL 16-alpine (matches production target)
-- Redis 7-alpine (sessions only per AGENTS.md)
-- Named volumes with `_data` suffix
-- Health checks on all stateful services
-- Container names prefixed `collegelms-`
-- Network named `{project}-net`
-- Default credentials: `postgres` / `postgres`
-- `.dockerignore` excludes build artifacts, secrets, IDE configs
 
 ## Verification
 
-- `docker compose ps` — both services healthy
-- `dotnet ef database update` — succeeds
-- API starts and connects to database
-- `redis-cli ping` — returns `PONG`
+- `docker compose up -d db` starts Postgres
+- `pg_isready -U postgres` returns success
+- `redis-cli ping` returns PONG
+- API connects to `Host=db;Port=5432` in Docker mode

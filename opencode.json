@@ -32,19 +32,19 @@
         "subagent": {
             "BackendAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "Backend .NET developer. Creates entities, EF Core migrations, services, controllers, DTOs, mappers. Uses skills: dotnet-entity, dotnet-endpoint, fluent-validation. Runs: dotnet build."
+                "description": "Backend .NET developer. Creates entities, EF Core migrations, services, controllers, DTOs, mappers. Uses skills: dotnet-entity, dotnet-endpoint, result-pattern, fluent-validation. Runs: dotnet build."
             },
             "FrontendAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS styling. Uses skills: nextjs-page, frontend-scaffold. Runs: npm run dev."
+                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS styling. Runs: npm run dev."
             },
             "TesterAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "Test engineer. Creates xUnit tests with WebApplicationFactory, Bogus fixtures, Playwright E2E. Runs: dotnet test, npx playwright test."
+                "description": "Test engineer. Creates xUnit tests with WebApplicationFactory, Bogus fixtures, Playwright E2E. Uses skills: dotnet-test. Runs: dotnet test, npx playwright test."
             },
             "DevOpsAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "DevOps engineer. Creates Dockerfiles, docker-compose, nginx config, GitHub Actions CI/CD. Uses skills: docker-compose-dev, vps-deploy, cicd-pipeline."
+                "description": "DevOps engineer. Creates Dockerfiles, docker-compose, nginx config, GitHub Actions CI/CD. Uses skills: cicd-pipeline. Runs: docker compose."
             }
         }
     }

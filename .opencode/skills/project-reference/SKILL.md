@@ -169,7 +169,7 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY ["CollegeLMS.API/CollegeLMS.API.csproj", "CollegeLMS.API/"]
+COPY ["CollegeLMS.API/CollegeLMS.csproj", "CollegeLMS.API/"]
 RUN dotnet restore
 COPY . .
 WORKDIR "/src/CollegeLMS.API"

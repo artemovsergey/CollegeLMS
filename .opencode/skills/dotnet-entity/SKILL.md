@@ -120,7 +120,7 @@ dotnet ef database update
 
 For pre-populating database with initial data after migration.
 
-Path: CollegeLMS.API/Data/Seed/{Name}Seed.cs
+Path: `CollegeLMS.API/Data/Seed/{Name}Seed.cs`
 
 `csharp
 using CollegeLMS.API.Entities;
