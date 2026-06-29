@@ -52,7 +52,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${DB_NAME:-collegelms};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-root}
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${DB_NAME:-collegelms};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
     depends_on:
       db:
         condition: service_healthy
@@ -65,7 +65,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: /api/users
+        NEXT_PUBLIC_API_URL: /api
     container_name: collegelms-frontend
     depends_on:
       - api

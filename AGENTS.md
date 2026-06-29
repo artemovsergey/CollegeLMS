@@ -210,6 +210,8 @@ dotnet ef database update --project CollegeLMS.API
 docker compose up -d
 dotnet test CollegeLMS.Tests
 dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/
+dotnet csharpier .                # format all C# files
+dotnet csharpier . --check        # check formatting (CI)
 ```
 
 ## Code conventions
@@ -223,6 +225,7 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/
 - Flat DTOs with default values, file-scoped namespaces
 - `Result<T>.Ok()` for success, `Result<T>.Fail()` for errors
 - `OpenApi v3` namespace: `using Microsoft.OpenApi;` (NOT `Microsoft.OpenApi.Models`)
+- Formatting: CSharpier (`dotnet csharpier .` to format, `dotnet csharpier . --check` in CI)
 
 ## PlantUML conventions
 - ER diagrams: `/docs/diagrams/er/{entity}.puml`
