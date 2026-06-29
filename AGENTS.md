@@ -230,3 +230,17 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/
 - Class diagrams: `/docs/diagrams/class/{service}.puml`
 - Use PlantUML online: `https://www.plantuml.com/plantuml/uml/{encoded}`
 - Or local: `java -jar plantuml.jar docs/diagrams/**/*.puml`
+
+## Reference repository
+
+- База заметок по .NET - https://github.com/artemovsergey/.NET/wiki
+- Репозиторий по огранизации работы с брокером сообщений - https://github.com/artemovsergey/ModuleBankApp
+- Заметки по микросервисной архитектуре - https://github.com/artemovsergey/SampleApp/wiki
+- Репозиторий для примера кода MinimalAPI - https://github.com/artemovsergey/TicTacToe
+- Материалы по UML - https://github.com/artemovsergey/UML
+- Репозитории с примерами кода - https://github.com/artemovsergey/VendingAppFinal, https://github.com/artemovsergey/ProfApp
+- Конфигурации для развертывания - https://github.com/artemovsergey/VPS
+- Технический журнал React Native - https://github.com/artemovsergey/ReactNative
+
+
+Замечание: при нахождении лучшего решения, чем в примерах обязательно спросить
