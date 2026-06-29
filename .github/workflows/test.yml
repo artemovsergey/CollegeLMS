@@ -42,13 +42,13 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore CollegeLMS.API/CollegeLMS.csproj && dotnet restore CollegeLMS.Tests/CollegeLMS.Tests.csproj
 
       - name: Build
-        run: dotnet build --no-restore -c Release
+        run: dotnet build CollegeLMS.API/CollegeLMS.csproj --no-restore -c Release && dotnet build CollegeLMS.Tests/CollegeLMS.Tests.csproj --no-restore -c Release
 
       - name: Test
-        run: dotnet test --no-build -c Release --collect:"XPlat Code Coverage"
+        run: dotnet test CollegeLMS.Tests/CollegeLMS.Tests.csproj --no-build -c Release --collect:"XPlat Code Coverage"
         env:
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=collegelms_test;Username=postgres;Password=postgres
 
