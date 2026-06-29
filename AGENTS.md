@@ -96,9 +96,11 @@ Phase 3: FRONTEND (FrontendAgent)
   skill("nextjs-page")      → page.tsx + loading.tsx + error.tsx
   API integration           → fetch with types
   npm run dev               → MUST WORK (Gate G3)
+  Playwright MCP            → visually verify page renders (screenshots, clicks, form fills)
 
 Phase 4: E2E (TesterAgent)
   Playwright E2E tests      → user flow tests
+  Playwright MCP            → debug failed tests visually, capture screenshots, inspect DOM
   User Story verification   → acceptance criteria check
   npx playwright test       → MUST PASS (Gate G4)
 

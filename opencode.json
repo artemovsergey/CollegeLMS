@@ -1,0 +1,51 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+        "postgres": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "@modelcontextprotocol/server-postgres",
+                "postgresql://postgres:postgres@localhost:5432/collegelms"
+            ],
+            "enabled": true
+        },
+        "playwright": {
+            "type": "local",
+            "command": ["npx", "-y", "@playwright/mcp"],
+            "enabled": true,
+            "environment": {
+                "PLAYWRIGHT_BROWSERS_PATH": "0"
+            }
+        },
+        "github": {
+            "type": "local",
+            "command": ["npx", "-y", "@modelcontextprotocol/server-github"],
+            "enabled": true,
+            "environment": {
+                "GITHUB_TOKEN": "{env:GITHUB_TOKEN}"
+            }
+        }
+    },
+    "agent": {
+        "subagent": {
+            "BackendAgent": {
+                "model": "deepseek-v4-flash-free",
+                "description": "Backend .NET developer. Creates entities, EF Core migrations, services, controllers, DTOs, mappers. Uses skills: dotnet-entity, dotnet-endpoint, fluent-validation. Runs: dotnet build."
+            },
+            "FrontendAgent": {
+                "model": "deepseek-v4-flash-free",
+                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS styling. Uses skills: nextjs-page, frontend-scaffold. Runs: npm run dev."
+            },
+            "TesterAgent": {
+                "model": "deepseek-v4-flash-free",
+                "description": "Test engineer. Creates xUnit tests with WebApplicationFactory, Bogus fixtures, Playwright E2E. Runs: dotnet test, npx playwright test."
+            },
+            "DevOpsAgent": {
+                "model": "deepseek-v4-flash-free",
+                "description": "DevOps engineer. Creates Dockerfiles, docker-compose, nginx config, GitHub Actions CI/CD. Uses skills: docker-compose-dev, vps-deploy, cicd-pipeline."
+            }
+        }
+    }
+}

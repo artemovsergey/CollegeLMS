@@ -12,7 +12,7 @@ services:
     container_name: collegelms-db
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-collegelms}
     ports:
       - "${DB_PORT:-5432}:5432"
