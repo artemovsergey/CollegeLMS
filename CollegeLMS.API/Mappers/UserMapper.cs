@@ -1,7 +1,7 @@
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 
-namespace CollegeLMS.API.Services.Mappers;
+namespace CollegeLMS.API.Mappers;
 
 public static class UserMapper
 {

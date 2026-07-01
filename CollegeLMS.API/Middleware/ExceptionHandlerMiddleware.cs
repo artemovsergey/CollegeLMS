@@ -9,7 +9,8 @@ namespace CollegeLMS.API.Middleware;
 
 public class ExceptionHandlerMiddleware(
     RequestDelegate next,
-    ILogger<ExceptionHandlerMiddleware> logger)
+    ILogger<ExceptionHandlerMiddleware> logger
+)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -32,8 +33,11 @@ public class ExceptionHandlerMiddleware(
             ValidationException => ((int)HttpStatusCode.BadRequest, ex.Message),
             ArgumentException => ((int)HttpStatusCode.BadRequest, ex.Message),
             UnauthorizedAccessException => ((int)HttpStatusCode.Unauthorized, "Не авторизован"),
-            NpgsqlException or DbUpdateException => ((int)HttpStatusCode.InternalServerError, "Ошибка базы данных"),
-            _ => ((int)HttpStatusCode.InternalServerError, "Внутренняя ошибка сервера")
+            NpgsqlException or DbUpdateException => (
+                (int)HttpStatusCode.InternalServerError,
+                "Ошибка базы данных"
+            ),
+            _ => ((int)HttpStatusCode.InternalServerError, "Внутренняя ошибка сервера"),
         };
 
         context.Response.ContentType = "application/json";
@@ -43,9 +47,11 @@ public class ExceptionHandlerMiddleware(
         {
             StatusCode = statusCode,
             Message = message,
-            Detail = context.RequestServices
-                .GetRequiredService<IWebHostEnvironment>()
-                .IsDevelopment() ? ex.ToString() : null
+            Detail = context
+                .RequestServices.GetRequiredService<IWebHostEnvironment>()
+                .IsDevelopment()
+                ? ex.ToString()
+                : null,
         };
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));

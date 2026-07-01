@@ -21,7 +21,7 @@ public static class DataSeeder
                 FullName = "Администратор",
                 Role = UserRole.Admin,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
@@ -31,7 +31,7 @@ public static class DataSeeder
                 FullName = "Иванов Иван Иванович",
                 Role = UserRole.Teacher,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
@@ -41,8 +41,8 @@ public static class DataSeeder
                 FullName = "Петров Пётр Петрович",
                 Role = UserRole.Student,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            }
+                UpdatedAt = DateTime.UtcNow,
+            },
         };
 
         db.Users.AddRange(users);

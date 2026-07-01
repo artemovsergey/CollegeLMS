@@ -15,7 +15,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.Id).ValueGeneratedNever();
 
         builder.Property(x => x.Email).HasMaxLength(256);
-        builder.HasIndex(x => x.Email).IsUnique();
+        builder.HasIndex(x => x.Email).IsUnique().HasDatabaseName("ix_users_email");
 
         builder.Property(x => x.PasswordHash).HasMaxLength(512);
         builder.Property(x => x.FullName).HasMaxLength(200);
@@ -23,5 +23,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.Role)
             .HasConversion<string>()
             .HasMaxLength(50);
+
+        // CHECK constraints — in Data/DbConstraints.cs (not here)
     }
 }

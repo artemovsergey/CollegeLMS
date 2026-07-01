@@ -1,6 +1,6 @@
 using CollegeLMS.API.Dtos;
+using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Services;
-using CollegeLMS.API.Services.Mappers;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
 

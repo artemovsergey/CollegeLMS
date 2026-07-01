@@ -1,8 +1,9 @@
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
+using CollegeLMS.API.Interfaces;
+using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Response;
-using CollegeLMS.API.Services.Mappers;
 using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;

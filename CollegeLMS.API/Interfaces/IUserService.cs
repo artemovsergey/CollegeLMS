@@ -1,7 +1,7 @@
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Response;
 
-namespace CollegeLMS.API.Services;
+namespace CollegeLMS.API.Interfaces;
 
 public interface IUserService
 {

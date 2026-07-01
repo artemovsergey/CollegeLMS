@@ -1,12 +1,12 @@
 using System.Net;
 using Bogus;
 using CollegeLMS.API.Data;
-using Microsoft.Extensions.DependencyInjection;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Response;
 using CollegeLMS.Tests.Integration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CollegeLMS.Tests.Integration.Controllers;
 

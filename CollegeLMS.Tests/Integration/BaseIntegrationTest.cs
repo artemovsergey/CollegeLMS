@@ -16,23 +16,25 @@ public abstract class BaseIntegrationTest : IAsyncLifetime
     protected BaseIntegrationTest()
     {
         _dbName = $"TestDb_{Guid.NewGuid()}";
-        Factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
+        Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("Environment", "Testing");
+            builder.ConfigureServices(services =>
             {
-                builder.UseSetting("Environment", "Testing");
-                builder.ConfigureServices(services =>
-                {
-                    var efServices = services
-                        .Where(s => s.ServiceType.FullName?.StartsWith("Microsoft.EntityFrameworkCore") == true ||
-                                    s.ServiceType.FullName?.Contains("Npgsql") == true)
-                        .ToList();
-                    foreach (var s in efServices)
-                        services.Remove(s);
+                var efServices = services
+                    .Where(s =>
+                        s.ServiceType.FullName?.StartsWith("Microsoft.EntityFrameworkCore") == true
+                        || s.ServiceType.FullName?.Contains("Npgsql") == true
+                    )
+                    .ToList();
+                foreach (var s in efServices)
+                    services.Remove(s);
 
-                    services.AddDbContext<AppDbContext>(options =>
-                        options.UseInMemoryDatabase(_dbName));
-                });
+                services.AddDbContext<AppDbContext>(options =>
+                    options.UseInMemoryDatabase(_dbName)
+                );
             });
+        });
 
         Client = Factory.CreateClient();
     }
@@ -53,9 +55,9 @@ public abstract class BaseIntegrationTest : IAsyncLifetime
     protected async Task<T?> DeserializeAsync<T>(HttpResponseMessage response)
     {
         var json = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        });
+        return JsonSerializer.Deserialize<T>(
+            json,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
     }
 }
