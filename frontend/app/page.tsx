@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import type { User, Result } from "@/types"
+import api from "@/lib/api"
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -9,17 +10,16 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? ""
-    fetch(`${base}/api/users`)
-      .then(r => r.json())
-      .then((body: Result<User[]>) => {
+    api.get<Result<User[]>>("/api/users")
+      .then(r => {
+        const body = r.data
         if (body.isSuccess && body.data) {
           setUsers(body.data)
         } else {
           setError(body.errorMessage ?? "Неизвестная ошибка")
         }
       })
-      .catch(e => setError(e.message))
+      .catch(e => setError(e.message ?? "Неизвестная ошибка"))
       .finally(() => setLoading(false))
   }, [])
 

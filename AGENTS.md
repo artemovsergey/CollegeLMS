@@ -18,6 +18,7 @@
 
 ## Project structure
 ```
+CollegeLMS.slnx            # Solution file — all projects included
 CollegeLMS.API/
   Program.cs             # Minimal bootstrap — everything delegated to extension methods
   Controllers/           # ControllerBase subclasses
@@ -35,7 +36,7 @@ CollegeLMS.API/
   Response/              # Result<T>, ApiResult<T>, ErrorResponse
   Exceptions/            # NotFoundException, ValidationException, ForbiddenException
   Extensions/            # ServiceCollectionExtensions, ApplicationBuilderExtensions, ClaimsPrincipalExtensions
-spec/                    # Postman collection
+docs/spec/               # Postman collection, task.md, userstories.md
 CollegeLMS.Tests/
   Integration/           # WebApplicationFactory tests
   Integration/Controllers/
@@ -87,7 +88,7 @@ scripts/                 # WP data scraper
 ```
 Phase 0: PLANNING (Architect)
   Decompose task into User Stories (see template below)
-  Store task.md and User Stories in spec/
+  Store task.md and User Stories in docs/spec/
   git checkout -b feature/{service}-{feature}
   Load skills: read skill files before generating code
 
@@ -117,7 +118,7 @@ Phase 1: BACKEND (BackendAgent)
     • [SwaggerResponse(code, "...", typeof(...))] + ErrorResponseExample для ошибок
     • SwaggerExamples/ErrorResponseExample.cs для общих ошибок
     • SwaggerExamples/{Name}ResponseExample.cs для успешного ответа
-    • spec/CollegeLMS.postman_collection.json — добавить endpoint в коллекцию
+    • docs/spec/CollegeLMS.postman_collection.json — добавить endpoint в коллекцию
   dotnet build              → MUST PASS (Gate G1)
   If fail → fix and re-run
 
@@ -218,7 +219,7 @@ Phase 7: REVIEW & MERGE (Architect)
 - [ ] Playwright E2E tests pass
 - [ ] Swagger UI shows endpoint with Russian docs
 - [ ] SwaggerExamples created for all error/success responses
-- [ ] Postman collection updated in spec/
+- [ ] Postman collection updated in docs/spec/
 - [ ] PlantUML diagrams generated — ER, Class, Sequence for the feature
 - [ ] CI/CD pipeline passes
 - [ ] Feature branch merged to master
@@ -237,29 +238,28 @@ Phase 7: REVIEW & MERGE (Architect)
 
 ## NuGet packages
 
-| Purpose | Package |
-|---------|---------|
-| ORM | `Microsoft.EntityFrameworkCore`, `Npgsql.EntityFrameworkCore.PostgreSQL` |
-| Migrations | `Microsoft.EntityFrameworkCore.Design` |
-| Snake case | `EFCore.NamingConventions` |
-| Auth | `Microsoft.AspNetCore.Authentication.JwtBearer`, `BCrypt.Net-Next` |
+Packages in `.csproj` grouped into separate `ItemGroup` sections with comments by category:
+
+| Category | Packages |
+|----------|----------|
+| EF Core & Database | `Microsoft.EntityFrameworkCore`, `Npgsql.EntityFrameworkCore.PostgreSQL`, `Microsoft.EntityFrameworkCore.Design`, `EFCore.NamingConventions`, `AspNetCore.HealthChecks.NpgSql` |
+| Auth & Security | `Microsoft.AspNetCore.Authentication.JwtBearer`, `BCrypt.Net-Next` |
 | Validation | `FluentValidation.DependencyInjectionExtensions` |
 | Swagger | `Swashbuckle.AspNetCore`, `Swashbuckle.AspNetCore.Annotations`, `Microsoft.OpenApi` |
 | Logging | `Serilog.AspNetCore` |
-| Healthchecks | `AspNetCore.HealthChecks.NpgSql` |
 | Tests | `xunit`, `coverlet.msbuild`, `Bogus`, `Moq`, `FluentAssertions`, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory` |
 
 ## Development commands
 ```powershell
-dotnet build
+dotnet build                 # builds all projects in CollegeLMS.slnx
 dotnet run --project CollegeLMS.API
 dotnet ef migrations add Add{Name}Entity --project CollegeLMS.API -- --provider Npgsql
 dotnet ef database update --project CollegeLMS.API
 docker compose up -d
-dotnet test CollegeLMS.Tests
+dotnet test                  # runs all test projects in solution
 dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/
-dotnet csharpier format .         # format all C# files
-dotnet csharpier check .          # check formatting (CI)
+dotnet csharpier format .    # format all C# files
+dotnet csharpier check .     # check formatting (CI)
 ```
 
 ## Code conventions
