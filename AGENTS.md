@@ -80,6 +80,8 @@ scripts/                 # WP data scraper
 | `cors-security` | CORS + security headers |
 | `seed-data` | EF Core HasData + Seed classes |
 | `redis-session` | StackExchangeRedis + IDistributedCache setup |
+| `feature-workflow` | Full vertical-slice feature orchestration — branch, entity, API, tests, frontend, docs, merge |
+| `project-reference` | Project-wide reference: NuGet packages, JWT auth, Docker, EF Core conventions |
 
 ## Workflow Protocol
 
@@ -121,11 +123,13 @@ Phase 1: BACKEND (BackendAgent)
     • docs/spec/CollegeLMS.postman_collection.json — добавить endpoint в коллекцию
   dotnet build              → MUST PASS (Gate G1)
   If fail → fix and re-run
+  git add -A && git commit -m "phase 1: {feature} backend"
 
 Phase 2: TESTS (TesterAgent)
   skill("dotnet-test")      → test class for new endpoint
   dotnet test               → MUST PASS (Gate G2)
   If fail → return to Phase 1
+  git add -A && git commit -m "phase 2: {feature} tests"
 
 Phase 3: FRONTEND (FrontendAgent)
   --- Runs in parallel with Phases 1+2 if backend contract is stable ---
@@ -134,6 +138,7 @@ Phase 3: FRONTEND (FrontendAgent)
   npm run dev               → MUST WORK (Gate G3)
   Playwright MCP            → visually verify page renders (screenshots, clicks, form fills)
   If API contract changed  → notify Architect to re-sync
+  git add -A && git commit -m "phase 3: {feature} frontend"
 
 Phase 4: E2E (TesterAgent)
   Playwright E2E tests      → user flow tests
@@ -144,16 +149,19 @@ Phase 4: E2E (TesterAgent)
     • Backend bug     → return to Phase 1
     • Frontend bug    → return to Phase 3
     • Test bug        → fix in Phase 4
+  git add -A && git commit -m "phase 4: {feature} e2e"
 
 Phase 5: DOCS (AnalystAgent)
   PlantUML diagrams         → ER (entities), Class (services), Sequence (flows)
   skill("plantuml-docs")
+  git add -A && git commit -m "phase 5: {feature} docs"
 
 Phase 6: DEVOPS (DevOpsAgent)
   Docker check              → docker compose build
   CI/CD check               → .github/workflows updated
   Local staging test        → Gate G5
   If Docker/CI fails        → fix and re-run Phase 6
+  git add -A && git commit -m "phase 6: {feature} devops"
 
 Phase 7: REVIEW & MERGE (Architect)
   Code review               → peer review of all changes
