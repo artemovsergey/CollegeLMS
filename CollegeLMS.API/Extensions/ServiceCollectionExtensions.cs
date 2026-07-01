@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Services;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -54,12 +54,16 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "CollegeLMS API",
-                Version = "v1",
-                Description = "API для управления учебным заведением. Все эндпоинты требуют JWT-аутентификацию.",
-            });
+            c.SwaggerDoc(
+                "v1",
+                new OpenApiInfo
+                {
+                    Title = "CollegeLMS API",
+                    Version = "v1",
+                    Description =
+                        "API для управления учебным заведением. Все эндпоинты требуют JWT-аутентификацию.",
+                }
+            );
 
             var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
             var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -80,7 +84,6 @@ public static class ServiceCollectionExtensions
             {
                 { new OpenApiSecuritySchemeReference("Bearer"), [] },
             });
-
         });
 
         return services;
@@ -113,17 +116,42 @@ public static class ServiceCollectionExtensions
     {
         services.ConfigureHttpJsonOptions(options =>
         {
-            options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-            options.SerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+            options.SerializerOptions.PropertyNamingPolicy = System
+                .Text
+                .Json
+                .JsonNamingPolicy
+                .CamelCase;
+            options.SerializerOptions.DefaultIgnoreCondition = System
+                .Text
+                .Json
+                .Serialization
+                .JsonIgnoreCondition
+                .WhenWritingNull;
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
-        services.AddControllers().AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-            options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-            options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        });
+        services
+            .AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNamingPolicy = System
+                    .Text
+                    .Json
+                    .JsonNamingPolicy
+                    .CamelCase;
+                options.JsonSerializerOptions.DefaultIgnoreCondition = System
+                    .Text
+                    .Json
+                    .Serialization
+                    .JsonIgnoreCondition
+                    .WhenWritingNull;
+                options.JsonSerializerOptions.ReferenceHandler = System
+                    .Text
+                    .Json
+                    .Serialization
+                    .ReferenceHandler
+                    .IgnoreCycles;
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
         return services;
     }

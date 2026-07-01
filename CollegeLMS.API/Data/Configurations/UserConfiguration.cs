@@ -20,9 +20,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.PasswordHash).HasMaxLength(512);
         builder.Property(x => x.FullName).HasMaxLength(200);
 
-        builder.Property(x => x.Role)
-            .HasConversion<string>()
-            .HasMaxLength(50);
+        builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(50);
 
         // CHECK constraints — in Data/DbConstraints.cs (not here)
     }

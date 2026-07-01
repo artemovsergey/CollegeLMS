@@ -23,10 +23,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 continue;
 
             var builder = modelBuilder.Entity(entityType.ClrType);
-            builder.Property(nameof(Entity.CreatedAt))
+            builder
+                .Property(nameof(Entity.CreatedAt))
                 .HasColumnType("timestamp with time zone")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
-            builder.Property(nameof(Entity.UpdatedAt))
+            builder
+                .Property(nameof(Entity.UpdatedAt))
                 .HasColumnType("timestamp with time zone")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
         }
