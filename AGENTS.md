@@ -306,5 +306,4 @@ dotnet csharpier check .     # check formatting (CI)
 - Конфигурации для развертывания - https://github.com/artemovsergey/VPS
 - Технический журнал React Native - https://github.com/artemovsergey/ReactNative
 
-
 **Замечание**: при нахождении лучшего решения, чем в примерах обязательно спросить

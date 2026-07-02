@@ -42,6 +42,10 @@
                 "model": "deepseek-v4-flash-free",
                 "description": "Test engineer. Creates xUnit tests with WebApplicationFactory, Bogus fixtures, Playwright E2E. Uses skills: dotnet-test. Runs: dotnet test, npx playwright test."
             },
+            "AnalystAgent": {
+                "model": "deepseek-v4-flash-free",
+                "description": "Technical analyst. Creates PlantUML diagrams (ER, Class, Sequence, UseCase, Deployment), tech documentation, architecture docs. Uses skills: plantuml-docs."
+            },
             "DevOpsAgent": {
                 "model": "deepseek-v4-flash-free",
                 "description": "DevOps engineer. Creates Dockerfiles, docker-compose, nginx config, GitHub Actions CI/CD. Uses skills: cicd-pipeline. Runs: docker compose."
