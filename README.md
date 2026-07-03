@@ -1,1 +1,1 @@
-# CollegeLMS
+# CollegeLMS платформа
