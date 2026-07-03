@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation"
 import type { Result, LoginResponse } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -37,50 +47,49 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-4 w-full max-w-sm p-6 rounded border border-gray-200 bg-white shadow-sm"
-      >
-        <h1 className="text-xl font-bold text-center">Вход в систему</h1>
+      <Card className="w-full max-w-sm mx-4">
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">Вход в систему</CardTitle>
+          <CardDescription>CollegeLMS</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {error && (
+              <div className="rounded bg-destructive/15 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
 
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 rounded p-2">{error}</p>
-        )}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="admin@collegelms.ru"
+              />
+            </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="email" className="text-sm font-medium">Email</label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="rounded border border-gray-300 p-2 text-sm"
-            placeholder="admin@collegelms.ru"
-          />
-        </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Пароль</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••"
+              />
+            </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="password" className="text-sm font-medium">Пароль</label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="rounded border border-gray-300 p-2 text-sm"
-            placeholder="••••••"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-        >
-          {submitting ? "Вход..." : "Войти"}
-        </button>
-      </form>
+            <Button type="submit" disabled={submitting} className="w-full">
+              {submitting ? "Вход..." : "Войти"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }
