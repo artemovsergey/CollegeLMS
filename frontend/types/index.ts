@@ -39,3 +39,105 @@ export interface Result<T> {
   errorMessage: string | null
   statusCode: number
 }
+
+export interface GroupResponse {
+  id: string
+  name: string
+  course: number
+  studentCount: number
+}
+
+export interface CreateGroupRequest {
+  name: string
+  course: number
+}
+
+export interface TeacherResponse {
+  id: string
+  fullName: string
+  email: string
+  department: string
+  position: string
+}
+
+export interface StudentResponse {
+  id: string
+  fullName: string
+  email: string
+  groupId: string
+  groupName: string
+  recordBookNumber: string
+}
+
+export interface CourseResponse {
+  id: string
+  title: string
+  description: string
+  teacherId: string
+  teacherName: string
+  groupId: string
+  groupName: string
+  status: string
+  lectureCount: number
+  assignmentCount: number
+}
+
+export interface CreateCourseRequest {
+  title: string
+  description: string
+  groupId: string
+}
+
+export interface LectureResponse {
+  id: string
+  courseId: string
+  title: string
+  content: string
+  order: number
+}
+
+export interface AssignmentResponse {
+  id: string
+  courseId: string
+  title: string
+  description: string
+  dueDate: string | null
+  maxScore: number
+  order: number
+  submissionCount: number
+}
+
+export interface SubmissionResponse {
+  id: string
+  assignmentId: string
+  studentId: string
+  studentName: string
+  filePath: string
+  comment: string | null
+  score: number | null
+  submittedAt: string
+}
+
+export interface MaterialResponse {
+  id: string
+  courseId: string
+  lectureId: string | null
+  assignmentId: string | null
+  fileName: string
+  fileSize: number
+  mimeType: string
+  createdAt: string
+}
+
+export interface TeacherDashboardResponse {
+  coursesCount: number
+  studentsCount: number
+  recentSubmissions: SubmissionResponse[]
+  courses: { id: string; title: string }[]
+}
+
+export interface StudentDashboardResponse {
+  coursesCount: number
+  recentGrades: { courseName: string; score: number | null }[]
+  upcomingDeadlines: { assignmentTitle: string; dueDate: string | null }[]
+}
