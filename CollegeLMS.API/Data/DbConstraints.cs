@@ -89,7 +89,7 @@ public static class DbConstraints
                 DO $$
                 BEGIN
                     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_assignment_submissions_score_range') THEN
-                        ALTER TABLE assignment_submissions ADD CONSTRAINT ck_assignment_submissions_score_range CHECK (score IS NULL OR (score >= 0 AND score <= (SELECT max_score FROM assignments WHERE id = assignment_id)));
+                        ALTER TABLE assignment_submissions ADD CONSTRAINT ck_assignment_submissions_score_range CHECK (score IS NULL OR (score >= 0 AND score <= 100));
                     END IF;
                 END $$;
             """
