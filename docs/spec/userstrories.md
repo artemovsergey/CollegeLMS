@@ -255,92 +255,160 @@
 
 **Acceptance Criteria:**
 - [ ] POST /api/courses — создать курс
-- [ ] GET /api/courses — список курсов (с фильтром по преподавателю)
+- [ ] GET /api/courses — список курсов (с фильтром по преподавателю/группе)
 - [ ] GET /api/courses/{id} — детали курса
 - [ ] PUT /api/courses/{id} — редактировать
-- [ ] Курс: название, описание, преподаватель, группа, список модулей
+- [ ] DELETE /api/courses/{id} — удалить курс
+- [ ] Курс: название, описание, преподаватель, группа, статус (Draft/Active/Archived)
+- [ ] Только автор-преподаватель или админ может редактировать/удалять курс
 
 **API:**
 - `GET /api/courses`
 - `POST /api/courses`
 - `GET /api/courses/{id}`
 - `PUT /api/courses/{id}`
+- `DELETE /api/courses/{id}`
 
-**Dependencies:** GroupService, TeacherService
+**Dependencies:** GroupService, TeacherService, AuthService
 
-### UC-23: Преподаватель может добавить лекцию в курс
+### UC-23: Преподаватель может управлять лекциями курса
 
 **Acceptance Criteria:**
 - [ ] POST /api/courses/{courseId}/lectures — добавить лекцию
 - [ ] GET /api/courses/{courseId}/lectures — список лекций
-- [ ] Лекция: тема, содержание (Markdown/HTML), вложения
+- [ ] GET /api/courses/{courseId}/lectures/{id} — просмотр лекции
+- [ ] PUT /api/courses/{courseId}/lectures/{id} — редактировать лекцию
+- [ ] DELETE /api/courses/{courseId}/lectures/{id} — удалить лекцию
+- [ ] Лекция: тема, содержание (Markdown), порядковый номер
+- [ ] Только автор курса или админ может управлять лекциями
 
 **API:**
-- `POST /api/courses/{courseId}/lectures`
 - `GET /api/courses/{courseId}/lectures`
+- `POST /api/courses/{courseId}/lectures`
+- `GET /api/courses/{courseId}/lectures/{id}`
+- `PUT /api/courses/{courseId}/lectures/{id}`
+- `DELETE /api/courses/{courseId}/lectures/{id}`
 
-**Dependencies:** CourseService, FileService
+**Dependencies:** CourseService
 
-### UC-24: Преподаватель может добавить практическое задание в курс
+### UC-24: Преподаватель может управлять заданиями курса
 
 **Acceptance Criteria:**
 - [ ] POST /api/courses/{courseId}/assignments — создать задание
-- [ ] Задание: описание, срок сдачи, критерии оценки, файлы
+- [ ] GET /api/courses/{courseId}/assignments — список заданий курса
+- [ ] GET /api/courses/{courseId}/assignments/{id} — просмотр задания
+- [ ] PUT /api/courses/{courseId}/assignments/{id} — редактировать
+- [ ] DELETE /api/courses/{courseId}/assignments/{id} — удалить задание
+- [ ] Задание: название, описание, срок сдачи, макс. балл (1-100), порядковый номер
 
-**API:** `POST /api/courses/{courseId}/assignments`
+**API:**
+- `GET /api/courses/{courseId}/assignments`
+- `POST /api/courses/{courseId}/assignments`
+- `GET /api/courses/{courseId}/assignments/{id}`
+- `PUT /api/courses/{courseId}/assignments/{id}`
+- `DELETE /api/courses/{courseId}/assignments/{id}`
+
+**Dependencies:** CourseService
 
 ### UC-25: Студент может просмотреть свои курсы
 
 **Acceptance Criteria:**
 - [ ] GET /api/my/courses — список курсов текущего студента
-- [ ] GET /api/my/courses/{id} — детали курса с модулями
+- [ ] GET /api/my/courses/{id} — детали курса с лекциями и заданиями
 
 **API:**
 - `GET /api/my/courses`
 - `GET /api/my/courses/{id}`
 
-### UC-26: Студент может просмотреть материалы курса
+**Dependencies:** CourseService, GroupService
+
+### UC-26: Студент может просмотреть лекции и материалы курса
 
 **Acceptance Criteria:**
+- [ ] GET /api/courses/{courseId}/lectures — список лекций курса
 - [ ] GET /api/courses/{courseId}/lectures/{id} — просмотр лекции
 - [ ] GET /api/courses/{courseId}/materials — список файлов курса
 - [ ] Студент может скачать прикреплённые файлы
+- [ ] Только студенты, прикреплённые к группе курса, имеют доступ
 
 **API:**
+- `GET /api/courses/{courseId}/lectures`
 - `GET /api/courses/{courseId}/lectures/{id}`
 - `GET /api/courses/{courseId}/materials`
+- `GET /api/materials/{id}/download`
 
-**Dependencies:** FileService
+**Dependencies:** FileService, CourseService
 
-### UC-27: Студент может загрузить файл для задания
+### UC-27: Студент может отправить выполненное задание
 
 **Acceptance Criteria:**
 - [ ] POST /api/assignments/{id}/submit — загрузить выполненное задание
-- [ ] Поддерживаемые форматы: PDF, DOC, DOCX, PPT, MP4, ZIP
+- [ ] GET /api/assignments/{id}/submissions (student) — свои отправки по заданию
+- [ ] GET /api/my/submissions — все свои отправки
+- [ ] Студент может прикрепить файл и комментарий
+- [ ] Только студенты группы курса могут отправлять
 
-**API:** `POST /api/assignments/{id}/submit`
+**API:**
+- `POST /api/assignments/{id}/submit`
+- `GET /api/my/submissions`
 
 **Dependencies:** FileService
 
-### UC-28: Студент может просмотреть личный кабинет
+### UC-28: Преподаватель может оценивать отправки студентов
 
 **Acceptance Criteria:**
-- [ ] GET /api/my/dashboard — сводка: курсы, оценки, посещаемость, задолженности
+- [ ] GET /api/assignments/{id}/submissions — список отправок по заданию
+- [ ] PATCH /api/submissions/{id}/grade — выставить оценку с комментарием
+- [ ] Оценка от 0 до макс. балла задания
+- [ ] Только преподаватель-автор курса может оценивать
 
-**API:** `GET /api/my/dashboard`
+**API:**
+- `GET /api/assignments/{id}/submissions`
+- `PATCH /api/submissions/{id}/grade`
 
-### UC-29: Преподаватель может просмотреть личный кабинет
+**Dependencies:** FileService
+
+### UC-29: Студент может просмотреть личный кабинет
 
 **Acceptance Criteria:**
-- [ ] GET /api/teacher/dashboard — сводка: группы, курсы, расписание, журнал
+- [ ] GET /api/my/dashboard — сводка: курсы, количество лекций, заданий, отправок
+- [ ] GET /api/my/submissions — список всех отправок с оценками
+
+**API:**
+- `GET /api/my/dashboard`
+- `GET /api/my/submissions`
+
+### UC-30: Преподаватель может просмотреть личный кабинет
+
+**Acceptance Criteria:**
+- [ ] GET /api/teacher/dashboard — сводка: курсы, количество студентов, последние отправки
+- [ ] GET /api/teacher/dashboard включает недавние отправки для проверки
 
 **API:** `GET /api/teacher/dashboard`
+
+### UC-31: Преподаватель может загружать файлы к курсу
+
+**Acceptance Criteria:**
+- [ ] POST /api/courses/{courseId}/materials — загрузить файл
+- [ ] GET /api/courses/{courseId}/materials — список файлов курса
+- [ ] GET /api/materials/{id}/download — скачать файл
+- [ ] DELETE /api/materials/{id} — удалить файл
+- [ ] Файл: имя, размер, MIME-тип
+- [ ] Только автор курса или админ может управлять файлами
+
+**API:**
+- `POST /api/courses/{courseId}/materials`
+- `GET /api/courses/{courseId}/materials`
+- `GET /api/materials/{id}/download`
+- `DELETE /api/materials/{id}`
+
+**Dependencies:** FileService
 
 ---
 
 ## 5. TestingService — Сервис тестирования
 
-### UC-30: Преподаватель может создать тест
+### UC-32: Преподаватель может создать тест
 
 **Acceptance Criteria:**
 - [ ] POST /api/tests — создать тест (в рамках курса)
@@ -353,7 +421,7 @@
 
 **Dependencies:** CourseService
 
-### UC-31: Преподаватель может добавить вопросы в тест
+### UC-33: Преподаватель может добавить вопросы в тест
 
 **Acceptance Criteria:**
 - [ ] POST /api/tests/{testId}/questions — добавить вопрос
@@ -364,7 +432,7 @@
 - `POST /api/tests/{testId}/questions`
 - `PUT /api/tests/{testId}/questions/{id}`
 
-### UC-32: Студент может пройти тест
+### UC-34: Студент может пройти тест
 
 **Acceptance Criteria:**
 - [ ] GET /api/tests/{testId}/start — начать тест (фиксация времени)
@@ -376,7 +444,7 @@
 - `GET /api/tests/{testId}/start`
 - `POST /api/tests/{testId}/submit`
 
-### UC-33: Студент может просмотреть результаты теста
+### UC-35: Студент может просмотреть результаты теста
 
 **Acceptance Criteria:**
 - [ ] GET /api/tests/{testId}/results — результат текущего студента
@@ -386,7 +454,7 @@
 - `GET /api/tests/{testId}/results`
 - `GET /api/my/results`
 
-### UC-34: Преподаватель может просмотреть статистику по тесту
+### UC-36: Преподаватель может просмотреть статистику по тесту
 
 **Acceptance Criteria:**
 - [ ] GET /api/tests/{testId}/stats — статистика: средний балл, распределение, кто не сдал
@@ -397,7 +465,7 @@
 
 ## 6. JournalService — Сервис электронного журнала
 
-### UC-35: Преподаватель может вести журнал на паре
+### UC-37: Преподаватель может вести журнал на паре
 
 **Acceptance Criteria:**
 - [ ] GET /api/journal?lessonId={id} — журнал занятия
@@ -411,7 +479,7 @@
 
 **Dependencies:** ScheduleService, GroupService
 
-### UC-36: Преподаватель может отмечать посещаемость
+### UC-38: Преподаватель может отмечать посещаемость
 
 **Acceptance Criteria:**
 - [ ] PATCH /api/journal/{id}/attendance — отметить присутствие/отсутствие
@@ -419,14 +487,14 @@
 
 **API:** `PATCH /api/journal/{id}/attendance`
 
-### UC-37: Преподаватель может фиксировать тему занятия
+### UC-39: Преподаватель может фиксировать тему занятия
 
 **Acceptance Criteria:**
 - [ ] PATCH /api/journal/{id}/topic — указать/изменить тему занятия
 
 **API:** `PATCH /api/journal/{id}/topic`
 
-### UC-38: Студент может просмотреть свою посещаемость
+### UC-40: Студент может просмотреть свою посещаемость
 
 **Acceptance Criteria:**
 - [ ] GET /api/my/attendance — статистика посещаемости студента
@@ -440,7 +508,7 @@
 
 ## 7. CuratorService — Сервис классного руководителя
 
-### UC-39: Классный руководитель может просмотреть список группы
+### UC-41: Классный руководитель может просмотреть список группы
 
 **Acceptance Criteria:**
 - [ ] GET /api/curator/group — информация о закреплённой группе
@@ -452,7 +520,7 @@
 
 **Dependencies:** GroupService
 
-### UC-40: Классный руководитель может создавать мероприятия группы
+### UC-42: Классный руководитель может создавать мероприятия группы
 
 **Acceptance Criteria:**
 - [ ] POST /api/curator/events — создать мероприятие
@@ -462,7 +530,7 @@
 - `POST /api/curator/events`
 - `GET /api/curator/events`
 
-### UC-41: Классный руководитель может написать характеристику на студента
+### UC-43: Классный руководитель может написать характеристику на студента
 
 **Acceptance Criteria:**
 - [ ] POST /api/curator/characteristics — создать характеристику
@@ -472,7 +540,7 @@
 - `POST /api/curator/characteristics`
 - `GET /api/curator/characteristics/{studentId}`
 
-### UC-42: Классный руководитель может просмотреть отчёт об успеваемости группы
+### UC-44: Классный руководитель может просмотреть отчёт об успеваемости группы
 
 **Acceptance Criteria:**
 - [ ] GET /api/curator/progress — сводка успеваемости по группе
@@ -484,7 +552,7 @@
 
 ## 8. PerformService — Сервис успеваемости
 
-### UC-43: Преподаватель может управлять ведомостями
+### UC-45: Преподаватель может управлять ведомостями
 
 **Acceptance Criteria:**
 - [ ] POST /api/grade-sheets — создать ведомость
@@ -496,7 +564,7 @@
 - `GET /api/grade-sheets`
 - `PUT /api/grade-sheets/{id}/grades`
 
-### UC-44: Преподаватель может отмечать задолженности
+### UC-46: Преподаватель может отмечать задолженности
 
 **Acceptance Criteria:**
 - [ ] POST /api/debts — создать запись о задолженности
@@ -508,14 +576,14 @@
 - `GET /api/debts`
 - `PATCH /api/debts/{id}`
 
-### UC-45: Студент может просмотреть зачётную книжку
+### UC-47: Студент может просмотреть зачётную книжку
 
 **Acceptance Criteria:**
 - [ ] GET /api/my/record-book — зачётная книжка: все предметы, оценки, семестры
 
 **API:** `GET /api/my/record-book`
 
-### UC-46: Администратор может вести учёт выпускников
+### UC-48: Администратор может вести учёт выпускников
 
 **Acceptance Criteria:**
 - [ ] POST /api/graduates — зарегистрировать выпускника
@@ -530,7 +598,7 @@
 
 ## 9. AdmissionService — Сервис приёмной комиссии
 
-### UC-47: Абитуриент может подать заявление на поступление
+### UC-49: Абитуриент может подать заявление на поступление
 
 **Acceptance Criteria:**
 - [ ] POST /api/admissions — подать заявление (ФИО, телефон, email, специальность)
@@ -540,7 +608,7 @@
 - `POST /api/admissions`
 - `GET /api/admissions/status`
 
-### UC-48: Секретарь может просмотреть список заявлений
+### UC-50: Секретарь может просмотреть список заявлений
 
 **Acceptance Criteria:**
 - [ ] GET /api/admissions — список заявлений с фильтрами (статус, дата)
@@ -554,7 +622,7 @@
 
 ## 10. HrService — Сервис отдела кадров
 
-### UC-49: Сотрудник отдела кадров может управлять сотрудниками (CRUD)
+### UC-51: Сотрудник отдела кадров может управлять сотрудниками (CRUD)
 
 **Acceptance Criteria:**
 - [ ] GET /api/hr/employees — список сотрудников
@@ -586,15 +654,15 @@
 
 ---
 
-## Всего User Stories: 49
+## Всего User Stories: 51
 
 - SiteService: 6 (UC-1 — UC-6)
 - AuthService: 5 (UC-7 — UC-11)
 - ScheduleService: 7 (UC-12 — UC-18)
-- LearningService: 11 (UC-19 — UC-29)
-- TestingService: 5 (UC-30 — UC-34)
-- JournalService: 4 (UC-35 — UC-38)
-- CuratorService: 4 (UC-39 — UC-42)
-- PerformService: 4 (UC-43 — UC-46)
-- AdmissionService: 2 (UC-47 — UC-48)
-- HrService: 1 (UC-49)
+- LearningService: 13 (UC-19 — UC-31)
+- TestingService: 5 (UC-32 — UC-36)
+- JournalService: 4 (UC-37 — UC-40)
+- CuratorService: 4 (UC-41 — UC-44)
+- PerformService: 4 (UC-45 — UC-48)
+- AdmissionService: 2 (UC-49 — UC-50)
+- HrService: 1 (UC-51)
