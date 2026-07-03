@@ -13,6 +13,7 @@ public static class UserFixture
             .RuleFor(u => u.FullName, f => f.Name.FullName())
             .RuleFor(u => u.PasswordHash, _ => BCrypt.Net.BCrypt.HashPassword("test123"))
             .RuleFor(u => u.Role, f => f.PickRandom<UserRole>())
+            .RuleFor(u => u.IsActive, _ => true)
             .RuleFor(u => u.CreatedAt, f => f.Date.Past())
             .RuleFor(u => u.UpdatedAt, f => f.Date.Recent());
 }

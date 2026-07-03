@@ -1,4 +1,5 @@
 using CollegeLMS.API.Dtos;
+using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
@@ -43,5 +44,156 @@ public class UserServiceTests : IDisposable
         result.Data.Should().NotBeNull();
         result.Data.Should().HaveCount(5);
         result.Data.Should().BeInAscendingOrder(u => u.FullName);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsUser_WhenFound()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetByIdAsync(user.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Id.Should().Be(user.Id);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsFail_WhenNotFound()
+    {
+        var result = await _sut.GetByIdAsync(Guid.NewGuid(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task CreateAsync_CreatesUser()
+    {
+        var request = new CreateUserRequest
+        {
+            Email = "new@test.ru",
+            Password = "password123",
+            FullName = "New User",
+            Role = UserRole.Student,
+        };
+
+        var result = await _sut.CreateAsync(request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Email.Should().Be("new@test.ru");
+        result.Data.FullName.Should().Be("New User");
+        result.Data.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateAsync_ReturnsFail_WhenEmailExists()
+    {
+        var existing = UserFixture.CreateFaker().Generate();
+        _db.Users.Add(existing);
+        await _db.SaveChangesAsync();
+
+        var request = new CreateUserRequest
+        {
+            Email = existing.Email,
+            Password = "password123",
+            FullName = "Another",
+            Role = UserRole.Student,
+        };
+
+        var result = await _sut.CreateAsync(request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(409);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UpdatesUser()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var request = new UpdateUserRequest
+        {
+            Email = "updated@test.ru",
+            FullName = "Updated Name",
+            Role = UserRole.Teacher,
+        };
+
+        var result = await _sut.UpdateAsync(user.Id, request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Email.Should().Be("updated@test.ru");
+        result.Data.FullName.Should().Be("Updated Name");
+        result.Data.Role.Should().Be("Teacher");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ReturnsFail_WhenNotFound()
+    {
+        var request = new UpdateUserRequest
+        {
+            Email = "any@test.ru",
+            FullName = "Any",
+            Role = UserRole.Student,
+        };
+
+        var result = await _sut.UpdateAsync(Guid.NewGuid(), request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_DeactivatesUser()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.DeleteAsync(user.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+
+        var deleted = await _db.Users.FindAsync([user.Id]);
+        deleted!.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ReturnsFail_WhenNotFound()
+    {
+        var result = await _sut.DeleteAsync(Guid.NewGuid(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task ChangeRoleAsync_ChangesRole()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        user.Role = UserRole.Student;
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var request = new ChangeRoleRequest { Role = UserRole.Dispatcher };
+
+        var result = await _sut.ChangeRoleAsync(user.Id, request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Role.Should().Be("Dispatcher");
+    }
+
+    [Fact]
+    public async Task ChangeRoleAsync_ReturnsFail_WhenNotFound()
+    {
+        var request = new ChangeRoleRequest { Role = UserRole.Admin };
+
+        var result = await _sut.ChangeRoleAsync(Guid.NewGuid(), request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
     }
 }
