@@ -162,6 +162,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IGroupService, GroupService>();
         services.AddValidatorsFromAssemblyContaining<Program>();
 
         return services;
