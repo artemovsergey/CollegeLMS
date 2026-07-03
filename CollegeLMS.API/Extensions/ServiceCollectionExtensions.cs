@@ -171,6 +171,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISubmissionService, SubmissionService>();
         services.AddScoped<IFileService, FileService>();
         services.AddScoped<IMaterialService, MaterialService>();
+        services.AddScoped<IDashboardService, DashboardService>();
         services.AddValidatorsFromAssemblyContaining<Program>();
 
         return services;
