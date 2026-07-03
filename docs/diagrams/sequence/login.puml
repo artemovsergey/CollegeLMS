@@ -1,0 +1,29 @@
+@startuml
+!theme plain
+
+actor "Клиент" as Client
+participant "AuthController" as Ctrl
+participant "AuthService" as Svc
+participant "JwtTokenService" as Token
+database "PostgreSQL" as DB
+
+' Flow логина
+Client -> Ctrl: POST /api/auth/login\n{ email, password }
+Ctrl -> Svc: LoginAsync(request, ct)
+Svc -> DB: SELECT * FROM users WHERE email = @email
+DB --> Svc: User | null
+
+alt пользователь не найден или пароль неверен
+  Svc --> Ctrl: Result.Fail("Неверный email\nили пароль", 401)
+  Ctrl --> Client: 401 Unauthorized
+else пользователь деактивирован
+  Svc --> Ctrl: Result.Fail("Пользователь\nдеактивирован", 403)
+  Ctrl --> Client: 403 Forbidden
+else успех
+  Svc -> Svc: BCrypt.Verify(password, hash)
+  Svc -> Token: GenerateAccessToken(user)
+  Token --> Svc: "jwt-string"
+  Svc --> Ctrl: Result.Ok({ token, user })
+  Ctrl --> Client: 200 OK + { token, user }
+end
+@enduml

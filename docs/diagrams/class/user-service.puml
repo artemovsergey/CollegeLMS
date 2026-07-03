@@ -3,16 +3,53 @@
 
 interface IUserService {
   + GetAllAsync(CancellationToken): Result<List<UserResponse>>
+  + GetByIdAsync(Guid, CancellationToken): Result<UserResponse>
+  + CreateAsync(CreateUserRequest, CancellationToken): Result<UserResponse>
+  + UpdateAsync(Guid, UpdateUserRequest, CancellationToken): Result<UserResponse>
+  + DeleteAsync(Guid, CancellationToken): Result
+  + ChangeRoleAsync(Guid, ChangeRoleRequest, CancellationToken): Result<UserResponse>
 }
 
 class UserService {
   - db: AppDbContext
-  + GetAllAsync(CancellationToken): Result<List<UserResponse>>
+  + ... (CRUD + ChangeRole)
+}
+
+interface IAuthService {
+  + LoginAsync(LoginRequest, CancellationToken): Result<LoginResponse>
+  + GetProfileAsync(Guid, CancellationToken): Result<UserResponse>
+}
+
+class AuthService {
+  - db: AppDbContext
+  - tokenService: ITokenService
+  + LoginAsync(LoginRequest, CancellationToken): Result<LoginResponse>
+  + GetProfileAsync(Guid, CancellationToken): Result<UserResponse>
+}
+
+interface ITokenService {
+  + GenerateAccessToken(User): string
+}
+
+class JwtTokenService {
+  - config: IConfiguration
+  + GenerateAccessToken(User): string
+}
+
+class AuthController {
+  - authService: IAuthService
+  + Login(LoginRequest, CancellationToken): ActionResult
+  + Profile(CancellationToken): ActionResult
 }
 
 class UserController {
   - service: IUserService
   + GetAll(CancellationToken): ActionResult
+  + GetById(Guid, CancellationToken): ActionResult
+  + Create(CreateUserRequest, CancellationToken): ActionResult
+  + Update(Guid, UpdateUserRequest, CancellationToken): ActionResult
+  + Delete(Guid, CancellationToken): ActionResult
+  + ChangeRole(Guid, ChangeRoleRequest, CancellationToken): ActionResult
 }
 
 class User {
@@ -21,6 +58,7 @@ class User {
   - PasswordHash: string
   - FullName: string
   - Role: UserRole
+  - IsActive: bool
   - CreatedAt: DateTime
   - UpdatedAt: DateTime
 }
@@ -30,10 +68,17 @@ class UserResponse {
   - Email: string
   - FullName: string
   - Role: string
+  - IsActive: bool
+}
+
+class LoginResponse {
+  - Token: string
+  - User: UserResponse
 }
 
 class UserMapper {
   + {static} ToDto(User): UserResponse
+  + {static} ToEntity(CreateUserRequest): User
 }
 
 class AppDbContext {
@@ -41,9 +86,15 @@ class AppDbContext {
 }
 
 IUserService <|.. UserService
+IAuthService <|.. AuthService
+ITokenService <|.. JwtTokenService
 UserController --> IUserService
+AuthController --> IAuthService
+AuthService --> ITokenService
 UserService --> AppDbContext
+AuthService --> AppDbContext
 UserService --> UserMapper
+AuthService --> UserMapper
 UserMapper --> UserResponse
 UserMapper --> User
 AppDbContext --> User
