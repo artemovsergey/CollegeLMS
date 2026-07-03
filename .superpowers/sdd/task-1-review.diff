@@ -1,0 +1,206 @@
+diff --git a/CollegeLMS.API/Entities/Assignment.cs b/CollegeLMS.API/Entities/Assignment.cs
+new file mode 100644
+index 0000000..f7b3d47
+--- /dev/null
++++ b/CollegeLMS.API/Entities/Assignment.cs
+@@ -0,0 +1,19 @@
++using System.Text.Json.Serialization;
++
++namespace CollegeLMS.API.Entities;
++
++public class Assignment : Entity
++{
++    public Guid CourseId { get; set; }
++    public string Title { get; set; } = string.Empty;
++    public string Description { get; set; } = string.Empty;
++    public DateTime? DueDate { get; set; }
++    public int MaxScore { get; set; }
++    public int Order { get; set; }
++
++    [JsonIgnore]
++    public Course Course { get; set; } = null!;
++
++    [JsonIgnore]
++    public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
++}
+diff --git a/CollegeLMS.API/Entities/AssignmentSubmission.cs b/CollegeLMS.API/Entities/AssignmentSubmission.cs
+new file mode 100644
+index 0000000..ab70cd9
+--- /dev/null
++++ b/CollegeLMS.API/Entities/AssignmentSubmission.cs
+@@ -0,0 +1,19 @@
++using System.Text.Json.Serialization;
++
++namespace CollegeLMS.API.Entities;
++
++public class AssignmentSubmission : Entity
++{
++    public Guid AssignmentId { get; set; }
++    public Guid StudentId { get; set; }
++    public string FilePath { get; set; } = string.Empty;
++    public string? Comment { get; set; }
++    public int? Score { get; set; }
++    public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
++
++    [JsonIgnore]
++    public Assignment Assignment { get; set; } = null!;
++
++    [JsonIgnore]
++    public Student Student { get; set; } = null!;
++}
+diff --git a/CollegeLMS.API/Entities/Course.cs b/CollegeLMS.API/Entities/Course.cs
+new file mode 100644
+index 0000000..4751da8
+--- /dev/null
++++ b/CollegeLMS.API/Entities/Course.cs
+@@ -0,0 +1,28 @@
++using System.Text.Json.Serialization;
++using CollegeLMS.API.Entities.Enums;
++
++namespace CollegeLMS.API.Entities;
++
++public class Course : Entity
++{
++    public string Title { get; set; } = string.Empty;
++    public string Description { get; set; } = string.Empty;
++    public Guid TeacherId { get; set; }
++    public Guid GroupId { get; set; }
++    public CourseStatus Status { get; set; }
++
++    [JsonIgnore]
++    public Teacher Teacher { get; set; } = null!;
++
++    [JsonIgnore]
++    public Group Group { get; set; } = null!;
++
++    [JsonIgnore]
++    public ICollection<Lecture> Lectures { get; set; } = new List<Lecture>();
++
++    [JsonIgnore]
++    public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
++
++    [JsonIgnore]
++    public ICollection<CourseMaterial> Materials { get; set; } = new List<CourseMaterial>();
++}
+diff --git a/CollegeLMS.API/Entities/CourseMaterial.cs b/CollegeLMS.API/Entities/CourseMaterial.cs
+new file mode 100644
+index 0000000..8c79081
+--- /dev/null
++++ b/CollegeLMS.API/Entities/CourseMaterial.cs
+@@ -0,0 +1,17 @@
++using System.Text.Json.Serialization;
++
++namespace CollegeLMS.API.Entities;
++
++public class CourseMaterial : Entity
++{
++    public Guid CourseId { get; set; }
++    public Guid? LectureId { get; set; }
++    public Guid? AssignmentId { get; set; }
++    public string FileName { get; set; } = string.Empty;
++    public string FilePath { get; set; } = string.Empty;
++    public long FileSize { get; set; }
++    public string MimeType { get; set; } = string.Empty;
++
++    [JsonIgnore]
++    public Course Course { get; set; } = null!;
++}
+diff --git a/CollegeLMS.API/Entities/Enums/CourseStatus.cs b/CollegeLMS.API/Entities/Enums/CourseStatus.cs
+new file mode 100644
+index 0000000..181eead
+--- /dev/null
++++ b/CollegeLMS.API/Entities/Enums/CourseStatus.cs
+@@ -0,0 +1,8 @@
++namespace CollegeLMS.API.Entities.Enums;
++
++public enum CourseStatus
++{
++    Draft = 0,
++    Active,
++    Archived,
++}
+diff --git a/CollegeLMS.API/Entities/Group.cs b/CollegeLMS.API/Entities/Group.cs
+new file mode 100644
+index 0000000..a606145
+--- /dev/null
++++ b/CollegeLMS.API/Entities/Group.cs
+@@ -0,0 +1,12 @@
++using System.Text.Json.Serialization;
++
++namespace CollegeLMS.API.Entities;
++
++public class Group : Entity
++{
++    public string Name { get; set; } = string.Empty;
++    public int Course { get; set; }
++
++    [JsonIgnore]
++    public ICollection<Student> Students { get; set; } = new List<Student>();
++}
+diff --git a/CollegeLMS.API/Entities/Lecture.cs b/CollegeLMS.API/Entities/Lecture.cs
+new file mode 100644
+index 0000000..c8b57d5
+--- /dev/null
++++ b/CollegeLMS.API/Entities/Lecture.cs
+@@ -0,0 +1,14 @@
++using System.Text.Json.Serialization;
++
++namespace CollegeLMS.API.Entities;
++
++public class Lecture : Entity
++{
++    public Guid CourseId { get; set; }
++    public string Title { get; set; } = string.Empty;
++    public string Content { get; set; } = string.Empty;
++    public int Order { get; set; }
++
++    [JsonIgnore]
++    public Course Course { get; set; } = null!;
++}
+diff --git a/CollegeLMS.API/Entities/Student.cs b/CollegeLMS.API/Entities/Student.cs
+new file mode 100644
+index 0000000..b126b18
+--- /dev/null
++++ b/CollegeLMS.API/Entities/Student.cs
+@@ -0,0 +1,19 @@
++using System.Text.Json.Serialization;
++
++namespace CollegeLMS.API.Entities;
++
++public class Student : Entity
++{
++    public Guid UserId { get; set; }
++    public Guid GroupId { get; set; }
++    public string RecordBookNumber { get; set; } = string.Empty;
++
++    [JsonIgnore]
++    public User User { get; set; } = null!;
++
++    [JsonIgnore]
++    public Group Group { get; set; } = null!;
++
++    [JsonIgnore]
++    public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
++}
+diff --git a/CollegeLMS.API/Entities/Teacher.cs b/CollegeLMS.API/Entities/Teacher.cs
+new file mode 100644
+index 0000000..fe89740
+--- /dev/null
++++ b/CollegeLMS.API/Entities/Teacher.cs
+@@ -0,0 +1,16 @@
++using System.Text.Json.Serialization;
++
++namespace CollegeLMS.API.Entities;
++
++public class Teacher : Entity
++{
++    public Guid UserId { get; set; }
++    public string Department { get; set; } = string.Empty;
++    public string Position { get; set; } = string.Empty;
++
++    [JsonIgnore]
++    public User User { get; set; } = null!;
++
++    [JsonIgnore]
++    public ICollection<Course> Courses { get; set; } = new List<Course>();
++}
