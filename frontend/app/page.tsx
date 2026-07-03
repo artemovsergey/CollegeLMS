@@ -5,6 +5,46 @@ import { useRouter } from "next/navigation"
 import type { User, Result, CreateUserRequest, UpdateUserRequest, ChangeRoleRequest } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const roleLabels: Record<string, string> = {
+  Admin: "Админ",
+  Teacher: "Преподаватель",
+  Student: "Студент",
+  Dispatcher: "Диспетчер",
+}
+
+const roleVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  Admin: "destructive",
+  Teacher: "default",
+  Student: "secondary",
+  Dispatcher: "outline",
+}
 
 export default function UsersPage() {
   const { user, token, logout, isLoading: authLoading } = useAuth()
@@ -25,9 +65,6 @@ export default function UsersPage() {
   const [formSubmitting, setFormSubmitting] = useState(false)
 
   const isAdmin = user?.role === "Admin"
-  const roleLabels: Record<string, string> = {
-    Admin: "Админ", Teacher: "Преподаватель", Student: "Студент", Dispatcher: "Диспетчер",
-  }
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -144,110 +181,180 @@ export default function UsersPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">CollegeLMS</h1>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{user?.email}</span>
-          <span className="text-xs rounded bg-blue-100 text-blue-800 px-2 py-0.5">{roleLabels[user?.role ?? ""] ?? user?.role}</span>
-          <button onClick={() => { logout(); router.push("/login") }} className="text-sm text-red-600 hover:underline">
+          <span className="text-sm text-muted-foreground">{user?.email}</span>
+          <Badge variant={roleVariants[user?.role ?? ""] ?? "secondary"}>
+            {roleLabels[user?.role ?? ""] ?? user?.role}
+          </Badge>
+          <Button variant="ghost" size="sm" onClick={() => { logout(); router.push("/login") }}>
             Выйти
-          </button>
+          </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Users section */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Пользователи</h2>
         {isAdmin && (
-          <button onClick={() => { resetForm(); setShowCreate(true) }} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 transition">
-            + Создать
-          </button>
+          <Dialog open={showCreate} onOpenChange={setShowCreate}>
+            <DialogTrigger asChild>
+              <Button size="sm">+ Создать</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Создать пользователя</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreate} className="flex flex-col gap-4">
+                {formError && (
+                  <div className="rounded bg-destructive/15 p-3 text-sm text-destructive">
+                    {formError}
+                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="create-email">Email</Label>
+                  <Input id="create-email" type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="create-password">Пароль</Label>
+                  <Input id="create-password" type="password" required value={formPassword} onChange={e => setFormPassword(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="create-name">ФИО</Label>
+                  <Input id="create-name" required value={formFullName} onChange={e => setFormFullName(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="create-role">Роль</Label>
+                  <Select value={formRole} onValueChange={setFormRole}>
+                    <SelectTrigger id="create-role"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(roleLabels).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>
+                  <Button type="submit" disabled={formSubmitting}>
+                    {formSubmitting ? "Сохранение..." : "Сохранить"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
 
-      {error && <p className="text-sm text-red-600 bg-red-50 rounded p-2">{error}</p>}
-
-      {/* Create/Edit form */}
-      {(showCreate || editingId) && (
-        <form onSubmit={editingId ? handleUpdate : handleCreate} className="flex flex-col gap-3 p-4 rounded border border-gray-200 bg-white">
-          <h3 className="font-medium">{editingId ? "Редактировать" : "Создать пользователя"}</h3>
-          {formError && <p className="text-sm text-red-600">{formError}</p>}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input placeholder="Email" type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)} className="rounded border border-gray-300 p-2 text-sm" />
-            <input placeholder="Пароль" type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} className="rounded border border-gray-300 p-2 text-sm" required={!editingId} />
-            <input placeholder="ФИО" required value={formFullName} onChange={e => setFormFullName(e.target.value)} className="rounded border border-gray-300 p-2 text-sm" />
-            <select value={formRole} onChange={e => setFormRole(e.target.value)} className="rounded border border-gray-300 p-2 text-sm">
-              {Object.entries(roleLabels).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" disabled={formSubmitting} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50 transition">
-              {formSubmitting ? "Сохранение..." : "Сохранить"}
-            </button>
-            <button type="button" onClick={resetForm} className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 transition">
-              Отмена
-            </button>
-          </div>
-        </form>
+      {error && (
+        <div className="rounded bg-destructive/15 p-3 text-sm text-destructive">
+          {error}
+        </div>
       )}
 
-      {/* Users table */}
       {loading ? (
         <Loading />
       ) : users.length === 0 ? (
-        <p className="text-gray-500">Нет пользователей</p>
+        <p className="text-muted-foreground">Нет пользователей</p>
       ) : (
-        <div className="overflow-x-auto rounded border border-gray-200">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-3 font-medium">Email</th>
-                <th className="p-3 font-medium">ФИО</th>
-                <th className="p-3 font-medium">Роль</th>
-                <th className="p-3 font-medium">Статус</th>
-                {isAdmin && <th className="p-3 font-medium">Действия</th>}
-              </tr>
-            </thead>
-            <tbody>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>ФИО</TableHead>
+                <TableHead>Роль</TableHead>
+                <TableHead>Статус</TableHead>
+                {isAdmin && <TableHead>Действия</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {users.map(u => (
-                <tr key={u.id} className={`border-t border-gray-200 hover:bg-gray-50 ${!u.isActive ? "opacity-50" : ""}`}>
-                  <td className="p-3">{u.email}</td>
-                  <td className="p-3">{u.fullName}</td>
-                  <td className="p-3">
+                <TableRow key={u.id} className={!u.isActive ? "opacity-50" : ""}>
+                  <TableCell>{u.email}</TableCell>
+                  <TableCell>{u.fullName}</TableCell>
+                  <TableCell>
                     {isAdmin ? (
-                      <select
-                        value={u.role}
-                        onChange={e => handleChangeRole(u.id, e.target.value)}
-                        className="rounded border border-gray-200 p-1 text-xs"
-                      >
-                        {Object.entries(roleLabels).map(([key, label]) => (
-                          <option key={key} value={key}>{label}</option>
-                        ))}
-                      </select>
+                      <Select value={u.role} onValueChange={v => handleChangeRole(u.id, v)}>
+                        <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(roleLabels).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     ) : (
-                      roleLabels[u.role] ?? u.role
+                      <Badge variant={roleVariants[u.role] ?? "secondary"}>
+                        {roleLabels[u.role] ?? u.role}
+                      </Badge>
                     )}
-                  </td>
-                  <td className="p-3">
-                    {u.isActive ? <span className="text-green-600">Активен</span> : <span className="text-gray-400">Неактивен</span>}
-                  </td>
+                  </TableCell>
+                  <TableCell>
+                    {u.isActive ? (
+                      <span className="text-green-600">Активен</span>
+                    ) : (
+                      <span className="text-muted-foreground">Неактивен</span>
+                    )}
+                  </TableCell>
                   {isAdmin && (
-                    <td className="p-3">
+                    <TableCell>
                       <div className="flex gap-2">
-                        <button onClick={() => startEdit(u)} className="text-xs text-blue-600 hover:underline">Ред.</button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" onClick={() => startEdit(u)}>
+                              Ред.
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Редактировать пользователя</DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleUpdate} className="flex flex-col gap-4">
+                              {formError && (
+                                <div className="rounded bg-destructive/15 p-3 text-sm text-destructive">
+                                  {formError}
+                                </div>
+                              )}
+                              <div className="flex flex-col gap-2">
+                                <Label htmlFor="edit-email">Email</Label>
+                                <Input id="edit-email" type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <Label htmlFor="edit-name">ФИО</Label>
+                                <Input id="edit-name" required value={formFullName} onChange={e => setFormFullName(e.target.value)} />
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <Label htmlFor="edit-role">Роль</Label>
+                                <Select value={formRole} onValueChange={setFormRole}>
+                                  <SelectTrigger id="edit-role"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    {Object.entries(roleLabels).map(([key, label]) => (
+                                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="flex gap-2 justify-end">
+                                <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>
+                                <Button type="submit" disabled={formSubmitting}>
+                                  {formSubmitting ? "Сохранение..." : "Сохранить"}
+                                </Button>
+                              </div>
+                            </form>
+                          </DialogContent>
+                        </Dialog>
                         {u.isActive && (
-                          <button onClick={() => handleDelete(u.id)} className="text-xs text-red-600 hover:underline">Деакт.</button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(u.id)}>
+                            Деакт.
+                          </Button>
                         )}
                       </div>
-                    </td>
+                    </TableCell>
                   )}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
@@ -257,7 +364,7 @@ export default function UsersPage() {
 function Loading() {
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
     </div>
   )
 }
