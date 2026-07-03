@@ -1,17 +1,13 @@
 @startuml
-!theme plain
+actor "Пользователь" as user
+boundary "UserController" as controller
+control "UserService" as service
+entity "AppDbContext" as db
 
-actor "Клиент" as Client
-participant "UserController" as Ctrl
-participant "UserService" as Svc
-database "PostgreSQL" as DB
-
-' Запрос списка всех пользователей
-Client -> Ctrl: GET /api/users
-Ctrl -> Svc: GetAllAsync(CancellationToken)
-Svc -> DB: SELECT * FROM users
-DB --> Svc: List<User>
-Svc -> Svc: mapper.ToDto(user)
-Svc --> Ctrl: Result<List<UserResponse>>
-Ctrl --> Client: 200 OK + JSON
+user -> controller: GET /api/users
+controller -> service: GetAllAsync()
+service -> db: ToListAsync()
+db --> service: List<User>
+service --> controller: Result.Ok(List<UserResponse>)
+controller --> user: 200 [users]
 @enduml

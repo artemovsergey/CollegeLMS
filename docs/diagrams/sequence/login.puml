@@ -1,29 +1,24 @@
 @startuml
-!theme plain
+actor "Пользователь" as user
+boundary "AuthController" as controller
+control "AuthService" as service
+boundary "ITokenService" as tokenService
+entity "AppDbContext" as db
 
-actor "Клиент" as Client
-participant "AuthController" as Ctrl
-participant "AuthService" as Svc
-participant "JwtTokenService" as Token
-database "PostgreSQL" as DB
-
-' Flow логина
-Client -> Ctrl: POST /api/auth/login\n{ email, password }
-Ctrl -> Svc: LoginAsync(request, ct)
-Svc -> DB: SELECT * FROM users WHERE email = @email
-DB --> Svc: User | null
-
-alt пользователь не найден или пароль неверен
-  Svc --> Ctrl: Result.Fail("Неверный email\nили пароль", 401)
-  Ctrl --> Client: 401 Unauthorized
-else пользователь деактивирован
-  Svc --> Ctrl: Result.Fail("Пользователь\nдеактивирован", 403)
-  Ctrl --> Client: 403 Forbidden
-else успех
-  Svc -> Svc: BCrypt.Verify(password, hash)
-  Svc -> Token: GenerateAccessToken(user)
-  Token --> Svc: "jwt-string"
-  Svc --> Ctrl: Result.Ok({ token, user })
-  Ctrl --> Client: 200 OK + { token, user }
+user -> controller: POST /api/auth/login\n{ email, password }
+controller -> service: LoginAsync(request)
+service -> db: FirstOrDefaultAsync(email)
+db --> service: User | null
+alt user not found or wrong password
+  service --> controller: Result.Fail(401)
+  controller --> user: 401 Unauthorized
+else user deactivated
+  service --> controller: Result.Fail(403)
+  controller --> user: 403 Forbidden
+else valid
+  service -> tokenService: GenerateAccessToken(user)
+  tokenService --> service: JWT token
+  service --> controller: Result.Ok(LoginResponse)
+  controller --> user: 200 { token, user }
 end
 @enduml

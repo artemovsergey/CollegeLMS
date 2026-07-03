@@ -1,101 +1,47 @@
 @startuml
-!theme plain
+namespace CollegeLMS.API {
+  interface IUserService {
+    + GetAllAsync(ct) : Result<List<UserResponse>>
+    + GetByIdAsync(id, ct) : Result<UserResponse>
+    + CreateAsync(request, ct) : Result<UserResponse>
+    + UpdateAsync(id, request, ct) : Result<UserResponse>
+    + DeleteAsync(id, ct) : Result
+    + ChangeRoleAsync(id, request, ct) : Result<UserResponse>
+  }
 
-interface IUserService {
-  + GetAllAsync(CancellationToken): Result<List<UserResponse>>
-  + GetByIdAsync(Guid, CancellationToken): Result<UserResponse>
-  + CreateAsync(CreateUserRequest, CancellationToken): Result<UserResponse>
-  + UpdateAsync(Guid, UpdateUserRequest, CancellationToken): Result<UserResponse>
-  + DeleteAsync(Guid, CancellationToken): Result
-  + ChangeRoleAsync(Guid, ChangeRoleRequest, CancellationToken): Result<UserResponse>
+  interface IAuthService {
+    + LoginAsync(request, ct) : Result<LoginResponse>
+    + GetProfileAsync(userId, ct) : Result<UserResponse>
+  }
+
+  class UserService {
+    - db : AppDbContext
+    + GetAllAsync(ct)
+    + GetByIdAsync(id, ct)
+    + CreateAsync(request, ct)
+    + UpdateAsync(id, request, ct)
+    + DeleteAsync(id, ct)
+    + ChangeRoleAsync(id, request, ct)
+  }
+
+  class AuthService {
+    - db : AppDbContext
+    - tokenService : ITokenService
+    + LoginAsync(request, ct)
+    + GetProfileAsync(userId, ct)
+  }
+
+  class JwtTokenService {
+    - config : IConfiguration
+    + GenerateAccessToken(user) : string
+  }
+
+  UserService ..|> IUserService
+  AuthService ..|> IAuthService
+  JwtTokenService ..|> ITokenService
+  UserService --> AppDbContext
+  AuthService --> AppDbContext
+  AuthService --> ITokenService
 }
 
-class UserService {
-  - db: AppDbContext
-  + ... (CRUD + ChangeRole)
-}
-
-interface IAuthService {
-  + LoginAsync(LoginRequest, CancellationToken): Result<LoginResponse>
-  + GetProfileAsync(Guid, CancellationToken): Result<UserResponse>
-}
-
-class AuthService {
-  - db: AppDbContext
-  - tokenService: ITokenService
-  + LoginAsync(LoginRequest, CancellationToken): Result<LoginResponse>
-  + GetProfileAsync(Guid, CancellationToken): Result<UserResponse>
-}
-
-interface ITokenService {
-  + GenerateAccessToken(User): string
-}
-
-class JwtTokenService {
-  - config: IConfiguration
-  + GenerateAccessToken(User): string
-}
-
-class AuthController {
-  - authService: IAuthService
-  + Login(LoginRequest, CancellationToken): ActionResult
-  + Profile(CancellationToken): ActionResult
-}
-
-class UserController {
-  - service: IUserService
-  + GetAll(CancellationToken): ActionResult
-  + GetById(Guid, CancellationToken): ActionResult
-  + Create(CreateUserRequest, CancellationToken): ActionResult
-  + Update(Guid, UpdateUserRequest, CancellationToken): ActionResult
-  + Delete(Guid, CancellationToken): ActionResult
-  + ChangeRole(Guid, ChangeRoleRequest, CancellationToken): ActionResult
-}
-
-class User {
-  - Id: Guid
-  - Email: string
-  - PasswordHash: string
-  - FullName: string
-  - Role: UserRole
-  - IsActive: bool
-  - CreatedAt: DateTime
-  - UpdatedAt: DateTime
-}
-
-class UserResponse {
-  - Id: Guid
-  - Email: string
-  - FullName: string
-  - Role: string
-  - IsActive: bool
-}
-
-class LoginResponse {
-  - Token: string
-  - User: UserResponse
-}
-
-class UserMapper {
-  + {static} ToDto(User): UserResponse
-  + {static} ToEntity(CreateUserRequest): User
-}
-
-class AppDbContext {
-  - Users: DbSet<User>
-}
-
-IUserService <|.. UserService
-IAuthService <|.. AuthService
-ITokenService <|.. JwtTokenService
-UserController --> IUserService
-AuthController --> IAuthService
-AuthService --> ITokenService
-UserService --> AppDbContext
-AuthService --> AppDbContext
-UserService --> UserMapper
-AuthService --> UserMapper
-UserMapper --> UserResponse
-UserMapper --> User
-AppDbContext --> User
 @enduml
