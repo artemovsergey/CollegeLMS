@@ -40,8 +40,8 @@ const roleLabels: Record<string, string> = {
 }
 
 const roleVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  Admin: "destructive",
-  Teacher: "default",
+  Admin: "default",
+  Teacher: "secondary",
   Student: "secondary",
   Dispatcher: "outline",
 }
@@ -180,11 +180,16 @@ export default function UsersPage() {
   if (!token) return null
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">CollegeLMS</h1>
+    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto min-h-screen">
+      <header className="flex items-center justify-between py-2">
         <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{user?.email}</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+            CL
+          </div>
+          <h1 className="text-lg font-semibold">CollegeLMS</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="hidden sm:block text-sm text-muted-foreground">{user?.email}</span>
           <Badge variant={roleVariants[user?.role ?? ""] ?? "secondary"}>
             {roleLabels[user?.role ?? ""] ?? user?.role}
           </Badge>
@@ -195,7 +200,7 @@ export default function UsersPage() {
       </header>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Пользователи</h2>
+        <h2 className="text-xl font-semibold">Пользователи</h2>
         {isAdmin && (
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>
@@ -207,7 +212,7 @@ export default function UsersPage() {
               </DialogHeader>
               <form onSubmit={handleCreate} className="flex flex-col gap-4">
                 {formError && (
-                  <div className="rounded bg-destructive/15 p-3 text-sm text-destructive">
+                  <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                     {formError}
                   </div>
                 )}
@@ -234,8 +239,8 @@ export default function UsersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button type="button" variant="ghost" onClick={resetForm}>Отмена</Button>
                   <Button type="submit" disabled={formSubmitting}>
                     {formSubmitting ? "Сохранение..." : "Сохранить"}
                   </Button>
@@ -247,7 +252,7 @@ export default function UsersPage() {
       </div>
 
       {error && (
-        <div className="rounded bg-destructive/15 p-3 text-sm text-destructive">
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -257,7 +262,7 @@ export default function UsersPage() {
       ) : users.length === 0 ? (
         <p className="text-muted-foreground">Нет пользователей</p>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-lg border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -271,12 +276,12 @@ export default function UsersPage() {
             <TableBody>
               {users.map(u => (
                 <TableRow key={u.id} className={!u.isActive ? "opacity-50" : ""}>
-                  <TableCell>{u.email}</TableCell>
+                  <TableCell className="font-medium">{u.email}</TableCell>
                   <TableCell>{u.fullName}</TableCell>
                   <TableCell>
                     {isAdmin ? (
                       <Select value={u.role} onValueChange={v => handleChangeRole(u.id, v)}>
-                        <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {Object.entries(roleLabels).map(([key, label]) => (
                             <SelectItem key={key} value={key}>{label}</SelectItem>
@@ -291,9 +296,9 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell>
                     {u.isActive ? (
-                      <span className="text-green-600">Активен</span>
+                      <span className="text-sm text-green-600">Активен</span>
                     ) : (
-                      <span className="text-muted-foreground">Неактивен</span>
+                      <span className="text-sm text-muted-foreground">Неактивен</span>
                     )}
                   </TableCell>
                   {isAdmin && (
@@ -301,7 +306,7 @@ export default function UsersPage() {
                       <div className="flex gap-2">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" onClick={() => startEdit(u)}>
+                            <Button variant="ghost" size="sm" onClick={() => startEdit(u)}>
                               Ред.
                             </Button>
                           </DialogTrigger>
@@ -311,7 +316,7 @@ export default function UsersPage() {
                             </DialogHeader>
                             <form onSubmit={handleUpdate} className="flex flex-col gap-4">
                               {formError && (
-                                <div className="rounded bg-destructive/15 p-3 text-sm text-destructive">
+                                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                                   {formError}
                                 </div>
                               )}
@@ -334,8 +339,8 @@ export default function UsersPage() {
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="flex gap-2 justify-end">
-                                <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>
+                              <div className="flex gap-2 justify-end pt-2">
+                                <Button type="button" variant="ghost" onClick={resetForm}>Отмена</Button>
                                 <Button type="submit" disabled={formSubmitting}>
                                   {formSubmitting ? "Сохранение..." : "Сохранить"}
                                 </Button>
@@ -344,7 +349,7 @@ export default function UsersPage() {
                           </DialogContent>
                         </Dialog>
                         {u.isActive && (
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(u.id)}>
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(u.id)} className="text-destructive hover:text-destructive">
                             Деакт.
                           </Button>
                         )}

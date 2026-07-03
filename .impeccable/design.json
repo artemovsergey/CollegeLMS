@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-03T21:30:00.000Z",
+  "title": "Design System: CollegeLMS",
+  "extensions": {
+    "colorMeta": {
+      "neutral-bg": { "role": "neutral", "displayName": "Warm Paper", "canonical": "oklch(0.97 0.008 70)" },
+      "neutral-fg": { "role": "neutral", "displayName": "Soft Charcoal", "canonical": "oklch(0.20 0.005 70)" },
+      "neutral-muted": { "role": "neutral", "displayName": "Warm Muted", "canonical": "oklch(0.90 0.008 70)" },
+      "neutral-subtle": { "role": "neutral", "displayName": "Warm Border", "canonical": "oklch(0.85 0.008 70)" },
+      "primary": { "role": "primary", "displayName": "Signal Blue", "canonical": "oklch(0.55 0.15 260)" },
+      "primary-muted": { "role": "primary", "displayName": "Signal Blue Muted", "canonical": "oklch(0.90 0.06 260)" },
+      "destructive": { "role": "destructive", "displayName": "Rose Alert", "canonical": "oklch(0.55 0.20 30)" }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Body", "purpose": "Primary reading text. Cap line length at 70ch." },
+      "label": { "displayName": "Label", "purpose": "Form labels, table headers, button text." }
+    },
+    "shadows": [
+      { "name": "dialog-overlay", "value": "0 8px 32px rgba(0,0,0,0.12)", "purpose": "Soft ambient shadow on dialog content panels." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default easing for state transitions — exponential ease-out." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary call-to-action. Signal Blue background, white text.",
+      "html": "<button class=\"ds-btn-primary\">Войти</button>",
+      "css": ".ds-btn-primary { background: #2962ff; color: #fff; font-family: Inter, sans-serif; font-size: 0.875rem; font-weight: 500; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s ease-out; } .ds-btn-primary:hover { background: #1a45cc; } .ds-btn-primary:focus-visible { outline: 3px solid rgba(41,98,255,0.3); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action. Transparent background, charcoal text.",
+      "html": "<button class=\"ds-btn-ghost\">Отмена</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #1a1a1a; font-family: Inter, sans-serif; font-size: 0.875rem; font-weight: 500; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s ease-out; } .ds-btn-ghost:hover { background: #e8e4df; } .ds-btn-ghost:focus-visible { outline: 3px solid rgba(41,98,255,0.3); outline-offset: 2px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text input with warm border. Focus shifts to Signal Blue.",
+      "html": "<input class=\"ds-input\" placeholder=\"email@example.com\" />",
+      "css": ".ds-input { background: #fff; color: #1a1a1a; font-family: Inter, sans-serif; font-size: 0.9375rem; padding: 8px 16px; border: 1px solid #d4cfc9; border-radius: 6px; width: 100%; transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out; box-sizing: border-box; } .ds-input:focus { border-color: #2962ff; outline: none; box-shadow: 0 0 0 3px rgba(41,98,255,0.15); } .ds-input::placeholder { color: #999; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Surface container. Warm White on Warm Paper background, no shadow.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-text\">Card content</p></div>",
+      "css": ".ds-card { background: #fff; border-radius: 12px; padding: 24px; } .ds-card-text { font-family: Inter, sans-serif; font-size: 0.9375rem; color: #1a1a1a; margin: 0; }"
+    },
+    {
+      "name": "Admin Badge",
+      "kind": "chip",
+      "refersTo": "badge-admin",
+      "description": "Admin role badge. Signal Blue Muted background.",
+      "html": "<span class=\"ds-badge-admin\">Админ</span>",
+      "css": ".ds-badge-admin { display: inline-block; background: #e8eeff; color: #2962ff; font-family: Inter, sans-serif; font-size: 0.75rem; font-weight: 500; padding: 4px 10px; border-radius: 6px; }"
+    },
+    {
+      "name": "Table Row",
+      "kind": "custom",
+      "refersTo": "table-header",
+      "description": "Table with warm muted header and clean row borders.",
+      "html": "<table class=\"ds-table\"><thead><tr><th class=\"ds-th\">Email</th><th class=\"ds-th\">Роль</th></tr></thead><tbody><tr class=\"ds-tr\"><td class=\"ds-td\">admin@collegelms.ru</td><td class=\"ds-td\">Админ</td></tr></tbody></table>",
+      "css": ".ds-table { width: 100%; border-collapse: collapse; font-family: Inter, sans-serif; } .ds-th { background: #e8e4df; color: #1a1a1a; font-size: 0.8125rem; font-weight: 500; padding: 10px 16px; text-align: left; letter-spacing: 0.01em; } .ds-tr { border-bottom: 1px solid #d4cfc9; } .ds-tr:last-child { border-bottom: none; } .ds-td { padding: 12px 16px; font-size: 0.9375rem; color: #1a1a1a; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Clean Slate",
+    "overview": "CollegeLMS is a warm, calm administrative workspace — a tool that feels like a well-organized desk in a sunlit room, not a blinking dashboard in a server closet. Every screen prioritizes the task over the chrome. The interface recedes; the data steps forward.\n\nThe system rejects decorative clutter — no gradient text, no glassmorphism, no side-stripe borders. Hierarchy comes from generous whitespace, clear typographic scale, and a restrained accent color used precisely. The palette is warm-neutral with a single blue accent that signals interaction without demanding attention.",
+    "keyCharacteristics": [
+      "Warm, not cold. Tinted neutrals replace pure grays",
+      "One accent color (blue), used on ≤15% of any screen. Its rarity is the point",
+      "Cards are real containers with generous radius, not flat rectangles",
+      "Tables are the default data display, not card grids",
+      "Mobile-first: forms and tables survive 320px"
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "The primary accent covers ≤15% of any screen. Its rarity is the point — when blue appears, it means something.", "section": "colors" },
+      { "name": "The Warmth Rule", "body": "All neutrals carry a subtle warm tint (chroma ≥ 0.005, hue toward 60°). Pure gray (oklch(L 0 H)) is forbidden.", "section": "colors" },
+      { "name": "The Weight-Only Scale", "body": "Hierarchy is expressed through weight (500 → 600) and size, not through font family switches or letter-spacing theatrics.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. The tonal contrast between page and card backgrounds provides depth. Shadows appear only for modals and dropdown menus.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use tinted neutrals (warm, chroma ≥ 0.005). Pure gray surfaces look unfinished.",
+      "Do keep Signal Blue coverage under 15% per screen. Blue means interactive.",
+      "Do use tables as the default data display — they scan faster than cards.",
+      "Do wrap forms and tables in cards for container consistency.",
+      "Do use generous whitespace between sections (32px+).",
+      "Do keep buttons at consistent height (38–40px).",
+      "Do show loading state as a centered spinner in the content area."
+    ],
+    "donts": [
+      "Don't use #000 or #fff anywhere. Tint every neutral.",
+      "Don't add shadows to cards. Tonal separation is sufficient.",
+      "Don't use gradient text, glassmorphism, or side-stripe borders.",
+      "Don't put an accent border-left on cards. Use full borders or nothing.",
+      "Don't use zebra-striped tables. Subtle row borders are cleaner.",
+      "Don't stack identical card grids as a data display. Use tables.",
+      "Don't wrap everything in a card. The page background is the primary surface."
+    ]
+  }
+}
