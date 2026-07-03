@@ -62,7 +62,10 @@ public class TeacherController(ITeacherService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<TeacherResponse>>> Create(CreateTeacherRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<TeacherResponse>>> Create(
+        CreateTeacherRequest request,
+        CancellationToken ct
+    )
     {
         var result = await service.CreateAsync(request, ct);
         if (!result.IsSuccess)
@@ -86,7 +89,11 @@ public class TeacherController(ITeacherService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<TeacherResponse>>> Update(Guid id, UpdateTeacherRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<TeacherResponse>>> Update(
+        Guid id,
+        UpdateTeacherRequest request,
+        CancellationToken ct
+    )
     {
         var result = await service.UpdateAsync(id, request, ct);
         if (!result.IsSuccess)

@@ -429,6 +429,71 @@ dotnet csharpier check .     # check formatting (CI)
 - **Forms**: labels всегда видны, ошибки под полем, loading state на submit
 - **Container**: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`
 
+## Agent Timeline Logging
+
+For tracking how much time is spent per task, the agent writes structured events to `agent-timeline.jsonl` at the project root.
+
+### Protocol
+
+| Event | Args | When |
+|-------|------|------|
+| `session_start` | — | At the very start of work |
+| `task_start` | `id name` | Before starting work on a todo item |
+| `tool_call` | `tool_name` | Before making any tool call (bash/read/write etc.) |
+| `tool_result` | `tool_name` | After receiving the tool's result |
+| `task_end` | `id` | After completing a todo item |
+| `session_end` | — | Before the user runs `/time` |
+
+### Usage
+
+```powershell
+scripts/timeline.ps1 task_start 1 "Create endpoint"
+scripts/timeline.ps1 tool_call dotnet
+scripts/timeline.ps1 tool_result dotnet
+scripts/timeline.ps1 task_end 1
+```
+
+At the end of a session, run one of these to see the report:
+```powershell
+!scripts/time-report.ps1    # in TUI (works always)
+```
+Or if custom commands are supported:
+```
+/time                        # custom command (may need restart)
+```
+
+```
+Task Timeline Report
+====================
+ # | Task             | Wall    | Think   | Waiting | Tools
+ 1 | Create endpoint  | 10.0s   | 3.0s    | 7.0s    | dotnet(3s), bash(4s)
+---------------------------------------------------------------
+   | Total            | 22.0s   | 8.0s    | 14.0s   |
+```
+
+- **Wall** = real time from task start to end
+- **Think** = time the model spent generating (wall minus tool execution)
+- **Waiting** = cumulative time spent waiting for tool results
+- **Tools** = per-tool breakdown
+
+### Auto-report after each task
+
+После завершения каждой задачи (`task_end`), агент **обязан** выполнить:
+
+```powershell
+!scripts/time-report.ps1
+```
+
+и показать таблицу отчёта в своём ответе пользователю. Это делается для того, чтобы пользователь видел актуальную статистику времени после каждого шага.
+
+### Reset for new session
+
+Before starting a new session, remove the old log:
+
+```powershell
+Remove-Item -Force agent-timeline.jsonl -ErrorAction SilentlyContinue
+```
+
 ## Reference repository
 
 - База заметок по .NET — https://github.com/artemovsergey/.NET/wiki

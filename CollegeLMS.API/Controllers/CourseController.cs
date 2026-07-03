@@ -25,7 +25,10 @@ public class CourseController(ICourseService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result<List<CourseResponse>>>> GetAll(
-        [FromQuery] Guid? teacherId, [FromQuery] Guid? groupId, CancellationToken ct)
+        [FromQuery] Guid? teacherId,
+        [FromQuery] Guid? groupId,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();
@@ -66,7 +69,10 @@ public class CourseController(ICourseService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<CourseResponse>>> Create(CreateCourseRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<CourseResponse>>> Create(
+        CreateCourseRequest request,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();
@@ -91,7 +97,11 @@ public class CourseController(ICourseService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<CourseResponse>>> Update(Guid id, UpdateCourseRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<CourseResponse>>> Update(
+        Guid id,
+        UpdateCourseRequest request,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();

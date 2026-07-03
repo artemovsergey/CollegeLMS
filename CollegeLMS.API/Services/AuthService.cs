@@ -11,8 +11,8 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
 {
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken ct)
     {
-        var user = await db.Users
-            .AsNoTracking()
+        var user = await db
+            .Users.AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -23,18 +23,12 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
 
         var token = tokenService.GenerateAccessToken(user);
 
-        return Result<LoginResponse>.Ok(new LoginResponse
-        {
-            Token = token,
-            User = user.ToDto(),
-        });
+        return Result<LoginResponse>.Ok(new LoginResponse { Token = token, User = user.ToDto() });
     }
 
     public async Task<Result<UserResponse>> GetProfileAsync(Guid userId, CancellationToken ct)
     {
-        var user = await db.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == userId, ct);
+        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
 
         if (user is null)
             return Result<UserResponse>.Fail("Пользователь не найден", 404);

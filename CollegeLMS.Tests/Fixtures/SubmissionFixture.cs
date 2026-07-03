@@ -10,7 +10,10 @@ public static class SubmissionFixture
             .RuleFor(s => s.Id, f => f.Random.Guid())
             .RuleFor(s => s.AssignmentId, f => f.Random.Guid())
             .RuleFor(s => s.StudentId, f => f.Random.Guid())
-            .RuleFor(s => s.FilePath, f => $"submissions/{f.Random.Guid()}/{f.Random.Guid()}_{f.Random.Long()}.bin")
+            .RuleFor(
+                s => s.FilePath,
+                f => $"submissions/{f.Random.Guid()}/{f.Random.Guid()}_{f.Random.Long()}.bin"
+            )
             .RuleFor(s => s.Comment, f => f.Lorem.Sentence())
             .RuleFor(s => s.Score, f => f.Random.Int(0, 100))
             .RuleFor(s => s.SubmittedAt, f => f.Date.Past())

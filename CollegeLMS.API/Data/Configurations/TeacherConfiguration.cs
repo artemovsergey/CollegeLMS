@@ -15,7 +15,8 @@ public class TeacherConfiguration : IEntityTypeConfiguration<Teacher>
         builder.HasIndex(x => x.UserId).IsUnique().HasDatabaseName("ix_teachers_user_id");
         builder.Property(x => x.Department).HasMaxLength(200);
         builder.Property(x => x.Position).HasMaxLength(200);
-        builder.HasOne(x => x.User)
+        builder
+            .HasOne(x => x.User)
             .WithMany()
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Restrict);

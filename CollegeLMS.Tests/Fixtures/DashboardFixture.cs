@@ -14,20 +14,22 @@ public static class DashboardFixture
             .RuleFor(t => t.Position, f => f.Name.JobTitle())
             .RuleFor(t => t.CreatedAt, f => f.Date.Past())
             .RuleFor(t => t.UpdatedAt, f => f.Date.Recent())
-            .FinishWith((f, t) =>
-            {
-                t.User = new User
+            .FinishWith(
+                (f, t) =>
                 {
-                    Id = t.UserId,
-                    Email = f.Internet.Email(),
-                    FullName = f.Name.FullName(),
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
-                    Role = UserRole.Teacher,
-                    IsActive = true,
-                    CreatedAt = t.CreatedAt,
-                    UpdatedAt = t.UpdatedAt,
-                };
-            });
+                    t.User = new User
+                    {
+                        Id = t.UserId,
+                        Email = f.Internet.Email(),
+                        FullName = f.Name.FullName(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
+                        Role = UserRole.Teacher,
+                        IsActive = true,
+                        CreatedAt = t.CreatedAt,
+                        UpdatedAt = t.UpdatedAt,
+                    };
+                }
+            );
 
     public static Faker<Student> CreateStudentFaker() =>
         new Faker<Student>()
@@ -36,20 +38,22 @@ public static class DashboardFixture
             .RuleFor(s => s.RecordBookNumber, f => f.Random.AlphaNumeric(8))
             .RuleFor(s => s.CreatedAt, f => f.Date.Past())
             .RuleFor(s => s.UpdatedAt, f => f.Date.Recent())
-            .FinishWith((f, s) =>
-            {
-                s.User = new User
+            .FinishWith(
+                (f, s) =>
                 {
-                    Id = s.UserId,
-                    Email = f.Internet.Email(),
-                    FullName = f.Name.FullName(),
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
-                    Role = UserRole.Student,
-                    IsActive = true,
-                    CreatedAt = s.CreatedAt,
-                    UpdatedAt = s.UpdatedAt,
-                };
-            });
+                    s.User = new User
+                    {
+                        Id = s.UserId,
+                        Email = f.Internet.Email(),
+                        FullName = f.Name.FullName(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
+                        Role = UserRole.Student,
+                        IsActive = true,
+                        CreatedAt = s.CreatedAt,
+                        UpdatedAt = s.UpdatedAt,
+                    };
+                }
+            );
 
     public static Faker<Group> CreateGroupFaker() =>
         new Faker<Group>()

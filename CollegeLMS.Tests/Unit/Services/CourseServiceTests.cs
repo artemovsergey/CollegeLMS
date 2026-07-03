@@ -60,18 +60,27 @@ public class CourseServiceTests : IDisposable
             Position = "Преподаватель",
         };
         var otherTeacherId = Guid.NewGuid();
-        _db.Users.Add(new User
-        {
-            Id = teacherUserId,
-            Email = "teacher@test.ru",
-            FullName = "Учитель",
-            PasswordHash = "hash",
-            Role = UserRole.Teacher,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = teacherUserId,
+                Email = "teacher@test.ru",
+                FullName = "Учитель",
+                PasswordHash = "hash",
+                Role = UserRole.Teacher,
+                IsActive = true,
+            }
+        );
         _db.Teachers.Add(teacher);
         var groupId = Guid.NewGuid();
-        _db.Groups.Add(new Group { Id = groupId, Name = "ГР-21", Course = 2 });
+        _db.Groups.Add(
+            new Group
+            {
+                Id = groupId,
+                Name = "ГР-21",
+                Course = 2,
+            }
+        );
         var ownCourse = new Course
         {
             Id = Guid.NewGuid(),
@@ -130,15 +139,17 @@ public class CourseServiceTests : IDisposable
             Department = "ИТ",
             Position = "Преподаватель",
         };
-        _db.Users.Add(new User
-        {
-            Id = teacherUserId,
-            Email = "teacher@test.ru",
-            FullName = "Учитель",
-            PasswordHash = "hash",
-            Role = UserRole.Teacher,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = teacherUserId,
+                Email = "teacher@test.ru",
+                FullName = "Учитель",
+                PasswordHash = "hash",
+                Role = UserRole.Teacher,
+                IsActive = true,
+            }
+        );
         _db.Teachers.Add(teacher);
         var group = new Group
         {
@@ -149,12 +160,17 @@ public class CourseServiceTests : IDisposable
         _db.Groups.Add(group);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.CreateAsync(new CreateCourseRequest
-        {
-            Title = "Новый курс",
-            Description = "Описание",
-            GroupId = group.Id,
-        }, teacherUserId, "Teacher", default);
+        var result = await _sut.CreateAsync(
+            new CreateCourseRequest
+            {
+                Title = "Новый курс",
+                Description = "Описание",
+                GroupId = group.Id,
+            },
+            teacherUserId,
+            "Teacher",
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Title.Should().Be("Новый курс");
@@ -170,13 +186,19 @@ public class CourseServiceTests : IDisposable
         _db.Courses.Add(course);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.UpdateAsync(course.Id, new UpdateCourseRequest
-        {
-            Title = "Обновлённый курс",
-            Description = "Новое описание",
-            GroupId = course.GroupId,
-            Status = "Active",
-        }, adminId, "Admin", default);
+        var result = await _sut.UpdateAsync(
+            course.Id,
+            new UpdateCourseRequest
+            {
+                Title = "Обновлённый курс",
+                Description = "Новое описание",
+                GroupId = course.GroupId,
+                Status = "Active",
+            },
+            adminId,
+            "Admin",
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Title.Should().Be("Обновлённый курс");
@@ -201,15 +223,17 @@ public class CourseServiceTests : IDisposable
 
     private void AddAdminUser(Guid userId)
     {
-        _db.Users.Add(new User
-        {
-            Id = userId,
-            Email = "admin@test.ru",
-            FullName = "Admin",
-            PasswordHash = "hash",
-            Role = UserRole.Admin,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = userId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
         _db.SaveChanges();
     }
 }

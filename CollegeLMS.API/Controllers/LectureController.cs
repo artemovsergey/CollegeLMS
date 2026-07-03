@@ -25,7 +25,10 @@ public class LectureController(ILectureService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<List<LectureResponse>>>> GetAll(Guid courseId, CancellationToken ct)
+    public async Task<ActionResult<Result<List<LectureResponse>>>> GetAll(
+        Guid courseId,
+        CancellationToken ct
+    )
     {
         var result = await service.GetAllAsync(courseId, ct);
         if (!result.IsSuccess)
@@ -43,7 +46,11 @@ public class LectureController(ILectureService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<LectureResponse>>> GetById(Guid courseId, Guid id, CancellationToken ct)
+    public async Task<ActionResult<Result<LectureResponse>>> GetById(
+        Guid courseId,
+        Guid id,
+        CancellationToken ct
+    )
     {
         var result = await service.GetByIdAsync(courseId, id, ct);
         if (!result.IsSuccess)
@@ -66,7 +73,11 @@ public class LectureController(ILectureService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<LectureResponse>>> Create(Guid courseId, CreateLectureRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<LectureResponse>>> Create(
+        Guid courseId,
+        CreateLectureRequest request,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();
@@ -91,7 +102,12 @@ public class LectureController(ILectureService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<LectureResponse>>> Update(Guid courseId, Guid id, UpdateLectureRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<LectureResponse>>> Update(
+        Guid courseId,
+        Guid id,
+        UpdateLectureRequest request,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();

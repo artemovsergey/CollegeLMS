@@ -43,14 +43,28 @@ public class MaterialController(IMaterialService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<MaterialResponse>>> Upload(Guid courseId, IFormFile file, [FromQuery] Guid? lectureId, [FromQuery] Guid? assignmentId, CancellationToken ct)
+    public async Task<ActionResult<Result<MaterialResponse>>> Upload(
+        Guid courseId,
+        IFormFile file,
+        [FromQuery] Guid? lectureId,
+        [FromQuery] Guid? assignmentId,
+        CancellationToken ct
+    )
     {
         if (file is null || file.Length == 0)
             return BadRequest(Result<MaterialResponse>.Fail("Файл не выбран", 400));
 
         var userId = User.GetUserId();
         var role = User.GetRole();
-        var result = await service.UploadAsync(courseId, file, lectureId, assignmentId, userId, role, ct);
+        var result = await service.UploadAsync(
+            courseId,
+            file,
+            lectureId,
+            assignmentId,
+            userId,
+            role,
+            ct
+        );
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
         return Ok(result);
@@ -73,7 +87,10 @@ public class MaterialController(IMaterialService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<List<MaterialResponse>>>> GetByCourse(Guid courseId, CancellationToken ct)
+    public async Task<ActionResult<Result<List<MaterialResponse>>>> GetByCourse(
+        Guid courseId,
+        CancellationToken ct
+    )
     {
         var result = await service.GetByCourseAsync(courseId, ct);
         if (!result.IsSuccess)

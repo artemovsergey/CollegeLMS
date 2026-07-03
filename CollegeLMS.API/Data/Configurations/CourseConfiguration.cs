@@ -14,15 +14,18 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Title).HasMaxLength(255);
         builder.Property(x => x.Description).HasMaxLength(4000);
-        builder.Property(x => x.Status)
+        builder
+            .Property(x => x.Status)
             .HasConversion<string>()
             .HasMaxLength(50)
             .HasDefaultValue(CourseStatus.Draft);
-        builder.HasOne(x => x.Teacher)
+        builder
+            .HasOne(x => x.Teacher)
             .WithMany(t => t.Courses)
             .HasForeignKey(x => x.TeacherId)
             .OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(x => x.Group)
+        builder
+            .HasOne(x => x.Group)
             .WithMany()
             .HasForeignKey(x => x.GroupId)
             .OnDelete(DeleteBehavior.Restrict);

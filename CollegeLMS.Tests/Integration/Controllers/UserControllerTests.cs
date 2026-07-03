@@ -113,13 +113,16 @@ public class UserControllerTests : BaseIntegrationTest
     {
         SetAuthHeader(GetAdminToken());
 
-        var response = await Client.PostAsJsonAsync("/api/users", new CreateUserRequest
-        {
-            Email = "newuser@test.ru",
-            Password = "password123",
-            FullName = "New User",
-            Role = UserRole.Student,
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/users",
+            new CreateUserRequest
+            {
+                Email = "newuser@test.ru",
+                Password = "password123",
+                FullName = "New User",
+                Role = UserRole.Student,
+            }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -134,13 +137,16 @@ public class UserControllerTests : BaseIntegrationTest
     {
         SetAuthHeader(GetStudentToken());
 
-        var response = await Client.PostAsJsonAsync("/api/users", new CreateUserRequest
-        {
-            Email = "newuser@test.ru",
-            Password = "password123",
-            FullName = "New User",
-            Role = UserRole.Student,
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/users",
+            new CreateUserRequest
+            {
+                Email = "newuser@test.ru",
+                Password = "password123",
+                FullName = "New User",
+                Role = UserRole.Student,
+            }
+        );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -177,12 +183,15 @@ public class UserControllerTests : BaseIntegrationTest
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var response = await Client.PutAsJsonAsync($"/api/users/{user.Id}", new UpdateUserRequest
-        {
-            Email = "updated@test.ru",
-            FullName = "Updated Name",
-            Role = UserRole.Teacher,
-        });
+        var response = await Client.PutAsJsonAsync(
+            $"/api/users/{user.Id}",
+            new UpdateUserRequest
+            {
+                Email = "updated@test.ru",
+                FullName = "Updated Name",
+                Role = UserRole.Teacher,
+            }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -226,10 +235,10 @@ public class UserControllerTests : BaseIntegrationTest
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var response = await Client.PatchAsJsonAsync($"/api/users/{user.Id}/role", new ChangeRoleRequest
-        {
-            Role = UserRole.Dispatcher,
-        });
+        var response = await Client.PatchAsJsonAsync(
+            $"/api/users/{user.Id}/role",
+            new ChangeRoleRequest { Role = UserRole.Dispatcher }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -250,10 +259,10 @@ public class UserControllerTests : BaseIntegrationTest
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var response = await Client.PatchAsJsonAsync($"/api/users/{user.Id}/role", new ChangeRoleRequest
-        {
-            Role = UserRole.Admin,
-        });
+        var response = await Client.PatchAsJsonAsync(
+            $"/api/users/{user.Id}/role",
+            new ChangeRoleRequest { Role = UserRole.Admin }
+        );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }

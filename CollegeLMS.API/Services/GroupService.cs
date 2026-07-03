@@ -12,8 +12,8 @@ public class GroupService(AppDbContext db) : IGroupService
 {
     public async Task<Result<List<GroupResponse>>> GetAllAsync(CancellationToken ct)
     {
-        var groups = await db.Groups
-            .AsNoTracking()
+        var groups = await db
+            .Groups.AsNoTracking()
             .Include(g => g.Students)
             .OrderBy(g => g.Name)
             .ToListAsync(ct);
@@ -23,8 +23,8 @@ public class GroupService(AppDbContext db) : IGroupService
 
     public async Task<Result<GroupResponse>> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        var group = await db.Groups
-            .AsNoTracking()
+        var group = await db
+            .Groups.AsNoTracking()
             .Include(g => g.Students)
             .FirstOrDefaultAsync(g => g.Id == id, ct);
 
@@ -34,7 +34,10 @@ public class GroupService(AppDbContext db) : IGroupService
         return Result<GroupResponse>.Ok(group.ToDto());
     }
 
-    public async Task<Result<GroupResponse>> CreateAsync(CreateGroupRequest request, CancellationToken ct)
+    public async Task<Result<GroupResponse>> CreateAsync(
+        CreateGroupRequest request,
+        CancellationToken ct
+    )
     {
         var exists = await db.Groups.AnyAsync(g => g.Name == request.Name, ct);
         if (exists)
@@ -47,7 +50,11 @@ public class GroupService(AppDbContext db) : IGroupService
         return Result<GroupResponse>.Ok(group.ToDto());
     }
 
-    public async Task<Result<GroupResponse>> UpdateAsync(Guid id, UpdateGroupRequest request, CancellationToken ct)
+    public async Task<Result<GroupResponse>> UpdateAsync(
+        Guid id,
+        UpdateGroupRequest request,
+        CancellationToken ct
+    )
     {
         var group = await db.Groups.FindAsync([id], ct);
         if (group is null)

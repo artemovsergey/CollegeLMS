@@ -24,7 +24,10 @@ public class StudentController(IStudentService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<List<StudentResponse>>>> GetAll([FromQuery] Guid? groupId, CancellationToken ct)
+    public async Task<ActionResult<Result<List<StudentResponse>>>> GetAll(
+        [FromQuery] Guid? groupId,
+        CancellationToken ct
+    )
     {
         var result = await service.GetAllAsync(groupId, ct);
         return Ok(result);
@@ -64,7 +67,10 @@ public class StudentController(IStudentService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<StudentResponse>>> Create(CreateStudentRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<StudentResponse>>> Create(
+        CreateStudentRequest request,
+        CancellationToken ct
+    )
     {
         var result = await service.CreateAsync(request, ct);
         if (!result.IsSuccess)
@@ -88,7 +94,11 @@ public class StudentController(IStudentService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<StudentResponse>>> Update(Guid id, UpdateStudentRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<StudentResponse>>> Update(
+        Guid id,
+        UpdateStudentRequest request,
+        CancellationToken ct
+    )
     {
         var result = await service.UpdateAsync(id, request, ct);
         if (!result.IsSuccess)

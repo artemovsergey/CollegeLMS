@@ -37,7 +37,14 @@ public class SubmissionServiceTests : IDisposable
         _db.Users.Add(user);
 
         var groupId = Guid.NewGuid();
-        _db.Groups.Add(new Group { Id = groupId, Name = "Test Group", Course = 1 });
+        _db.Groups.Add(
+            new Group
+            {
+                Id = groupId,
+                Name = "Test Group",
+                Course = 1,
+            }
+        );
 
         var student = new Student
         {
@@ -68,11 +75,16 @@ public class SubmissionServiceTests : IDisposable
         _db.Assignments.Add(assignment);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.SubmitAsync(assignment.Id, new SubmitAssignmentRequest
-        {
-            FilePath = "submissions/test/file.bin",
-            Comment = "Готово",
-        }, user.Id, default);
+        var result = await _sut.SubmitAsync(
+            assignment.Id,
+            new SubmitAssignmentRequest
+            {
+                FilePath = "submissions/test/file.bin",
+                Comment = "Готово",
+            },
+            user.Id,
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.FilePath.Should().Be("submissions/test/file.bin");
@@ -122,10 +134,12 @@ public class SubmissionServiceTests : IDisposable
         _db.Assignments.Add(assignment);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.SubmitAsync(assignment.Id, new SubmitAssignmentRequest
-        {
-            FilePath = "submissions/test/file.bin",
-        }, user.Id, default);
+        var result = await _sut.SubmitAsync(
+            assignment.Id,
+            new SubmitAssignmentRequest { FilePath = "submissions/test/file.bin" },
+            user.Id,
+            default
+        );
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(403);
@@ -134,10 +148,12 @@ public class SubmissionServiceTests : IDisposable
     [Fact]
     public async Task Submit_ReturnsNotFound_WhenAssignmentMissing()
     {
-        var result = await _sut.SubmitAsync(Guid.NewGuid(), new SubmitAssignmentRequest
-        {
-            FilePath = "test.bin",
-        }, Guid.NewGuid(), default);
+        var result = await _sut.SubmitAsync(
+            Guid.NewGuid(),
+            new SubmitAssignmentRequest { FilePath = "test.bin" },
+            Guid.NewGuid(),
+            default
+        );
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
@@ -158,7 +174,14 @@ public class SubmissionServiceTests : IDisposable
         _db.Users.Add(user);
 
         var groupId = Guid.NewGuid();
-        _db.Groups.Add(new Group { Id = groupId, Name = "Test", Course = 1 });
+        _db.Groups.Add(
+            new Group
+            {
+                Id = groupId,
+                Name = "Test",
+                Course = 1,
+            }
+        );
 
         var student = new Student
         {
@@ -199,11 +222,12 @@ public class SubmissionServiceTests : IDisposable
         _db.AssignmentSubmissions.Add(existing);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.SubmitAsync(assignment.Id, new SubmitAssignmentRequest
-        {
-            FilePath = "new/path.bin",
-            Comment = "Обновлено",
-        }, user.Id, default);
+        var result = await _sut.SubmitAsync(
+            assignment.Id,
+            new SubmitAssignmentRequest { FilePath = "new/path.bin", Comment = "Обновлено" },
+            user.Id,
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.FilePath.Should().Be("new/path.bin");
@@ -282,10 +306,13 @@ public class SubmissionServiceTests : IDisposable
         _db.AssignmentSubmissions.Add(submission);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GradeAsync(submission.Id, new GradeSubmissionRequest
-        {
-            Score = 85,
-        }, teacherUser.Id, "Teacher", default);
+        var result = await _sut.GradeAsync(
+            submission.Id,
+            new GradeSubmissionRequest { Score = 85 },
+            teacherUser.Id,
+            "Teacher",
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Score.Should().Be(85);
@@ -364,10 +391,13 @@ public class SubmissionServiceTests : IDisposable
         _db.AssignmentSubmissions.Add(submission);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GradeAsync(submission.Id, new GradeSubmissionRequest
-        {
-            Score = 100,
-        }, teacherUser.Id, "Teacher", default);
+        var result = await _sut.GradeAsync(
+            submission.Id,
+            new GradeSubmissionRequest { Score = 100 },
+            teacherUser.Id,
+            "Teacher",
+            default
+        );
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(400);

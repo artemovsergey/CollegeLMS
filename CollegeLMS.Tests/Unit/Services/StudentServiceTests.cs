@@ -51,22 +51,42 @@ public class StudentServiceTests : IDisposable
         var groupId = Guid.NewGuid();
         var otherGroupId = Guid.NewGuid();
 
-        var group = new API.Entities.Group { Id = groupId, Name = "ГР-11", Course = 1 };
-        var otherGroup = new API.Entities.Group { Id = otherGroupId, Name = "ГР-22", Course = 2 };
+        var group = new API.Entities.Group
+        {
+            Id = groupId,
+            Name = "ГР-11",
+            Course = 1,
+        };
+        var otherGroup = new API.Entities.Group
+        {
+            Id = otherGroupId,
+            Name = "ГР-22",
+            Course = 2,
+        };
 
         var students = new List<API.Entities.Student>();
         for (int i = 0; i < 3; i++)
         {
             var userId = Guid.NewGuid();
-            students.Add(new API.Entities.Student
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                GroupId = groupId,
-                RecordBookNumber = $"ЗК-2024-{i:D3}",
-                User = new User { Id = userId, Email = $"s{i}@t.ru", FullName = $"S{i}", PasswordHash = "h", Role = UserRole.Student, IsActive = true },
-                Group = group,
-            });
+            students.Add(
+                new API.Entities.Student
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    GroupId = groupId,
+                    RecordBookNumber = $"ЗК-2024-{i:D3}",
+                    User = new User
+                    {
+                        Id = userId,
+                        Email = $"s{i}@t.ru",
+                        FullName = $"S{i}",
+                        PasswordHash = "h",
+                        Role = UserRole.Student,
+                        IsActive = true,
+                    },
+                    Group = group,
+                }
+            );
         }
 
         var otherUserId = Guid.NewGuid();
@@ -76,7 +96,15 @@ public class StudentServiceTests : IDisposable
             UserId = otherUserId,
             GroupId = otherGroupId,
             RecordBookNumber = "ЗК-2024-999",
-            User = new User { Id = otherUserId, Email = "o@t.ru", FullName = "O", PasswordHash = "h", Role = UserRole.Student, IsActive = true },
+            User = new User
+            {
+                Id = otherUserId,
+                Email = "o@t.ru",
+                FullName = "O",
+                PasswordHash = "h",
+                Role = UserRole.Student,
+                IsActive = true,
+            },
             Group = otherGroup,
         };
 

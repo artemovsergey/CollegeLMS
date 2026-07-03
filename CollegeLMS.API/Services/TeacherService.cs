@@ -13,8 +13,8 @@ public class TeacherService(AppDbContext db) : ITeacherService
 {
     public async Task<Result<List<TeacherResponse>>> GetAllAsync(CancellationToken ct)
     {
-        var teachers = await db.Teachers
-            .AsNoTracking()
+        var teachers = await db
+            .Teachers.AsNoTracking()
             .Include(t => t.User)
             .OrderBy(t => t.User.FullName)
             .ToListAsync(ct);
@@ -24,8 +24,8 @@ public class TeacherService(AppDbContext db) : ITeacherService
 
     public async Task<Result<TeacherResponse>> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        var teacher = await db.Teachers
-            .AsNoTracking()
+        var teacher = await db
+            .Teachers.AsNoTracking()
             .Include(t => t.User)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
 
@@ -35,7 +35,10 @@ public class TeacherService(AppDbContext db) : ITeacherService
         return Result<TeacherResponse>.Ok(teacher.ToDto());
     }
 
-    public async Task<Result<TeacherResponse>> CreateAsync(CreateTeacherRequest request, CancellationToken ct)
+    public async Task<Result<TeacherResponse>> CreateAsync(
+        CreateTeacherRequest request,
+        CancellationToken ct
+    )
     {
         var emailExists = await db.Users.AnyAsync(u => u.Email == request.Email, ct);
         if (emailExists)
@@ -67,16 +70,23 @@ public class TeacherService(AppDbContext db) : ITeacherService
         return Result<TeacherResponse>.Ok(teacher.ToDto());
     }
 
-    public async Task<Result<TeacherResponse>> UpdateAsync(Guid id, UpdateTeacherRequest request, CancellationToken ct)
+    public async Task<Result<TeacherResponse>> UpdateAsync(
+        Guid id,
+        UpdateTeacherRequest request,
+        CancellationToken ct
+    )
     {
-        var teacher = await db.Teachers
-            .Include(t => t.User)
+        var teacher = await db
+            .Teachers.Include(t => t.User)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
 
         if (teacher is null)
             return Result<TeacherResponse>.Fail("Преподаватель не найден", 404);
 
-        var emailExists = await db.Users.AnyAsync(u => u.Email == request.Email && u.Id != teacher.UserId, ct);
+        var emailExists = await db.Users.AnyAsync(
+            u => u.Email == request.Email && u.Id != teacher.UserId,
+            ct
+        );
         if (emailExists)
             return Result<TeacherResponse>.Fail("Пользователь с таким email уже существует", 409);
 
@@ -93,8 +103,8 @@ public class TeacherService(AppDbContext db) : ITeacherService
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct)
     {
-        var teacher = await db.Teachers
-            .Include(t => t.User)
+        var teacher = await db
+            .Teachers.Include(t => t.User)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
 
         if (teacher is null)

@@ -14,18 +14,20 @@ public static class TeacherFixture
             .RuleFor(t => t.Position, f => f.Name.JobTitle())
             .RuleFor(t => t.CreatedAt, f => f.Date.Past())
             .RuleFor(t => t.UpdatedAt, f => f.Date.Recent())
-            .FinishWith((f, t) =>
-            {
-                t.User = new User
+            .FinishWith(
+                (f, t) =>
                 {
-                    Id = t.UserId,
-                    Email = f.Internet.Email(),
-                    FullName = f.Name.FullName(),
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
-                    Role = UserRole.Teacher,
-                    IsActive = true,
-                    CreatedAt = t.CreatedAt,
-                    UpdatedAt = t.UpdatedAt,
-                };
-            });
+                    t.User = new User
+                    {
+                        Id = t.UserId,
+                        Email = f.Internet.Email(),
+                        FullName = f.Name.FullName(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
+                        Role = UserRole.Teacher,
+                        IsActive = true,
+                        CreatedAt = t.CreatedAt,
+                        UpdatedAt = t.UpdatedAt,
+                    };
+                }
+            );
 }

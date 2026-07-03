@@ -25,14 +25,16 @@ public class LectureServiceTests : IDisposable
     public async Task GetAll_ReturnsEmptyList_WhenNoLectures()
     {
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetAllAsync(courseId, default);
@@ -45,14 +47,16 @@ public class LectureServiceTests : IDisposable
     public async Task GetAll_ReturnsLectures_WhenExist()
     {
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         var lectures = LectureFixture.CreateFaker().Generate(3);
         foreach (var l in lectures)
             l.CourseId = courseId;
@@ -69,14 +73,16 @@ public class LectureServiceTests : IDisposable
     public async Task GetById_ReturnsLecture_WhenFound()
     {
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         var lecture = LectureFixture.CreateFaker().Generate();
         lecture.CourseId = courseId;
         _db.Lectures.Add(lecture);
@@ -101,31 +107,37 @@ public class LectureServiceTests : IDisposable
     public async Task Create_CreatesLecture_WhenAdmin()
     {
         var adminId = Guid.NewGuid();
-        _db.Users.Add(new User
-        {
-            Id = adminId,
-            Email = "admin@test.ru",
-            FullName = "Admin",
-            PasswordHash = "hash",
-            Role = UserRole.Admin,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         await _db.SaveChangesAsync();
 
-        var result = await _sut.CreateAsync(courseId, new CreateLectureRequest
-        {
-            Title = "Новая лекция",
-            Content = "Содержание лекции",
-        }, adminId, "Admin", default);
+        var result = await _sut.CreateAsync(
+            courseId,
+            new CreateLectureRequest { Title = "Новая лекция", Content = "Содержание лекции" },
+            adminId,
+            "Admin",
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Title.Should().Be("Новая лекция");
@@ -136,39 +148,47 @@ public class LectureServiceTests : IDisposable
     public async Task Create_AutoAssignsOrder()
     {
         var adminId = Guid.NewGuid();
-        _db.Users.Add(new User
-        {
-            Id = adminId,
-            Email = "admin@test.ru",
-            FullName = "Admin",
-            PasswordHash = "hash",
-            Role = UserRole.Admin,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
-        _db.Lectures.Add(new Lecture
-        {
-            Id = Guid.NewGuid(),
-            CourseId = courseId,
-            Title = "Existing",
-            Content = "Content",
-            Order = 5,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
+        _db.Lectures.Add(
+            new Lecture
+            {
+                Id = Guid.NewGuid(),
+                CourseId = courseId,
+                Title = "Existing",
+                Content = "Content",
+                Order = 5,
+            }
+        );
         await _db.SaveChangesAsync();
 
-        var result = await _sut.CreateAsync(courseId, new CreateLectureRequest
-        {
-            Title = "Новая",
-            Content = "Контент",
-        }, adminId, "Admin", default);
+        var result = await _sut.CreateAsync(
+            courseId,
+            new CreateLectureRequest { Title = "Новая", Content = "Контент" },
+            adminId,
+            "Admin",
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Order.Should().Be(6);
@@ -178,24 +198,28 @@ public class LectureServiceTests : IDisposable
     public async Task Delete_RemovesLecture_WhenAdmin()
     {
         var adminId = Guid.NewGuid();
-        _db.Users.Add(new User
-        {
-            Id = adminId,
-            Email = "admin@test.ru",
-            FullName = "Admin",
-            PasswordHash = "hash",
-            Role = UserRole.Admin,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         var lecture = LectureFixture.CreateFaker().Generate();
         lecture.CourseId = courseId;
         _db.Lectures.Add(lecture);

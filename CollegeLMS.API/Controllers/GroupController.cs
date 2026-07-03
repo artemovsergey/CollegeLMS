@@ -64,7 +64,10 @@ public class GroupController(IGroupService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<GroupResponse>>> Create(CreateGroupRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<GroupResponse>>> Create(
+        CreateGroupRequest request,
+        CancellationToken ct
+    )
     {
         var result = await service.CreateAsync(request, ct);
         if (!result.IsSuccess)
@@ -89,7 +92,11 @@ public class GroupController(IGroupService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<GroupResponse>>> Update(Guid id, UpdateGroupRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<GroupResponse>>> Update(
+        Guid id,
+        UpdateGroupRequest request,
+        CancellationToken ct
+    )
     {
         var result = await service.UpdateAsync(id, request, ct);
         if (!result.IsSuccess)

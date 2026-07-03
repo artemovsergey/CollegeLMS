@@ -11,7 +11,15 @@ namespace CollegeLMS.API.Services;
 
 public class MaterialService(AppDbContext db, IFileService fileService) : IMaterialService
 {
-    public async Task<Result<MaterialResponse>> UploadAsync(Guid courseId, IFormFile file, Guid? lectureId, Guid? assignmentId, Guid currentUserId, string currentUserRole, CancellationToken ct)
+    public async Task<Result<MaterialResponse>> UploadAsync(
+        Guid courseId,
+        IFormFile file,
+        Guid? lectureId,
+        Guid? assignmentId,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
         var course = await db.Courses.FirstOrDefaultAsync(c => c.Id == courseId, ct);
         if (course is null)
@@ -19,12 +27,15 @@ public class MaterialService(AppDbContext db, IFileService fileService) : IMater
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers
-                .AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null || course.TeacherId != teacher.Id)
-                return Result<MaterialResponse>.Fail("У вас нет прав на добавление материалов в этот курс", 403);
+                return Result<MaterialResponse>.Fail(
+                    "У вас нет прав на добавление материалов в этот курс",
+                    403
+                );
         }
 
         var filePath = await fileService.SaveFileAsync("materials", courseId, file, ct);
@@ -46,14 +57,17 @@ public class MaterialService(AppDbContext db, IFileService fileService) : IMater
         return Result<MaterialResponse>.Ok(material.ToDto());
     }
 
-    public async Task<Result<List<MaterialResponse>>> GetByCourseAsync(Guid courseId, CancellationToken ct)
+    public async Task<Result<List<MaterialResponse>>> GetByCourseAsync(
+        Guid courseId,
+        CancellationToken ct
+    )
     {
         var courseExists = await db.Courses.AnyAsync(c => c.Id == courseId, ct);
         if (!courseExists)
             return Result<List<MaterialResponse>>.Fail("Курс не найден", 404);
 
-        var materials = await db.CourseMaterials
-            .AsNoTracking()
+        var materials = await db
+            .CourseMaterials.AsNoTracking()
             .Where(m => m.CourseId == courseId)
             .OrderByDescending(m => m.CreatedAt)
             .ToListAsync(ct);
@@ -61,10 +75,13 @@ public class MaterialService(AppDbContext db, IFileService fileService) : IMater
         return Result<List<MaterialResponse>>.Ok(materials.Select(m => m.ToDto()).ToList());
     }
 
-    public async Task<Result<(Stream Stream, string FileName, string MimeType)>> DownloadAsync(Guid id, CancellationToken ct)
+    public async Task<Result<(Stream Stream, string FileName, string MimeType)>> DownloadAsync(
+        Guid id,
+        CancellationToken ct
+    )
     {
-        var material = await db.CourseMaterials
-            .AsNoTracking()
+        var material = await db
+            .CourseMaterials.AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == id, ct);
 
         if (material is null)
@@ -78,10 +95,15 @@ public class MaterialService(AppDbContext db, IFileService fileService) : IMater
         return Result<(Stream, string, string)>.Ok((stream, material.FileName, material.MimeType));
     }
 
-    public async Task<Result> DeleteAsync(Guid id, Guid currentUserId, string currentUserRole, CancellationToken ct)
+    public async Task<Result> DeleteAsync(
+        Guid id,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
-        var material = await db.CourseMaterials
-            .Include(m => m.Course)
+        var material = await db
+            .CourseMaterials.Include(m => m.Course)
             .FirstOrDefaultAsync(m => m.Id == id, ct);
 
         if (material is null)
@@ -89,8 +111,8 @@ public class MaterialService(AppDbContext db, IFileService fileService) : IMater
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers
-                .AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null || material.Course.TeacherId != teacher.Id)

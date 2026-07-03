@@ -15,5 +15,6 @@ public class Assignment : Entity
     public Course Course { get; set; } = null!;
 
     [JsonIgnore]
-    public ICollection<AssignmentSubmission> Submissions { get; set; } = new List<AssignmentSubmission>();
+    public ICollection<AssignmentSubmission> Submissions { get; set; } =
+        new List<AssignmentSubmission>();
 }

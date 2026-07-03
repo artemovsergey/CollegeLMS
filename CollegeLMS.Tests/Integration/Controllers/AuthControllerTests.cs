@@ -30,11 +30,10 @@ public class AuthControllerTests : BaseIntegrationTest
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var response = await Client.PostAsJsonAsync("/api/auth/login", new LoginRequest
-        {
-            Email = "test@test.ru",
-            Password = "password123",
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest { Email = "test@test.ru", Password = "password123" }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -63,11 +62,10 @@ public class AuthControllerTests : BaseIntegrationTest
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var response = await Client.PostAsJsonAsync("/api/auth/login", new LoginRequest
-        {
-            Email = "test@test.ru",
-            Password = "wrong-password",
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest { Email = "test@test.ru", Password = "wrong-password" }
+        );
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -75,11 +73,10 @@ public class AuthControllerTests : BaseIntegrationTest
     [Fact]
     public async Task Login_ReturnsUnauthorized_WhenUserNotFound()
     {
-        var response = await Client.PostAsJsonAsync("/api/auth/login", new LoginRequest
-        {
-            Email = "nonexistent@test.ru",
-            Password = "password123",
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest { Email = "nonexistent@test.ru", Password = "password123" }
+        );
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -101,11 +98,10 @@ public class AuthControllerTests : BaseIntegrationTest
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var response = await Client.PostAsJsonAsync("/api/auth/login", new LoginRequest
-        {
-            Email = "test@test.ru",
-            Password = "password123",
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest { Email = "test@test.ru", Password = "password123" }
+        );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }

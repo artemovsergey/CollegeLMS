@@ -11,29 +11,34 @@ public static class StudentFixture
             .RuleFor(s => s.Id, f => f.Random.Guid())
             .RuleFor(s => s.UserId, (f, s) => s.Id)
             .RuleFor(s => s.GroupId, f => f.Random.Guid())
-            .RuleFor(s => s.RecordBookNumber, f => $"ЗК-{f.Random.Number(2023, 2026)}-{f.Random.Number(1, 999):D3}")
+            .RuleFor(
+                s => s.RecordBookNumber,
+                f => $"ЗК-{f.Random.Number(2023, 2026)}-{f.Random.Number(1, 999):D3}"
+            )
             .RuleFor(s => s.CreatedAt, f => f.Date.Past())
             .RuleFor(s => s.UpdatedAt, f => f.Date.Recent())
-            .FinishWith((f, s) =>
-            {
-                s.User = new User
+            .FinishWith(
+                (f, s) =>
                 {
-                    Id = s.UserId,
-                    Email = f.Internet.Email(),
-                    FullName = f.Name.FullName(),
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
-                    Role = UserRole.Student,
-                    IsActive = true,
-                    CreatedAt = s.CreatedAt,
-                    UpdatedAt = s.UpdatedAt,
-                };
-                s.Group = new Group
-                {
-                    Id = s.GroupId,
-                    Name = $"ГР-{f.Random.Number(1, 99)}",
-                    Course = f.Random.Number(1, 4),
-                    CreatedAt = s.CreatedAt,
-                    UpdatedAt = s.UpdatedAt,
-                };
-            });
+                    s.User = new User
+                    {
+                        Id = s.UserId,
+                        Email = f.Internet.Email(),
+                        FullName = f.Name.FullName(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
+                        Role = UserRole.Student,
+                        IsActive = true,
+                        CreatedAt = s.CreatedAt,
+                        UpdatedAt = s.UpdatedAt,
+                    };
+                    s.Group = new Group
+                    {
+                        Id = s.GroupId,
+                        Name = $"ГР-{f.Random.Number(1, 99)}",
+                        Course = f.Random.Number(1, 4),
+                        CreatedAt = s.CreatedAt,
+                        UpdatedAt = s.UpdatedAt,
+                    };
+                }
+            );
 }

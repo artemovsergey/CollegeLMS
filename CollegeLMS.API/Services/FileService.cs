@@ -5,7 +5,12 @@ namespace CollegeLMS.API.Services;
 
 public class FileService : IFileService
 {
-    public async Task<string> SaveFileAsync(string entityType, Guid entityId, IFormFile file, CancellationToken ct)
+    public async Task<string> SaveFileAsync(
+        string entityType,
+        Guid entityId,
+        IFormFile file,
+        CancellationToken ct
+    )
     {
         var uploadsDir = Path.Combine("uploads", entityType, entityId.ToString());
         Directory.CreateDirectory(uploadsDir);

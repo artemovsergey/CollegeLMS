@@ -36,7 +36,8 @@ public class AuthController(IAuthService authService) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result<LoginResponse>>> Login(
         LoginRequest request,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var result = await authService.LoginAsync(request, ct);
         if (!result.IsSuccess)

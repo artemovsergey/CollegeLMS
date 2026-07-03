@@ -37,7 +37,8 @@ public class AuthServiceTests : IDisposable
 
         var result = await _sut.LoginAsync(
             new LoginRequest { Email = user.Email, Password = "correct-password" },
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().NotBeNull();
@@ -56,7 +57,8 @@ public class AuthServiceTests : IDisposable
 
         var result = await _sut.LoginAsync(
             new LoginRequest { Email = user.Email, Password = "wrong-password" },
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(401);
@@ -67,7 +69,8 @@ public class AuthServiceTests : IDisposable
     {
         var result = await _sut.LoginAsync(
             new LoginRequest { Email = "nonexistent@test.ru", Password = "pass" },
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(401);
@@ -84,7 +87,8 @@ public class AuthServiceTests : IDisposable
 
         var result = await _sut.LoginAsync(
             new LoginRequest { Email = user.Email, Password = "password" },
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(403);

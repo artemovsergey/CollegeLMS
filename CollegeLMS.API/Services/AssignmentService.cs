@@ -10,14 +10,17 @@ namespace CollegeLMS.API.Services;
 
 public class AssignmentService(AppDbContext db) : IAssignmentService
 {
-    public async Task<Result<List<AssignmentResponse>>> GetAllAsync(Guid courseId, CancellationToken ct)
+    public async Task<Result<List<AssignmentResponse>>> GetAllAsync(
+        Guid courseId,
+        CancellationToken ct
+    )
     {
         var courseExists = await db.Courses.AnyAsync(c => c.Id == courseId, ct);
         if (!courseExists)
             return Result<List<AssignmentResponse>>.Fail("Курс не найден", 404);
 
-        var assignments = await db.Assignments
-            .AsNoTracking()
+        var assignments = await db
+            .Assignments.AsNoTracking()
             .Include(a => a.Submissions)
             .Where(a => a.CourseId == courseId)
             .OrderBy(a => a.Order)
@@ -26,10 +29,14 @@ public class AssignmentService(AppDbContext db) : IAssignmentService
         return Result<List<AssignmentResponse>>.Ok(assignments.Select(a => a.ToDto()).ToList());
     }
 
-    public async Task<Result<AssignmentResponse>> GetByIdAsync(Guid courseId, Guid id, CancellationToken ct)
+    public async Task<Result<AssignmentResponse>> GetByIdAsync(
+        Guid courseId,
+        Guid id,
+        CancellationToken ct
+    )
     {
-        var assignment = await db.Assignments
-            .AsNoTracking()
+        var assignment = await db
+            .Assignments.AsNoTracking()
             .Include(a => a.Submissions)
             .FirstOrDefaultAsync(a => a.Id == id && a.CourseId == courseId, ct);
 
@@ -40,7 +47,12 @@ public class AssignmentService(AppDbContext db) : IAssignmentService
     }
 
     public async Task<Result<AssignmentResponse>> CreateAsync(
-        Guid courseId, CreateAssignmentRequest request, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        Guid courseId,
+        CreateAssignmentRequest request,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
         var course = await db.Courses.FirstOrDefaultAsync(c => c.Id == courseId, ct);
         if (course is null)
@@ -48,17 +60,20 @@ public class AssignmentService(AppDbContext db) : IAssignmentService
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers
-                .AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null || course.TeacherId != teacher.Id)
-                return Result<AssignmentResponse>.Fail("У вас нет прав на добавление заданий в этот курс", 403);
+                return Result<AssignmentResponse>.Fail(
+                    "У вас нет прав на добавление заданий в этот курс",
+                    403
+                );
         }
 
-        var maxOrder = await db.Assignments
-            .Where(a => a.CourseId == courseId)
-            .MaxAsync(a => (int?)a.Order, ct) ?? 0;
+        var maxOrder =
+            await db.Assignments.Where(a => a.CourseId == courseId).MaxAsync(a => (int?)a.Order, ct)
+            ?? 0;
 
         var assignment = new Assignment
         {
@@ -77,10 +92,16 @@ public class AssignmentService(AppDbContext db) : IAssignmentService
     }
 
     public async Task<Result<AssignmentResponse>> UpdateAsync(
-        Guid courseId, Guid id, UpdateAssignmentRequest request, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        Guid courseId,
+        Guid id,
+        UpdateAssignmentRequest request,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
-        var assignment = await db.Assignments
-            .Include(a => a.Submissions)
+        var assignment = await db
+            .Assignments.Include(a => a.Submissions)
             .FirstOrDefaultAsync(a => a.Id == id && a.CourseId == courseId, ct);
 
         if (assignment is null)
@@ -90,12 +111,15 @@ public class AssignmentService(AppDbContext db) : IAssignmentService
 
         if (currentUserRole == "Teacher" && course is not null)
         {
-            var teacher = await db.Teachers
-                .AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null || course.TeacherId != teacher.Id)
-                return Result<AssignmentResponse>.Fail("У вас нет прав на редактирование заданий в этом курсе", 403);
+                return Result<AssignmentResponse>.Fail(
+                    "У вас нет прав на редактирование заданий в этом курсе",
+                    403
+                );
         }
 
         assignment.Title = request.Title;
@@ -109,10 +133,17 @@ public class AssignmentService(AppDbContext db) : IAssignmentService
     }
 
     public async Task<Result> DeleteAsync(
-        Guid courseId, Guid id, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        Guid courseId,
+        Guid id,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
-        var assignment = await db.Assignments
-            .FirstOrDefaultAsync(a => a.Id == id && a.CourseId == courseId, ct);
+        var assignment = await db.Assignments.FirstOrDefaultAsync(
+            a => a.Id == id && a.CourseId == courseId,
+            ct
+        );
 
         if (assignment is null)
             return Result.Fail("Задание не найдено", 404);
@@ -121,8 +152,8 @@ public class AssignmentService(AppDbContext db) : IAssignmentService
 
         if (currentUserRole == "Teacher" && course is not null)
         {
-            var teacher = await db.Teachers
-                .AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null || course.TeacherId != teacher.Id)

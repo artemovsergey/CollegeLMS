@@ -31,14 +31,16 @@ public class MaterialServiceTests : IDisposable
     public async Task GetByCourse_ReturnsMaterials_WhenExist()
     {
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Active,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Active,
+            }
+        );
         var materials = MaterialFixture.CreateFaker().Generate(3);
         foreach (var m in materials)
             m.CourseId = courseId;
@@ -64,14 +66,16 @@ public class MaterialServiceTests : IDisposable
     public async Task GetByCourse_ReturnsEmptyList_WhenNoMaterials()
     {
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Active,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Active,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetByCourseAsync(courseId, default);
@@ -84,25 +88,29 @@ public class MaterialServiceTests : IDisposable
     public async Task Upload_CreatesRecord_WhenValid()
     {
         var adminId = Guid.NewGuid();
-        _db.Users.Add(new User
-        {
-            Id = adminId,
-            Email = "admin@test.ru",
-            FullName = "Admin",
-            PasswordHash = "hash",
-            Role = UserRole.Admin,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
 
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Active,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Active,
+            }
+        );
         await _db.SaveChangesAsync();
 
         _fileServiceMock
@@ -126,15 +134,17 @@ public class MaterialServiceTests : IDisposable
     public async Task Delete_RemovesRecord_WhenAdmin()
     {
         var adminId = Guid.NewGuid();
-        _db.Users.Add(new User
-        {
-            Id = adminId,
-            Email = "admin@test.ru",
-            FullName = "Admin",
-            PasswordHash = "hash",
-            Role = UserRole.Admin,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
 
         var material = MaterialFixture.CreateFaker().Generate();
 

@@ -25,7 +25,9 @@ public class DashboardController(IDashboardService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<TeacherDashboardResponse>>> GetTeacherDashboard(CancellationToken ct)
+    public async Task<ActionResult<Result<TeacherDashboardResponse>>> GetTeacherDashboard(
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var result = await service.GetTeacherDashboardAsync(userId, ct);
@@ -47,7 +49,9 @@ public class DashboardController(IDashboardService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<StudentDashboardResponse>>> GetStudentDashboard(CancellationToken ct)
+    public async Task<ActionResult<Result<StudentDashboardResponse>>> GetStudentDashboard(
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var result = await service.GetStudentDashboardAsync(userId, ct);

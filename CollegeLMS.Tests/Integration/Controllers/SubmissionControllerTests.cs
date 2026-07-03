@@ -47,7 +47,14 @@ public class SubmissionControllerTests : BaseIntegrationTest
         var user = db.Users.First(u => u.Role == UserRole.Student);
 
         var groupId = Guid.NewGuid();
-        db.Groups.Add(new Group { Id = groupId, Name = "Test", Course = 1 });
+        db.Groups.Add(
+            new Group
+            {
+                Id = groupId,
+                Name = "Test",
+                Course = 1,
+            }
+        );
 
         var student = new Student
         {
@@ -80,7 +87,8 @@ public class SubmissionControllerTests : BaseIntegrationTest
 
         var response = await Client.PostAsJsonAsync(
             $"/api/assignments/{assignment.Id}/submit",
-            new SubmitAssignmentRequest { FilePath = "submissions/test/file.bin", Comment = "Test" });
+            new SubmitAssignmentRequest { FilePath = "submissions/test/file.bin", Comment = "Test" }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await DeserializeAsync<Result<SubmissionResponse>>(response);
@@ -94,7 +102,8 @@ public class SubmissionControllerTests : BaseIntegrationTest
     {
         var response = await Client.PostAsJsonAsync(
             $"/api/assignments/{Guid.NewGuid()}/submit",
-            new SubmitAssignmentRequest { FilePath = "test.bin" });
+            new SubmitAssignmentRequest { FilePath = "test.bin" }
+        );
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -215,7 +224,8 @@ public class SubmissionControllerTests : BaseIntegrationTest
 
         var response = await Client.PatchAsJsonAsync(
             $"/api/submissions/{submission.Id}/grade",
-            new GradeSubmissionRequest { Score = 90 });
+            new GradeSubmissionRequest { Score = 90 }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await DeserializeAsync<Result<SubmissionResponse>>(response);

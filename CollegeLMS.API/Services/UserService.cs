@@ -12,10 +12,7 @@ public class UserService(AppDbContext db) : IUserService
 {
     public async Task<Result<List<UserResponse>>> GetAllAsync(CancellationToken ct)
     {
-        var users = await db.Users
-            .AsNoTracking()
-            .OrderBy(x => x.FullName)
-            .ToListAsync(ct);
+        var users = await db.Users.AsNoTracking().OrderBy(x => x.FullName).ToListAsync(ct);
 
         return Result<List<UserResponse>>.Ok(users.Select(x => x.ToDto()).ToList());
     }
@@ -29,7 +26,10 @@ public class UserService(AppDbContext db) : IUserService
         return Result<UserResponse>.Ok(user.ToDto());
     }
 
-    public async Task<Result<UserResponse>> CreateAsync(CreateUserRequest request, CancellationToken ct)
+    public async Task<Result<UserResponse>> CreateAsync(
+        CreateUserRequest request,
+        CancellationToken ct
+    )
     {
         var exists = await db.Users.AnyAsync(u => u.Email == request.Email, ct);
         if (exists)
@@ -42,7 +42,11 @@ public class UserService(AppDbContext db) : IUserService
         return Result<UserResponse>.Ok(user.ToDto());
     }
 
-    public async Task<Result<UserResponse>> UpdateAsync(Guid id, UpdateUserRequest request, CancellationToken ct)
+    public async Task<Result<UserResponse>> UpdateAsync(
+        Guid id,
+        UpdateUserRequest request,
+        CancellationToken ct
+    )
     {
         var user = await db.Users.FindAsync([id], ct);
         if (user is null)
@@ -74,7 +78,11 @@ public class UserService(AppDbContext db) : IUserService
         return Result.Ok();
     }
 
-    public async Task<Result<UserResponse>> ChangeRoleAsync(Guid id, ChangeRoleRequest request, CancellationToken ct)
+    public async Task<Result<UserResponse>> ChangeRoleAsync(
+        Guid id,
+        ChangeRoleRequest request,
+        CancellationToken ct
+    )
     {
         var user = await db.Users.FindAsync([id], ct);
         if (user is null)

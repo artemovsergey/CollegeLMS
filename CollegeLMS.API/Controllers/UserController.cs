@@ -86,7 +86,8 @@ public class UserController(IUserService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result<UserResponse>>> Create(
         CreateUserRequest request,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var result = await service.CreateAsync(request, ct);
         if (!result.IsSuccess)
@@ -125,7 +126,8 @@ public class UserController(IUserService service) : ControllerBase
     public async Task<ActionResult<Result<UserResponse>>> Update(
         Guid id,
         UpdateUserRequest request,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var result = await service.UpdateAsync(id, request, ct);
         if (!result.IsSuccess)
@@ -187,7 +189,8 @@ public class UserController(IUserService service) : ControllerBase
     public async Task<ActionResult<Result<UserResponse>>> ChangeRole(
         Guid id,
         ChangeRoleRequest request,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var result = await service.ChangeRoleAsync(id, request, ct);
         if (!result.IsSuccess)

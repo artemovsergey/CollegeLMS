@@ -11,27 +11,28 @@ namespace CollegeLMS.API.Services;
 
 public class StudentService(AppDbContext db) : IStudentService
 {
-    public async Task<Result<List<StudentResponse>>> GetAllAsync(Guid? groupId, CancellationToken ct)
+    public async Task<Result<List<StudentResponse>>> GetAllAsync(
+        Guid? groupId,
+        CancellationToken ct
+    )
     {
-        IQueryable<Student> query = db.Students
-            .AsNoTracking()
+        IQueryable<Student> query = db
+            .Students.AsNoTracking()
             .Include(s => s.User)
             .Include(s => s.Group);
 
         if (groupId.HasValue)
             query = query.Where(s => s.GroupId == groupId.Value);
 
-        var students = await query
-            .OrderBy(s => s.User.FullName)
-            .ToListAsync(ct);
+        var students = await query.OrderBy(s => s.User.FullName).ToListAsync(ct);
 
         return Result<List<StudentResponse>>.Ok(students.Select(s => s.ToDto()).ToList());
     }
 
     public async Task<Result<StudentResponse>> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        var student = await db.Students
-            .AsNoTracking()
+        var student = await db
+            .Students.AsNoTracking()
             .Include(s => s.User)
             .Include(s => s.Group)
             .FirstOrDefaultAsync(s => s.Id == id, ct);
@@ -42,15 +43,24 @@ public class StudentService(AppDbContext db) : IStudentService
         return Result<StudentResponse>.Ok(student.ToDto());
     }
 
-    public async Task<Result<StudentResponse>> CreateAsync(CreateStudentRequest request, CancellationToken ct)
+    public async Task<Result<StudentResponse>> CreateAsync(
+        CreateStudentRequest request,
+        CancellationToken ct
+    )
     {
         var emailExists = await db.Users.AnyAsync(u => u.Email == request.Email, ct);
         if (emailExists)
             return Result<StudentResponse>.Fail("Пользователь с таким email уже существует", 409);
 
-        var bookExists = await db.Students.AnyAsync(s => s.RecordBookNumber == request.RecordBookNumber, ct);
+        var bookExists = await db.Students.AnyAsync(
+            s => s.RecordBookNumber == request.RecordBookNumber,
+            ct
+        );
         if (bookExists)
-            return Result<StudentResponse>.Fail("Студент с таким номером зачётной книжки уже существует", 409);
+            return Result<StudentResponse>.Fail(
+                "Студент с таким номером зачётной книжки уже существует",
+                409
+            );
 
         var groupExists = await db.Groups.AnyAsync(g => g.Id == request.GroupId, ct);
         if (!groupExists)
@@ -83,23 +93,36 @@ public class StudentService(AppDbContext db) : IStudentService
         return Result<StudentResponse>.Ok(student.ToDto());
     }
 
-    public async Task<Result<StudentResponse>> UpdateAsync(Guid id, UpdateStudentRequest request, CancellationToken ct)
+    public async Task<Result<StudentResponse>> UpdateAsync(
+        Guid id,
+        UpdateStudentRequest request,
+        CancellationToken ct
+    )
     {
-        var student = await db.Students
-            .Include(s => s.User)
+        var student = await db
+            .Students.Include(s => s.User)
             .Include(s => s.Group)
             .FirstOrDefaultAsync(s => s.Id == id, ct);
 
         if (student is null)
             return Result<StudentResponse>.Fail("Студент не найден", 404);
 
-        var emailExists = await db.Users.AnyAsync(u => u.Email == request.Email && u.Id != student.UserId, ct);
+        var emailExists = await db.Users.AnyAsync(
+            u => u.Email == request.Email && u.Id != student.UserId,
+            ct
+        );
         if (emailExists)
             return Result<StudentResponse>.Fail("Пользователь с таким email уже существует", 409);
 
-        var bookExists = await db.Students.AnyAsync(s => s.RecordBookNumber == request.RecordBookNumber && s.Id != id, ct);
+        var bookExists = await db.Students.AnyAsync(
+            s => s.RecordBookNumber == request.RecordBookNumber && s.Id != id,
+            ct
+        );
         if (bookExists)
-            return Result<StudentResponse>.Fail("Студент с таким номером зачётной книжки уже существует", 409);
+            return Result<StudentResponse>.Fail(
+                "Студент с таким номером зачётной книжки уже существует",
+                409
+            );
 
         var groupExists = await db.Groups.AnyAsync(g => g.Id == request.GroupId, ct);
         if (!groupExists)
@@ -121,8 +144,8 @@ public class StudentService(AppDbContext db) : IStudentService
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct)
     {
-        var student = await db.Students
-            .Include(s => s.User)
+        var student = await db
+            .Students.Include(s => s.User)
             .FirstOrDefaultAsync(s => s.Id == id, ct);
 
         if (student is null)

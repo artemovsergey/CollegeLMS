@@ -86,7 +86,8 @@ public class LectureControllerTests : BaseIntegrationTest
 
         var response = await Client.PostAsJsonAsync(
             $"/api/courses/{course.Id}/lectures",
-            new CreateLectureRequest { Title = "Новая лекция", Content = "Контент" });
+            new CreateLectureRequest { Title = "Новая лекция", Content = "Контент" }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await DeserializeAsync<Result<LectureResponse>>(response);

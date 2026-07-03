@@ -104,7 +104,8 @@ public static class DataSeeder
             Id = Guid.NewGuid(),
             CourseId = course.Id,
             Title = "Введение в C#",
-            Content = "Основные понятия языка программирования C#: типы данных, переменные, операторы.",
+            Content =
+                "Основные понятия языка программирования C#: типы данных, переменные, операторы.",
             Order = 1,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,

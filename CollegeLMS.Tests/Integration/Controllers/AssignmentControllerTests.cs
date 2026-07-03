@@ -86,7 +86,13 @@ public class AssignmentControllerTests : BaseIntegrationTest
 
         var response = await Client.PostAsJsonAsync(
             $"/api/courses/{course.Id}/assignments",
-            new CreateAssignmentRequest { Title = "Новое задание", Description = "Описание", MaxScore = 100 });
+            new CreateAssignmentRequest
+            {
+                Title = "Новое задание",
+                Description = "Описание",
+                MaxScore = 100,
+            }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await DeserializeAsync<Result<AssignmentResponse>>(response);

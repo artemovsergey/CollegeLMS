@@ -1,18 +1,13 @@
 import { test, expect } from "@playwright/test"
 
-const adminUser = {
-  id: "00000000-0000-0000-0000-000000000001",
-  email: "admin@collegelms.ru",
-  fullName: "Администратор",
-  role: "Admin",
-  isActive: true,
-}
-
 test.describe("Users page", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem("token", "test-jwt-token")
-      localStorage.setItem("user", JSON.stringify(adminUser))
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+      )
     })
   })
 
@@ -23,15 +18,15 @@ test.describe("Users page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [adminUser],
+          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true }],
           errorMessage: null,
           statusCode: 200,
         }),
       })
     )
 
-    await page.goto("/")
-    await expect(page.getByText("Пользователи")).toBeVisible()
+    await page.goto("/", { waitUntil: "networkidle" })
+    await expect(page.getByRole("heading", { name: "Пользователи" })).toBeVisible()
   })
 
   test("shows loading state initially", async ({ page }) => {
@@ -54,7 +49,7 @@ test.describe("Users page", () => {
 
   test("displays error state on failure", async ({ page }) => {
     await page.route("**/api/users", (route) => route.abort())
-    await page.goto("/")
+    await page.goto("/", { waitUntil: "networkidle" })
 
     await expect(page.getByText("Ошибка загрузки")).toBeVisible()
   })

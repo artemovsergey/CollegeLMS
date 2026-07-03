@@ -14,14 +14,18 @@ public class AssignmentSubmissionConfiguration : IEntityTypeConfiguration<Assign
         builder.Property(x => x.FilePath).HasMaxLength(500);
         builder.Property(x => x.Comment).HasMaxLength(1000);
         builder.Property(x => x.SubmittedAt).HasColumnType("timestamp with time zone");
-        builder.HasOne(x => x.Assignment)
+        builder
+            .HasOne(x => x.Assignment)
             .WithMany(a => a.Submissions)
             .HasForeignKey(x => x.AssignmentId)
             .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(x => x.Student)
+        builder
+            .HasOne(x => x.Student)
             .WithMany(s => s.Submissions)
             .HasForeignKey(x => x.StudentId)
             .OnDelete(DeleteBehavior.Restrict);
-        builder.HasIndex(x => new { x.AssignmentId, x.StudentId }).HasDatabaseName("ix_assignment_submissions_assignment_id_student_id");
+        builder
+            .HasIndex(x => new { x.AssignmentId, x.StudentId })
+            .HasDatabaseName("ix_assignment_submissions_assignment_id_student_id");
     }
 }

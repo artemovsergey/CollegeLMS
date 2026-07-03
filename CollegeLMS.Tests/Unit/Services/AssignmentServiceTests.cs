@@ -25,14 +25,16 @@ public class AssignmentServiceTests : IDisposable
     public async Task GetAll_ReturnsEmptyList_WhenNoAssignments()
     {
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetAllAsync(courseId, default);
@@ -45,14 +47,16 @@ public class AssignmentServiceTests : IDisposable
     public async Task GetAll_ReturnsAssignments_WhenExist()
     {
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         var assignments = AssignmentFixture.CreateFaker().Generate(3);
         foreach (var a in assignments)
             a.CourseId = courseId;
@@ -69,14 +73,16 @@ public class AssignmentServiceTests : IDisposable
     public async Task GetById_ReturnsAssignment_WhenFound()
     {
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         var assignment = AssignmentFixture.CreateFaker().Generate();
         assignment.CourseId = courseId;
         _db.Assignments.Add(assignment);
@@ -92,32 +98,42 @@ public class AssignmentServiceTests : IDisposable
     public async Task Create_CreatesAssignment_WhenAdmin()
     {
         var adminId = Guid.NewGuid();
-        _db.Users.Add(new User
-        {
-            Id = adminId,
-            Email = "admin@test.ru",
-            FullName = "Admin",
-            PasswordHash = "hash",
-            Role = UserRole.Admin,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         await _db.SaveChangesAsync();
 
-        var result = await _sut.CreateAsync(courseId, new CreateAssignmentRequest
-        {
-            Title = "Новое задание",
-            Description = "Описание",
-            MaxScore = 100,
-        }, adminId, "Admin", default);
+        var result = await _sut.CreateAsync(
+            courseId,
+            new CreateAssignmentRequest
+            {
+                Title = "Новое задание",
+                Description = "Описание",
+                MaxScore = 100,
+            },
+            adminId,
+            "Admin",
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Title.Should().Be("Новое задание");
@@ -128,40 +144,52 @@ public class AssignmentServiceTests : IDisposable
     public async Task Create_AutoAssignsOrder()
     {
         var adminId = Guid.NewGuid();
-        _db.Users.Add(new User
-        {
-            Id = adminId,
-            Email = "admin@test.ru",
-            FullName = "Admin",
-            PasswordHash = "hash",
-            Role = UserRole.Admin,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
-        _db.Assignments.Add(new Assignment
-        {
-            Id = Guid.NewGuid(),
-            CourseId = courseId,
-            Title = "Existing",
-            Description = "Desc",
-            Order = 3,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
+        _db.Assignments.Add(
+            new Assignment
+            {
+                Id = Guid.NewGuid(),
+                CourseId = courseId,
+                Title = "Existing",
+                Description = "Desc",
+                Order = 3,
+            }
+        );
         await _db.SaveChangesAsync();
 
-        var result = await _sut.CreateAsync(courseId, new CreateAssignmentRequest
-        {
-            Title = "Новое",
-            Description = "Описание",
-            MaxScore = 50,
-        }, adminId, "Admin", default);
+        var result = await _sut.CreateAsync(
+            courseId,
+            new CreateAssignmentRequest
+            {
+                Title = "Новое",
+                Description = "Описание",
+                MaxScore = 50,
+            },
+            adminId,
+            "Admin",
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Order.Should().Be(4);
@@ -171,24 +199,28 @@ public class AssignmentServiceTests : IDisposable
     public async Task Delete_RemovesAssignment_WhenAdmin()
     {
         var adminId = Guid.NewGuid();
-        _db.Users.Add(new User
-        {
-            Id = adminId,
-            Email = "admin@test.ru",
-            FullName = "Admin",
-            PasswordHash = "hash",
-            Role = UserRole.Admin,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
         var courseId = Guid.NewGuid();
-        _db.Courses.Add(new Course
-        {
-            Id = courseId,
-            Title = "Test",
-            TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
-            Status = CourseStatus.Draft,
-        });
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
         var assignment = AssignmentFixture.CreateFaker().Generate();
         assignment.CourseId = courseId;
         _db.Assignments.Add(assignment);

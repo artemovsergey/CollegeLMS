@@ -85,11 +85,10 @@ public class GroupControllerTests : BaseIntegrationTest
     {
         SetAuthHeader(GetAdminToken());
 
-        var response = await Client.PostAsJsonAsync("/api/groups", new CreateGroupRequest
-        {
-            Name = "ТЕСТ-11",
-            Course = 1,
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/groups",
+            new CreateGroupRequest { Name = "ТЕСТ-11", Course = 1 }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await DeserializeAsync<Result<GroupResponse>>(response);

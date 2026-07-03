@@ -25,7 +25,10 @@ public class AssignmentController(IAssignmentService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<List<AssignmentResponse>>>> GetAll(Guid courseId, CancellationToken ct)
+    public async Task<ActionResult<Result<List<AssignmentResponse>>>> GetAll(
+        Guid courseId,
+        CancellationToken ct
+    )
     {
         var result = await service.GetAllAsync(courseId, ct);
         if (!result.IsSuccess)
@@ -43,7 +46,11 @@ public class AssignmentController(IAssignmentService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<AssignmentResponse>>> GetById(Guid courseId, Guid id, CancellationToken ct)
+    public async Task<ActionResult<Result<AssignmentResponse>>> GetById(
+        Guid courseId,
+        Guid id,
+        CancellationToken ct
+    )
     {
         var result = await service.GetByIdAsync(courseId, id, ct);
         if (!result.IsSuccess)
@@ -66,7 +73,11 @@ public class AssignmentController(IAssignmentService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<AssignmentResponse>>> Create(Guid courseId, CreateAssignmentRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<AssignmentResponse>>> Create(
+        Guid courseId,
+        CreateAssignmentRequest request,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();
@@ -91,7 +102,12 @@ public class AssignmentController(IAssignmentService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<AssignmentResponse>>> Update(Guid courseId, Guid id, UpdateAssignmentRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<AssignmentResponse>>> Update(
+        Guid courseId,
+        Guid id,
+        UpdateAssignmentRequest request,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();

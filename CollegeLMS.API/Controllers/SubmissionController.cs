@@ -41,7 +41,11 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<SubmissionResponse>>> Submit(Guid assignmentId, SubmitAssignmentRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<SubmissionResponse>>> Submit(
+        Guid assignmentId,
+        SubmitAssignmentRequest request,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var result = await service.SubmitAsync(assignmentId, request, userId, ct);
@@ -72,7 +76,10 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<List<SubmissionResponse>>>> GetSubmissions(Guid assignmentId, CancellationToken ct)
+    public async Task<ActionResult<Result<List<SubmissionResponse>>>> GetSubmissions(
+        Guid assignmentId,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();
@@ -109,7 +116,11 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<SubmissionResponse>>> Grade(Guid submissionId, GradeSubmissionRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<SubmissionResponse>>> Grade(
+        Guid submissionId,
+        GradeSubmissionRequest request,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();
@@ -136,7 +147,9 @@ public class SubmissionController(ISubmissionService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<List<SubmissionResponse>>>> GetMySubmissions(CancellationToken ct)
+    public async Task<ActionResult<Result<List<SubmissionResponse>>>> GetMySubmissions(
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var result = await service.GetMySubmissionsAsync(userId, ct);

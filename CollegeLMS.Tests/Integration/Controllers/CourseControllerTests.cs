@@ -86,19 +86,27 @@ public class CourseControllerTests : BaseIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var teacher = TeacherFixture.CreateFaker().Generate();
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-21", Course = 2 };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-21",
+            Course = 2,
+        };
         db.Users.Add(teacher.User);
         db.Teachers.Add(teacher);
         db.Groups.Add(group);
         await db.SaveChangesAsync();
 
-        var response = await Client.PostAsJsonAsync("/api/courses", new CreateCourseRequest
-        {
-            Title = "Новый курс",
-            Description = "Описание курса",
-            GroupId = group.Id,
-            TeacherId = teacher.Id,
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/courses",
+            new CreateCourseRequest
+            {
+                Title = "Новый курс",
+                Description = "Описание курса",
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+            }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await DeserializeAsync<Result<CourseResponse>>(response);
@@ -112,11 +120,10 @@ public class CourseControllerTests : BaseIntegrationTest
     {
         SetAuthHeader(GetStudentToken());
 
-        var response = await Client.PostAsJsonAsync("/api/courses", new CreateCourseRequest
-        {
-            Title = "Курс",
-            GroupId = Guid.NewGuid(),
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/courses",
+            new CreateCourseRequest { Title = "Курс", GroupId = Guid.NewGuid() }
+        );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }

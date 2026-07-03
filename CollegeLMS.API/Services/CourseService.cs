@@ -12,11 +12,17 @@ namespace CollegeLMS.API.Services;
 public class CourseService(AppDbContext db) : ICourseService
 {
     public async Task<Result<List<CourseResponse>>> GetAllAsync(
-        Guid? teacherId, Guid? groupId, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        Guid? teacherId,
+        Guid? groupId,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
-        var query = db.Courses
-            .AsNoTracking()
-            .Include(c => c.Teacher).ThenInclude(t => t.User)
+        var query = db
+            .Courses.AsNoTracking()
+            .Include(c => c.Teacher)
+                .ThenInclude(t => t.User)
             .Include(c => c.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
@@ -24,8 +30,8 @@ public class CourseService(AppDbContext db) : ICourseService
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers
-                .AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null)
@@ -40,18 +46,17 @@ public class CourseService(AppDbContext db) : ICourseService
         if (groupId.HasValue)
             query = query.Where(c => c.GroupId == groupId.Value);
 
-        var courses = await query
-            .OrderBy(c => c.Title)
-            .ToListAsync(ct);
+        var courses = await query.OrderBy(c => c.Title).ToListAsync(ct);
 
         return Result<List<CourseResponse>>.Ok(courses.Select(c => c.ToDto()).ToList());
     }
 
     public async Task<Result<CourseResponse>> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        var course = await db.Courses
-            .AsNoTracking()
-            .Include(c => c.Teacher).ThenInclude(t => t.User)
+        var course = await db
+            .Courses.AsNoTracking()
+            .Include(c => c.Teacher)
+                .ThenInclude(t => t.User)
             .Include(c => c.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
@@ -64,14 +69,17 @@ public class CourseService(AppDbContext db) : ICourseService
     }
 
     public async Task<Result<CourseResponse>> CreateAsync(
-        CreateCourseRequest request, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        CreateCourseRequest request,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
         Guid teacherId;
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers
-                .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
+            var teacher = await db.Teachers.FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null)
                 return Result<CourseResponse>.Fail("Преподаватель не найден", 404);
@@ -102,8 +110,9 @@ public class CourseService(AppDbContext db) : ICourseService
         db.Courses.Add(course);
         await db.SaveChangesAsync(ct);
 
-        course = await db.Courses
-            .Include(c => c.Teacher).ThenInclude(t => t.User)
+        course = await db
+            .Courses.Include(c => c.Teacher)
+                .ThenInclude(t => t.User)
             .Include(c => c.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
@@ -113,10 +122,16 @@ public class CourseService(AppDbContext db) : ICourseService
     }
 
     public async Task<Result<CourseResponse>> UpdateAsync(
-        Guid id, UpdateCourseRequest request, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        Guid id,
+        UpdateCourseRequest request,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
-        var course = await db.Courses
-            .Include(c => c.Teacher).ThenInclude(t => t.User)
+        var course = await db
+            .Courses.Include(c => c.Teacher)
+                .ThenInclude(t => t.User)
             .Include(c => c.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
@@ -127,12 +142,15 @@ public class CourseService(AppDbContext db) : ICourseService
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers
-                .AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null || course.TeacherId != teacher.Id)
-                return Result<CourseResponse>.Fail("У вас нет прав на редактирование этого курса", 403);
+                return Result<CourseResponse>.Fail(
+                    "У вас нет прав на редактирование этого курса",
+                    403
+                );
         }
 
         var groupExists = await db.Groups.AnyAsync(g => g.Id == request.GroupId, ct);
@@ -150,10 +168,14 @@ public class CourseService(AppDbContext db) : ICourseService
     }
 
     public async Task<Result> DeleteAsync(
-        Guid id, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        Guid id,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
-        var course = await db.Courses
-            .Include(c => c.Lectures)
+        var course = await db
+            .Courses.Include(c => c.Lectures)
             .Include(c => c.Assignments)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
@@ -162,8 +184,8 @@ public class CourseService(AppDbContext db) : ICourseService
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers
-                .AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null || course.TeacherId != teacher.Id)

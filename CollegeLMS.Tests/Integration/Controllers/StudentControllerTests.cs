@@ -99,14 +99,17 @@ public class StudentControllerTests : BaseIntegrationTest
         db.Groups.Add(group);
         await db.SaveChangesAsync();
 
-        var response = await Client.PostAsJsonAsync("/api/students", new CreateStudentRequest
-        {
-            Email = "newstudent@test.ru",
-            Password = "test123",
-            FullName = "Новый Студент",
-            GroupId = group.Id,
-            RecordBookNumber = "ЗК-2024-001",
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/students",
+            new CreateStudentRequest
+            {
+                Email = "newstudent@test.ru",
+                Password = "test123",
+                FullName = "Новый Студент",
+                GroupId = group.Id,
+                RecordBookNumber = "ЗК-2024-001",
+            }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await DeserializeAsync<Result<StudentResponse>>(response);

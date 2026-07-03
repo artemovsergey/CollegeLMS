@@ -87,14 +87,17 @@ public class TeacherControllerTests : BaseIntegrationTest
     {
         SetAuthHeader(GetAdminToken());
 
-        var response = await Client.PostAsJsonAsync("/api/teachers", new CreateTeacherRequest
-        {
-            Email = "newteacher@test.ru",
-            Password = "test123",
-            FullName = "Новый Преподаватель",
-            Department = "ИТ",
-            Position = "Преподаватель",
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/teachers",
+            new CreateTeacherRequest
+            {
+                Email = "newteacher@test.ru",
+                Password = "test123",
+                FullName = "Новый Преподаватель",
+                Department = "ИТ",
+                Position = "Преподаватель",
+            }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await DeserializeAsync<Result<TeacherResponse>>(response);

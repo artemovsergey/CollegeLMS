@@ -5,12 +5,13 @@ namespace CollegeLMS.API.Mappers;
 
 public static class TeacherMapper
 {
-    public static TeacherResponse ToDto(this Teacher teacher) => new()
-    {
-        Id = teacher.Id,
-        FullName = teacher.User.FullName,
-        Email = teacher.User.Email,
-        Department = teacher.Department,
-        Position = teacher.Position,
-    };
+    public static TeacherResponse ToDto(this Teacher teacher) =>
+        new()
+        {
+            Id = teacher.Id,
+            FullName = teacher.User.FullName,
+            Email = teacher.User.Email,
+            Department = teacher.Department,
+            Position = teacher.Position,
+        };
 }
