@@ -9,4 +9,7 @@ public static class ClaimsPrincipalExtensions
 
     public static string GetEmail(this ClaimsPrincipal user) =>
         user.FindFirstValue(ClaimTypes.Email)!;
+
+    public static string GetRole(this ClaimsPrincipal user) =>
+        user.FindFirstValue(ClaimTypes.Role)!;
 }

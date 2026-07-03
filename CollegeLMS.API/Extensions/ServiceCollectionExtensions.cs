@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Services;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -158,7 +159,10 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddValidatorsFromAssemblyContaining<Program>();
 
         return services;
     }

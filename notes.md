@@ -10,4 +10,4 @@
 
 - на фазу настройки docker-compose тратится много времени, надо внести это в фазу 0 настройку
 
-- в opencode в /varia
+- в opencode в /variants использовать max
