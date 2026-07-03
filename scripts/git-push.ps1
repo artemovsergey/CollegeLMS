@@ -1,5 +1,3 @@
-param([string]$Message)
-
 $token = $env:GITHUB_TOKEN
 if (-not $token) {
     Write-Error "GITHUB_TOKEN env var is not set"
@@ -14,11 +12,8 @@ if (-not $repo) {
 
 git add -A
 
-if (-not $Message) {
-    $Message = "auto: $((Get-Date -Format 'yyyy-MM-dd HH:mm'))"
-}
-
-git commit -m $Message
+$msg = "auto: $((Get-Date -Format 'yyyy-MM-dd HH:mm'))"
+git commit -m $msg
 
 $origin = git remote get-url origin
 if ($origin -match "^https://(.+@)?github\.com") {
