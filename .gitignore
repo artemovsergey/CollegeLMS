@@ -26,7 +26,9 @@ appsettings.*.local.json
 
 # Agent config dirs
 .mimocode/
-.opencode/
+.opencode/*
+!.opencode/skills/
+.codex/
 
 # IDE
 .idea/

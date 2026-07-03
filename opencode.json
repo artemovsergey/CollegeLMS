@@ -1,5 +1,14 @@
 {
     "$schema": "https://opencode.ai/config.json",
+    "plugin": [
+        "superpowers@git+https://github.com/obra/superpowers.git"
+    ],
+    "skills": {
+        "paths": [
+            "C:\\Users\\asv\\.codex\\skills",
+            "C:\\Users\\asv\\Desktop\\CollegeLMS\\.opencode\\skills"
+        ]
+    },
     "mcp": {
         "postgres": {
             "type": "local",
@@ -32,23 +41,23 @@
         "subagent": {
             "BackendAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "Backend .NET developer. Creates entities, EF Core migrations, services, controllers, DTOs, mappers. Uses skills: dotnet-entity, dotnet-endpoint, result-pattern, fluent-validation. Runs: dotnet build."
+                "description": "Backend .NET developer. Creates entities, EF Core migrations, services, controllers, DTOs, mappers, validators, Swagger docs. Uses skills: dotnet-entity, dotnet-endpoint, result-pattern, fluent-validation, swagger-docs, aspnet-core. Runs: dotnet build."
             },
             "FrontendAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS styling. Runs: npm run dev."
+                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS v4, shadcn/ui, Lucide icons, Figma design import. Uses skills: nextjs-page, frontend-scaffold, design-system, brainstorming, figma, figma-implement-design, figma-generate-design, figma-generate-library. Runs: npm run dev."
             },
             "TesterAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "Test engineer. Creates xUnit tests with WebApplicationFactory, Bogus fixtures, Playwright E2E. Uses skills: dotnet-test. Runs: dotnet test, npx playwright test."
+                "description": "Test engineer. Creates xUnit unit tests (Moq + Bogus), integration tests (WebApplicationFactory), Playwright E2E tests. Uses skills: dotnet-test, test-driven-development, systematic-debugging, playwright, playwright-interactive. Runs: dotnet test, npx playwright test."
             },
             "AnalystAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "Technical analyst. Creates PlantUML diagrams (ER, Class, Sequence, UseCase, Deployment), tech documentation, architecture docs. Uses skills: plantuml-docs."
+                "description": "Technical analyst. Creates PlantUML diagrams (ER, Class, Sequence, UseCase, Deployment), tech documentation, security threat models. Uses skills: plantuml-docs, security-threat-model."
             },
             "DevOpsAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "DevOps engineer. Creates Dockerfiles, docker-compose, nginx config, GitHub Actions CI/CD. Uses skills: cicd-pipeline. Runs: docker compose."
+                "description": "DevOps engineer. Creates Dockerfiles, docker-compose, nginx config, GitHub Actions CI/CD, VPS deploy, Sentry monitoring. Uses skills: cicd-pipeline, docker-compose-dev, vps-deploy, gh-fix-ci, sentry, vercel-deploy. Runs: docker compose build."
             }
         }
     }
