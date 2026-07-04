@@ -96,12 +96,12 @@ public class NewsService(AppDbContext db) : INewsService
         db.News.Add(news);
         await db.SaveChangesAsync(ct);
 
-        news = await db
+        var saved = await db
             .News.Include(n => n.Category)
             .Include(n => n.CreatedBy)
-            .FirstAsync(n => n.Id == news.Id, ct);
+            .FirstOrDefaultAsync(n => n.Id == news.Id, ct);
 
-        return Result<NewsResponse>.Ok(news.ToDto());
+        return Result<NewsResponse>.Ok((saved ?? news).ToDto());
     }
 
     public async Task<Result<NewsResponse>> UpdateAsync(

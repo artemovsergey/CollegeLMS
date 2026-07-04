@@ -13,9 +13,7 @@ public class CreateNewsRequestValidator : AbstractValidator<CreateNewsRequest>
             .MaximumLength(255)
             .WithMessage("Заголовок не должен превышать 255 символов");
 
-        RuleFor(x => x.Content)
-            .NotEmpty()
-            .WithMessage("Содержание новости обязательно");
+        RuleFor(x => x.Content).NotEmpty().WithMessage("Содержание новости обязательно");
 
         RuleFor(x => x.ImageUrl)
             .MaximumLength(2048)
@@ -33,9 +31,7 @@ public class UpdateNewsRequestValidator : AbstractValidator<UpdateNewsRequest>
             .MaximumLength(255)
             .WithMessage("Заголовок не должен превышать 255 символов");
 
-        RuleFor(x => x.Content)
-            .NotEmpty()
-            .WithMessage("Содержание новости обязательно");
+        RuleFor(x => x.Content).NotEmpty().WithMessage("Содержание новости обязательно");
 
         RuleFor(x => x.ImageUrl)
             .MaximumLength(2048)
