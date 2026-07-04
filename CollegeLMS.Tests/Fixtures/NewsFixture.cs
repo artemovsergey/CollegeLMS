@@ -9,6 +9,7 @@ public static class NewsFixture
         new Faker<News>()
             .RuleFor(n => n.Id, f => f.Random.Guid())
             .RuleFor(n => n.Title, f => f.Lorem.Sentence(5))
+            .RuleFor(n => n.Slug, f => f.Lorem.Word() + "-" + f.Random.String2(8))
             .RuleFor(n => n.Content, f => f.Lorem.Paragraphs(3))
             .RuleFor(n => n.ImageUrl, f => f.Image.PicsumUrl())
             .RuleFor(n => n.IsPublished, true)

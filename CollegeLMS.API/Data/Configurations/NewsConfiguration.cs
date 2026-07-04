@@ -12,6 +12,7 @@ public class NewsConfiguration : IEntityTypeConfiguration<News>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Title).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.Slug).HasMaxLength(200).IsRequired();
         builder.Property(x => x.ImageUrl).HasMaxLength(2048);
         builder
             .HasOne(x => x.Category)

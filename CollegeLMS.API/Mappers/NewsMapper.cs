@@ -10,6 +10,7 @@ public static class NewsMapper
         {
             Id = news.Id,
             Title = news.Title,
+            Slug = news.Slug,
             Content = news.Content,
             ImageUrl = news.ImageUrl,
             CategoryId = news.CategoryId,

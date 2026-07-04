@@ -51,6 +51,12 @@ Thumbs.db
 # Docker
 docker-data/
 
+# Import data (large JSON dumps from WordPress)
+import/wp_data_full.json
+
+# Runtime artifacts
+agent-timeline.jsonl
+
 # Test results
 TestResults/
 playwright-report/
