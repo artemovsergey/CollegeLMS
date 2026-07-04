@@ -51,6 +51,8 @@ services:
     container_name: collegelms-api
     ports:
       - "${API_PORT:-5026}:8080"
+    volumes:
+      - ./import:/import
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:8080
@@ -66,6 +68,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ""
     container_name: collegelms-frontend
     depends_on:
       - api

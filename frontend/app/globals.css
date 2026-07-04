@@ -131,3 +131,52 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+
+.accessibility-mode {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.accessibility-mode img,
+.accessibility-mode video {
+  display: none;
+}
+
+.accessibility-mode * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.accessibility-mode a,
+.accessibility-mode button {
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.accessibility-mode .card,
+.accessibility-mode [class*="card"] {
+  border-width: 2px;
+}
+
+.accessibility-mode body,
+.accessibility-mode .bg-white,
+.accessibility-mode [class*="bg-"] {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.accessibility-mode [class*="text-"] {
+  color: #000000 !important;
+}
+
+.accessibility-mode .text-white,
+.accessibility-mode .text-\[#ffffff\] {
+  color: #000000 !important;
+}
+
+@media print {
+  header,
+  footer {
+    display: none;
+  }
+}
