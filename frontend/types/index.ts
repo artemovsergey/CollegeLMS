@@ -118,6 +118,51 @@ export interface SubmissionResponse {
   submittedAt: string
 }
 
+export interface NewsCategoryResponse {
+  id: string
+  name: string
+  slug: string
+}
+
+export interface NewsResponse {
+  id: string
+  title: string
+  content: string
+  imageUrl: string | null
+  categoryId: string | null
+  categoryName: string | null
+  isPublished: boolean
+  publishedAt: string
+  createdAt: string
+  createdByName: string
+}
+
+export interface CreateNewsRequest {
+  title: string
+  content: string
+  imageUrl?: string
+  categoryId?: string
+  isPublished?: boolean
+  publishedAt?: string
+}
+
+export interface UpdateNewsRequest {
+  title: string
+  content: string
+  imageUrl?: string
+  categoryId?: string
+  isPublished?: boolean
+  publishedAt?: string
+}
+
+export interface PagedResponse<T> {
+  items: T[]
+  totalCount: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
 export interface MaterialResponse {
   id: string
   courseId: string
