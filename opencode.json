@@ -5,7 +5,6 @@
     ],
     "skills": {
         "paths": [
-            "C:\\Users\\asv\\.codex\\skills",
             "C:\\Users\\asv\\Desktop\\CollegeLMS\\.opencode\\skills"
         ]
     },
@@ -55,7 +54,7 @@
             },
             "FrontendAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS v4, shadcn/ui, Lucide icons, Figma design import. Uses skills: nextjs-page, frontend-scaffold, design-system, brainstorming, figma, figma-implement-design, figma-generate-design, figma-generate-library. Runs: npm run dev."
+                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS v4, shadcn/ui, Lucide icons. Uses skills: nextjs-page, design-system, layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, refactor-ui. Runs: npm run dev."
             },
             "TesterAgent": {
                 "model": "deepseek-v4-flash-free",
@@ -67,7 +66,7 @@
             },
             "DevOpsAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "DevOps engineer. Creates Dockerfiles, docker-compose, nginx config, GitHub Actions CI/CD, VPS deploy, Sentry monitoring. Uses skills: cicd-pipeline, docker-compose-dev, vps-deploy, gh-fix-ci, sentry, vercel-deploy. Runs: docker compose build."
+                "description": "DevOps engineer. Creates Dockerfiles, docker-compose, nginx config, GitHub Actions CI/CD, VPS deploy, Sentry monitoring. Uses skills: cicd-pipeline, docker-compose-dev, vps-deploy, gh-fix-ci, sentry. Runs: docker compose build."
             }
         }
     }

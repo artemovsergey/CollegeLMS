@@ -36,11 +36,6 @@
 | `playwright` | Visual debugging, E2E tests, DOM inspection, screenshots | yes |
 | `github` | PRs, issues, checks, branches, repo management | yes |
 
-**Figma MCP** — not configured in opencode.json. Add manually when designing UI:
-```
-npx figma-mcp-server --token=FIGMA_TOKEN
-```
-
 ## Plugin (Superpowers)
 Installed: `superpowers@git+https://github.com/obra/superpowers.git`
 Location: `~/.cache/opencode/packages/superpowers/.../`
@@ -87,9 +82,9 @@ scripts/                 # WP data scraper
 | **Architect** | Main agent | brainstorming, writing-plans, verification-before-completion, requesting-code-review, yeet | Orchestrates workflow, reads task.md, decomposes into User Stories, creates branches, reviews, merges |
 | **BackendAgent** | Subagent | dotnet-entity, dotnet-endpoint, result-pattern, fluent-validation, swagger-docs, aspnet-core | Entity → migration → service → controller → DI → Swagger → Postman |
 | **TesterAgent** | Subagent | dotnet-test, playwright, playwright-interactive, test-driven-development, systematic-debugging | Unit tests (xUnit + Moq + Bogus), integration tests (WebApplicationFactory), E2E (Playwright), coverage |
-| **FrontendAgent** | Subagent | nextjs-page, frontend-scaffold, design-system, brainstorming, figma, figma-implement-design, figma-generate-design, figma-generate-library, figma-use | Next.js pages/components, API integration, Tailwind, shadcn/ui, Figma design (optional) |
+| **FrontendAgent** | Subagent | nextjs-page, design-system, layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, refactor-ui | Next.js pages/components, API integration, Tailwind, shadcn/ui |
 | **AnalystAgent** | Subagent | plantuml-docs, security-threat-model | PlantUML diagrams (ER, Class, Sequence, UseCase, Deployment), tech documentation, threat modeling |
-| **DevOpsAgent** | Subagent | docker-compose-dev, vps-deploy, cicd-pipeline, gh-fix-ci, sentry, vercel-deploy | Docker, nginx, CI/CD pipelines, deploy to VPS, error monitoring |
+| **DevOpsAgent** | Subagent | docker-compose-dev, vps-deploy, cicd-pipeline, gh-fix-ci, sentry | Docker, nginx, CI/CD pipelines, deploy to VPS, error monitoring |
 
 ## Skills
 
@@ -97,17 +92,15 @@ scripts/                 # WP data scraper
 
 | Skill | What it creates |
 |-------|----------------|
-| `project-bootstrap` | Full project setup: NuGet, Program.cs, DbContext, middleware |
 | `dotnet-entity` | Entity class, EF config, enum, migration |
 | `dotnet-endpoint` | Controller, Service, DTO, mapper, DI registration |
 | `result-pattern` | Result<T>, ApiResult, ExceptionHandlerMiddleware |
 | `jwt-auth` | TokenService, BCrypt, Swagger bearer, Claims helpers |
 | `dotnet-test` | Unit tests (xUnit + Moq + Bogus), integration tests (WebApplicationFactory) |
-| `testing-xunit` | Full test project scaffold: xUnit, WebApplicationFactory, Bogus fixtures, Controller/Service tests |
 | `fluent-validation` | FluentValidation validators + DI registration |
 | `nextjs-page` | Next.js page, loading/error boundaries, types |
-| `frontend-scaffold` | Next.js project scaffold with Tailwind CSS v4 |
 | `design-system` | shadcn/ui + Tailwind v4 + Lucide — production UI components |
+| `impeccable` | UI review, polish, responsive, accessibility, interaction design |
 | `docker-compose-dev` | dev docker-compose.yml (Postgres 16 + Redis 7) |
 | `vps-deploy` | Nginx, Dockerfiles, GH Actions CI/CD, deploy scripts |
 | `cicd-pipeline` | GitHub Actions: test.yml + quality gates |
@@ -115,9 +108,19 @@ scripts/                 # WP data scraper
 | `plantuml-docs` | UML diagrams: ER, Class, Sequence, UseCase, Deployment |
 | `cors-security` | CORS + security headers |
 | `seed-data` | EF Core HasData + Seed classes |
-| `redis-session` | StackExchangeRedis + IDistributedCache setup |
 | `feature-workflow` | Full vertical-slice feature orchestration — branch, entity, API, tests, frontend, docs, merge |
 | `project-reference` | Project-wide reference: NuGet packages, JWT auth, Docker, EF Core conventions |
+
+### Agent Skills (.agents/skills/)
+
+| Skill | What it does |
+|-------|-------------|
+| `layers-orient` | Audits which design layer is the bottleneck |
+| `layers-user-needs` | Turns interviews into prioritised job stories |
+| `layers-conceptual-model` | Maps objects, relationships, vocabulary for a feature |
+| `layers-interaction-flow` | Surfaces edge cases, empty states, flows |
+| `layers-surface` | Visual design decisions — layout, states, responsive |
+| `refactor-ui` | Full design pass — hierarchy, typography, color, spacing, buttons, clutter, empty states, shadows, contrast, grouping |
 
 ### Marketplace Skills (~/.codex/skills/)
 
@@ -126,21 +129,12 @@ scripts/                 # WP data scraper
 | `aspnet-core` | ASP.NET Core best practices, patterns, security, testing |
 | `playwright` | Playwright E2E testing patterns and best practices |
 | `playwright-interactive` | Interactive Playwright debugging and exploration |
-| `figma` | Figma integration — design export, tokens, components |
-| `figma-code-connect-components` | Connect Figma components to code |
-| `figma-create-design-system-rules` | Create design system rules from Figma |
-| `figma-create-new-file` | Create new Figma files |
-| `figma-generate-design` | Build screens in Figma from design system components |
-| `figma-generate-library` | Build professional design system in Figma (M3/Polaris level) |
-| `figma-implement-design` | Implement UI from Figma designs with 1:1 fidelity |
-| `figma-use` | Prerequisite for every use_figma call |
 | `sentry` | Error monitoring and issue tracking |
 | `security-best-practices` | Security patterns and vulnerability prevention |
 | `security-threat-model` | Threat modeling and attack path analysis |
 | `gh-fix-ci` | Fix GitHub Actions CI failures |
 | `gh-address-comments` | Address PR review comments |
 | `yeet` | Git operations and branch management |
-| `vercel-deploy` | Vercel deployment patterns |
 
 ### Superpowers Process Skills (~/.cache/opencode/.../superpowers/)
 
@@ -169,7 +163,7 @@ scripts/                 # WP data scraper
 | **0: Planning** | brainstorming → writing-plans | Spec reviewed by user |
 | **1: Backend** | dotnet-entity, dotnet-endpoint, fluent-validation, swagger-docs, aspnet-core | G1: dotnet build |
 | **2: Tests** | dotnet-test, test-driven-development | G2: dotnet test |
-| **3: Frontend** | nextjs-page, design-system, brainstorming (без Figma)/figma-* (с Figma) | G3: npm run dev |
+| **3: Frontend** | layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, design-system, refactor-ui, nextjs-page | G3: npm run dev |
 | **4: E2E** | playwright, playwright-interactive | G4: npx playwright test |
 | **5: Docs** | plantuml-docs, security-threat-model | Visual review |
 | **6: DevOps** | docker-compose-dev, vps-deploy, cicd-pipeline | G5: docker compose build |
@@ -228,17 +222,35 @@ Phase 2: TESTS (TesterAgent)
   If fail → return to Phase 1
   git add -A && git commit -m "phase 2: {feature} tests"
 
-Phase 3: FRONTEND (FrontendAgent)
+Phase 3: FRONTEND + UX (FrontendAgent)
   --- Runs in parallel with Phases 1+2 if backend contract is stable ---
-  Option A — Без Figma (дизайн строит агент):
-    Load: brainstorming, design-system, nextjs-page
-    Спроектировать UI с помощью brainstorming
-    skill("design-system")  → shadcn/ui компоненты, токены, паттерны
-    skill("nextjs-page")    → page.tsx + loading.tsx + error.tsx
-    API integration         → fetch with types
-  Option B — С Figma (есть макеты):
-    Load: figma, figma-implement-design
-    get_design_context → get_screenshot → download assets → 1:1 реализация
+  Load: layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, design-system, refactor-ui, nextjs-page
+
+  Step 1 — UX: problem space
+    skill("layers-orient")            → аудит: на каком слое узкое место
+    skill("layers-user-needs")        → job stories из требований
+    skill("layers-conceptual-model")  → объекты, отношения, терминология фичи
+
+  Step 2 — UX: interaction flows
+    skill("layers-interaction-flow")  → edge cases, empty states, состояния
+    • Какие UI состояния нужны: loading, empty, error, success
+    • Нарисовать user flow (ключевой сценарий для User Story):
+      Шаги: входные данные → действия → состояния
+
+  Step 3 — UX: information architecture & wireframes
+    • Структура страницы: навигация, секции, хлебные крошки
+    • Расположение элементов: где форма, где таблица, где действия
+    • Опционально: быстрый ASCII wireframe
+
+  Step 4 — UI: implement
+    skill("layers-surface")   → visual design decisions
+    skill("design-system")    → shadcn/ui компоненты, токены, паттерны
+    skill("nextjs-page")      → page.tsx + loading.tsx + error.tsx
+    API integration           → fetch with types
+
+  Step 5 — UI: polish
+    skill("refactor-ui")      → полный design pass: hierarchy, typography, color, spacing, buttons, clutter, empty states, shadows, contrast, grouping
+
   npm run dev               → MUST WORK (Gate G3)
   Playwright MCP            → visually verify page renders
   If API contract changed   → notify Architect to re-sync
@@ -284,14 +296,6 @@ Phase 7: REVIEW & MERGE (Architect)
   git push                  → CI/CD runs pipeline, deploys to VPS
   If merge conflict         → resolve in feature branch, re-run gates
 ```
-
-### Frontend Design Decision Matrix
-
-| Ситуация | Процесс | Скиллы |
-|----------|---------|--------|
-| Нет Figma макетов | brainstorming → спроектировать UI → код через shadcn/ui | brainstorming, design-system, nextjs-page |
-| Есть Figma макеты | get_design_context → get_screenshot → 1:1 реализация | figma, figma-implement-design |
-| Нужно создать дизайн в Figma | figma-generate-library (DS) → figma-generate-design (экраны) → figma-implement-design (код) | все figma-* скиллы |
 
 ### Handoff Format (Architect → Subagent)
 
@@ -363,7 +367,7 @@ Phase 7: REVIEW & MERGE (Architect)
 - Enum props: `HasConversion<string>()` + `HasMaxLength()` required
 - Navigation properties: `[JsonIgnore]`
 - Timestamps: `CreatedAt`, `UpdatedAt` = `DateTime.UtcNow`
-- Connection: `Host=localhost;Port=5432;Database=collegelms;Username=postgres;Password=postgres`
+- Connection: `Host=localhost;Port=5432;Database=collegelms;Username=postgres;Password=root`
 - Indexes (UNIQUE, plain) — в EF Configuration (`HasIndex` c `HasDatabaseName`)
 - CHECK constraints — в `Data/DbConstraints.cs` (идемпотентный PL/pgSQL, не через миграции)
 
@@ -380,13 +384,35 @@ Packages in `.csproj` grouped into separate `ItemGroup` sections with comments b
 | Logging | `Serilog.AspNetCore` |
 | Tests | `xunit`, `coverlet.msbuild`, `Bogus`, `Moq`, `FluentAssertions`, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory` |
 
-## Development commands
+## Development workflow
+
+### Infrastructure (всегда запущено)
+PostgreSQL + Redis работают в Docker на время любой разработки:
+```powershell
+docker compose up -d db redis     # стартовать один раз в начале сессии
+docker compose down               # остановить
+```
+
+### Локальная разработка (Phases 1-5)
+Бекенд и фронтенд запускаются локально для скорости и hot-reload:
+```powershell
+dotnet run --project CollegeLMS.API          # API на localhost:5026
+npm run dev                                   # frontend на localhost:3000
+```
+API подключается к PostgreSQL через `localhost:5432` (проброшен Docker-контейнером).
+База данных и Redis уже работают в Docker — не нужно запускать их заново.
+
+### Контейнерный запуск (Phase 6 DevOps)
+Только для проверки, что всё работает в контейнерах:
+```powershell
+docker compose up --build -d     # полный стек: db + redis + api + frontend + nginx
+```
+
+### Прочие команды
 ```powershell
 dotnet build                 # builds all projects in CollegeLMS.slnx
-dotnet run --project CollegeLMS.API
 dotnet ef migrations add Add{Name}Entity --project CollegeLMS.API -- --provider Npgsql
 dotnet ef database update --project CollegeLMS.API
-docker compose up -d
 dotnet test                  # runs all test projects in solution
 dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/
 dotnet csharpier format .    # format all C# files
@@ -422,7 +448,7 @@ dotnet csharpier check .     # check formatting (CI)
 
 - **Design tokens**: CSS custom properties in HSL (colors.css, typography.css, spacing.css)
 - **Components**: `components/ui/` — shadcn primitives (не редактировать), `components/` — проектные
-- **Icons**: Lucide React, sizes: `h-4 w-4` (inline), `h-5 w-5` (buttons), `h-6 w-6` (headers)
+- **Icons**: Lucide React. See DESIGN.md §6 for feature→icon map, sizes, color rules (`currentColor` by default, College Blue on hover, semantic colors for status), and a11y (aria-label for icon-only buttons, aria-hidden when adjacent text exists)
 - **Responsive**: mobile-first, breakpoints `sm:`, `md:`, `lg:`
 - **Touch targets**: минимум 44×44px для interactive elements
 - **Accessibility**: семантический HTML, ARIA, keyboard nav, `focus-visible:ring-2`, `sr-only`

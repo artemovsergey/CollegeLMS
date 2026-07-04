@@ -180,8 +180,8 @@ Load skill: `skill("plantuml-docs")`
 ## Phase 6: Integration Test
 
 ```bash
-# Start infrastructure
-docker compose up -d
+# Start infrastructure (always rebuild)
+docker compose up --build -d
 
 # Apply migrations
 dotnet ef database update --project CollegeLMS.API

@@ -189,8 +189,8 @@ ENTRYPOINT ["dotnet", "CollegeLMS.API.dll"]
 
 | Context | String |
 |---------|--------|
-| Local dev | `Host=localhost;Port=5432;Database=collegelms;Username=postgres;Password=postgres` |
-| Docker | `Host=db;Port=5432;Database=collegelms;Username=postgres;Password=postgres` |
+| Local dev | `Host=localhost;Port=5432;Database=collegelms;Username=postgres;Password=root` |
+| Docker | `Host=db;Port=5432;Database=collegelms;Username=postgres;Password=root` |
 | Production | Via env vars: `ConnectionStrings__DefaultConnection=...` |
 
 ### CI/CD secrets

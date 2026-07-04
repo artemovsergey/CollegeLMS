@@ -51,8 +51,8 @@ volumes:
 ## Usage
 
 ```bash
-# Start all services
-docker compose up -d
+# Start all services (always rebuild)
+docker compose up --build -d
 
 # Start only DB + Redis (for local dev)
 docker compose up -d db redis

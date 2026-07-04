@@ -24,11 +24,21 @@ next-env.d.ts
 appsettings.Production.json
 appsettings.*.local.json
 
+# Generated agent skills (restore via: npx skills sync)
+.agents/
+
 # Agent config dirs
 .mimocode/
 .opencode/*
 !.opencode/skills/
-.codex/
+.impeccable/
+.superpowers/
+
+# Generated lock files
+skills-lock.json
+
+# MCP logs
+.playwright-mcp/
 
 # IDE
 .idea/
