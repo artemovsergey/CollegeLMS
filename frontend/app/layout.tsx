@@ -3,8 +3,11 @@ import "./globals.css"
 import { AuthProvider } from "@/lib/auth"
 
 export const metadata: Metadata = {
-  title: "CollegeLMS",
-  description: "Система управления колледжем",
+  title: {
+    default: "СКСС — Ставропольский колледж связи",
+    template: "%s — СКСС",
+  },
+  description: "ГБПОУ «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»",
 }
 
 export default function RootLayout({
@@ -14,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className="bg-gray-50 text-gray-900 antialiased">
+      <body className="min-h-screen bg-[#f5f7fa] text-[#152851] antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

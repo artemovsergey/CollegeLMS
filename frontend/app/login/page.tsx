@@ -34,7 +34,13 @@ export default function LoginPage() {
       const body = res.data
       if (body.isSuccess && body.data) {
         login(body.data.token, body.data.user)
-        router.push("/")
+        if (body.data.user.role === "Admin") {
+          router.push("/admin")
+        } else if (body.data.user.role === "Teacher") {
+          router.push("/teacher/dashboard")
+        } else {
+          router.push("/my/dashboard")
+        }
       } else {
         setError(body.errorMessage ?? "Ошибка входа")
       }

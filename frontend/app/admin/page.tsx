@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
 import type { User, Result, CreateUserRequest, UpdateUserRequest, ChangeRoleRequest } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
@@ -47,8 +46,7 @@ const roleVariants: Record<string, "default" | "secondary" | "outline" | "destru
 }
 
 export default function UsersPage() {
-  const { user, token, logout, isLoading: authLoading } = useAuth()
-  const router = useRouter()
+  const { user } = useAuth()
 
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,16 +83,8 @@ export default function UsersPage() {
   }, [])
 
   useEffect(() => {
-    if (!authLoading && !token) {
-      router.push("/login")
-    }
-  }, [authLoading, token, router])
-
-  useEffect(() => {
-    if (token) {
-      fetchUsers()
-    }
-  }, [token, fetchUsers])
+    fetchUsers()
+  }, [fetchUsers])
 
   const resetForm = () => {
     setFormEmail("")
@@ -176,29 +166,8 @@ export default function UsersPage() {
     }
   }
 
-  if (authLoading) return <Loading />
-  if (!token) return null
-
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto min-h-screen">
-      <header className="flex items-center justify-between py-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-            CL
-          </div>
-          <h1 className="text-lg font-semibold">CollegeLMS</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:block text-sm text-muted-foreground">{user?.email}</span>
-          <Badge variant={roleVariants[user?.role ?? ""] ?? "secondary"}>
-            {roleLabels[user?.role ?? ""] ?? user?.role}
-          </Badge>
-          <Button variant="ghost" size="sm" onClick={() => { logout(); router.push("/login") }}>
-            Выйти
-          </Button>
-        </div>
-      </header>
-
+    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Пользователи</h2>
         {isAdmin && (
