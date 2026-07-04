@@ -9,16 +9,6 @@
         ]
     },
     "mcp": {
-        "postgres": {
-            "type": "local",
-            "command": [
-                "npx",
-                "-y",
-                "@modelcontextprotocol/server-postgres",
-                "postgresql://postgres:postgres@localhost:5432/collegelms"
-            ],
-            "enabled": true
-        },
         "playwright": {
             "type": "local",
             "command": ["npx", "-y", "@playwright/mcp"],

@@ -82,7 +82,7 @@ scripts/                 # WP data scraper
 | **Architect** | Main agent | brainstorming, writing-plans, verification-before-completion, requesting-code-review, yeet | Orchestrates workflow, reads task.md, decomposes into User Stories, creates branches, reviews, merges |
 | **BackendAgent** | Subagent | dotnet-entity, dotnet-endpoint, result-pattern, fluent-validation, swagger-docs, aspnet-core | Entity → migration → service → controller → DI → Swagger → Postman |
 | **TesterAgent** | Subagent | dotnet-test, playwright, playwright-interactive, test-driven-development, systematic-debugging | Unit tests (xUnit + Moq + Bogus), integration tests (WebApplicationFactory), E2E (Playwright), coverage |
-| **FrontendAgent** | Subagent | nextjs-page, design-system, layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, refactor-ui | Next.js pages/components, API integration, Tailwind, shadcn/ui |
+| **FrontendAgent** | Subagent | nextjs-page, design-system, frontend-design, web-design-guidelines, layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, refactor-ui | Next.js pages/components, API integration, Tailwind, shadcn/ui |
 | **AnalystAgent** | Subagent | plantuml-docs, security-threat-model | PlantUML diagrams (ER, Class, Sequence, UseCase, Deployment), tech documentation, threat modeling |
 | **DevOpsAgent** | Subagent | docker-compose-dev, vps-deploy, cicd-pipeline, gh-fix-ci, sentry | Docker, nginx, CI/CD pipelines, deploy to VPS, error monitoring |
 
@@ -115,26 +115,19 @@ scripts/                 # WP data scraper
 
 | Skill | What it does |
 |-------|-------------|
+| `frontend-design` | Creative visual direction — aesthetic, typography, motion, character (Anthropic official) |
 | `layers-orient` | Audits which design layer is the bottleneck |
 | `layers-user-needs` | Turns interviews into prioritised job stories |
 | `layers-conceptual-model` | Maps objects, relationships, vocabulary for a feature |
 | `layers-interaction-flow` | Surfaces edge cases, empty states, flows |
+| `layers-intro` | Introduction to the Layers product design framework |
 | `layers-surface` | Visual design decisions — layout, states, responsive |
 | `refactor-ui` | Full design pass — hierarchy, typography, color, spacing, buttons, clutter, empty states, shadows, contrast, grouping |
+| `web-design-guidelines` | Code-level audit: a11y, forms, focus, animation, performance (Vercel official) |
 
-### Marketplace Skills (~/.codex/skills/)
+### Platform Skills (.opencode/skills/)
 
-| Skill | What it does |
-|-------|-------------|
-| `aspnet-core` | ASP.NET Core best practices, patterns, security, testing |
-| `playwright` | Playwright E2E testing patterns and best practices |
-| `playwright-interactive` | Interactive Playwright debugging and exploration |
-| `sentry` | Error monitoring and issue tracking |
-| `security-best-practices` | Security patterns and vulnerability prevention |
-| `security-threat-model` | Threat modeling and attack path analysis |
-| `gh-fix-ci` | Fix GitHub Actions CI failures |
-| `gh-address-comments` | Address PR review comments |
-| `yeet` | Git operations and branch management |
+All skills listed in the Project Skills table above (.opencode/skills/) plus agent skills from `.agents/skills/`.
 
 ### Superpowers Process Skills (~/.cache/opencode/.../superpowers/)
 
@@ -163,7 +156,7 @@ scripts/                 # WP data scraper
 | **0: Planning** | brainstorming → writing-plans | Spec reviewed by user |
 | **1: Backend** | dotnet-entity, dotnet-endpoint, fluent-validation, swagger-docs, aspnet-core | G1: dotnet build |
 | **2: Tests** | dotnet-test, test-driven-development | G2: dotnet test |
-| **3: Frontend** | layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, design-system, refactor-ui, nextjs-page | G3: npm run dev |
+| **3: Frontend** | layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, design-system, refactor-ui, nextjs-page, frontend-design, web-design-guidelines | G3: npm run dev |
 | **4: E2E** | playwright, playwright-interactive | G4: npx playwright test |
 | **5: Docs** | plantuml-docs, security-threat-model | Visual review |
 | **6: DevOps** | docker-compose-dev, vps-deploy, cicd-pipeline | G5: docker compose build |
@@ -224,7 +217,7 @@ Phase 2: TESTS (TesterAgent)
 
 Phase 3: FRONTEND + UX (FrontendAgent)
   --- Runs in parallel with Phases 1+2 if backend contract is stable ---
-  Load: layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, design-system, refactor-ui, nextjs-page
+  Load: layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, design-system, refactor-ui, nextjs-page, frontend-design, web-design-guidelines
 
   Step 1 — UX: problem space
     skill("layers-orient")            → аудит: на каком слое узкое место
@@ -242,6 +235,12 @@ Phase 3: FRONTEND + UX (FrontendAgent)
     • Расположение элементов: где форма, где таблица, где действия
     • Опционально: быстрый ASCII wireframe
 
+  Step 3.5 — Visual direction
+    skill("frontend-design")  → выбор визуального языка: aesthetic, typography, color, motion
+    • Ground design in the subject (college app)
+    • Typography carries personality
+    • Pick a direction and commit to it
+
   Step 4 — UI: implement
     skill("layers-surface")   → visual design decisions
     skill("design-system")    → shadcn/ui компоненты, токены, паттерны
@@ -250,6 +249,9 @@ Phase 3: FRONTEND + UX (FrontendAgent)
 
   Step 5 — UI: polish
     skill("refactor-ui")      → полный design pass: hierarchy, typography, color, spacing, buttons, clutter, empty states, shadows, contrast, grouping
+
+  Step 6 — UI: audit
+    skill("web-design-guidelines") → code review against Vercel Web Interface Guidelines
 
   npm run dev               → MUST WORK (Gate G3)
   Playwright MCP            → visually verify page renders
