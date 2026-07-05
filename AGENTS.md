@@ -388,38 +388,40 @@ Packages in `.csproj` grouped into separate `ItemGroup` sections with comments b
 
 ## Development workflow
 
-### Infrastructure (всегда запущено)
-PostgreSQL + Redis работают в Docker на время любой разработки:
+### Docker-first подход
+
+Всё окружение работает в Docker — никаких локальных SDK, кроме Docker Desktop.
+
 ```powershell
-docker compose up -d db redis     # стартовать один раз в начале сессии
-docker compose down               # остановить
+# Старт полного стека (db + redis + api + frontend + nginx)
+docker compose up -d
+
+# API доступен через nginx: http://localhost/api/...
+# Swagger: http://localhost/swagger/
+# Frontend: http://localhost/
 ```
 
-### Локальная разработка (Phases 1-5)
-Бекенд и фронтенд запускаются локально для скорости и hot-reload:
-```powershell
-dotnet run --project CollegeLMS.API          # API на localhost:5026
-npm run dev                                   # frontend на localhost:3000
-```
-API подключается к PostgreSQL через `localhost:5432` (проброшен Docker-контейнером).
-База данных и Redis уже работают в Docker — не нужно запускать их заново.
+Hot reload работает через bind mounts:
+- **API**: `dotnet watch` перезапускается при изменении `.cs` файлов
+- **Frontend**: HMR отслеживает изменения через polling (CHOKIDAR_USEPOLLING=true)
 
-### Контейнерный запуск (Phase 6 DevOps)
-Только для проверки, что всё работает в контейнерах:
-```powershell
-docker compose up --build -d     # полный стек: db + redis + api + frontend + nginx
-```
+NuGet пакеты кэшируются в named volume `nuget_packages` — не теряются при пересборке.
 
-### Прочие команды
-```powershell
-dotnet build                 # builds all projects in CollegeLMS.slnx
-dotnet ef migrations add Add{Name}Entity --project CollegeLMS.API -- --provider Npgsql
-dotnet ef database update --project CollegeLMS.API
-dotnet test                  # runs all test projects in solution
-dotnet test /p:CollectCoverage=true /p:CoverletOutput=TestResults/
-dotnet csharpier format .    # format all C# files
-dotnet csharpier check .     # check formatting (CI)
-```
+### Команды по фазам
+
+| Фаза | Команда | Описание |
+|------|---------|----------|
+| **Infra** | `docker compose up -d db redis` | Только БД (для миграций вручную) |
+| **Phase 1** | `docker compose exec api dotnet build --no-restore` | Gate G1 |
+| **Phase 1** | `docker compose exec api dotnet ef migrations add Add{Name} --project CollegeLMS.API -- --provider Npgsql` | Миграция |
+| **Phase 2** | `docker compose exec api dotnet test` | Gate G2 |
+| **Phase 3** | Открыть `http://localhost/` в браузере | Gate G3 |
+| **Phase 4** | `npx playwright test` (против `http://localhost:80`) | Gate G4 |
+| **Phase 5** | AnalystAgent (параллельно с 1-4) | Docs |
+| **Phase 6** | `docker compose build` (скип — образы уже собраны) | Gate G5 |
+| **Format** | `docker compose exec api dotnet csharpier format .` | CSharpier |
+| **Check** | `docker compose exec api dotnet csharpier check .` | CI check |
+| **Stop** | `docker compose down` | Остановить всё |
 
 ## Code conventions
 - Primary constructor DI (`class Service(AppDbContext db)`)
