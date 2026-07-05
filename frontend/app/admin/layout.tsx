@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth"
@@ -30,6 +30,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, token, isLoading, logout } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 0)
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
   useEffect(() => {
     if (!isLoading && !token) {
@@ -51,8 +58,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b">
-        <div className="flex h-14 items-center justify-between px-6">
+      <header className={`sticky top-0 z-40 bg-background transition-shadow duration-200 ${
+        scrolled ? "shadow-sm" : "shadow-none"
+      }`}>
+        <div className="flex h-14 items-center justify-between border-b px-6">
           <div className="flex items-center gap-4">
             <Link href="/admin" className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
