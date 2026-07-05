@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import Carousel from "@/components/Carousel"
 
 export default function HomePage() {
   const [news, setNews] = useState<NewsResponse[]>([])
@@ -25,46 +25,13 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Hero */}
-      <section className="relative flex min-h-[90vh] items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 25% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 75% 30%, rgba(255,255,255,0.15) 0%, transparent 50%)",
-          }}
-        />
-        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
-          <h1 className="mb-4 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl">
-            ГБПОУ «Ставропольский колледж связи имени В.А. Петрова»
-          </h1>
-          <p className="mb-8 text-lg text-white/90 md:text-xl">
-            Качество. Традиции. Будущее.
-          </p>
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link
-              href="/admissions"
-              className="inline-flex h-12 items-center justify-center rounded-xl bg-white px-8 text-base font-semibold text-primary shadow-sm transition-colors hover:bg-white/90"
-            >
-              Поступить
-            </Link>
-            <Link
-              href="/education"
-              className="inline-flex h-12 items-center justify-center rounded-xl border-2 border-white/80 px-8 text-base font-semibold text-white transition-colors hover:bg-white/10"
-            >
-              Специальности
-            </Link>
-          </div>
-        </div>
-      </section>
+      <Carousel />
 
-      {/* About */}
-      <section className="py-16 sm:py-20 lg:py-24">
+      <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl">О колледже</h2>
-            <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
+            <h2 className="mb-4 text-2xl font-semibold text-[#152851]">О колледже</h2>
+            <p className="text-base leading-relaxed text-[#5a6a8a]">
               Государственное бюджетное профессиональное образовательное учреждение
               «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»
               готовит специалистов в области связи, программирования,
@@ -75,53 +42,76 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* News */}
-      <section className="bg-muted py-16 sm:py-20 lg:py-24">
+      <section className="bg-[#f5f7fa] py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Последние новости</h2>
+          <div className="mb-8 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-[#152851]">Последние новости</h2>
             <Button variant="ghost" asChild>
               <Link href="/news">Все новости →</Link>
             </Button>
           </div>
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
+            <div className="rounded-md bg-[#f8e8e8] p-3 text-sm text-[#c43e3e]">{error}</div>
           )}
           {news.length === 0 && !error ? (
-            <p className="text-center text-muted-foreground">Загрузка...</p>
+            <p className="text-center text-[#5a6a8a]">Загрузка...</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {news.map((item) => (
                 <Link
                   key={item.id}
                   href={`/news/${item.id}`}
-                  className="group rounded-xl border border-border bg-card p-0 transition-all duration-200 hover:border-primary/30 hover:shadow-md overflow-hidden"
+                  className="group rounded-lg border border-[#d4d9e3] bg-white p-5 transition-all duration-200 hover:border-[#568cd6]/30 hover:shadow-sm"
                 >
                   {item.imageUrl && (
-                    <div className="relative h-44 overflow-hidden">
+                    <div className="mb-3 overflow-hidden rounded-md">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={item.imageUrl}
                         alt=""
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="h-40 w-full object-cover transition-transform duration-200 group-hover:scale-105"
                       />
                     </div>
                   )}
-                  <div className={item.imageUrl ? "p-5" : "p-5"}>
-                    <p className="mb-1.5 text-xs text-muted-foreground">
-                      {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
-                      {item.categoryName && ` · ${item.categoryName}`}
-                    </p>
-                    <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                      {item.title}
-                    </h3>
-                  </div>
+                  <p className="mb-1 text-xs text-[#5a6a8a]">
+                    {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
+                    {item.categoryName && ` · ${item.categoryName}`}
+                  </p>
+                  <h3 className="text-sm font-semibold text-[#152851] line-clamp-2">
+                    {item.title}
+                  </h3>
                 </Link>
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <h2 className="mb-8 text-center text-2xl font-semibold text-[#152851]">
+            Контакты
+          </h2>
+          <div className="mx-auto grid max-w-3xl gap-6 sm:grid-cols-3">
+            <div className="rounded-lg border border-[#d4d9e3] bg-white p-5 text-center">
+              <p className="mb-1 text-xs font-medium text-[#5a6a8a]">Адрес</p>
+              <p className="text-sm font-medium text-[#152851]">
+                пр-д Черняховского, 3
+              </p>
+            </div>
+            <div className="rounded-lg border border-[#d4d9e3] bg-white p-5 text-center">
+              <p className="mb-1 text-xs font-medium text-[#5a6a8a]">Телефон</p>
+              <p className="text-sm font-medium text-[#152851]">
+                +7 (8652) 24-25-27
+              </p>
+            </div>
+            <div className="rounded-lg border border-[#d4d9e3] bg-white p-5 text-center">
+              <p className="mb-1 text-xs font-medium text-[#5a6a8a]">Email</p>
+              <p className="text-sm font-medium text-[#152851]">
+                college@stvcc.ru
+              </p>
+            </div>
+          </div>
         </div>
       </section>
     </div>

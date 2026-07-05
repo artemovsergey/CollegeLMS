@@ -2,18 +2,17 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth"
 import { ThemeProvider } from "next-themes"
-import CookieConsent from "@/components/CookieConsent"
 
 export const metadata: Metadata = {
   title: {
-    default: "Ставропольский колледж связи им. В. А. Петрова",
-    template: "%s — СКС им. В. А. Петрова",
+    default: "ГБПОУ СКС — Ставропольский колледж связи",
+    template: "%s — ГБПОУ СКС",
   },
   description:
-    "Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова — государственное бюджетное профессиональное образовательное учреждение",
+    "ГБПОУ «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»",
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
 }
 
@@ -24,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground antialiased">
+      <body className="min-h-screen bg-[#f5f7fa] text-[#152851] antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -32,7 +31,6 @@ export default function RootLayout({
           storageKey="theme"
         >
           <AuthProvider>{children}</AuthProvider>
-          <CookieConsent />
         </ThemeProvider>
       </body>
     </html>

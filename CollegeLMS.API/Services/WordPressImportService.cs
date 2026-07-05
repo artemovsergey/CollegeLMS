@@ -8,11 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class WordPressImportService(
-    AppDbContext db,
-    IMediaMigrationService mediaService,
-    ILogger<WordPressImportService> logger
-) : IWordPressImportService
+public class WordPressImportService(AppDbContext db, ILogger<WordPressImportService> logger)
+    : IWordPressImportService
 {
     public async Task<Result<ImportResult>> ImportFromJsonAsync(
         string jsonPath,
@@ -155,23 +152,9 @@ public class WordPressImportService(
                             }
                         }
 
-                        var newsId = Guid.NewGuid();
-
-                        // Download image to local storage
-                        if (!string.IsNullOrEmpty(imageUrl) && imageUrl.StartsWith("http"))
-                        {
-                            var localPath = await mediaService.DownloadImageAsync(
-                                newsId,
-                                imageUrl,
-                                ct
-                            );
-                            if (localPath != null)
-                                imageUrl = localPath;
-                        }
-
                         var news = new News
                         {
-                            Id = newsId,
+                            Id = Guid.NewGuid(),
                             Title = SanitizeHtml(title ?? ""),
                             Content = contentHtml ?? "",
                             Slug = slug,

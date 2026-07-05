@@ -24,17 +24,17 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
 
   if (!slug || slug.length === 0) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Breadcrumbs items={[{ label: section.title }]} />
-        <h1 className="mb-8 text-2xl font-bold text-foreground sm:text-3xl">{section.title}</h1>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <h1 className="mb-6 text-2xl font-bold text-[#152851]">{section.title}</h1>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {section.subsections.map((sub) => (
             <a
               key={sub.slug}
               href={sub.href}
-              className="group rounded-xl border border-border bg-card p-6 transition-all hover:border-primary/30 hover:shadow-md"
+              className="rounded-lg border border-border bg-white p-5 transition-all hover:border-[#568cd6]/30 hover:shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{sub.title}</h3>
+              <h3 className="text-sm font-semibold text-[#152851]">{sub.title}</h3>
             </a>
           ))}
         </div>
@@ -54,22 +54,22 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
     .replace(/<\/a>/gi, "")
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:py-12 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <Breadcrumbs
         items={[
           { label: section.title, href: section.href },
           { label: subsection.title },
         ]}
       />
-      <h1 className="mb-8 text-2xl font-bold text-foreground sm:text-3xl">{subsection.title}</h1>
+      <h1 className="mb-6 text-2xl font-bold text-[#152851]">{subsection.title}</h1>
       {cleanContent ? (
         <div
-          className="prose prose-gray max-w-none leading-relaxed"
+          className="prose prose-sm max-w-none text-[#5a6a8a] leading-relaxed"
           dangerouslySetInnerHTML={{ __html: cleanContent }}
         />
       ) : (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
-          <p className="text-muted-foreground">Содержание раздела загружается...</p>
+        <div className="rounded-lg border border-border bg-white p-8 text-center">
+          <p className="text-[#5a6a8a]">Содержание раздела загружается...</p>
         </div>
       )}
     </div>

@@ -1,182 +1,113 @@
 import Link from "next/link"
-import AccessibilityToggle from "./AccessibilityToggle"
+import { siteNavigation } from "@/data/site-content"
 
 export default function Footer() {
   return (
-    <footer className="bg-[#0D1B2A] text-white/70">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="border-t border-border bg-white">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <h4 className="mb-4 text-sm font-semibold text-white">О колледже</h4>
-            <ul className="space-y-2 text-sm">
+            <h3 className="mb-3 text-sm font-semibold text-[#152851]">Контакты</h3>
+            <ul className="space-y-2 text-sm text-[#5a6a8a]">
+              <li>Ставропольский край, г. Ставрополь</li>
+              <li>пр-д Черняховского, 3</li>
+              <li>+7 (8652) 24-25-27</li>
               <li>
-                <Link href="/about" className="hover:text-white transition-colors">
-                  Основные сведения
+                <a href="mailto:college@stvcc.ru" className="hover:text-[#568cd6] transition-colors">
+                  college@stvcc.ru
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-[#152851]">Разделы</h3>
+            <ul className="space-y-2 text-sm text-[#5a6a8a]">
+              {siteNavigation.map((section) => (
+                <li key={section.slug}>
+                  <Link href={section.href} className="hover:text-[#568cd6] transition-colors">
+                    {section.title}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href="/news" className="hover:text-[#568cd6] transition-colors">
+                  Новости
                 </Link>
               </li>
               <li>
-                <Link href="/about/rukovodstvo" className="hover:text-white transition-colors">
-                  Руководство
-                </Link>
-              </li>
-              <li>
-                <Link href="/about/document" className="hover:text-white transition-colors">
-                  Документы
-                </Link>
-              </li>
-              <li>
-                <Link href="/about/vacant" className="hover:text-white transition-colors">
-                  Вакантные места
-                </Link>
-              </li>
-              <li>
-                <Link href="/about/objects" className="hover:text-white transition-colors">
-                  Материально-техническая база
+                <Link href="/partners" className="hover:text-[#568cd6] transition-colors">
+                  Наши партнёры
                 </Link>
               </li>
             </ul>
           </div>
-
           <div>
-            <h4 className="mb-4 text-sm font-semibold text-white">Абитуриенту</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/admissions" className="hover:text-white transition-colors">
-                  Приемная комиссия
-                </Link>
-              </li>
-              <li>
-                <Link href="/education/perechen-spetsialnostey" className="hover:text-white transition-colors">
-                  Специальности
-                </Link>
-              </li>
-              <li>
-                <Link href="/admissions/kakie-dokumentyi-neobhodimo-prinesti" className="hover:text-white transition-colors">
-                  Документы для приема
-                </Link>
-              </li>
-              <li>
-                <Link href="/admissions/den-otkrytyh-dverej-2026" className="hover:text-white transition-colors">
-                  Дни открытых дверей
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 text-sm font-semibold text-white">Студенту</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/student-life/raspisanie-zanyatij-po-ochnoj-forme-obucheniya" className="hover:text-white transition-colors">
-                  Расписание занятий
-                </Link>
-              </li>
-              <li>
-                <Link href="/student-life/raspisanie-ekzamenov" className="hover:text-white transition-colors">
-                  Расписание экзаменов
-                </Link>
-              </li>
-              <li>
-                <Link href="/student-life/biblioteka" className="hover:text-white transition-colors">
-                  Библиотека
-                </Link>
-              </li>
-              <li>
-                <Link href="/student-life/distancionnoeobuch" className="hover:text-white transition-colors">
-                  Дистанционное обучение
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 text-sm font-semibold text-white">Мы в соцсетях</h4>
-            <div className="flex gap-3 mb-6">
+            <h3 className="mb-3 text-sm font-semibold text-[#152851]">Учредитель</h3>
+            <p className="text-sm leading-relaxed text-[#5a6a8a]">
+              Министерство энергетики, промышленности и связи Ставропольского края
+            </p>
+            <h3 className="mb-3 mt-6 text-sm font-semibold text-[#152851]">Мы в соцсетях</h3>
+            <div className="flex gap-3">
               <a
                 href="https://vk.com/stvcc_official"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-[#0077FF] hover:text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-[#5a6a8a] hover:text-[#568cd6] hover:border-[#568cd6] hover:bg-[#568cd6]/5 transition-colors"
                 aria-label="ВКонтакте"
               >
-                <svg width="20" height="20" viewBox="0 0 48 48" fill="currentColor">
-                  <path d="M25.54 34.58c-10.94 0-17.18-7.5-17.44-19.98h5.48c.18 8.56 3.94 12.18 6.92 12.92V14.6h4.82v7.38c2.96-.32 6.06-3.68 7.12-7.38h4.82c-.8 4.58-4.16 7.94-6.56 9.32 2.4 1.12 6.24 4.06 7.72 9.32h-5.32c-1.14-3.56-4-6.18-7.72-6.52v6.52h-.82z"/>
+                <svg width="20" height="20" viewBox="0 0 35 37" fill="currentColor">
+                  <path d="M28.7904 24.511C28.7627 24.4522 28.737 24.4035 28.713 24.3644C28.317 23.6606 27.5602 22.7968 26.4431 21.7726L26.4195 21.7492L26.4077 21.7377L26.3957 21.7259H26.3837C25.8767 21.249 25.5557 20.9283 25.4212 20.7642C25.1752 20.4514 25.1201 20.1349 25.2545 19.8141C25.3495 19.5718 25.7063 19.06 26.3242 18.2781C26.6491 17.8637 26.9065 17.5316 27.0966 17.2814C28.4674 15.4832 29.0616 14.3342 28.8793 13.8338L28.8085 13.7168C28.7609 13.6464 28.6381 13.582 28.4403 13.5233C28.242 13.4647 27.9885 13.455 27.6795 13.4941L24.2568 13.5174C24.2014 13.498 24.1222 13.4998 24.019 13.5233C23.916 13.5468 23.8645 13.5586 23.8645 13.5586L23.8049 13.5879L23.7576 13.6232C23.718 13.6466 23.6744 13.6876 23.6268 13.7462C23.5795 13.8047 23.5399 13.8733 23.5083 13.9514C23.1357 14.8974 22.712 15.7769 22.2365 16.5899C21.9433 17.0747 21.6741 17.4948 21.4282 17.8506C21.1826 18.2062 20.9766 18.4682 20.8104 18.6361C20.6439 18.8042 20.4936 18.9389 20.3587 19.0407C20.2239 19.1424 20.1211 19.1854 20.0498 19.1697C19.9784 19.154 19.9112 19.1384 19.8476 19.1228C19.7367 19.0524 19.6476 18.9566 19.5803 18.8354C19.5128 18.7143 19.4674 18.5618 19.4436 18.3781C19.42 18.1942 19.406 18.0361 19.402 17.9031C19.3983 17.7703 19.4 17.5825 19.408 17.3402C19.4162 17.0977 19.42 16.9337 19.42 16.8477C19.42 16.5506 19.4258 16.2281 19.4376 15.8802C19.4496 15.5323 19.4593 15.2567 19.4674 15.0536C19.4755 14.8503 19.4792 14.6353 19.4792 14.4085C19.4792 14.1818 19.4652 14.004 19.4376 13.875C19.4103 13.7461 19.3684 13.621 19.3131 13.4997C19.2576 13.3785 19.1762 13.2848 19.0695 13.2183C18.9626 13.1518 18.8296 13.0991 18.6714 13.0599C18.2514 12.9661 17.7167 12.9154 17.0668 12.9075C15.5932 12.8919 14.6464 12.9858 14.2264 13.189C14.0601 13.2749 13.9095 13.3923 13.7749 13.5407C13.6322 13.7128 13.6123 13.8067 13.7153 13.8221C14.1908 13.8924 14.5274 14.0605 14.7255 14.3263L14.7968 14.4671C14.8524 14.5687 14.9078 14.7486 14.9633 15.0066C15.0187 15.2645 15.0545 15.5498 15.0702 15.8624C15.1097 16.4332 15.1097 16.9218 15.0702 17.3283C15.0305 17.7349 14.9931 18.0514 14.9573 18.2782C14.9216 18.5049 14.8681 18.6886 14.7968 18.8293C14.7255 18.97 14.678 19.056 14.6542 19.0872C14.6304 19.1184 14.6106 19.1381 14.5948 19.1458C14.4919 19.1848 14.3847 19.2046 14.2739 19.2046C14.1629 19.2046 14.0283 19.1498 13.8698 19.0403C13.7114 18.9308 13.5471 18.7804 13.3767 18.5888C13.2063 18.3972 13.0142 18.1295 12.8002 17.7855C12.5863 17.4416 12.3645 17.0351 12.1347 16.566L11.9446 16.2259C11.8258 16.007 11.6634 15.6884 11.4574 15.2702C11.2513 14.8519 11.0691 14.4472 10.9107 14.0563C10.8474 13.8922 10.7523 13.7672 10.6255 13.6812L10.566 13.6459C10.5265 13.6147 10.463 13.5815 10.3759 13.5462C10.2887 13.5109 10.1977 13.4856 10.1026 13.4701L6.84621 13.4934C6.51345 13.4934 6.28767 13.5678 6.16878 13.7163L6.12121 13.7866C6.09744 13.8258 6.08545 13.8883 6.08545 13.9743C6.08545 14.0603 6.10922 14.1659 6.1568 14.2909C6.63216 15.3933 7.14912 16.4565 7.70765 17.4806C8.26619 18.5047 8.75155 19.3296 9.16344 19.9547C9.57541 20.5802 9.99533 21.1705 10.4232 21.7254C10.8511 22.2805 11.1343 22.6363 11.2729 22.7926C11.4116 22.9491 11.5206 23.0662 11.5998 23.1443L11.897 23.4257C12.0871 23.6134 12.3663 23.8382 12.7348 24.1C13.1033 24.362 13.5113 24.6199 13.9589 24.8742C14.4066 25.1281 14.9275 25.3353 15.5218 25.4955C16.116 25.6559 16.6944 25.7202 17.2569 25.6892H18.6237C18.9009 25.6656 19.1109 25.5796 19.2536 25.4311L19.3009 25.3724C19.3327 25.3257 19.3625 25.2532 19.3899 25.1557C19.4177 25.0579 19.4316 24.9503 19.4316 24.8332C19.4234 24.4971 19.4494 24.1942 19.5087 23.9245C19.5679 23.6549 19.6354 23.4516 19.7109 23.3147C19.7864 23.1779 19.8716 23.0625 19.9663 22.969C20.0613 22.8752 20.129 22.8184 20.1687 22.7988C20.2082 22.7792 20.2397 22.7658 20.2635 22.7578C20.4536 22.6953 20.6774 22.7558 20.9351 22.9397C21.1927 23.1234 21.4342 23.3503 21.6602 23.6199C21.886 23.8897 22.1573 24.1925 22.4742 24.5286C22.7912 24.8648 23.0685 25.1147 23.3061 25.2792L23.5437 25.4199C23.7023 25.5138 23.9084 25.5998 24.1619 25.6779C24.4151 25.7561 24.6368 25.7756 24.8273 25.7366L27.8696 25.6897C28.1705 25.6897 28.4047 25.6406 28.5708 25.543C28.7372 25.4453 28.836 25.3377 28.8679 25.2206C28.8997 25.1033 28.9014 24.9703 28.874 24.8216C28.8458 24.6733 28.818 24.5696 28.7904 24.511Z"/>
                 </svg>
               </a>
               <a
                 href="https://t.me/stvcc_official"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-[#08C] hover:text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-[#5a6a8a] hover:text-[#08C] hover:border-[#08C] hover:bg-[#08C]/5 transition-colors"
                 aria-label="Telegram"
               >
-                <svg width="20" height="20" viewBox="0 0 48 48" fill="currentColor">
-                  <path d="M9.5 23.5L20.5 28.5L26 40L40 8L9.5 23.5Z"/>
+                <svg width="20" height="20" viewBox="0 0 35 37" fill="currentColor">
+                  <path d="M7.34864 17.404L20.4532 12.358C21.7475 11.8325 26.1336 10.15 26.1336 10.15C26.1336 10.15 28.1586 9.41444 27.99 11.2013C27.9339 11.9368 27.4837 14.5126 27.0341 17.298L25.628 25.5505C25.628 25.5505 25.5156 26.76 24.5593 26.9697C23.6034 27.18 22.0289 26.2342 21.7469 26.0235C21.5218 25.8658 17.5284 23.5006 16.0665 22.3444C15.6729 22.029 15.2227 21.3982 16.1227 20.6625C18.1477 18.9276 20.5655 16.7728 22.0287 15.4063C22.7036 14.7756 23.3787 13.3039 20.5665 15.091L12.6354 20.0836C12.6354 20.0836 11.7355 20.6091 10.0487 20.1361C8.36131 19.6629 6.3927 19.0324 6.3927 19.0324C6.3927 19.0324 5.04277 18.2439 7.34864 17.4032"/>
                 </svg>
               </a>
               <a
                 href="https://web.max.ru/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-[#471AFF] hover:text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-[#5a6a8a] hover:text-[#471AFF] hover:border-[#471AFF] hover:bg-[#471AFF]/5 transition-colors"
                 aria-label="Max"
               >
-                <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
+                <svg width="20" height="20" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <rect width="40" height="40" rx="12" fill="url(#maxGrad)"/>
                   <rect width="40" height="40" rx="12" fill="url(#maxOverlay)"/>
-                  <path fillRule="evenodd" clipRule="evenodd" d="M14.5146 31.4294C14.3778 31.3326 14.1894 31.3589 14.0748 31.4811C12.5428 33.1151 8.62204 34.2613 8.44245 32.0311C8.44245 30.2838 8.04999 28.8114 7.61789 27.1903C7.08868 25.2048 6.5 22.9961 6.5 19.7861C6.5 12.1316 12.7777 6.375 20.2209 6.375C27.6642 6.375 33.5 12.4127 33.5 19.8605C33.5 27.3083 27.4784 33.1973 20.2914 33.1973C17.7416 33.1973 16.5042 32.8382 14.5146 31.4294ZM20.4297 13.0119C16.8974 12.8267 14.1409 15.2777 13.533 19.114C13.0297 22.291 13.9221 26.1621 14.6855 26.357C15.0093 26.4396 15.7885 25.8436 16.3553 25.3091C16.4619 25.2086 16.6231 25.1917 16.748 25.2681C17.6317 25.8084 18.6322 26.2145 19.7352 26.2724C23.3615 26.4625 26.5751 23.6244 26.7651 19.9977C26.955 16.3711 24.0561 13.2021 20.4297 13.0119Z" fill="white"/>
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M14.5146 31.4294C14.3778 31.3326 14.1894 31.3589 14.0748 31.4811C12.5428 33.1151 8.62204 34.2613 8.44245 32.0311C8.44245 30.2838 8.04999 28.8114 7.61789 27.1903C7.08868 25.2048 6.5 22.9961 6.5 19.7861C6.5 12.1316 12.7777 6.375 20.2209 6.375C27.6642 6.375 33.5 12.4127 33.5 19.8605C33.5 27.3083 27.4784 33.1973 20.2914 33.1973C17.7416 33.1973 16.5042 32.8382 14.5146 31.4294ZM20.4297 13.0119C16.8974 12.8267 14.1409 15.2777 13.533 19.114C13.0297 22.291 13.9221 26.1621 14.6855 26.357C15.0093 26.4396 15.7885 25.8436 16.3553 25.3091C16.4619 25.2086 16.6231 25.1917 16.748 25.2681C17.6317 25.8084 18.6322 26.2145 19.7352 26.2724C23.3615 26.4625 26.5751 23.6244 26.7651 19.9977C26.955 16.3711 24.0561 13.2021 20.4297 13.0119Z" fill="white"/>
                   <defs>
                     <linearGradient id="maxGrad" x1="4.5" y1="36" x2="49" y2="4.5" gradientUnits="userSpaceOnUse">
-                      <stop stopColor="#52C5FE"/>
-                      <stop offset="0.389823" stopColor="#3948EC"/>
-                      <stop offset="0.946965" stopColor="#9A40DA"/>
+                      <stop stop-color="#52C5FE"/>
+                      <stop offset="0.389823" stop-color="#3948EC"/>
+                      <stop offset="0.946965" stop-color="#9A40DA"/>
                     </linearGradient>
                     <linearGradient id="maxOverlay" x1="3" y1="3" x2="38.5" y2="32.5" gradientUnits="userSpaceOnUse">
-                      <stop offset="0.580435" stopColor="#9A40DA" stopOpacity="0"/>
-                      <stop offset="0.782473" stopColor="#9A40DA" stopOpacity="0.4"/>
-                      <stop offset="1" stopColor="#9A40DA"/>
+                      <stop offset="0.580435" stop-color="#9A40DA" stop-opacity="0"/>
+                      <stop offset="0.782473" stop-color="#9A40DA" stop-opacity="0.4"/>
+                      <stop offset="1" stop-color="#9A40DA"/>
                     </linearGradient>
                   </defs>
                 </svg>
               </a>
             </div>
-            <h4 className="mb-3 text-sm font-semibold text-white">Подписаться на новости</h4>
-            <form className="flex gap-2">
-              <input
-                type="email"
-                placeholder="Ваш email"
-                className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/30"
-              />
-              <button
-                type="submit"
-                className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-[#0D1B2A] hover:bg-white/90 transition-colors"
-              >
-                Подписаться
-              </button>
-            </form>
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-[#152851]">О колледже</h3>
+            <p className="text-sm leading-relaxed text-[#5a6a8a]">
+              Государственное бюджетное профессиональное образовательное учреждение
+              «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»
+            </p>
           </div>
         </div>
-
-        <div className="mt-12 border-t border-white/10 pt-8 text-center text-sm">
-          <p className="mb-1">Ставропольский край, г. Ставрополь, пр-д Черняховского, 3</p>
-          <p className="mb-1">
-            +7 (8652) 24-25-27 |{" "}
-            <a href="mailto:college@stvcc.ru" className="hover:text-white transition-colors">
-              college@stvcc.ru
-            </a>
-          </p>
-          <div className="mt-4 flex justify-center">
-            <AccessibilityToggle />
-          </div>
-          <p className="mt-4 text-xs text-white/50">
-            ГБПОУ «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»
-          </p>
-          <p className="mt-2 text-xs text-white/40">
-            &copy; {new Date().getFullYear()} Все права защищены |{" "}
-            <Link href="/privacy" className="hover:text-white transition-colors">
-              Политика конфиденциальности
-            </Link>
-          </p>
+        <div className="mt-8 border-t border-border pt-6 text-center text-xs text-[#5a6a8a]">
+          &copy; {new Date().getFullYear()} ГБПОУ «Ставропольский колледж связи
+          имени Героя Советского Союза В.А. Петрова». Все права защищены.
         </div>
       </div>
     </footer>

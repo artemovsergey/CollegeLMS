@@ -70,8 +70,8 @@ export default function NewsListPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">Новости</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-2xl font-semibold text-[#152851]">Новости</h1>
+        <p className="mt-1 text-sm text-[#5a6a8a]">
           Последние события и объявления колледжа
         </p>
       </div>
@@ -84,10 +84,10 @@ export default function NewsListPage() {
               setCategoryFilter(undefined)
               setPage(1)
             }}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 ${
               !categoryFilter
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-foreground hover:bg-accent"
+                ? "bg-[#568cd6] text-white"
+                : "bg-[#e4edf8] text-[#152851] hover:bg-[#d4d9e3]"
             }`}
           >
             Все
@@ -99,10 +99,10 @@ export default function NewsListPage() {
                 setCategoryFilter(cat.id)
                 setPage(1)
               }}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 ${
                 categoryFilter === cat.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground hover:bg-accent"
+                  ? "bg-[#568cd6] text-white"
+                  : "bg-[#e4edf8] text-[#152851] hover:bg-[#d4d9e3]"
               }`}
             >
               {cat.name}
@@ -115,7 +115,7 @@ export default function NewsListPage() {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Поиск..."
-            className="rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+            className="rounded-md border border-[#d4d9e3] px-3 py-1.5 text-sm outline-none focus:border-[#568cd6] focus:ring-2 focus:ring-[#568cd6]/30"
           />
           <Button type="submit" size="sm">
             Найти
@@ -125,7 +125,7 @@ export default function NewsListPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="mb-6 rounded-md bg-[#f8e8e8] p-3 text-sm text-[#c43e3e]">
           {error}
         </div>
       )}
@@ -133,11 +133,11 @@ export default function NewsListPage() {
       {/* Loading */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#d4d9e3] border-t-[#568cd6]" />
         </div>
       ) : news.length === 0 ? (
         <div className="py-20 text-center">
-          <p className="text-muted-foreground">Новостей пока нет</p>
+          <p className="text-[#5a6a8a]">Новостей пока нет</p>
         </div>
       ) : (
         <>
@@ -147,108 +147,59 @@ export default function NewsListPage() {
               <Link
                 key={item.id}
                 href={`/news/${item.id}`}
-                className="group rounded-xl border border-border bg-card overflow-hidden transition-all duration-200 hover:border-primary/30 hover:shadow-md"
+                className="group rounded-lg border border-[#d4d9e3] bg-white p-5 transition-all duration-200 hover:border-[#568cd6]/30 hover:shadow-sm"
               >
-                {item.imageUrl ? (
-                  <div className="overflow-hidden">
+                {item.imageUrl && (
+                  <div className="mb-3 overflow-hidden rounded-md">
                     <img
                       src={item.imageUrl}
                       alt=""
-                      className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="h-40 w-full object-cover transition-transform duration-200 group-hover:scale-105"
                     />
                   </div>
-                ) : (
-                  <div className="aspect-video w-full bg-muted flex items-center justify-center">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-foreground/40">
-                      <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9.5M20 13l-3.5-3.5M4 6.5L7.5 10m5.5 3l-4-4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
                 )}
-                <div className="p-5">
-                  <p className="mb-1.5 text-xs text-muted-foreground">
-                    {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
-                    {item.categoryName && ` · ${item.categoryName}`}
-                  </p>
-                  <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                    {item.title}
-                  </h3>
-                </div>
+                <p className="mb-1 text-xs text-[#5a6a8a]">
+                  {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
+                  {item.categoryName && ` · ${item.categoryName}`}
+                </p>
+                <h3 className="text-sm font-semibold text-[#152851] line-clamp-2">{item.title}</h3>
               </Link>
             ))}
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <nav className="mt-10 flex items-center justify-center gap-1" aria-label="Пагинация">
+            <div className="mt-10 flex items-center justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page <= 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="gap-1"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-                Назад
+                ← Назад
               </Button>
-
-              <div className="flex items-center gap-1">
-                {(() => {
-                  const pages: (number | "...")[] = []
-                  const delta = 2
-                  const start = Math.max(1, page - delta)
-                  const end = Math.min(totalPages, page + delta)
-
-                  if (start > 1) {
-                    pages.push(1)
-                    if (start > 2) pages.push("...")
-                  }
-
-                  for (let i = start; i <= end; i++) pages.push(i)
-
-                  if (end < totalPages) {
-                    if (end < totalPages - 1) pages.push("...")
-                    pages.push(totalPages)
-                  }
-
-                  return pages.map((p, idx) =>
-                    p === "..." ? (
-                      <span key={`ellipsis-${idx}`} className="flex h-9 w-9 items-center justify-center text-sm text-muted-foreground">
-                        ...
-                      </span>
-                    ) : (
-                      <button
-                        key={p}
-                        onClick={() => setPage(p)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                          p === page
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                        }`}
-                        aria-label={`Страница ${p}`}
-                        aria-current={p === page ? "page" : undefined}
-                      >
-                        {p}
-                      </button>
-                    )
-                  )
-                })()}
-              </div>
-
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 ${
+                    p === page
+                      ? "bg-[#568cd6] text-white"
+                      : "text-[#5a6a8a] hover:bg-[#e4edf8]"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                className="gap-1"
               >
-                Вперёд
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
+                Вперед →
               </Button>
-            </nav>
+            </div>
           )}
         </>
       )}

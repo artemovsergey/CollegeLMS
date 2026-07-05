@@ -39,7 +39,7 @@ export default function NewsDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#d4d9e3] border-t-[#568cd6]" />
       </div>
     )
   }
@@ -47,7 +47,7 @@ export default function NewsDetailPage() {
   if (error || !news) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <p className="mb-4 text-lg text-destructive">{error ?? "Новость не найдена"}</p>
+        <p className="mb-4 text-lg text-[#c43e3e]">{error ?? "Новость не найдена"}</p>
         <div className="flex justify-center gap-3">
           <Button variant="outline" onClick={() => router.back()}>
             ← Назад
@@ -67,43 +67,34 @@ export default function NewsDetailPage() {
       </Button>
 
       {news.imageUrl && (
-        <div className="mb-8 overflow-hidden rounded-xl">
+        <div className="mb-6 overflow-hidden rounded-lg">
           <img
             src={news.imageUrl}
             alt=""
-            className="aspect-video w-full object-cover"
+            className="w-full object-cover"
           />
         </div>
       )}
 
-      <div className="mb-4 flex items-center gap-3 text-sm text-muted-foreground">
-        <time dateTime={news.publishedAt}>
-          {new Date(news.publishedAt).toLocaleDateString("ru-RU", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </time>
-        {news.categoryName && (
-          <>
-            <span aria-hidden="true">·</span>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-              {news.categoryName}
-            </span>
-          </>
-        )}
-      </div>
+      <p className="mb-2 text-sm text-[#5a6a8a]">
+        {new Date(news.publishedAt).toLocaleDateString("ru-RU", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
+        {news.categoryName && ` · ${news.categoryName}`}
+      </p>
 
-      <h1 className="mb-8 text-2xl font-bold leading-tight text-foreground sm:text-3xl lg:text-4xl">
+      <h1 className="mb-6 text-2xl font-bold leading-tight text-[#152851] sm:text-3xl">
         {news.title}
       </h1>
 
       <div
-        className="prose prose-gray max-w-none text-muted-foreground"
+        className="prose prose-sm max-w-none text-[#5a6a8a]"
         dangerouslySetInnerHTML={{ __html: news.content }}
       />
 
-      <div className="mt-10 border-t border-border pt-4 text-xs text-muted-foreground">
+      <div className="mt-10 border-t border-[#d4d9e3] pt-4 text-xs text-[#5a6a8a]">
         Опубликовано: {news.createdByName}
       </div>
     </article>
