@@ -313,7 +313,7 @@ export default function AdminNewsPage() {
                       <button
                         onClick={() => canManage && handleTogglePublish(item)}
                         disabled={!canManage}
-                        className={`text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 rounded ${
+                        className={`text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded ${
                           item.isPublished
                             ? "text-green-600"
                             : "text-muted-foreground"

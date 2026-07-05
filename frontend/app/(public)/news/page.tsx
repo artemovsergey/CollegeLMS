@@ -70,8 +70,8 @@ export default function NewsListPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-[#152851]">Новости</h1>
-        <p className="mt-1 text-sm text-[#5a6a8a]">
+        <h1 className="text-2xl font-semibold text-foreground">Новости</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Последние события и объявления колледжа
         </p>
       </div>
@@ -84,10 +84,10 @@ export default function NewsListPage() {
               setCategoryFilter(undefined)
               setPage(1)
             }}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 ${
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
               !categoryFilter
-                ? "bg-[#568cd6] text-white"
-                : "bg-[#e4edf8] text-[#152851] hover:bg-[#d4d9e3]"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-foreground hover:bg-accent"
             }`}
           >
             Все
@@ -99,10 +99,10 @@ export default function NewsListPage() {
                 setCategoryFilter(cat.id)
                 setPage(1)
               }}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 categoryFilter === cat.id
-                  ? "bg-[#568cd6] text-white"
-                  : "bg-[#e4edf8] text-[#152851] hover:bg-[#d4d9e3]"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground hover:bg-accent"
               }`}
             >
               {cat.name}
@@ -115,7 +115,7 @@ export default function NewsListPage() {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Поиск..."
-            className="rounded-md border border-[#d4d9e3] px-3 py-1.5 text-sm outline-none focus:border-[#568cd6] focus:ring-2 focus:ring-[#568cd6]/30"
+            className="rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
           />
           <Button type="submit" size="sm">
             Найти
@@ -125,7 +125,7 @@ export default function NewsListPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 rounded-md bg-[#f8e8e8] p-3 text-sm text-[#c43e3e]">
+        <div className="mb-6 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -133,11 +133,11 @@ export default function NewsListPage() {
       {/* Loading */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#d4d9e3] border-t-[#568cd6]" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
         </div>
       ) : news.length === 0 ? (
         <div className="py-20 text-center">
-          <p className="text-[#5a6a8a]">Новостей пока нет</p>
+          <p className="text-muted-foreground">Новостей пока нет</p>
         </div>
       ) : (
         <>
@@ -147,7 +147,7 @@ export default function NewsListPage() {
               <Link
                 key={item.id}
                 href={`/news/${item.id}`}
-                className="group rounded-lg border border-[#d4d9e3] bg-white p-5 transition-all duration-200 hover:border-[#568cd6]/30 hover:shadow-sm"
+                className="group rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-primary/30 hover:shadow-sm"
               >
                 {item.imageUrl && (
                   <div className="mb-3 overflow-hidden rounded-md">
@@ -158,48 +158,87 @@ export default function NewsListPage() {
                     />
                   </div>
                 )}
-                <p className="mb-1 text-xs text-[#5a6a8a]">
+                <p className="mb-1 text-xs text-muted-foreground">
                   {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
                   {item.categoryName && ` · ${item.categoryName}`}
                 </p>
-                <h3 className="text-sm font-semibold text-[#152851] line-clamp-2">{item.title}</h3>
+                <h3 className="text-sm font-semibold text-foreground line-clamp-2">{item.title}</h3>
               </Link>
             ))}
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-10 flex items-center justify-center gap-2">
+            <nav className="mt-10 flex items-center justify-center gap-1" aria-label="Пагинация">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page <= 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="gap-1"
               >
-                ← Назад
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Назад
               </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 ${
-                    p === page
-                      ? "bg-[#568cd6] text-white"
-                      : "text-[#5a6a8a] hover:bg-[#e4edf8]"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+
+              <div className="flex items-center gap-1">
+                {(() => {
+                  const pages: (number | "...")[] = []
+                  const delta = 2
+                  const start = Math.max(1, page - delta)
+                  const end = Math.min(totalPages, page + delta)
+
+                  if (start > 1) {
+                    pages.push(1)
+                    if (start > 2) pages.push("...")
+                  }
+
+                  for (let i = start; i <= end; i++) pages.push(i)
+
+                  if (end < totalPages) {
+                    if (end < totalPages - 1) pages.push("...")
+                    pages.push(totalPages)
+                  }
+
+                  return pages.map((p, idx) =>
+                    p === "..." ? (
+                      <span key={`ellipsis-${idx}`} className="flex h-9 w-9 items-center justify-center text-sm text-muted-foreground">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                          p === page
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        }`}
+                        aria-label={`Страница ${p}`}
+                        aria-current={p === page ? "page" : undefined}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )
+                })()}
+              </div>
+
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                className="gap-1"
               >
-                Вперед →
+                Вперёд
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
               </Button>
-            </div>
+            </nav>
           )}
         </>
       )}

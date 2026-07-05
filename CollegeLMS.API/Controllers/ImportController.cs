@@ -9,8 +9,11 @@ namespace CollegeLMS.API.Controllers;
 [ApiController]
 [Route("api/import")]
 [Produces("application/json")]
-public class ImportController(IWordPressImportService importService, IWebHostEnvironment env)
-    : ControllerBase
+public class ImportController(
+    IWordPressImportService importService,
+    IMediaMigrationService mediaService,
+    IWebHostEnvironment env
+) : ControllerBase
 {
     [HttpPost("wordpress")]
     [Authorize(Roles = "Admin")]
@@ -39,6 +42,30 @@ public class ImportController(IWordPressImportService importService, IWebHostEnv
             jsonPath = "/import/wp_data_full.json";
         }
         var result = await importService.ImportFromJsonAsync(jsonPath, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    [HttpPost("migrate-media")]
+    [Authorize(Roles = "Admin")]
+    [SwaggerOperation(
+        Summary = "Скачать медиафайлы новостей локально",
+        Description = "Находит все новости с внешними ImageUrl, скачивает изображения и заменяет ссылки на локальные"
+    )]
+    [SwaggerResponse(200, "Миграция завершена", typeof(Result<MediaMigrationResult>))]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<MediaMigrationResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<MediaMigrationResult>>> MigrateMedia(
+        CancellationToken ct
+    )
+    {
+        var result = await mediaService.MigrateAllAsync(ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
         return Ok(result);

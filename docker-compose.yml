@@ -6,6 +6,7 @@ volumes:
   postgres_data:
   redis_data:
   nuget_packages:
+  uploads_data:
 
 services:
   db:
@@ -54,6 +55,7 @@ services:
       - "${API_PORT:-5026}:8080"
     volumes:
       - ./import:/import
+      - uploads_data:/app/uploads
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:8080

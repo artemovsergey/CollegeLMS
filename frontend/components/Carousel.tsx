@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 
 export default function Carousel() {
   const [slides, setSlides] = useState<NewsResponse[]>([])
@@ -45,9 +45,9 @@ export default function Carousel() {
   if (error || slides.length === 0) return null
 
   return (
-    <section className="relative overflow-hidden bg-[#152851]">
-      <div className="relative mx-auto max-w-7xl">
-        <div className="relative h-[400px] sm:h-[450px] md:h-[500px]">
+    <section className="relative overflow-hidden bg-[#f0e8d1]">
+      <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="relative aspect-[21/9] overflow-hidden rounded-xl border border-[#d4c9a8] shadow-lg">
           {slides.map((item, i) => (
             <Link
               key={item.id}
@@ -61,15 +61,18 @@ export default function Carousel() {
                 <img
                   src={item.imageUrl}
                   alt=""
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain bg-foreground"
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
-                <p className="mb-2 text-sm text-white/80">
-                  {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
-                </p>
-                <h2 className="text-xl font-bold text-white sm:text-2xl md:text-3xl line-clamp-2">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 md:p-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                    <Calendar size={12} />
+                    {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
+                  </span>
+                </div>
+                <h2 className="text-xl font-bold text-white sm:text-2xl md:text-3xl lg:text-4xl line-clamp-2 drop-shadow-lg">
                   {item.title}
                 </h2>
               </div>
@@ -79,26 +82,26 @@ export default function Carousel() {
 
         <button
           onClick={prev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+          className="absolute left-7 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 text-foreground shadow-md backdrop-blur-sm transition-colors hover:bg-white"
           aria-label="Предыдущий"
         >
           <ChevronLeft size={24} />
         </button>
         <button
           onClick={next}
-          className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+          className="absolute right-7 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 text-foreground shadow-md backdrop-blur-sm transition-colors hover:bg-white"
           aria-label="Следующий"
         >
           <ChevronRight size={24} />
         </button>
 
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+        <div className="absolute bottom-11 left-1/2 flex -translate-x-1/2 gap-2">
           {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
               className={`h-2 rounded-full transition-all ${
-                i === current ? "w-6 bg-white" : "w-2 bg-white/50"
+                i === current ? "w-6 bg-white" : "w-2 bg-white/60"
               }`}
               aria-label={`Слайд ${i + 1}`}
             />

@@ -19,6 +19,7 @@ var app = builder.Build();
 
 app.UseExceptionMiddleware();
 app.UseCors("AllowFrontend");
+app.UseStaticFiles();
 
 if (app.Environment.IsDevelopment())
 {
