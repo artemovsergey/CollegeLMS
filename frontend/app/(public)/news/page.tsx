@@ -147,22 +147,32 @@ export default function NewsListPage() {
               <Link
                 key={item.id}
                 href={`/news/${item.id}`}
-                className="group rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-primary/30 hover:shadow-sm"
+                className="group rounded-xl border border-border bg-card overflow-hidden transition-all duration-200 hover:border-primary/30 hover:shadow-md"
               >
-                {item.imageUrl && (
-                  <div className="mb-3 overflow-hidden rounded-md">
+                {item.imageUrl ? (
+                  <div className="overflow-hidden">
                     <img
                       src={item.imageUrl}
                       alt=""
-                      className="h-40 w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
+                ) : (
+                  <div className="aspect-video w-full bg-muted flex items-center justify-center">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-foreground/40">
+                      <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9.5M20 13l-3.5-3.5M4 6.5L7.5 10m5.5 3l-4-4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
                 )}
-                <p className="mb-1 text-xs text-muted-foreground">
-                  {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
-                  {item.categoryName && ` · ${item.categoryName}`}
-                </p>
-                <h3 className="text-sm font-semibold text-foreground line-clamp-2">{item.title}</h3>
+                <div className="p-5">
+                  <p className="mb-1.5 text-xs text-muted-foreground">
+                    {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
+                    {item.categoryName && ` · ${item.categoryName}`}
+                  </p>
+                  <h3 className="text-sm font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                    {item.title}
+                  </h3>
+                </div>
               </Link>
             ))}
           </div>

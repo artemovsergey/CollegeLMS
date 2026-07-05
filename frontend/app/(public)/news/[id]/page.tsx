@@ -67,30 +67,39 @@ export default function NewsDetailPage() {
       </Button>
 
       {news.imageUrl && (
-        <div className="mb-6 overflow-hidden rounded-lg">
+        <div className="mb-8 overflow-hidden rounded-xl">
           <img
             src={news.imageUrl}
             alt=""
-            className="w-full object-cover"
+            className="aspect-video w-full object-cover"
           />
         </div>
       )}
 
-      <p className="mb-2 text-sm text-muted-foreground">
-        {new Date(news.publishedAt).toLocaleDateString("ru-RU", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })}
-        {news.categoryName && ` · ${news.categoryName}`}
-      </p>
+      <div className="mb-4 flex items-center gap-3 text-sm text-muted-foreground">
+        <time dateTime={news.publishedAt}>
+          {new Date(news.publishedAt).toLocaleDateString("ru-RU", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </time>
+        {news.categoryName && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+              {news.categoryName}
+            </span>
+          </>
+        )}
+      </div>
 
-      <h1 className="mb-6 text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+      <h1 className="mb-8 text-2xl font-bold leading-tight text-foreground sm:text-3xl lg:text-4xl">
         {news.title}
       </h1>
 
       <div
-        className="prose prose-sm max-w-none text-muted-foreground"
+        className="prose prose-gray max-w-none text-muted-foreground"
         dangerouslySetInnerHTML={{ __html: news.content }}
       />
 
