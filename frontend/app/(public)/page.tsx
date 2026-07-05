@@ -87,33 +87,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="mb-8 text-center text-2xl font-semibold text-[#152851]">
-            Контакты
-          </h2>
-          <div className="mx-auto grid max-w-3xl gap-6 sm:grid-cols-3">
-            <div className="rounded-lg border border-[#d4d9e3] bg-white p-5 text-center">
-              <p className="mb-1 text-xs font-medium text-[#5a6a8a]">Адрес</p>
-              <p className="text-sm font-medium text-[#152851]">
-                пр-д Черняховского, 3
-              </p>
-            </div>
-            <div className="rounded-lg border border-[#d4d9e3] bg-white p-5 text-center">
-              <p className="mb-1 text-xs font-medium text-[#5a6a8a]">Телефон</p>
-              <p className="text-sm font-medium text-[#152851]">
-                +7 (8652) 24-25-27
-              </p>
-            </div>
-            <div className="rounded-lg border border-[#d4d9e3] bg-white p-5 text-center">
-              <p className="mb-1 text-xs font-medium text-[#5a6a8a]">Email</p>
-              <p className="text-sm font-medium text-[#152851]">
-                college@stvcc.ru
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   )
 }
