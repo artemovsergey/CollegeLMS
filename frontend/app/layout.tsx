@@ -2,6 +2,10 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth"
 import { ThemeProvider } from "next-themes"
+import "@fontsource/golos-text"
+import "@fontsource/golos-text/500.css"
+import "@fontsource/golos-text/600.css"
+import "@fontsource/golos-text/700.css"
 
 export const metadata: Metadata = {
   title: {

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Laptop, Radio, Cpu, Zap } from "lucide-react"
 
 interface Specialty {
@@ -8,6 +9,7 @@ interface Specialty {
   qualifications: string[]
   duration: string
   icon: React.ReactNode
+  slug: string
 }
 
 const specialties: Specialty[] = [
@@ -17,6 +19,7 @@ const specialties: Specialty[] = [
     qualifications: ["Программист", "Администратор баз данных", "Разработчик веб и мультимедийных приложений"],
     duration: "3 г 10 мес (9 кл)",
     icon: <Laptop size={32} />,
+    slug: "informatsionnye-sistemy",
   },
   {
     code: "11.02.02",
@@ -24,6 +27,7 @@ const specialties: Specialty[] = [
     qualifications: ["Техник"],
     duration: "3 г 10 мес (9 кл) / 2 г 10 мес (11 кл)",
     icon: <Radio size={32} />,
+    slug: "remont-radioelektronnoj-tekhniki",
   },
   {
     code: "11.02.15",
@@ -31,6 +35,7 @@ const specialties: Specialty[] = [
     qualifications: ["Специалист по обслуживанию телекоммуникаций", "Специалист по монтажу и обслуживанию телекоммуникаций"],
     duration: "3 г 10 мес (9 кл) / 2 г 10 мес (11 кл)",
     icon: <Radio size={32} />,
+    slug: "infokommunikatsionnye-seti",
   },
   {
     code: "11.02.17",
@@ -38,6 +43,7 @@ const specialties: Specialty[] = [
     qualifications: ["Техник"],
     duration: "2 г 10 мес (9 кл) / 1 г 10 мес (11 кл)",
     icon: <Cpu size={32} />,
+    slug: "razrabotka-elektronnykh-ustrojstv",
   },
   {
     code: "13.02.06",
@@ -45,6 +51,7 @@ const specialties: Specialty[] = [
     qualifications: ["Техник-электрик"],
     duration: "3 г 10 мес (9 кл) / 2 г 10 мес (11 кл)",
     icon: <Zap size={32} />,
+    slug: "relejnaya-zashchita",
   },
   {
     code: "13.02.12",
@@ -52,6 +59,7 @@ const specialties: Specialty[] = [
     qualifications: ["Техник-электрик"],
     duration: "3 г 10 мес (9 кл)",
     icon: <Zap size={32} />,
+    slug: "elektricheskie-stantsii",
   },
 ]
 
@@ -63,17 +71,18 @@ export default function SpecialtiesSection() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {specialties.map((s) => (
-            <div
+            <Link
               key={s.code}
-              className="rounded-lg border border-border bg-card p-6 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
+              href={`/education/specialties/${s.slug}`}
+              className="group block rounded-lg border border-border bg-card p-6 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
             >
               <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-accent/10 group-hover:text-accent transition-colors">
                   {s.icon}
                 </span>
                 <div>
                   <p className="text-xs text-muted-foreground">{s.code}</p>
-                  <h3 className="text-sm font-semibold text-primary leading-tight">{s.title}</h3>
+                  <h3 className="text-sm font-semibold text-primary leading-tight group-hover:text-accent transition-colors">{s.title}</h3>
                 </div>
               </div>
               <div className="mb-3 space-y-1">
@@ -87,8 +96,17 @@ export default function SpecialtiesSection() {
               <p className="text-xs text-muted-foreground">
                 <span className="font-medium">Срок обучения:</span> {s.duration}
               </p>
-            </div>
+            </Link>
           ))}
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link
+            href="/education"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
+          >
+            Все специальности →
+          </Link>
         </div>
       </div>
     </section>
