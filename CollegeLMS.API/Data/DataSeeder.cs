@@ -8,6 +8,14 @@ public static class DataSeeder
 {
     public static async Task SeedAsync(AppDbContext db)
     {
+        await SeedUsersAsync(db);
+        await SeedGroupsTeachersStudentsAsync(db);
+        await SeedCoursesLecturesAssignmentsAsync(db);
+        await SeedScheduleEntriesAsync(db);
+    }
+
+    private static async Task SeedUsersAsync(AppDbContext db)
+    {
         if (await db.Users.AnyAsync())
             return;
 
@@ -47,9 +55,15 @@ public static class DataSeeder
 
         db.Users.AddRange(users);
         await db.SaveChangesAsync();
+    }
 
-        var teacherUser = users.First(u => u.Email == "teacher@collegelms.ru");
-        var studentUser = users.First(u => u.Email == "student@collegelms.ru");
+    private static async Task SeedGroupsTeachersStudentsAsync(AppDbContext db)
+    {
+        if (await db.Groups.AnyAsync())
+            return;
+
+        var teacherUser = await db.Users.FirstAsync(u => u.Email == "teacher@collegelms.ru");
+        var studentUser = await db.Users.FirstAsync(u => u.Email == "student@collegelms.ru");
 
         var group = new Group
         {
@@ -84,6 +98,15 @@ public static class DataSeeder
         db.Students.Add(student);
 
         await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedCoursesLecturesAssignmentsAsync(AppDbContext db)
+    {
+        if (await db.Courses.AnyAsync())
+            return;
+
+        var group = await db.Groups.FirstAsync();
+        var teacher = await db.Teachers.FirstAsync();
 
         var course = new Course
         {
@@ -125,6 +148,120 @@ public static class DataSeeder
             UpdatedAt = DateTime.UtcNow,
         };
         db.Assignments.Add(assignment);
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedScheduleEntriesAsync(AppDbContext db)
+    {
+        if (await db.ScheduleEntries.AnyAsync())
+            return;
+
+        var group = await db.Groups.FirstAsync();
+        var teacher = await db.Teachers.FirstAsync();
+
+        var scheduleEntries = new List<ScheduleEntry>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "Основы программирования",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(10, 0, 0),
+                EndTime = new TimeSpan(11, 30, 0),
+                LessonType = LessonType.Lecture,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "Основы программирования",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Wednesday,
+                StartTime = new TimeSpan(10, 0, 0),
+                EndTime = new TimeSpan(11, 30, 0),
+                LessonType = LessonType.Practice,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "Математика",
+                Room = "205",
+                DayOfWeek = DayOfWeek.Tuesday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
+                LessonType = LessonType.Lecture,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "Математика",
+                Room = "205",
+                DayOfWeek = DayOfWeek.Thursday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
+                LessonType = LessonType.Practice,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "Английский язык",
+                Room = "410",
+                DayOfWeek = DayOfWeek.Friday,
+                StartTime = new TimeSpan(10, 0, 0),
+                EndTime = new TimeSpan(11, 30, 0),
+                LessonType = LessonType.Practice,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "Физическая культура",
+                Room = "Спортзал",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(12, 0, 0),
+                EndTime = new TimeSpan(13, 30, 0),
+                LessonType = LessonType.Practice,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "Базы данных",
+                Room = "310",
+                DayOfWeek = DayOfWeek.Wednesday,
+                StartTime = new TimeSpan(12, 0, 0),
+                EndTime = new TimeSpan(13, 30, 0),
+                LessonType = LessonType.Lab,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+        };
+        db.ScheduleEntries.AddRange(scheduleEntries);
 
         await db.SaveChangesAsync();
     }

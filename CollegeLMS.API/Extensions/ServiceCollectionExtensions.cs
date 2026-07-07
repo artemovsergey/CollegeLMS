@@ -174,6 +174,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<INewsService, NewsService>();
         services.AddScoped<IWordPressImportService, WordPressImportService>();
+        services.AddScoped<IScheduleService, ScheduleService>();
+        services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddValidatorsFromAssemblyContaining<Program>();
 
         return services;

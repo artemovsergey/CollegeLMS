@@ -5,6 +5,7 @@ import Link from "next/link"
 import type { Result, NewsResponse, NewsCategoryResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import Pagination from "@/components/ui/pagination"
 
 const ITEMS_PER_PAGE = 12
 
@@ -70,8 +71,8 @@ export default function NewsListPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-[#152851]">Новости</h1>
-        <p className="mt-1 text-sm text-[#5a6a8a]">
+        <h1 className="text-2xl font-semibold text-primary">Новости</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Последние события и объявления колледжа
         </p>
       </div>
@@ -84,10 +85,10 @@ export default function NewsListPage() {
               setCategoryFilter(undefined)
               setPage(1)
             }}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 ${
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               !categoryFilter
-                ? "bg-[#568cd6] text-white"
-                : "bg-[#e4edf8] text-[#152851] hover:bg-[#d4d9e3]"
+                ? "bg-accent text-accent-foreground"
+                : "bg-muted text-primary hover:bg-border"
             }`}
           >
             Все
@@ -99,10 +100,10 @@ export default function NewsListPage() {
                 setCategoryFilter(cat.id)
                 setPage(1)
               }}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                 categoryFilter === cat.id
-                  ? "bg-[#568cd6] text-white"
-                  : "bg-[#e4edf8] text-[#152851] hover:bg-[#d4d9e3]"
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-muted text-primary hover:bg-border"
               }`}
             >
               {cat.name}
@@ -115,7 +116,7 @@ export default function NewsListPage() {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Поиск..."
-            className="rounded-md border border-[#d4d9e3] px-3 py-1.5 text-sm outline-none focus:border-[#568cd6] focus:ring-2 focus:ring-[#568cd6]/30"
+            className="rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 bg-background"
           />
           <Button type="submit" size="sm">
             Найти
@@ -125,19 +126,19 @@ export default function NewsListPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 rounded-md bg-[#f8e8e8] p-3 text-sm text-[#c43e3e]">
+        <div className="mb-6 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Loading */}
       {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#d4d9e3] border-t-[#568cd6]" />
+          <div className="flex justify-center py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent" />
         </div>
       ) : news.length === 0 ? (
         <div className="py-20 text-center">
-          <p className="text-[#5a6a8a]">Новостей пока нет</p>
+          <p className="text-muted-foreground">Новостей пока нет</p>
         </div>
       ) : (
         <>
@@ -147,7 +148,7 @@ export default function NewsListPage() {
               <Link
                 key={item.id}
                 href={`/news/${item.id}`}
-                className="group rounded-lg border border-[#d4d9e3] bg-white p-5 transition-all duration-200 hover:border-[#568cd6]/30 hover:shadow-sm"
+                className="group rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
               >
                 {item.imageUrl && (
                   <div className="mb-3 overflow-hidden rounded-md">
@@ -158,49 +159,16 @@ export default function NewsListPage() {
                     />
                   </div>
                 )}
-                <p className="mb-1 text-xs text-[#5a6a8a]">
+                <p className="mb-1 text-xs text-muted-foreground">
                   {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
                   {item.categoryName && ` · ${item.categoryName}`}
                 </p>
-                <h3 className="text-sm font-semibold text-[#152851] line-clamp-2">{item.title}</h3>
+                <h3 className="text-sm font-semibold text-primary line-clamp-2">{item.title}</h3>
               </Link>
             ))}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-10 flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-              >
-                ← Назад
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 ${
-                    p === page
-                      ? "bg-[#568cd6] text-white"
-                      : "text-[#5a6a8a] hover:bg-[#e4edf8]"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              >
-                Вперед →
-              </Button>
-            </div>
-          )}
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
     </div>

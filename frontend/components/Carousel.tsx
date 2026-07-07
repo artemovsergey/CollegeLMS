@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import useEmblaCarousel from "embla-carousel-react"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
 import Link from "next/link"
@@ -8,9 +9,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export default function Carousel() {
   const [slides, setSlides] = useState<NewsResponse[]>([])
-  const [current, setCurrent] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true })
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [isHovered, setIsHovered] = useState(false)
 
   useEffect(() => {
     api
@@ -26,85 +29,125 @@ export default function Carousel() {
       .finally(() => setLoading(false))
   }, [])
 
-  const next = useCallback(() => {
-    setCurrent((c) => (c + 1) % slides.length)
-  }, [slides.length])
-
-  const prev = useCallback(() => {
-    setCurrent((c) => (c - 1 + slides.length) % slides.length)
-  }, [slides.length])
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return
+    setSelectedIndex(emblaApi.selectedScrollSnap())
+  }, [emblaApi])
 
   useEffect(() => {
-    if (slides.length < 2) return
-    const timer = setInterval(next, 5000)
-    return () => clearInterval(timer)
-  }, [slides.length, next])
+    if (!emblaApi) return
+    emblaApi.on("select", onSelect)
+    onSelect()
+  }, [emblaApi, onSelect])
 
-  if (loading) return null
+  useEffect(() => {
+    if (!emblaApi || slides.length < 2 || isHovered) return
+    const timer = setInterval(() => emblaApi.scrollNext(), 5000)
+    return () => clearInterval(timer)
+  }, [emblaApi, slides.length, isHovered])
+
+  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi])
+  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi])
+  const scrollTo = useCallback(
+    (index: number) => emblaApi?.scrollTo(index),
+    [emblaApi],
+  )
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-5xl">
+        <section>
+          <div className="h-[400px] animate-pulse bg-white/5 md:h-[500px]" />
+        </section>
+      </div>
+    )
+  }
 
   if (error || slides.length === 0) return null
 
   return (
-    <section className="relative overflow-hidden bg-[#152851]">
-      <div className="relative mx-auto max-w-7xl">
-        <div className="relative h-[400px] sm:h-[450px] md:h-[500px]">
-          {slides.map((item, i) => (
-            <Link
-              key={item.id}
-              href={`/news/${item.id}`}
-              className={`absolute inset-0 transition-opacity duration-500 ${
-                i === current ? "opacity-100" : "opacity-0 pointer-events-none"
-              }`}
-            >
-              {item.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.imageUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
+    <div className="mx-auto max-w-5xl">
+      <section
+        className="relative mt-6"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex">
+            {slides.map((item, index) => (
+              <Link
+                key={item.id}
+                href={`/news/${item.id}`}
+                className="relative min-w-0 flex-[0_0_100%] h-[400px] md:h-[500px]"
+              >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.imageUrl!}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+              {item.categoryName && (
+                <span className="absolute left-4 top-4 rounded bg-lilac px-3 py-1 text-sm font-medium text-lilac-foreground">
+                  {item.categoryName}
+                </span>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
               <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
                 <p className="mb-2 text-sm text-white/80">
                   {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
                 </p>
-                <h2 className="text-xl font-bold text-white sm:text-2xl md:text-3xl line-clamp-2">
+                <h2 className="mb-2 text-xl font-bold text-white sm:text-2xl md:text-3xl line-clamp-2">
                   {item.title}
                 </h2>
+                <p className="max-w-2xl text-sm text-white/70 line-clamp-2">
+                  {item.content.replace(/<[^>]*>/g, '').slice(0, 100)}
+                  {item.content.length > 100 ? "..." : ""}
+                </p>
+                <div className="mt-4">
+                  <span className="inline-block rounded-full bg-white/20 px-6 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30">
+                    Подробнее
+                  </span>
+                </div>
               </div>
             </Link>
           ))}
         </div>
-
-        <button
-          onClick={prev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-          aria-label="Предыдущий"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <button
-          onClick={next}
-          className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-          aria-label="Следующий"
-        >
-          <ChevronRight size={24} />
-        </button>
-
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrent(i)}
-              className={`h-2 rounded-full transition-all ${
-                i === current ? "w-6 bg-white" : "w-2 bg-white/50"
-              }`}
-              aria-label={`Слайд ${i + 1}`}
-            />
-          ))}
-        </div>
       </div>
+
+      {slides.length > 1 && (
+        <>
+          <button
+            onClick={scrollPrev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+            aria-label="Предыдущий"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <button
+            onClick={scrollNext}
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+            aria-label="Следующий"
+          >
+            <ChevronRight size={24} />
+          </button>
+
+          <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => scrollTo(i)}
+                className={`h-2 rounded-full transition-all ${
+                  i === selectedIndex ? "w-6 bg-white" : "w-2 bg-white/50"
+                }`}
+                aria-label={`Слайд ${i + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </section>
+    </div>
   )
 }

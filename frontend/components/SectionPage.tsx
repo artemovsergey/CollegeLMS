@@ -1,4 +1,5 @@
 import Breadcrumbs from "@/components/Breadcrumbs"
+import ContentRenderer from "@/components/ContentRenderer"
 import { getSectionBySlug } from "@/data/site-content"
 import { notFound } from "next/navigation"
 import pageContents from "@/data/page-contents.json"
@@ -26,15 +27,15 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Breadcrumbs items={[{ label: section.title }]} />
-        <h1 className="mb-6 text-2xl font-bold text-[#152851]">{section.title}</h1>
+        <h1 className="mb-6 text-2xl font-bold text-primary">{section.title}</h1>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {section.subsections.map((sub) => (
             <a
               key={sub.slug}
               href={sub.href}
-              className="rounded-lg border border-border bg-white p-5 transition-all hover:border-[#568cd6]/30 hover:shadow-sm"
+              className="rounded-lg border border-border bg-card p-5 transition-all hover:border-accent/30 hover:shadow-sm"
             >
-              <h3 className="text-sm font-semibold text-[#152851]">{sub.title}</h3>
+              <h3 className="text-sm font-semibold text-primary">{sub.title}</h3>
             </a>
           ))}
         </div>
@@ -48,10 +49,6 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
   if (!subsection) notFound()
 
   const rawContent = getContent(subSlug) || subsection.content
-  const cleanContent = rawContent
-    .replace(/<img[^>]*>/gi, "")
-    .replace(/<a[^>]*>/gi, "")
-    .replace(/<\/a>/gi, "")
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -61,15 +58,12 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
           { label: subsection.title },
         ]}
       />
-      <h1 className="mb-6 text-2xl font-bold text-[#152851]">{subsection.title}</h1>
-      {cleanContent ? (
-        <div
-          className="prose prose-sm max-w-none text-[#5a6a8a] leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: cleanContent }}
-        />
+      <h1 className="mb-6 text-2xl font-bold text-primary">{subsection.title}</h1>
+      {rawContent ? (
+        <ContentRenderer content={rawContent} />
       ) : (
-        <div className="rounded-lg border border-border bg-white p-8 text-center">
-          <p className="text-[#5a6a8a]">Содержание раздела загружается...</p>
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-muted-foreground">Содержание раздела загружается...</p>
         </div>
       )}
     </div>

@@ -1,12 +1,8 @@
 {
     "$schema": "https://opencode.ai/config.json",
-    "plugin": [
-        "superpowers@git+https://github.com/obra/superpowers.git"
-    ],
+    "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"],
     "skills": {
-        "paths": [
-            "C:\\Users\\asv\\Desktop\\CollegeLMS\\.opencode\\skills"
-        ]
+        "paths": ["C:\\Users\\asv\\Desktop\\CollegeLMS\\.opencode\\skills"]
     },
     "mcp": {
         "playwright": {
@@ -34,6 +30,10 @@
         "push": {
             "template": "!`scripts/git-push.ps1`",
             "description": "Commit all changes and push to remote using GITHUB_TOKEN"
+        },
+        "voice_google": {
+            "template": "!python scripts/voice_google.py",
+            "description": "Voice input: records 10s audio, transcribes with Google Speech API, copies text to clipboard"
         }
     },
     "agent": {

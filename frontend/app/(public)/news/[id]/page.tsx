@@ -6,6 +6,7 @@ import Link from "next/link"
 import type { Result, NewsResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import ContentRenderer from "@/components/ContentRenderer"
 
 export default function NewsDetailPage() {
   const params = useParams()
@@ -39,7 +40,7 @@ export default function NewsDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#d4d9e3] border-t-[#568cd6]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent" />
       </div>
     )
   }
@@ -47,7 +48,7 @@ export default function NewsDetailPage() {
   if (error || !news) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <p className="mb-4 text-lg text-[#c43e3e]">{error ?? "Новость не найдена"}</p>
+        <p className="mb-4 text-lg text-destructive">{error ?? "Новость не найдена"}</p>
         <div className="flex justify-center gap-3">
           <Button variant="outline" onClick={() => router.back()}>
             ← Назад
@@ -76,7 +77,7 @@ export default function NewsDetailPage() {
         </div>
       )}
 
-      <p className="mb-2 text-sm text-[#5a6a8a]">
+      <p className="mb-2 text-sm text-muted-foreground">
         {new Date(news.publishedAt).toLocaleDateString("ru-RU", {
           year: "numeric",
           month: "long",
@@ -85,16 +86,13 @@ export default function NewsDetailPage() {
         {news.categoryName && ` · ${news.categoryName}`}
       </p>
 
-      <h1 className="mb-6 text-2xl font-bold leading-tight text-[#152851] sm:text-3xl">
+      <h1 className="mb-6 text-2xl font-bold leading-tight text-primary sm:text-3xl">
         {news.title}
       </h1>
 
-      <div
-        className="prose prose-sm max-w-none text-[#5a6a8a]"
-        dangerouslySetInnerHTML={{ __html: news.content }}
-      />
+      <ContentRenderer content={news.content} />
 
-      <div className="mt-10 border-t border-[#d4d9e3] pt-4 text-xs text-[#5a6a8a]">
+      <div className="mt-10 border-t border-border pt-4 text-xs text-muted-foreground">
         Опубликовано: {news.createdByName}
       </div>
     </article>

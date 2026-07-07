@@ -3,56 +3,56 @@ import { siteNavigation } from "@/data/site-content"
 
 export default function Footer() {
   return (
-    <footer className="border-t border-border bg-white">
+    <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-[#152851]">Контакты</h3>
-            <ul className="space-y-2 text-sm text-[#5a6a8a]">
+            <h3 className="mb-3 text-sm font-semibold text-primary">Контакты</h3>
+            <ul className="space-y-2 text-sm text-muted-foreground">
               <li>Ставропольский край, г. Ставрополь</li>
               <li>пр-д Черняховского, 3</li>
               <li>+7 (8652) 24-25-27</li>
               <li>
-                <a href="mailto:college@stvcc.ru" className="hover:text-[#568cd6] transition-colors">
+                <a href="mailto:college@stvcc.ru" className="hover:text-accent transition-colors">
                   college@stvcc.ru
                 </a>
               </li>
             </ul>
           </div>
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-[#152851]">Разделы</h3>
-            <ul className="space-y-2 text-sm text-[#5a6a8a]">
+            <h3 className="mb-3 text-sm font-semibold text-primary">Разделы</h3>
+            <ul className="space-y-2 text-sm text-muted-foreground">
               {siteNavigation.map((section) => (
                 <li key={section.slug}>
-                  <Link href={section.href} className="hover:text-[#568cd6] transition-colors">
+                  <Link href={section.href} className="hover:text-accent transition-colors">
                     {section.title}
                   </Link>
                 </li>
               ))}
               <li>
-                <Link href="/news" className="hover:text-[#568cd6] transition-colors">
+                <Link href="/news" className="hover:text-accent transition-colors">
                   Новости
                 </Link>
               </li>
               <li>
-                <Link href="/partners" className="hover:text-[#568cd6] transition-colors">
+                <Link href="/partners" className="hover:text-accent transition-colors">
                   Наши партнёры
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-[#152851]">Учредитель</h3>
-            <p className="text-sm leading-relaxed text-[#5a6a8a]">
+            <h3 className="mb-3 text-sm font-semibold text-primary">Учредитель</h3>
+            <p className="text-sm leading-relaxed text-muted-foreground">
               Министерство энергетики, промышленности и связи Ставропольского края
             </p>
-            <h3 className="mb-3 mt-6 text-sm font-semibold text-[#152851]">Мы в соцсетях</h3>
+            <h3 className="mb-3 mt-6 text-sm font-semibold text-primary">Мы в соцсетях</h3>
             <div className="flex gap-3">
               <a
                 href="https://vk.com/stvcc_official"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-[#5a6a8a] hover:text-[#568cd6] hover:border-[#568cd6] hover:bg-[#568cd6]/5 transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-accent hover:border-accent hover:bg-accent/5 transition-colors"
                 aria-label="ВКонтакте"
               >
                 <svg width="20" height="20" viewBox="0 0 35 37" fill="currentColor">
@@ -63,7 +63,7 @@ export default function Footer() {
                 href="https://t.me/stvcc_official"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-[#5a6a8a] hover:text-[#08C] hover:border-[#08C] hover:bg-[#08C]/5 transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-accent hover:border-accent hover:bg-accent/5 transition-colors"
                 aria-label="Telegram"
               >
                 <svg width="20" height="20" viewBox="0 0 35 37" fill="currentColor">
@@ -74,7 +74,7 @@ export default function Footer() {
                 href="https://web.max.ru/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-[#5a6a8a] hover:text-[#471AFF] hover:border-[#471AFF] hover:bg-[#471AFF]/5 transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-accent hover:border-accent hover:bg-accent/5 transition-colors"
                 aria-label="Max"
               >
                 <svg width="20" height="20" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -98,14 +98,14 @@ export default function Footer() {
             </div>
           </div>
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-[#152851]">О колледже</h3>
-            <p className="text-sm leading-relaxed text-[#5a6a8a]">
+            <h3 className="mb-3 text-sm font-semibold text-primary">О колледже</h3>
+            <p className="text-sm leading-relaxed text-muted-foreground">
               Государственное бюджетное профессиональное образовательное учреждение
               «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»
             </p>
           </div>
         </div>
-        <div className="mt-8 border-t border-border pt-6 text-center text-xs text-[#5a6a8a]">
+        <div className="mt-8 border-t border-border pt-6 text-center text-xs text-muted-foreground">
           &copy; {new Date().getFullYear()} ГБПОУ «Ставропольский колледж связи
           имени Героя Советского Союза В.А. Петрова». Все права защищены.
         </div>

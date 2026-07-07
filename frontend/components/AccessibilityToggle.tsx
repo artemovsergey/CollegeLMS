@@ -30,8 +30,8 @@ export default function AccessibilityToggle() {
   return (
     <button
       onClick={toggle}
-      className={`rounded-md p-2 transition-colors hover:bg-[#e4edf8] ${
-        isActive ? "bg-[#e4edf8] text-[#568cd6]" : "text-[#5a6a8a]"
+      className={`rounded-md p-2 transition-colors hover:bg-muted ${
+        isActive ? "bg-muted text-accent" : "text-muted-foreground"
       }`}
       aria-label="Версия для слабовидящих"
     >

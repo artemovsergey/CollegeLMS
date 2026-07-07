@@ -83,6 +83,18 @@ public static class DbConstraints
             """
         );
 
+        // Schedule entries
+        await db.Database.ExecuteSqlRawAsync(
+            """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_schedule_entries_time_range') THEN
+                        ALTER TABLE schedule_entries ADD CONSTRAINT ck_schedule_entries_time_range CHECK (start_time < end_time);
+                    END IF;
+                END $$;
+            """
+        );
+
         // Submissions
         await db.Database.ExecuteSqlRawAsync(
             """

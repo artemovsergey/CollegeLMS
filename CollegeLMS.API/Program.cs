@@ -30,9 +30,6 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/healthz");
 
-if (app.Environment.IsDevelopment())
-{
-    await app.MigrateDatabaseAsync();
-}
+await app.MigrateDatabaseAsync();
 
 await app.RunAsync();

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "ГБПОУ «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»",
   icons: {
-    icon: "/logo.png",
+    icon: "/favicon.ico",
     apple: "/logo.png",
   },
 }
@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className="min-h-screen bg-[#f5f7fa] text-[#152851] antialiased">
+      <body className="min-h-screen bg-background text-foreground antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

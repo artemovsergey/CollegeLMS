@@ -11,20 +11,21 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-white">
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3 shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="http://stvcc.ru/wp-content/uploads/2017/02/logo.jpg"
             alt="ГБПОУ СКС"
-            className="h-9 w-9 rounded object-contain"
+            className="rounded object-contain"
+            style={{ maxHeight: "3.5rem" }}
           />
           <div className="hidden flex-col sm:flex">
-            <span className="text-sm font-semibold leading-tight text-[#152851]">
+            <span className="text-sm font-semibold leading-tight text-primary">
               ГБПОУ СКС
             </span>
-            <span className="text-xs text-[#5a6a8a] hidden md:inline">
+            <span className="text-xs text-muted-foreground hidden md:inline">
               Ставропольский колледж связи
             </span>
           </div>
@@ -35,7 +36,7 @@ export default function Header() {
             <div key={section.slug} className="group relative">
               <Link
                 href={section.href}
-                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-[#5a6a8a] transition-colors hover:text-[#568cd6] rounded-md hover:bg-[#e4edf8]"
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-accent rounded-md hover:bg-muted"
               >
                 {section.title}
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="mt-0.5">
@@ -48,7 +49,7 @@ export default function Header() {
                     <Link
                       key={sub.slug}
                       href={sub.href}
-                      className="block px-4 py-2 text-sm text-[#5a6a8a] hover:text-[#568cd6] hover:bg-[#e4edf8] transition-colors"
+                      className="block px-4 py-2 text-sm text-muted-foreground hover:text-accent hover:bg-muted transition-colors"
                     >
                       {sub.title}
                     </Link>
@@ -57,12 +58,6 @@ export default function Header() {
               </div>
             </div>
           ))}
-          <Link
-            href="/news"
-            className="px-3 py-2 text-sm font-medium text-[#5a6a8a] transition-colors hover:text-[#568cd6] rounded-md hover:bg-[#e4edf8]"
-          >
-            Новости
-          </Link>
         </nav>
 
         <div className="flex items-center gap-1">
@@ -70,13 +65,13 @@ export default function Header() {
           <ThemeToggle />
           <Link
             href="/login"
-            className="ml-2 rounded-md bg-[#568cd6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3b6ea8] hidden sm:inline-block"
+            className="ml-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 hidden sm:inline-block"
           >
             Войти
           </Link>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden ml-2 rounded-md p-2 text-[#5a6a8a] hover:bg-[#e4edf8]"
+            className="lg:hidden ml-2 rounded-md p-2 text-muted-foreground hover:bg-muted"
             aria-label="Меню"
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -85,13 +80,13 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden border-t border-border bg-white px-4 pb-4 pt-2">
+        <div className="lg:hidden border-t border-border bg-background px-4 pb-4 pt-2">
           <nav className="flex flex-col gap-1">
             {siteNavigation.map((section) => (
               <div key={section.slug}>
                 <Link
                   href={section.href}
-                  className="block px-3 py-2 text-sm font-medium text-[#152851] rounded-md hover:bg-[#e4edf8]"
+                  className="block px-3 py-2 text-sm font-medium text-primary rounded-md hover:bg-muted"
                   onClick={() => setMobileOpen(false)}
                 >
                   {section.title}
@@ -100,7 +95,7 @@ export default function Header() {
                   <Link
                     key={sub.slug}
                     href={sub.href}
-                    className="block pl-8 pr-3 py-1.5 text-sm text-[#5a6a8a] rounded-md hover:bg-[#e4edf8]"
+                    className="block pl-8 pr-3 py-1.5 text-sm text-muted-foreground rounded-md hover:bg-muted"
                     onClick={() => setMobileOpen(false)}
                   >
                     {sub.title}
@@ -109,15 +104,8 @@ export default function Header() {
               </div>
             ))}
             <Link
-              href="/news"
-              className="block px-3 py-2 text-sm font-medium text-[#152851] rounded-md hover:bg-[#e4edf8]"
-              onClick={() => setMobileOpen(false)}
-            >
-              Новости
-            </Link>
-            <Link
               href="/login"
-              className="block px-3 py-2 text-sm font-medium text-white bg-[#568cd6] rounded-md text-center mt-2"
+              className="block px-3 py-2 text-sm font-medium text-accent-foreground bg-accent rounded-md text-center mt-2"
               onClick={() => setMobileOpen(false)}
             >
               Войти

@@ -49,13 +49,14 @@ services:
     build:
       context: .
       dockerfile: CollegeLMS.API/Dockerfile
+      target: final
     container_name: collegelms-api
     ports:
       - "${API_PORT:-5026}:8080"
     volumes:
       - ./import:/import
     environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${DB_NAME:-collegelms};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
     depends_on:
@@ -68,10 +69,12 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.fast
       args:
         NEXT_PUBLIC_API_URL: ""
     container_name: collegelms-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
       - api
     restart: unless-stopped

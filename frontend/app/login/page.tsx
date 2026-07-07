@@ -52,55 +52,65 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">CL</span>
-          </div>
-          <CardTitle className="text-xl">Вход в систему</CardTitle>
-          <CardDescription>CollegeLMS</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
+    <div className="flex min-h-screen flex-col md:flex-row">
+      {/* Left: Logo */}
+      <div className="flex w-full items-center justify-center p-8 md:w-1/2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="http://stvcc.ru/wp-content/uploads/2017/02/logo.jpg"
+          alt="ГБПОУ СКС"
+          className="max-w-xs h-auto"
+        />
+      </div>
+
+      {/* Right: Form */}
+      <div className="flex w-full items-center justify-center bg-muted p-8 md:w-1/2">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="pb-2 text-center">
+            <CardTitle className="text-xl">Вход в систему</CardTitle>
+            <CardDescription>CollegeLMS</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              {error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="admin@collegelms.ru"
+                  autoComplete="email"
+                />
               </div>
-            )}
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="admin@collegelms.ru"
-                autoComplete="email"
-              />
-            </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="password">Пароль</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••"
+                  autoComplete="current-password"
+                />
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Пароль</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••"
-                autoComplete="current-password"
-              />
-            </div>
-
-            <Button type="submit" disabled={submitting} className="w-full">
-              {submitting ? "Вход..." : "Войти"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <Button type="submit" disabled={submitting} className="w-full">
+                {submitting ? "Вход..." : "Войти"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

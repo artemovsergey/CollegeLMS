@@ -6,6 +6,11 @@ import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import Carousel from "@/components/Carousel"
+import SpecialtiesSection from "@/components/SpecialtiesSection"
+import AdmissionSection from "@/components/AdmissionSection"
+import PartnersSection from "@/components/PartnersSection"
+import MediaSection from "@/components/MediaSection"
+import FeedbackForm from "@/components/FeedbackForm"
 
 export default function HomePage() {
   const [news, setNews] = useState<NewsResponse[]>([])
@@ -30,8 +35,8 @@ export default function HomePage() {
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="mb-4 text-2xl font-semibold text-[#152851]">О колледже</h2>
-            <p className="text-base leading-relaxed text-[#5a6a8a]">
+            <h2 className="mb-4 text-2xl font-semibold text-primary">О колледже</h2>
+            <p className="text-base leading-relaxed text-muted-foreground">
               Государственное бюджетное профессиональное образовательное учреждение
               «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»
               готовит специалистов в области связи, программирования,
@@ -42,26 +47,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#f5f7fa] py-16">
+      <SpecialtiesSection />
+      <AdmissionSection />
+
+      <section className="bg-muted py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-[#152851]">Последние новости</h2>
+            <h2 className="text-2xl font-semibold text-primary">Последние новости</h2>
             <Button variant="ghost" asChild>
               <Link href="/news">Все новости →</Link>
             </Button>
           </div>
           {error && (
-            <div className="rounded-md bg-[#f8e8e8] p-3 text-sm text-[#c43e3e]">{error}</div>
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
           )}
           {news.length === 0 && !error ? (
-            <p className="text-center text-[#5a6a8a]">Загрузка...</p>
+            <p className="text-center text-muted-foreground">Загрузка...</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {news.map((item) => (
                 <Link
                   key={item.id}
                   href={`/news/${item.id}`}
-                  className="group rounded-lg border border-[#d4d9e3] bg-white p-5 transition-all duration-200 hover:border-[#568cd6]/30 hover:shadow-sm"
+                  className="group rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
                 >
                   {item.imageUrl && (
                     <div className="mb-3 overflow-hidden rounded-md">
@@ -73,17 +81,30 @@ export default function HomePage() {
                       />
                     </div>
                   )}
-                  <p className="mb-1 text-xs text-[#5a6a8a]">
+                  <p className="mb-1 text-xs text-muted-foreground">
                     {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
                     {item.categoryName && ` · ${item.categoryName}`}
                   </p>
-                  <h3 className="text-sm font-semibold text-[#152851] line-clamp-2">
+                  <h3 className="text-sm font-semibold text-primary line-clamp-2">
                     {item.title}
                   </h3>
                 </Link>
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      <PartnersSection />
+      <MediaSection />
+
+      <section className="bg-muted py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Обратная связь</h2>
+          <p className="mb-8 text-center text-sm text-muted-foreground">
+            Есть вопрос или предложение? Напишите нам, и мы обязательно ответим.
+          </p>
+          <FeedbackForm />
         </div>
       </section>
 
