@@ -98,12 +98,8 @@ public class WordPressImportService(AppDbContext db, ILogger<WordPressImportServ
                             continue;
                         }
 
-                        var title = post
-                            .GetProperty("title")
-                            .GetProperty("rendered")
-                            .GetString();
-                        var contentHtml = post
-                            .GetProperty("content")
+                        var title = post.GetProperty("title").GetProperty("rendered").GetString();
+                        var contentHtml = post.GetProperty("content")
                             .GetProperty("rendered")
                             .GetString();
                         var dateStr = post.GetProperty("date").GetString();
@@ -179,10 +175,7 @@ public class WordPressImportService(AppDbContext db, ILogger<WordPressImportServ
                     if (postsImported % 100 == 0)
                     {
                         await db.SaveChangesAsync(ct);
-                        logger.LogInformation(
-                            "Импортировано {Count} новостей...",
-                            postsImported
-                        );
+                        logger.LogInformation("Импортировано {Count} новостей...", postsImported);
                     }
                 }
             }
@@ -190,12 +183,7 @@ public class WordPressImportService(AppDbContext db, ILogger<WordPressImportServ
             // Final save
             await db.SaveChangesAsync(ct);
 
-            var result = new ImportResult(
-                categoriesCreated,
-                postsImported,
-                postsSkipped,
-                errors
-            );
+            var result = new ImportResult(categoriesCreated, postsImported, postsSkipped, errors);
             return Result<ImportResult>.Ok(result);
         }
         catch (Exception ex)
@@ -207,7 +195,8 @@ public class WordPressImportService(AppDbContext db, ILogger<WordPressImportServ
 
     private static string SanitizeHtml(string input)
     {
-        return input.Replace("&#8212;", "—")
+        return input
+            .Replace("&#8212;", "—")
             .Replace("&#8211;", "–")
             .Replace("&#8220;", "\"")
             .Replace("&#8221;", "\"")

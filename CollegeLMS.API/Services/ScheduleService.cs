@@ -26,7 +26,7 @@ public class ScheduleService(AppDbContext db) : IScheduleService
             .ScheduleEntries.AsNoTracking()
             .Include(s => s.Group)
             .Include(s => s.Teacher!)
-            .ThenInclude(t => t.User)
+                .ThenInclude(t => t.User)
             .AsQueryable();
 
         if (groupId.HasValue)
@@ -68,7 +68,7 @@ public class ScheduleService(AppDbContext db) : IScheduleService
             .ScheduleEntries.AsNoTracking()
             .Include(s => s.Group)
             .Include(s => s.Teacher!)
-            .ThenInclude(t => t.User)
+                .ThenInclude(t => t.User)
             .FirstOrDefaultAsync(s => s.Id == id, ct);
 
         if (entry is null)
@@ -117,7 +117,7 @@ public class ScheduleService(AppDbContext db) : IScheduleService
             .ScheduleEntries.AsNoTracking()
             .Include(s => s.Group)
             .Include(s => s.Teacher!)
-            .ThenInclude(t => t.User)
+                .ThenInclude(t => t.User)
             .FirstAsync(s => s.Id == entry.Id, ct);
 
         return Result<ScheduleResponse>.Ok(saved.ToDto());
@@ -176,7 +176,7 @@ public class ScheduleService(AppDbContext db) : IScheduleService
             .ScheduleEntries.AsNoTracking()
             .Include(s => s.Group)
             .Include(s => s.Teacher!)
-            .ThenInclude(t => t.User)
+                .ThenInclude(t => t.User)
             .FirstAsync(s => s.Id == entry.Id, ct);
 
         return Result<ScheduleResponse>.Ok(saved.ToDto());
@@ -205,11 +205,8 @@ public class ScheduleService(AppDbContext db) : IScheduleService
         CancellationToken ct
     )
     {
-        var baseQuery = db.ScheduleEntries.Where(
-            s =>
-                s.DayOfWeek == dayOfWeek
-                && startTime < s.EndTime
-                && endTime > s.StartTime
+        var baseQuery = db.ScheduleEntries.Where(s =>
+            s.DayOfWeek == dayOfWeek && startTime < s.EndTime && endTime > s.StartTime
         );
 
         if (excludeId.HasValue)
@@ -220,15 +217,11 @@ public class ScheduleService(AppDbContext db) : IScheduleService
 
         if (teacherId.HasValue)
         {
-            if (
-                await baseQuery.AnyAsync(s => s.TeacherId == teacherId.Value, ct)
-            )
+            if (await baseQuery.AnyAsync(s => s.TeacherId == teacherId.Value, ct))
                 return "У преподавателя уже есть занятие в это время";
         }
 
-        if (
-            await baseQuery.AnyAsync(s => s.Room == room, ct)
-        )
+        if (await baseQuery.AnyAsync(s => s.Room == room, ct))
             return "Аудитория уже занята в это время";
 
         return null;

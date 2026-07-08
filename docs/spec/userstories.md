@@ -96,20 +96,6 @@
 
 **Dependencies:** AuthService
 
-### UC-5: Посетитель может просмотреть страницы сайта
-
-**Acceptance Criteria:**
-- [ ] GET /api/pages возвращает список публичных страниц (только isPublished = true)
-- [ ] GET /api/pages/{slug} возвращает конкретную страницу по slug
-- [ ] AUTH-3 (404 если slug не существует)
-- [ ] Страницы имеют иерархическую структуру (parentId/children)
-- [ ] PAG-1, PAG-2, PAG-3
-- [ ] UI-1, UI-2, UI-3
-
-**API:**
-- `GET /api/pages?page={n}&pageSize={m}` — список страниц
-- `GET /api/pages/{slug}` — страница по slug
-
 ### UC-6: Администратор может импортировать данные с WordPress
 
 **Acceptance Criteria:**
@@ -1024,11 +1010,11 @@
 
 ---
 
-## Итого: 64 User Story
+## Итого: 63 User Story
 
 | Сервис | Количество | Статус |
 |--------|-----------|--------|
-| SiteService | 6 (UC-1 — UC-6) | ❌ |
+| SiteService | 5 (UC-1 — UC-4, UC-6) | ❌ |
 | AuthService | 5 (UC-7 — UC-11) | ✅ |
 | ScheduleService | 7 (UC-12 — UC-18) | ❌ |
 | LearningService | 13 (UC-19 — UC-31) | ✅ |
@@ -1066,3 +1052,4 @@
 16. **UC-6**: добавлен импорт меню (parent/child структура страниц)
 17. **UC-18**: добавлена ссылка на sample-файлы расписания
 18. **UC-31**: добавлены разрешённые MIME-типы (PDF, video, office docs)
+19. **UC-5 удалён**: страницы сайта — статический контент, не API-ресурс. SiteService: 5 UC вместо 6

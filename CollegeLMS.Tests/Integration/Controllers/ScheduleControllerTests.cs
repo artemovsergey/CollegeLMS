@@ -62,7 +62,9 @@ public class ScheduleControllerTests : BaseIntegrationTest
         var response = await Client.GetAsync("/api/schedule");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await DeserializeWithEnumsAsync<Result<PagedResponse<ScheduleResponse>>>(response);
+        var body = await DeserializeWithEnumsAsync<Result<PagedResponse<ScheduleResponse>>>(
+            response
+        );
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
         Assert.Equal(3, body.Data!.Items.Count);
@@ -86,7 +88,9 @@ public class ScheduleControllerTests : BaseIntegrationTest
         var response = await Client.GetAsync($"/api/schedule?groupId={groupId}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await DeserializeWithEnumsAsync<Result<PagedResponse<ScheduleResponse>>>(response);
+        var body = await DeserializeWithEnumsAsync<Result<PagedResponse<ScheduleResponse>>>(
+            response
+        );
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
         Assert.Single(body.Data!.Items);

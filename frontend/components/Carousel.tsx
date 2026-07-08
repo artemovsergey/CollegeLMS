@@ -55,9 +55,9 @@ export default function Carousel() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-7xl">
         <section>
-          <div className="h-[400px] animate-pulse bg-white/5 md:h-[500px]" />
+          <div className="h-[400px] animate-pulse bg-white/5 md:h-[550px]" />
         </section>
       </div>
     )
@@ -66,7 +66,7 @@ export default function Carousel() {
   if (error || slides.length === 0) return null
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-7xl">
       <section
         className="relative mt-6"
         onMouseEnter={() => setIsHovered(true)}
@@ -78,7 +78,7 @@ export default function Carousel() {
               <Link
                 key={item.id}
                 href={`/news/${item.id}`}
-                className="relative min-w-0 flex-[0_0_100%] h-[400px] md:h-[500px]"
+                className="relative min-w-0 flex-[0_0_100%] h-[400px] md:h-[550px]"
               >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -86,7 +86,7 @@ export default function Carousel() {
                 alt=""
                 className="h-full w-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 via-30% to-transparent to-50%" />
 
               {item.categoryName && (
                 <span className="absolute left-4 top-4 rounded bg-lilac px-3 py-1 text-sm font-medium text-lilac-foreground">

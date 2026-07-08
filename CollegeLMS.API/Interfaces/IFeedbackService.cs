@@ -5,5 +5,8 @@ namespace CollegeLMS.API.Interfaces;
 
 public interface IFeedbackService
 {
-    Task<Result<FeedbackResponse>> CreateAsync(FeedbackRequest request, CancellationToken ct = default);
+    Task<Result<FeedbackResponse>> CreateAsync(
+        FeedbackRequest request,
+        CancellationToken ct = default
+    );
 }

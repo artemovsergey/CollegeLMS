@@ -156,6 +156,10 @@ export interface UpdateNewsRequest {
   publishedAt?: string
 }
 
+export interface UploadResponse {
+  url: string
+}
+
 export interface PagedResponse<T> {
   items: T[]
   totalCount: number

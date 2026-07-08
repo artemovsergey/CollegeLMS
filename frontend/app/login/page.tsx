@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Result, LoginResponse } from "@/types"
 import api from "@/lib/api"
@@ -17,8 +18,8 @@ import {
 } from "@/components/ui/card"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("admin@collegelms.ru")
+  const [password, setPassword] = useState("admin")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const { login } = useAuth()
@@ -55,12 +56,14 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col md:flex-row">
       {/* Left: Logo */}
       <div className="flex w-full items-center justify-center p-8 md:w-1/2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="http://stvcc.ru/wp-content/uploads/2017/02/logo.jpg"
-          alt="ГБПОУ СКС"
-          className="max-w-xs h-auto"
-        />
+        <Link href="/">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="http://stvcc.ru/wp-content/uploads/2017/02/logo.jpg"
+            alt="ГБПОУ СКС"
+            className="max-w-xs h-auto"
+          />
+        </Link>
       </div>
 
       {/* Right: Form */}

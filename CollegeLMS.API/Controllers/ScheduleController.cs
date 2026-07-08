@@ -19,15 +19,10 @@ public class ScheduleController(IScheduleService service) : ControllerBase
     [SwaggerResponse(200, "Расписание получено", typeof(Result<PagedResponse<ScheduleResponse>>))]
     [SwaggerResponse(400, "Ошибка валидации")]
     [SwaggerResponse(500, "Ошибка сервера")]
-    [ProducesResponseType(
-        typeof(Result<PagedResponse<ScheduleResponse>>),
-        StatusCodes.Status200OK
-    )]
+    [ProducesResponseType(typeof(Result<PagedResponse<ScheduleResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<
-        ActionResult<Result<PagedResponse<ScheduleResponse>>>
-    > GetAll(
+    public async Task<ActionResult<Result<PagedResponse<ScheduleResponse>>>> GetAll(
         [FromQuery] Guid? groupId,
         [FromQuery] Guid? teacherId,
         [FromQuery] string? room,
@@ -60,10 +55,7 @@ public class ScheduleController(IScheduleService service) : ControllerBase
     [ProducesResponseType(typeof(Result<ScheduleResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<ScheduleResponse>>> GetById(
-        Guid id,
-        CancellationToken ct
-    )
+    public async Task<ActionResult<Result<ScheduleResponse>>> GetById(Guid id, CancellationToken ct)
     {
         var result = await service.GetByIdAsync(id, ct);
         if (!result.IsSuccess)

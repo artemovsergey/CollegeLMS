@@ -27,12 +27,7 @@ public class ImportController(IWordPressImportService importService, IWebHostEnv
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result<ImportResult>>> ImportWordPress(CancellationToken ct)
     {
-        var jsonPath = Path.Combine(
-            env.ContentRootPath,
-            "..",
-            "import",
-            "wp_data_full.json"
-        );
+        var jsonPath = Path.Combine(env.ContentRootPath, "..", "import", "wp_data_full.json");
         // Fallback: try /import/ inside Docker container
         if (!System.IO.File.Exists(jsonPath))
         {

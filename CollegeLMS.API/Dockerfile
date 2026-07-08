@@ -25,4 +25,6 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 COPY CollegeLMS.API/appsettings.Production.json .
+USER root
+RUN mkdir -p /app/uploads/news
 ENTRYPOINT ["dotnet", "CollegeLMS.dll"]

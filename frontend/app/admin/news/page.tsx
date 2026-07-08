@@ -8,6 +8,7 @@ import type {
   CreateNewsRequest,
   UpdateNewsRequest,
   PagedResponse,
+  UploadResponse,
 } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
@@ -61,6 +62,7 @@ export default function AdminNewsPage() {
   const [formPublished, setFormPublished] = useState(true)
   const [formError, setFormError] = useState<string | null>(null)
   const [formSubmitting, setFormSubmitting] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const fetchNews = useCallback(async () => {
     setLoading(true)
@@ -129,7 +131,7 @@ export default function AdminNewsPage() {
         categoryId: formCategoryId || undefined,
         isPublished: formPublished,
       }
-      const res = await api.post<Result<NewsResponse>>("/api/news/admin", body)
+      const res = await api.post<Result<NewsResponse>>("/api/news", body)
       if (res.data.isSuccess) {
         resetForm()
         await fetchNews()
@@ -156,7 +158,7 @@ export default function AdminNewsPage() {
         categoryId: formCategoryId || undefined,
         isPublished: formPublished,
       }
-      const res = await api.put<Result<NewsResponse>>(`/api/news/admin/${editingId}`, body)
+      const res = await api.put<Result<NewsResponse>>(`/api/news/${editingId}`, body)
       if (res.data.isSuccess) {
         resetForm()
         await fetchNews()
@@ -173,7 +175,7 @@ export default function AdminNewsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Удалить новость?")) return
     try {
-      await api.delete(`/api/news/admin/${id}`)
+      await api.delete(`/api/news/${id}`)
       await fetchNews()
     } catch {
       setError("Ошибка удаления")
@@ -182,7 +184,7 @@ export default function AdminNewsPage() {
 
   const handleTogglePublish = async (item: NewsResponse) => {
     try {
-      await api.put<Result<NewsResponse>>(`/api/news/admin/${item.id}`, {
+      await api.put<Result<NewsResponse>>(`/api/news/${item.id}`, {
         title: item.title,
         content: item.content,
         categoryId: item.categoryId ?? undefined,
@@ -208,8 +210,50 @@ export default function AdminNewsPage() {
         <Textarea id="news-content" required value={formContent} onChange={e => setFormContent(e.target.value)} rows={8} />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="news-image">URL изображения</Label>
-        <Input id="news-image" value={formImageUrl} onChange={e => setFormImageUrl(e.target.value)} placeholder="https://..." />
+        <Label htmlFor="news-image">Изображение (постер)</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="news-image"
+            type="file"
+            accept="image/jpeg,image/png"
+            disabled={uploading}
+            onChange={async e => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              setUploading(true)
+              setFormError(null)
+              try {
+                const formData = new FormData()
+                formData.append("file", file)
+                const res = await api.post<Result<UploadResponse>>("/api/upload", formData, {
+                  headers: { "Content-Type": undefined },
+                })
+                if (res.data.isSuccess && res.data.data) {
+                  setFormImageUrl(res.data.data.url)
+                } else {
+                  setFormError(res.data.errorMessage ?? "Ошибка загрузки")
+                }
+              } catch {
+                setFormError("Ошибка загрузки файла")
+              } finally {
+                setUploading(false)
+              }
+            }}
+          />
+          {uploading && (
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-primary shrink-0" />
+          )}
+        </div>
+        {formImageUrl && (
+          <div className="relative mt-1 overflow-hidden rounded-md">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={formImageUrl}
+              alt="Превью"
+              className="h-32 w-full object-cover"
+            />
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="news-category">Категория</Label>

@@ -20,9 +20,7 @@ public class CreateScheduleRequestValidator : AbstractValidator<CreateScheduleRe
             .MaximumLength(50)
             .WithMessage("Номер аудитории не должен превышать 50 символов");
 
-        RuleFor(x => x.GroupId)
-            .NotEmpty()
-            .WithMessage("Группа обязательна");
+        RuleFor(x => x.GroupId).NotEmpty().WithMessage("Группа обязательна");
 
         RuleFor(x => x.StartTime)
             .LessThan(x => x.EndTime)
@@ -35,8 +33,7 @@ public class CreateScheduleRequestValidator : AbstractValidator<CreateScheduleRe
             .WithMessage("Тип занятия должен быть одним из: Lecture, Practice, Lab, Exam");
     }
 
-    private static bool BeValidLessonType(string value) =>
-        Enum.TryParse<LessonType>(value, out _);
+    private static bool BeValidLessonType(string value) => Enum.TryParse<LessonType>(value, out _);
 }
 
 public class UpdateScheduleRequestValidator : AbstractValidator<UpdateScheduleRequest>
@@ -55,9 +52,7 @@ public class UpdateScheduleRequestValidator : AbstractValidator<UpdateScheduleRe
             .MaximumLength(50)
             .WithMessage("Номер аудитории не должен превышать 50 символов");
 
-        RuleFor(x => x.GroupId)
-            .NotEmpty()
-            .WithMessage("Группа обязательна");
+        RuleFor(x => x.GroupId).NotEmpty().WithMessage("Группа обязательна");
 
         RuleFor(x => x.StartTime)
             .LessThan(x => x.EndTime)
@@ -70,6 +65,5 @@ public class UpdateScheduleRequestValidator : AbstractValidator<UpdateScheduleRe
             .WithMessage("Тип занятия должен быть одним из: Lecture, Practice, Lab, Exam");
     }
 
-    private static bool BeValidLessonType(string value) =>
-        Enum.TryParse<LessonType>(value, out _);
+    private static bool BeValidLessonType(string value) => Enum.TryParse<LessonType>(value, out _);
 }

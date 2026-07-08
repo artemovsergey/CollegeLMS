@@ -9,21 +9,28 @@ namespace CollegeLMS.API.Services;
 
 public class FeedbackService(AppDbContext db) : IFeedbackService
 {
-    public async Task<Result<FeedbackResponse>> CreateAsync(FeedbackRequest request, CancellationToken ct)
+    public async Task<Result<FeedbackResponse>> CreateAsync(
+        FeedbackRequest request,
+        CancellationToken ct
+    )
     {
-        var recent = await db
-            .Set<Entities.Feedback>()
+        var recent = await db.Set<Entities.Feedback>()
             .Where(f => f.Email == request.Email)
             .OrderByDescending(f => f.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
         if (recent is not null && (DateTime.UtcNow - recent.CreatedAt).TotalMinutes < 5)
-            return Result<FeedbackResponse>.Fail("Вы уже отправляли сообщение. Попробуйте позже.", 429);
+            return Result<FeedbackResponse>.Fail(
+                "Вы уже отправляли сообщение. Попробуйте позже.",
+                429
+            );
 
         var feedback = request.ToEntity();
         db.Set<Entities.Feedback>().Add(feedback);
         await db.SaveChangesAsync(ct);
 
-        return Result<FeedbackResponse>.Ok(new FeedbackResponse { Message = "Сообщение отправлено" });
+        return Result<FeedbackResponse>.Ok(
+            new FeedbackResponse { Message = "Сообщение отправлено" }
+        );
     }
 }

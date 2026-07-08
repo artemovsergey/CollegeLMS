@@ -23,10 +23,6 @@
         }
     },
     "command": {
-        "time": {
-            "template": "!`scripts/time-report.ps1`",
-            "description": "Show task timing report from agent-timeline.jsonl"
-        },
         "push": {
             "template": "!`scripts/git-push.ps1`",
             "description": "Commit all changes and push to remote using GITHUB_TOKEN"
