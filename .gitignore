@@ -69,3 +69,9 @@ test-results/
 .DS_Store
 Thumbs.db
 *.log
+
+
+# Playwright
+
+.playwright-cli
+output
