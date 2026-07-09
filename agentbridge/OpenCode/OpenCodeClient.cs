@@ -36,10 +36,9 @@ public class OpenCodeClient
         }
     }
 
-    public async Task<SessionResponse?> CreateSessionAsync(string? title = null, CancellationToken ct = default)
+    public async Task<SessionResponse?> CreateSessionAsync(CancellationToken ct = default)
     {
-        var body = new { title };
-        var resp = await _http.PostAsJsonAsync("/session", body, JsonOpts, ct);
+        var resp = await _http.PostAsJsonAsync("/session", new { }, JsonOpts, ct);
         resp.EnsureSuccessStatusCode();
         return await resp.Content.ReadFromJsonAsync<SessionResponse>(JsonOpts, ct);
     }
@@ -52,7 +51,7 @@ public class OpenCodeClient
     {
         var parts = new[] { new { type = "text", text = prompt } };
         object body = model is not null
-            ? new { parts, model }
+            ? new { parts, model = ParseModel(model) }
             : new { parts };
 
         var resp = await _http.PostAsJsonAsync($"/session/{sessionId}/message", body, JsonOpts, ct);
@@ -68,11 +67,19 @@ public class OpenCodeClient
     {
         var parts = new[] { new { type = "text", text = prompt } };
         object body = model is not null
-            ? new { parts, model }
+            ? new { parts, model = ParseModel(model) }
             : new { parts };
 
         var resp = await _http.PostAsJsonAsync($"/session/{sessionId}/prompt_async", body, JsonOpts, ct);
         resp.EnsureSuccessStatusCode();
+    }
+
+    private static object ParseModel(string model)
+    {
+        var parts = model.Split('/', 2);
+        return parts.Length == 2
+            ? new { modelID = parts[1], providerID = parts[0] }
+            : new { modelID = model, providerID = "opencode" };
     }
 
     public async Task AbortSessionAsync(string sessionId, CancellationToken ct = default)

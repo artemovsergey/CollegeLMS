@@ -5,6 +5,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
+
 namespace AgentBridge.Bot;
 
 public class TelegramBotHost : BackgroundService
@@ -75,6 +76,8 @@ public class TelegramBotHost : BackgroundService
         }
 
         _logger.LogInformation("Message from {UserId} in chat {ChatId}: {Text}", userId, chatId, text);
+
+        _ = bot.SendChatAction(chatId, ChatAction.Typing, cancellationToken: ct);
 
         var response = await _router.HandleCommandAsync(text, chatId, "telegram");
         await _router.SendLongMessageAsync(bot, chatId, response);

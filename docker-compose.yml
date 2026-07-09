@@ -115,6 +115,7 @@ services:
       OpenCode__ServerUrl: ${OPENCODE_SERVER_URL:-http://host.docker.internal:4096}
       OpenCode__Username: ${OPENCODE_USERNAME:-opencode}
       OpenCode__Password: ${OPENCODE_PASSWORD:-}
+      OpenCode__DefaultModel: ${OPENCODE_DEFAULT_MODEL:-opencode/deepseek-v4-flash-free}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using AgentBridge.Models;
 using AgentBridge.OpenCode;
+using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -10,58 +11,95 @@ public class MessageRouter
 {
     private readonly OpenCodeClient _openCode;
     private readonly AgentTaskQueue _queue;
-    private readonly VkMaxBotHost _vkBot;
     private readonly ILogger<MessageRouter> _logger;
     private readonly ConcurrentDictionary<string, AgentTask> _activeTasks = new();
     private readonly ConcurrentDictionary<string, PendingPermission> _pendingPermissions = new();
+    private readonly ConcurrentDictionary<long, string> _chatActiveSession = new();
+    private readonly string _defaultModel;
 
     public MessageRouter(
         OpenCodeClient openCode,
         AgentTaskQueue queue,
-        VkMaxBotHost vkBot,
+        IConfiguration config,
         ILogger<MessageRouter> logger)
     {
         _openCode = openCode;
         _queue = queue;
-        _vkBot = vkBot;
         _logger = logger;
+        _defaultModel = config["OpenCode:_defaultModel"] ?? "opencode/deepseek-v4-flash-free";
     }
 
     public async Task<string> HandleCommandAsync(string command, long chatId, string messenger, string? model = null)
     {
-        return command.ToLower() switch
+        var lower = command.ToLower();
+
+        if (lower == "/cancel")
+            return await CancelAsync(chatId);
+
+        if (lower == "/start")
+            return "Я бот AgentBridge.\n\nОтправьте задачу → агент OpenCode выполнит.\n\n/status — статус\n/cancel — отмена задачи";
+
+        if (lower == "/status")
+            return await GetStatusAsync();
+
+        // Check if there's a task waiting for user reply in this chat
+        if (_chatActiveSession.TryGetValue(chatId, out var existingSessionId) &&
+            _activeTasks.TryGetValue(existingSessionId, out var existingTask) &&
+            existingTask.Status == AgentTaskStatus.WaitingForReply)
         {
-            "/start" => "Я бот AgentBridge.\n\nОтправьте задачу → агент OpenCode выполнит.\n\n/status — статус\n/cancel — отмена задачи",
-            "/status" => await GetStatusAsync(),
-            "/cancel" => await CancelAsync(chatId),
-            _ => await ProcessPromptAsync(command, chatId, messenger, model)
-        };
+            return await SendFollowUpAsync(existingSessionId, existingTask, command, model);
+        }
+
+        return await CreateNewTaskAsync(command, chatId, messenger, model);
     }
 
-    private async Task<string> ProcessPromptAsync(string prompt, long chatId, string messenger, string? model)
+    private async Task<string> CreateNewTaskAsync(string prompt, long chatId, string messenger, string? model)
     {
+        model ??= _defaultModel;
         var task = _queue.Enqueue(prompt, chatId, messenger);
         task.Status = AgentTaskStatus.Running;
 
         try
         {
-            var session = await _openCode.CreateSessionAsync(title: prompt[..Math.Min(50, prompt.Length)]);
+            var session = await _openCode.CreateSessionAsync();
             if (session is null)
                 throw new InvalidOperationException("Failed to create OpenCode session");
 
             task.OpenCodeSessionId = session.Id;
             _activeTasks[session.Id] = task;
+            _chatActiveSession[chatId] = session.Id;
 
             await _openCode.SendPromptFireAndForgetAsync(session.Id, prompt, model);
 
-            return "Задача принята. Агент выполняет...";
+            return "✅ Задача принята. Агент выполняет...";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start prompt");
             task.Status = AgentTaskStatus.Failed;
             task.ErrorMessage = ex.Message;
-            return $"Ошибка: {ex.Message}";
+            CleanupChat(chatId, task.OpenCodeSessionId);
+            return $"❌ Ошибка: {ex.Message}";
+        }
+    }
+
+    private async Task<string> SendFollowUpAsync(string sessionId, AgentTask task, string message, string? model)
+    {
+        model ??= _defaultModel;
+        task.Status = AgentTaskStatus.Running;
+
+        try
+        {
+            await _openCode.SendPromptFireAndForgetAsync(sessionId, message, model);
+            return "✅ Ответ отправлен агенту. Ожидайте...";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send follow-up");
+            task.Status = AgentTaskStatus.Failed;
+            task.ErrorMessage = ex.Message;
+            CleanupChat(task.ChatId, sessionId);
+            return $"❌ Ошибка: {ex.Message}";
         }
     }
 
@@ -71,22 +109,102 @@ public class MessageRouter
 
         var sessionId = props.TryGetProperty("sessionID", out var sid) ? sid.GetString() : null;
         if (sessionId is null) return;
+        if (!_activeTasks.ContainsKey(sessionId)) return;
 
         switch (evt.Type)
         {
+            case "message.part.updated":
+                await HandlePartUpdatedAsync(props, sessionId, telegramBot);
+                break;
+
+            case "session.status":
+                await HandleSessionStatusAsync(props, sessionId, telegramBot);
+                break;
+
             case "permission.request":
                 await HandlePermissionRequestAsync(props, sessionId, telegramBot);
                 break;
+        }
+    }
 
-            case "session.completed":
-            case "message.completed":
-                await HandleCompletionAsync(sessionId, telegramBot);
-                break;
+    private async Task HandlePartUpdatedAsync(
+        System.Text.Json.JsonElement props,
+        string sessionId,
+        ITelegramBotClient telegramBot)
+    {
+        if (!props.TryGetProperty("part", out var part)) return;
+        var partType = part.TryGetProperty("type", out var pt) ? pt.GetString() : null;
+        if (partType != "step-finish") return;
+        var reason = part.TryGetProperty("reason", out var r) ? r.GetString() : null;
+        if (reason != "stop") return;
 
-            case "session.failed":
-            case "message.failed":
-                await HandleFailureAsync(sessionId, props, telegramBot);
-                break;
+        await HandleStepFinishAsync(sessionId, telegramBot);
+    }
+
+    private async Task HandleStepFinishAsync(string sessionId, ITelegramBotClient telegramBot)
+    {
+        if (!_activeTasks.TryGetValue(sessionId, out var task)) return;
+
+        try
+        {
+            var messages = await _openCode.GetMessagesAsync(sessionId);
+            var lastAssistant = messages?
+                .Where(m => m.Info.Role == "assistant")
+                .LastOrDefault();
+
+            var text = lastAssistant is not null
+                ? string.Join("\n", lastAssistant.Parts
+                    .Where(p => p.Type == "text" && p.Text is not null)
+                    .Select(p => p.Text))
+                : null;
+
+            // If there's a follow-up pending user reply, don't send anything yet
+            if (task.Status == AgentTaskStatus.WaitingForReply)
+                return;
+
+            // If assistant asked a question → wait for user reply
+            if (text is not null && ContainsQuestion(text))
+            {
+                task.Status = AgentTaskStatus.WaitingForReply;
+                task.Result = text;
+                await SendLongMessageAsync(telegramBot, task.ChatId, text);
+                return;
+            }
+
+            // Normal completion
+            if (!_activeTasks.TryRemove(sessionId, out _)) return;
+            task.Status = AgentTaskStatus.Completed;
+            CleanupChat(task.ChatId, sessionId);
+
+            await SendLongMessageAsync(telegramBot, task.ChatId, text ?? "✅ Агент завершил задачу.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get completion result");
+            if (!_activeTasks.TryRemove(sessionId, out _)) return;
+            task.Status = AgentTaskStatus.Failed;
+            task.ErrorMessage = ex.Message;
+            CleanupChat(task.ChatId, sessionId);
+            await telegramBot.SendMessage(task.ChatId, "❌ Не удалось получить результат.");
+        }
+    }
+
+    private async Task HandleSessionStatusAsync(
+        System.Text.Json.JsonElement props,
+        string sessionId,
+        ITelegramBotClient telegramBot)
+    {
+        if (!props.TryGetProperty("status", out var status)) return;
+        var type = status.TryGetProperty("type", out var t) ? t.GetString() : null;
+
+        if (type == "retry")
+        {
+            var message = status.TryGetProperty("message", out var m) ? m.GetString() : "Unknown error";
+            if (!_activeTasks.TryRemove(sessionId, out var task)) return;
+            task.Status = AgentTaskStatus.Failed;
+            task.ErrorMessage = message;
+            CleanupChat(task.ChatId, sessionId);
+            await telegramBot.SendMessage(task.ChatId, $"❌ Ошибка агента: {message}");
         }
     }
 
@@ -113,80 +231,14 @@ public class MessageRouter
         task.Status = AgentTaskStatus.WaitingPermission;
         _pendingPermissions[permissionId] = pending;
 
-        var msg = $"Запрос разрешения:\n\nИнструмент: {toolName}\n{description}";
-
-        if (task.Messenger == "vkmax")
-        {
-            await _vkBot.SendKeyboardMessageAsync(task.ChatId, msg, permissionId);
-        }
-        else
-        {
-            var keyboard = new InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton.WithCallbackData("✅ Разрешить", $"allow:{permissionId}"),
-                    InlineKeyboardButton.WithCallbackData("❌ Отказать", $"deny:{permissionId}")
-                ]
-            ]);
-            await telegramBot.SendMessage(task.ChatId, msg, replyMarkup: keyboard);
-        }
-    }
-
-    private async Task HandleCompletionAsync(string sessionId, ITelegramBotClient telegramBot)
-    {
-        if (!_activeTasks.TryRemove(sessionId, out var task)) return;
-
-        task.Status = AgentTaskStatus.Completed;
-
-        try
-        {
-            var messages = await _openCode.GetMessagesAsync(sessionId);
-            var lastAssistant = messages?
-                .Where(m => m.Info.Role == "assistant")
-                .LastOrDefault();
-
-            var text = lastAssistant is not null
-                ? string.Join("\n", lastAssistant.Parts
-                    .Where(p => p.Type == "text" && p.Text is not null)
-                    .Select(p => p.Text))
-                : "Агент завершил задачу.";
-
-            task.Result = text;
-
-            if (task.Messenger == "vkmax")
-            {
-                await _vkBot.SendMessageAsync(task.ChatId, text ?? "Готово.");
-            }
-            else
-            {
-                await SendLongMessageAsync(telegramBot, task.ChatId, text ?? "Готово.");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get completion result");
-            var errorMsg = "Агент завершил задачу. (не удалось получить результат)";
-            if (task.Messenger == "vkmax")
-                await _vkBot.SendMessageAsync(task.ChatId, errorMsg);
-            else
-                await telegramBot.SendMessage(task.ChatId, errorMsg);
-        }
-    }
-
-    private async Task HandleFailureAsync(
-        string sessionId,
-        System.Text.Json.JsonElement props,
-        ITelegramBotClient telegramBot)
-    {
-        if (!_activeTasks.TryRemove(sessionId, out var task)) return;
-
-        task.Status = AgentTaskStatus.Failed;
-        var error = props.TryGetProperty("error", out var err) ? err.GetString() ?? "Unknown" : "Unknown";
-        task.ErrorMessage = error;
-
-        if (task.Messenger == "vkmax")
-            await _vkBot.SendMessageAsync(task.ChatId, $"Ошибка агента: {error}");
-        else
-            await telegramBot.SendMessage(task.ChatId, $"Ошибка агента: {error}");
+        var msg = $"🔧 Запрос разрешения:\n\nИнструмент: {toolName}\n{description}";
+        var keyboard = new InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton.WithCallbackData("✅ Разрешить", $"allow:{permissionId}"),
+                InlineKeyboardButton.WithCallbackData("❌ Отказать", $"deny:{permissionId}")
+            ]
+        ]);
+        await telegramBot.SendMessage(task.ChatId, msg, replyMarkup: keyboard);
     }
 
     public async Task HandlePermissionResponseAsync(string permissionId, bool allow)
@@ -208,13 +260,52 @@ public class MessageRouter
     private async Task<string> GetStatusAsync()
     {
         var healthy = await _openCode.IsHealthyAsync();
-        var activeCount = _queue.ActiveCount;
-        return $"OpenCode: {(healthy ? "онлайн" : "офлайн")}\nАктивных задач: {activeCount}";
+        var activeCount = _activeTasks.Count;
+        var waitingReplies = _activeTasks.Values.Count(t => t.Status == AgentTaskStatus.WaitingForReply);
+        var waitingPerms = _activeTasks.Values.Count(t => t.Status == AgentTaskStatus.WaitingPermission);
+
+        return $"🤖 OpenCode: {(healthy ? "✅ онлайн" : "❌ офлайн")}\n"
+            + $"Активных задач: {activeCount}\n"
+            + $"Ожидают ответа: {waitingReplies}\n"
+            + $"Ожидают разрешения: {waitingPerms}";
     }
 
     private async Task<string> CancelAsync(long chatId)
     {
-        return "Для отмены задачи отправьте /cancel. Агент завершит текущую задачу.";
+        if (!_chatActiveSession.TryGetValue(chatId, out var sessionId) ||
+            !_activeTasks.TryGetValue(sessionId, out var task))
+        {
+            return "Нет активных задач для отмены.";
+        }
+
+        if (task.Status is AgentTaskStatus.Completed or AgentTaskStatus.Failed or AgentTaskStatus.Cancelled)
+            return "Задача уже завершена.";
+
+        try
+        {
+            await _openCode.AbortSessionAsync(sessionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to abort session {SessionId}", sessionId);
+        }
+
+        task.Status = AgentTaskStatus.Cancelled;
+        if (_activeTasks.TryRemove(sessionId, out _))
+            CleanupChat(chatId, sessionId);
+
+        return "✅ Задача отменена.";
+    }
+
+    private static bool ContainsQuestion(string text)
+    {
+        return text.Contains('?');
+    }
+
+    private void CleanupChat(long chatId, string? sessionId)
+    {
+        if (sessionId is not null && _chatActiveSession.TryGetValue(chatId, out var active) && active == sessionId)
+            _chatActiveSession.TryRemove(chatId, out _);
     }
 
     public async Task SendLongMessageAsync(ITelegramBotClient bot, long chatId, string text)

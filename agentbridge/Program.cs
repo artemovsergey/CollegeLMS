@@ -40,9 +40,6 @@ builder.Services.AddSingleton<ITelegramBotClient>(
     new TelegramBotClient(telegramToken));
 builder.Services.AddHostedService<TelegramBotHost>();
 
-// VK Max bot (singleton — controller + router depend on it)
-builder.Services.AddSingleton<VkMaxBotHost>();
-
 var app = builder.Build();
 
 app.MapControllers();

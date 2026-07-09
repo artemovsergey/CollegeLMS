@@ -5,6 +5,7 @@ public enum AgentTaskStatus
     Pending,
     Running,
     WaitingPermission,
+    WaitingForReply,
     Completed,
     Failed,
     Cancelled

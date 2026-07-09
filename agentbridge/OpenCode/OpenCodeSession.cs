@@ -16,7 +16,7 @@ public class OpenCodeSession
         string? model = null,
         CancellationToken ct = default)
     {
-        var session = await _client.CreateSessionAsync(ct: ct);
+        var session = await _client.CreateSessionAsync(ct);
         if (session is null)
             throw new InvalidOperationException("Failed to create OpenCode session");
 

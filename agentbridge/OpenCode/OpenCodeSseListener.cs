@@ -73,7 +73,12 @@ public class OpenCodeSseListener : IHostedService, IDisposable
                 while (!ct.IsCancellationRequested)
                 {
                     var line = await reader.ReadLineAsync(ct);
-                    if (line is null) break;
+                    if (line is null)
+                    {
+                        _logger.LogInformation("SSE stream ended, reconnecting...");
+                        break;
+                    }
+
                     if (string.IsNullOrEmpty(line)) continue;
 
                     if (line.StartsWith("data: "))
@@ -82,9 +87,11 @@ public class OpenCodeSseListener : IHostedService, IDisposable
                         try
                         {
                             var evt = JsonSerializer.Deserialize<SseEvent>(json);
-                            if (evt is not null && OnEvent is not null)
+                            if (evt is not null)
                             {
-                                await OnEvent.Invoke(evt);
+                                _logger.LogDebug("SSE event received: {Type}", evt.Type);
+                                if (OnEvent is not null)
+                                    await OnEvent.Invoke(evt);
                             }
                         }
                         catch (JsonException ex)
