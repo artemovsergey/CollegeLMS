@@ -127,6 +127,13 @@ public class OpenCodeClient
         if (!resp.IsSuccessStatusCode) return null;
         return await resp.Content.ReadFromJsonAsync<List<MessageResponse>>(JsonOpts, ct);
     }
+
+    public async Task<ProviderResponse?> GetProvidersAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync("/provider", ct);
+        if (!resp.IsSuccessStatusCode) return null;
+        return await resp.Content.ReadFromJsonAsync<ProviderResponse>(JsonOpts, ct);
+    }
 }
 
 // --- DTOs ---
@@ -154,3 +161,16 @@ public record MessagePart(
 public record SessionStatusResponse(
     [property: JsonPropertyName("sessionID")] string SessionId,
     [property: JsonPropertyName("status")] string Status);
+
+public record ProviderResponse(
+    [property: JsonPropertyName("all")] List<ProviderInfo> Providers,
+    [property: JsonPropertyName("connected")] List<string> Connected);
+
+public record ProviderInfo(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("models")] Dictionary<string, ModelInfo> Models);
+
+public record ModelInfo(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("name")] string? Name);

@@ -15,6 +15,7 @@ public class MessageRouter
     private readonly ConcurrentDictionary<string, AgentTask> _activeTasks = new();
     private readonly ConcurrentDictionary<string, PendingPermission> _pendingPermissions = new();
     private readonly ConcurrentDictionary<long, string> _chatActiveSession = new();
+    private readonly ConcurrentDictionary<long, string> _chatModel = new();
     private readonly string _defaultModel;
 
     public MessageRouter(
@@ -26,7 +27,7 @@ public class MessageRouter
         _openCode = openCode;
         _queue = queue;
         _logger = logger;
-        _defaultModel = config["OpenCode:_defaultModel"] ?? "opencode/deepseek-v4-flash-free";
+        _defaultModel = config["OpenCode:DefaultModel"] ?? "opencode/deepseek-v4-flash-free";
     }
 
     public async Task<string> HandleCommandAsync(string command, long chatId, string messenger, string? model = null)
@@ -37,10 +38,25 @@ public class MessageRouter
             return await CancelAsync(chatId);
 
         if (lower == "/start")
-            return "Я бот AgentBridge.\n\nОтправьте задачу → агент OpenCode выполнит.\n\n/status — статус\n/cancel — отмена задачи";
+            return "Я бот AgentBridge.\n\nОтправьте задачу → агент OpenCode выполнит.\n\n/status — статус\n/model — сменить модель\n/cancel — отмена задачи";
 
         if (lower == "/status")
             return await GetStatusAsync();
+
+        if (lower == "/models")
+            return await ListModelsAsync();
+
+        if (lower == "/model" || lower.StartsWith("/model "))
+        {
+            var parts = command.Split(' ', 2, StringSplitOptions.TrimEntries);
+            if (parts.Length < 2 || string.IsNullOrEmpty(parts[1]))
+            {
+                var currentModel = _chatModel.TryGetValue(chatId, out var cm) ? cm : _defaultModel;
+                return $"🤖 Текущая модель: `{currentModel}`\n\nСписок: `/models`\n\nСменить: `/model github-models/openai/gpt-4o-mini`";
+            }
+            _chatModel[chatId] = parts[1];
+            return $"✅ Модель сменена на: `{parts[1]}`";
+        }
 
         // Check if there's a task waiting for user reply in this chat
         if (_chatActiveSession.TryGetValue(chatId, out var existingSessionId) &&
@@ -55,7 +71,7 @@ public class MessageRouter
 
     private async Task<string> CreateNewTaskAsync(string prompt, long chatId, string messenger, string? model)
     {
-        model ??= _defaultModel;
+        model ??= _chatModel.TryGetValue(chatId, out var cm) ? cm : _defaultModel;
         var task = _queue.Enqueue(prompt, chatId, messenger);
         task.Status = AgentTaskStatus.Running;
 
@@ -85,7 +101,7 @@ public class MessageRouter
 
     private async Task<string> SendFollowUpAsync(string sessionId, AgentTask task, string message, string? model)
     {
-        model ??= _defaultModel;
+        model ??= _chatModel.TryGetValue(task.ChatId, out var cm) ? cm : _defaultModel;
         task.Status = AgentTaskStatus.Running;
 
         try
@@ -295,6 +311,41 @@ public class MessageRouter
             CleanupChat(chatId, sessionId);
 
         return "✅ Задача отменена.";
+    }
+
+    private async Task<string> ListModelsAsync()
+    {
+        try
+        {
+            var providers = await _openCode.GetProvidersAsync();
+            if (providers?.Providers is null)
+                return "❌ Не удалось получить список моделей.";
+
+            var lines = new List<string> { "🤖 Доступные модели:\n" };
+            foreach (var provider in providers.Providers)
+            {
+                var modelIds = provider.Models?.Keys.ToList();
+                if (modelIds is null || modelIds.Count == 0) continue;
+
+                var connected = providers.Connected?.Contains(provider.Id) == true ? "✅" : "⛔";
+                lines.Add($"{connected} {provider.Name} ({provider.Id})");
+
+                foreach (var modelId in modelIds.Take(5))
+                    lines.Add($"  • {provider.Id}/{modelId}");
+
+                if (modelIds.Count > 5)
+                    lines.Add($"  ... и ещё {modelIds.Count - 5}");
+
+                lines.Add("");
+            }
+
+            return string.Join("\n", lines);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to list models");
+            return $"❌ Ошибка: {ex.Message}";
+        }
     }
 
     private static bool ContainsQuestion(string text)
