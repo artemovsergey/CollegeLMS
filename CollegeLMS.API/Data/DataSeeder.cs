@@ -16,10 +16,7 @@ public static class DataSeeder
 
     private static async Task SeedUsersAsync(AppDbContext db)
     {
-        if (await db.Users.AnyAsync())
-            return;
-
-        var users = new List<User>
+        var seedUsers = new List<User>
         {
             new()
             {
@@ -51,9 +48,26 @@ public static class DataSeeder
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Email = "dispatcher@collegelms.ru",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("dispatcher"),
+                FullName = "Диспетчер",
+                Role = UserRole.Dispatcher,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
         };
 
-        db.Users.AddRange(users);
+        foreach (var user in seedUsers)
+        {
+            if (!await db.Users.AnyAsync(u => u.Email == user.Email))
+            {
+                db.Users.Add(user);
+            }
+        }
+
         await db.SaveChangesAsync();
     }
 

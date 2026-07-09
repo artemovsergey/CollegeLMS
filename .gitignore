@@ -32,7 +32,7 @@ appsettings.*.local.json
 .opencode/*
 !.opencode/skills/
 .impeccable/
-.superpowers/
+.superpowers/   
 
 # Generated lock files
 skills-lock.json

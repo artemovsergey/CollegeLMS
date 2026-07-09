@@ -16,12 +16,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { UserRoundCog, UserRoundPen, UserRound, UserCog } from "lucide-react"
+
+const QUICK_LOGINS = [
+  { role: "Admin", email: "admin@collegelms.ru", password: "admin", label: "Администратор", icon: UserRoundCog },
+  { role: "Teacher", email: "teacher@collegelms.ru", password: "teacher", label: "Преподаватель", icon: UserRoundPen },
+  { role: "Student", email: "student@collegelms.ru", password: "student", label: "Студент", icon: UserRound },
+  { role: "Dispatcher", email: "dispatcher@collegelms.ru", password: "dispatcher", label: "Диспетчер", icon: UserCog },
+]
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@collegelms.ru")
   const [password, setPassword] = useState("admin")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [quickRole, setQuickRole] = useState("")
   const { login } = useAuth()
   const router = useRouter()
 
@@ -39,6 +55,8 @@ export default function LoginPage() {
           router.push("/admin")
         } else if (body.data.user.role === "Teacher") {
           router.push("/teacher/dashboard")
+        } else if (body.data.user.role === "Dispatcher") {
+          router.push("/schedule")
         } else {
           router.push("/my/dashboard")
         }
@@ -80,6 +98,38 @@ export default function LoginPage() {
                   {error}
                 </div>
               )}
+
+              <div className="flex flex-col gap-2">
+                <Label>Быстрый вход</Label>
+                <Select
+                  value={quickRole}
+                  onValueChange={(val) => {
+                    const account = QUICK_LOGINS.find(a => a.role === val)
+                    if (account) {
+                      setEmail(account.email)
+                      setPassword(account.password)
+                    }
+                    setQuickRole("")
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите роль..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {QUICK_LOGINS.map(a => {
+                      const Icon = a.icon
+                      return (
+                        <SelectItem key={a.role} value={a.role}>
+                          <span className="flex items-center gap-2">
+                            <Icon className="size-4 text-muted-foreground" />
+                            {a.label}
+                          </span>
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="email">Email</Label>

@@ -9,7 +9,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class ScheduleService(AppDbContext db) : IScheduleService
+public class ScheduleService(
+    AppDbContext db,
+    ScheduleExportService exportService,
+    ScheduleImportService importService
+) : IScheduleService
 {
     public async Task<Result<PagedResponse<ScheduleResponse>>> GetAllAsync(
         Guid? groupId,
@@ -82,6 +86,12 @@ public class ScheduleService(AppDbContext db) : IScheduleService
         CancellationToken ct
     )
     {
+        if (request.StartTime >= request.EndTime)
+            return Result<ScheduleResponse>.Fail(
+                "Время начала должно быть раньше времени окончания",
+                400
+            );
+
         var groupExists = await db.Groups.AnyAsync(g => g.Id == request.GroupId, ct);
         if (!groupExists)
             return Result<ScheduleResponse>.Fail("Группа не найдена", 404);
@@ -129,6 +139,12 @@ public class ScheduleService(AppDbContext db) : IScheduleService
         CancellationToken ct
     )
     {
+        if (request.StartTime >= request.EndTime)
+            return Result<ScheduleResponse>.Fail(
+                "Время начала должно быть раньше времени окончания",
+                400
+            );
+
         var entry = await db.ScheduleEntries.FindAsync([id], ct);
         if (entry is null)
             return Result<ScheduleResponse>.Fail("Запись расписания не найдена", 404);
@@ -192,6 +208,40 @@ public class ScheduleService(AppDbContext db) : IScheduleService
         await db.SaveChangesAsync(ct);
 
         return Result.Ok();
+    }
+
+    public async Task<Result<ExportResult>> ExportScheduleAsync(
+        Guid? groupId,
+        Guid? teacherId,
+        string? room,
+        string? period,
+        ExportFormat format,
+        CancellationToken ct
+    )
+    {
+        return await exportService.ExportAsync(groupId, teacherId, room, period, format, ct);
+    }
+
+    public async Task<Result<ScheduleImportResult>> ImportScheduleAsync(
+        IFormFile file,
+        CancellationToken ct
+    )
+    {
+        if (file == null || file.Length == 0)
+            return Result<ScheduleImportResult>.Fail("Файл не выбран или пуст", 400);
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (ext != ".xlsx")
+            return Result<ScheduleImportResult>.Fail("Поддерживается только формат XLSX", 400);
+
+        if (file.Length > 10 * 1024 * 1024)
+            return Result<ScheduleImportResult>.Fail("Файл слишком большой. Максимум 10MB.", 400);
+
+        using var stream = new MemoryStream();
+        await file.CopyToAsync(stream, ct);
+        stream.Seek(0, SeekOrigin.Begin);
+
+        return await importService.ImportAsync(stream, ct);
     }
 
     private async Task<string?> CheckOverlapAsync(

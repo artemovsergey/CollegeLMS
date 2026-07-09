@@ -2,7 +2,7 @@
 
 import type { GroupResponse, TeacherResponse } from "@/types"
 import { DAYS } from "@/types/schedule"
-import { Filter, SearchX, Calendar } from "lucide-react"
+import { Filter, SearchX, Calendar, FileDown, FileSpreadsheet, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -23,6 +23,10 @@ interface ScheduleFilterBarProps {
   onDayChange: (v: string) => void
   onToday: () => void
   onClear: () => void
+  onExport: (format: "pdf" | "xlsx") => void
+  onImport: () => void
+  canManage: boolean
+  onAdd: () => void
 }
 
 export default function ScheduleFilterBar({
@@ -36,6 +40,10 @@ export default function ScheduleFilterBar({
   onDayChange,
   onToday,
   onClear,
+  onExport,
+  onImport,
+  canManage,
+  onAdd,
 }: ScheduleFilterBarProps) {
   const hasFilters = selectedGroupId || selectedTeacherId || selectedDayOfWeek
 
@@ -95,6 +103,28 @@ export default function ScheduleFilterBar({
             <SearchX className="size-3.5" />
             Сбросить
           </Button>
+        )}
+      </div>
+
+      <div className="ml-auto flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => onExport("pdf")}>
+          <FileDown className="size-3.5 mr-1" />
+          PDF
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => onExport("xlsx")}>
+          <FileSpreadsheet className="size-3.5 mr-1" />
+          Excel
+        </Button>
+        {canManage && (
+          <>
+            <Button variant="outline" size="sm" onClick={onImport}>
+              <Upload className="size-3.5 mr-1" />
+              Импорт
+            </Button>
+            <Button size="sm" onClick={onAdd}>
+              Добавить
+            </Button>
+          </>
         )}
       </div>
     </div>

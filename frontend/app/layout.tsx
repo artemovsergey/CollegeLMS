@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth"
 import { ThemeProvider } from "next-themes"
+import { Toaster } from "@/components/ui/sonner"
 import "@fontsource/golos-text"
 import "@fontsource/golos-text/500.css"
 import "@fontsource/golos-text/600.css"
@@ -34,7 +35,10 @@ export default function RootLayout({
           enableSystem={false}
           storageKey="theme"
         >
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

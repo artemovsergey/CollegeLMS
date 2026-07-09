@@ -10,11 +10,12 @@ namespace CollegeLMS.API.Controllers;
 
 [ApiController]
 [Route("api/teachers")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 [Produces("application/json")]
 public class TeacherController(ITeacherService service) : ControllerBase
 {
     [HttpGet]
+    [Authorize(Roles = "Admin,Teacher,Student,Dispatcher")]
     [SwaggerOperation(Summary = "Получить список преподавателей")]
     [SwaggerResponse(200, "Список преподавателей получен", typeof(Result<List<TeacherResponse>>))]
     [SwaggerResponse(401, "Не авторизован")]
@@ -31,6 +32,7 @@ public class TeacherController(ITeacherService service) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Admin,Teacher,Student,Dispatcher")]
     [SwaggerOperation(Summary = "Получить преподавателя по ID")]
     [SwaggerResponse(200, "Преподаватель найден", typeof(Result<TeacherResponse>))]
     [SwaggerResponse(401, "Не авторизован")]

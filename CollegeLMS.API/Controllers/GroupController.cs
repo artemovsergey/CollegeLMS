@@ -15,7 +15,7 @@ namespace CollegeLMS.API.Controllers;
 public class GroupController(IGroupService service) : ControllerBase
 {
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Teacher,Student,Dispatcher")]
     [SwaggerOperation(Summary = "Получить список групп")]
     [SwaggerResponse(200, "Список групп получен", typeof(Result<List<GroupResponse>>))]
     [SwaggerResponse(401, "Не авторизован")]

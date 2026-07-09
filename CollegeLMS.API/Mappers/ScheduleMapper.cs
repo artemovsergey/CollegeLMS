@@ -16,7 +16,7 @@ public static class ScheduleMapper
             TeacherName = entry.Teacher?.User?.FullName,
             Subject = entry.Subject,
             Room = entry.Room,
-            DayOfWeek = entry.DayOfWeek,
+            DayOfWeek = (int)entry.DayOfWeek,
             StartTime = entry.StartTime,
             EndTime = entry.EndTime,
             LessonType = entry.LessonType.ToString(),

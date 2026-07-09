@@ -16,7 +16,9 @@ public class ScheduleServiceTests : IDisposable
     public ScheduleServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        _sut = new ScheduleService(_db);
+        var exportService = new ScheduleExportService(_db);
+        var importService = new ScheduleImportService(_db);
+        _sut = new ScheduleService(_db, exportService, importService);
     }
 
     public void Dispose() => _db.Dispose();
@@ -296,6 +298,45 @@ public class ScheduleServiceTests : IDisposable
     public async Task DeleteAsync_ReturnsNotFound_WhenMissing()
     {
         var result = await _sut.DeleteAsync(Guid.NewGuid(), default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task ExportScheduleAsync_ReturnsPdfBytes_WhenEntriesExist()
+    {
+        var entries = ScheduleEntryFixture.CreateFaker().Generate(2);
+        _db.ScheduleEntries.AddRange(entries);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ExportScheduleAsync(null, null, null, null, ExportFormat.Pdf, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data!.FileContent.Should().NotBeEmpty();
+        result.Data.ContentType.Should().Be("application/pdf");
+    }
+
+    [Fact]
+    public async Task ExportScheduleAsync_ReturnsXlsxBytes_WhenEntriesExist()
+    {
+        var entries = ScheduleEntryFixture.CreateFaker().Generate(2);
+        _db.ScheduleEntries.AddRange(entries);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ExportScheduleAsync(null, null, null, null, ExportFormat.Xlsx, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data!.FileContent.Should().NotBeEmpty();
+        result.Data.ContentType.Should().Be("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+
+    [Fact]
+    public async Task ExportScheduleAsync_ReturnsFail_WhenNoData()
+    {
+        var result = await _sut.ExportScheduleAsync(null, null, null, null, ExportFormat.Pdf, default);
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);

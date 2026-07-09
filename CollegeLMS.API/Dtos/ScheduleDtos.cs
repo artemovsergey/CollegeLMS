@@ -9,7 +9,7 @@ public class ScheduleResponse
     public string? TeacherName { get; set; }
     public string Subject { get; set; } = string.Empty;
     public string Room { get; set; } = string.Empty;
-    public DayOfWeek DayOfWeek { get; set; }
+    public int DayOfWeek { get; set; }
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
     public string LessonType { get; set; } = string.Empty;

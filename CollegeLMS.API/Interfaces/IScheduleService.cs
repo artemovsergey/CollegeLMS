@@ -30,4 +30,18 @@ public interface IScheduleService
     );
 
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
+
+    Task<Result<ExportResult>> ExportScheduleAsync(
+        Guid? groupId,
+        Guid? teacherId,
+        string? room,
+        string? period,
+        ExportFormat format,
+        CancellationToken ct = default
+    );
+
+    Task<Result<ScheduleImportResult>> ImportScheduleAsync(
+        IFormFile file,
+        CancellationToken ct = default
+    );
 }

@@ -120,6 +120,54 @@ public class ScheduleController(IScheduleService service) : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,Teacher,Student,Dispatcher")]
+    [SwaggerOperation(Summary = "Экспорт расписания в PDF или Excel")]
+    [SwaggerResponse(200, "Файл готов к скачиванию")]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(404, "Нет данных")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    public async Task<IActionResult> Export(
+        [FromQuery] Guid? groupId,
+        [FromQuery] Guid? teacherId,
+        [FromQuery] string? room,
+        [FromQuery] string? period,
+        [FromQuery] string format = "pdf",
+        CancellationToken ct = default
+    )
+    {
+        var fmt = format.ToLower() == "xlsx" ? ExportFormat.Xlsx : ExportFormat.Pdf;
+        var result = await service.ExportScheduleAsync(groupId, teacherId, room, period, fmt, ct);
+
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+
+        return File(
+            result.Data!.FileContent,
+            result.Data.ContentType,
+            result.Data.FileName
+        );
+    }
+
+    [HttpPost("import")]
+    [Authorize(Roles = "Dispatcher,Admin")]
+    [SwaggerOperation(Summary = "Импорт расписания из XLSX-файла")]
+    [SwaggerResponse(200, "Импорт выполнен", typeof(Result<ScheduleImportResult>))]
+    [SwaggerResponse(400, "Ошибка валидации файла")]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    public async Task<ActionResult<Result<ScheduleImportResult>>> Import(
+        IFormFile file,
+        CancellationToken ct
+    )
+    {
+        var result = await service.ImportScheduleAsync(file, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Dispatcher,Admin")]
     [SwaggerOperation(Summary = "Удалить запись расписания")]

@@ -6,12 +6,29 @@ import type { Result, GroupResponse, TeacherResponse } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
-import { fetchSchedule } from "@/api/schedule"
+import {
+  fetchSchedule,
+  exportSchedule,
+  deleteSchedule,
+} from "@/api/schedule"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import ScheduleFilterBar from "@/components/ScheduleFilterBar"
 import ScheduleTable from "@/components/ScheduleTable"
-import { CalendarDays, AlertCircle } from "lucide-react"
+import ScheduleEntryDialog from "@/components/ScheduleEntryDialog"
+import ScheduleImportDialog from "@/components/ScheduleImportDialog"
+import { CalendarDays, AlertCircle, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 const roleVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   Admin: "default",
@@ -27,6 +44,8 @@ const roleLabels: Record<string, string> = {
   Dispatcher: "Диспетчер",
 }
 
+const CAN_MANAGE_ROLES = ["Admin", "Dispatcher"]
+
 export default function SchedulePage() {
   const { user, token, logout, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -41,6 +60,13 @@ export default function SchedulePage() {
   const [selectedGroupId, setSelectedGroupId] = useState("")
   const [selectedTeacherId, setSelectedTeacherId] = useState("")
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState("")
+
+  const [entryDialogOpen, setEntryDialogOpen] = useState(false)
+  const [editingEntry, setEditingEntry] = useState<ScheduleResponse | null>(null)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  const canManage = user?.role ? CAN_MANAGE_ROLES.includes(user.role) : false
 
   const getFilters = useCallback(() => {
     const filters: Record<string, string | undefined> = {}
@@ -86,9 +112,7 @@ export default function SchedulePage() {
 
   const loadTeachers = useCallback(async () => {
     try {
-      const { data } = await api.get<Result<TeacherResponse[]>>(
-        "/api/teachers",
-      )
+      const { data } = await api.get<Result<TeacherResponse[]>>("/api/teachers")
       if (data.isSuccess && data.data) setTeachers(data.data)
     } catch {
       /* ignore */
@@ -125,10 +149,45 @@ export default function SchedulePage() {
     setSelectedDayOfWeek("")
   }
 
+  const handleExport = async (format: "pdf" | "xlsx") => {
+    try {
+      await exportSchedule(getFilters(), format)
+      toast.success("Экспорт выполнен")
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Ошибка экспорта"
+      toast.error(msg)
+    }
+  }
+
+  const handleAdd = () => {
+    setEditingEntry(null)
+    setEntryDialogOpen(true)
+  }
+
+  const handleEdit = (entry: ScheduleResponse) => {
+    setEditingEntry(entry)
+    setEntryDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!deleteConfirmId) return
+    try {
+      const result = await deleteSchedule(deleteConfirmId)
+      if (result.isSuccess) {
+        toast.success("Запись удалена")
+        loadSchedule()
+      } else {
+        toast.error(result.errorMessage ?? "Ошибка удаления")
+      }
+    } catch {
+      toast.error("Ошибка удаления")
+    } finally {
+      setDeleteConfirmId(null)
+    }
+  }
+
   if (authLoading) return <Loading />
   if (!token) return null
-
-  const hasFilters = selectedGroupId || selectedTeacherId || selectedDayOfWeek
 
   return (
     <div className="flex flex-col gap-6 p-6 mx-auto min-h-screen max-w-7xl">
@@ -172,17 +231,15 @@ export default function SchedulePage() {
         selectedGroupId={selectedGroupId || "all"}
         selectedTeacherId={selectedTeacherId || "all"}
         selectedDayOfWeek={selectedDayOfWeek || "all"}
-        onGroupChange={v =>
-          setSelectedGroupId(v === "all" ? "" : v)
-        }
-        onTeacherChange={v =>
-          setSelectedTeacherId(v === "all" ? "" : v)
-        }
-        onDayChange={v =>
-          setSelectedDayOfWeek(v === "all" ? "" : v)
-        }
+        onGroupChange={(v) => setSelectedGroupId(v === "all" ? "" : v)}
+        onTeacherChange={(v) => setSelectedTeacherId(v === "all" ? "" : v)}
+        onDayChange={(v) => setSelectedDayOfWeek(v === "all" ? "" : v)}
         onToday={handleToday}
         onClear={handleClear}
+        onExport={handleExport}
+        onImport={() => setImportDialogOpen(true)}
+        canManage={canManage}
+        onAdd={handleAdd}
       />
 
       {error && (
@@ -195,8 +252,44 @@ export default function SchedulePage() {
       {loading ? (
         <Loading />
       ) : (
-        <ScheduleTable entries={entries} />
+        <ScheduleTable
+          entries={entries}
+          onEntryClick={canManage ? handleEdit : undefined}
+          onDeleteClick={canManage ? (id) => setDeleteConfirmId(id) : undefined}
+        />
       )}
+
+      <ScheduleEntryDialog
+        open={entryDialogOpen}
+        onOpenChange={setEntryDialogOpen}
+        onSaved={loadSchedule}
+        entry={editingEntry}
+        groups={groups}
+        teachers={teachers}
+      />
+
+      <ScheduleImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImported={loadSchedule}
+      />
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(o) => !o && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить запись?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Запись будет удалена из расписания.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

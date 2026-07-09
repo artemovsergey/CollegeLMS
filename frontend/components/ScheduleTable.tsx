@@ -6,10 +6,13 @@ import {
   LESSON_TYPE_LABELS,
   LESSON_TYPE_STYLES,
 } from "@/types/schedule"
-import { Clock, MapPin, GraduationCap, Users, Calendar } from "lucide-react"
+import { Clock, MapPin, GraduationCap, Users, Calendar, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface ScheduleTableProps {
   entries: ScheduleResponse[]
+  onEntryClick?: (entry: ScheduleResponse) => void
+  onDeleteClick?: (id: string) => void
 }
 
 function formatTime(time: string) {
@@ -20,7 +23,7 @@ function formatTimeSlot(start: string, end: string) {
   return `${formatTime(start)} – ${formatTime(end)}`
 }
 
-export default function ScheduleTable({ entries }: ScheduleTableProps) {
+export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: ScheduleTableProps) {
   const weekDays = DAYS.filter(d => d.value >= 1 && d.value <= 5)
 
   const timeSlots = [
@@ -88,7 +91,8 @@ export default function ScheduleTable({ entries }: ScheduleTableProps) {
                     {dayEntries.map(entry => (
                       <div
                         key={entry.id}
-                        className={`mb-1 rounded-md border-l-[3px] p-2 text-xs shadow-sm last:mb-0 ${LESSON_TYPE_STYLES[entry.lessonType] ?? "border-l-gray-400 bg-gray-50 dark:bg-gray-900/20"}`}
+                        className={`group relative mb-1 rounded-md border-l-[3px] p-2 text-xs shadow-sm last:mb-0 ${LESSON_TYPE_STYLES[entry.lessonType] ?? "border-l-gray-400 bg-gray-50 dark:bg-gray-900/20"} ${onEntryClick ? "cursor-pointer transition-colors hover:bg-accent/50" : ""}`}
+                        onClick={() => onEntryClick?.(entry)}
                       >
                         <p className="mb-1 font-semibold text-foreground">
                           {entry.subject}
@@ -112,6 +116,19 @@ export default function ScheduleTable({ entries }: ScheduleTableProps) {
                         <span className="mt-1 inline-block rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                           {LESSON_TYPE_LABELS[entry.lessonType]}
                         </span>
+                        {onDeleteClick && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1 size-5 opacity-0 transition-opacity group-hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onDeleteClick(entry.id)
+                            }}
+                          >
+                            <Trash2 className="size-3 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -139,7 +156,8 @@ export default function ScheduleTable({ entries }: ScheduleTableProps) {
                 {dayEntries.map(entry => (
                   <div
                     key={entry.id}
-                    className={`border-l-[3px] p-3 ${LESSON_TYPE_STYLES[entry.lessonType] ?? "border-l-gray-400"}`}
+                    className={`group relative border-l-[3px] p-3 ${LESSON_TYPE_STYLES[entry.lessonType] ?? "border-l-gray-400"} ${onEntryClick ? "cursor-pointer transition-colors hover:bg-accent/50" : ""}`}
+                    onClick={() => onEntryClick?.(entry)}
                   >
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Clock className="size-3" />
@@ -167,6 +185,19 @@ export default function ScheduleTable({ entries }: ScheduleTableProps) {
                         {entry.groupName}
                       </span>
                     </div>
+                    {onDeleteClick && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-2 size-6 opacity-0 transition-opacity group-hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteClick(entry.id)
+                        }}
+                      >
+                        <Trash2 className="size-3.5 text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
