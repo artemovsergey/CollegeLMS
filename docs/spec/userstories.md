@@ -1185,7 +1185,7 @@
 | P0 (MVP) | SiteService (News + Pages + Feedback) | UC-1..6 | ✅ Реализовано |
 | P0 (MVP) | ScheduleService | UC-12..18 | ✅ Реализовано |
 | P0 (MVP) | LearningService (Groups, Courses) | UC-19..31 | ✅ Реализовано |
-| P1 | TestingService | UC-32..36 | ❌ Не начато |
+| P0 (MVP) | TestingService | UC-32..36 | ❌ Не начато |
 | P1 | JournalService | UC-37..40 | ❌ Не начато |
 | P1 | FileService | UC-52..53 | ✅ Реализовано |
 | P1 | AgentBridge (Messenger bots) | UC-65..68 | ⚠️ Частично |
@@ -1200,7 +1200,7 @@
 
 ---
 
-## Итого: 69 User Stories
+## Итого: 68 User Stories
 
 | Сервис | Количество | Статус |
 |--------|-----------|--------|
