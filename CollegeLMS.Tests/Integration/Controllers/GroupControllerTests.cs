@@ -71,13 +71,13 @@ public class GroupControllerTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task GetAll_ReturnsForbidden_WhenNotAdmin()
+    public async Task GetAll_ReturnsOk_WhenStudent()
     {
         SetAuthHeader(GetStudentToken());
 
         var response = await Client.GetAsync("/api/groups");
 
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]

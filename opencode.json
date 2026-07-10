@@ -2,7 +2,7 @@
     "$schema": "https://opencode.ai/config.json",
     "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"],
     "skills": {
-        "paths": ["C:\\Users\\asv\\Desktop\\CollegeLMS\\.opencode\\skills"]
+        "paths": [".opencode/skills"]
     },
     "mcp": {
         "playwright": {
@@ -30,6 +30,10 @@
         "voice_google": {
             "template": "!python scripts/voice_google.py",
             "description": "Voice input: records 10s audio, transcribes with Google Speech API, copies text to clipboard"
+        },
+        "analyze": {
+            "template": "!echo '🔍 Starting project analysis...'",
+            "description": "Run full project analysis — spec, user stories, plugins, MCP, skills, readiness, phases, agents, models"
         }
     },
     "agent": {
