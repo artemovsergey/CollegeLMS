@@ -134,6 +134,7 @@ services:
       OpenCode__DefaultModel: ${OPENCODE_DEFAULT_MODEL:-opencode/deepseek-v4-flash-free}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+      - "api.telegram.org:149.154.167.220"
     restart: unless-stopped
     networks:
       - collegelms-net
