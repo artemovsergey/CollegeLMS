@@ -104,7 +104,7 @@ jobs:
           envs: DB_PASSWORD,TELEGRAM_BOT_TOKEN,TELEGRAM_ALLOWED_USER_ID
           script: |
             set -e
-            cd /root/CollegeLMS
+            cd /home/user1/CollegeLMS
 
             git pull origin master
 
@@ -129,6 +129,9 @@ jobs:
             VK_GROUP_ID=0
             VK_CONFIRMATION_CODE=
             ENVEOF
+
+            # Ensure UFW allows internal bridge traffic to OpenCode
+            ufw allow from 172.18.0.0/16 to any port 4096 proto tcp comment 'OpenCode agent bridge' 2>/dev/null || true
 
             docker compose up --build -d
             docker compose exec -T api dotnet ef database update -- --provider Npgsql 2>/dev/null || echo "Migration skipped"
