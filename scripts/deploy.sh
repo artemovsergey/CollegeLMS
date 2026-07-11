@@ -3,8 +3,8 @@
 # Usage: ./scripts/deploy.sh <vps-host> [ssh-user]
 set -e
 
-VPS_HOST="${1:?Usage: ./scripts/deploy.sh <vps-host> [ssh-user]}"
-SSH_USER="${2:-opencode}"
+VPS_HOST="${1:-176.109.105.252}"
+SSH_USER="${2:-user1}"
 REMOTE_DIR="/home/$SSH_USER/CollegeLMS"
 
 echo "=== Push to origin ==="

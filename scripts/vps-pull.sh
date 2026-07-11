@@ -2,7 +2,7 @@
 # Pull latest code and rebuild on VPS
 set -e
 
-cd /home/opencode/CollegeLMS
+cd /home/user1/CollegeLMS
 
 echo "=== git pull ==="
 git pull

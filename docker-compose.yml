@@ -12,6 +12,8 @@ services:
   db:
     image: postgres:16-alpine
     container_name: collegelms-db
+    mem_limit: 512m
+    memswap_limit: 1g
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
@@ -22,7 +24,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
@@ -32,6 +34,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: collegelms-redis
+    mem_limit: 128m
+    memswap_limit: 256m
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -39,7 +43,7 @@ services:
     command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 10s
       timeout: 3s
       retries: 5
     restart: unless-stopped
@@ -52,6 +56,8 @@ services:
       dockerfile: CollegeLMS.API/Dockerfile
       target: final
     container_name: collegelms-api
+    mem_limit: 512m
+    memswap_limit: 1g
     ports:
       - "${API_PORT:-5026}:8080"
     volumes:
@@ -71,10 +77,12 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.fast
+      dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ""
     container_name: collegelms-frontend
+    mem_limit: 1g
+    memswap_limit: 2g
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
@@ -85,7 +93,10 @@ services:
 
   nginx:
     build: ./nginx
+    image: collegelms-nginx
     container_name: collegelms-nginx
+    mem_limit: 64m
+    memswap_limit: 128m
     ports:
       - "${NGINX_HTTP_PORT:-80}:80"
       - "${NGINX_HTTPS_PORT:-443}:443"
@@ -99,10 +110,14 @@ services:
       - collegelms-net
 
   agentbridge:
+    profiles:
+      - agentbridge
     build:
       context: .
       dockerfile: agentbridge/Dockerfile
     container_name: collegelms-agentbridge
+    mem_limit: 256m
+    memswap_limit: 512m
     ports:
       - "${AGENTBRIDGE_PORT:-5030}:8080"
     environment:

@@ -4,12 +4,12 @@ After=network.target
 
 [Service]
 Type=simple
-User=opencode
-WorkingDirectory=/home/opencode/CollegeLMS
-ExecStart=/home/opencode/.local/bin/opencode serve --port 4096
+User=user1
+WorkingDirectory=/home/user1/CollegeLMS
+ExecStart=/home/user1/.local/bin/opencode serve --port 4096
 Restart=always
 RestartSec=5
-Environment=HOME=/home/opencode
+Environment=HOME=/home/user1
 
 [Install]
 WantedBy=multi-user.target
