@@ -21,8 +21,7 @@ export default function Carousel() {
       .then((res) => {
         const body = res.data
         if (body.isSuccess && body.data) {
-          const withImages = body.data.items.filter((item) => item.imageUrl)
-          setSlides(withImages.slice(0, 5))
+          setSlides(body.data.items.slice(0, 5))
         }
       })
       .catch(() => setError("Не удалось загрузить"))
@@ -80,13 +79,19 @@ export default function Carousel() {
                 href={`/news/${item.id}`}
                 className="relative min-w-0 flex-[0_0_100%] h-[400px] md:h-[550px]"
               >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.imageUrl!}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 via-30% to-transparent to-50%" />
+              {item.imageUrl ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 via-30% to-transparent to-50%" />
+                </>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-lilac/80 via-primary/60 to-blue-900/80" />
+              )}
 
               {item.categoryName && (
                 <span className="absolute left-4 top-4 rounded bg-lilac px-3 py-1 text-sm font-medium text-lilac-foreground">

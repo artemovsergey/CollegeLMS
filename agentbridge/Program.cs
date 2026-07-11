@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --- Configuration ---
 var telegramToken = builder.Configuration["Telegram:BotToken"] ?? "";
+var telegramProxyUrl = builder.Configuration["Telegram:ProxyUrl"] ?? "";
 var openCodeUrl = builder.Configuration["OpenCode:ServerUrl"] ?? "http://localhost:4096";
 var openCodeUser = builder.Configuration["OpenCode:Username"] ?? "opencode";
 var openCodePass = builder.Configuration["OpenCode:Password"] ?? "";
@@ -35,9 +36,16 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<OpenCodeSseListene
 builder.Services.AddSingleton<AgentTaskQueue>();
 builder.Services.AddSingleton<MessageRouter>();
 
-// Telegram bot
+// Telegram bot (with optional proxy)
+var telegramHttpClient = string.IsNullOrEmpty(telegramProxyUrl)
+    ? new HttpClient()
+    : new HttpClient(new HttpClientHandler
+    {
+        Proxy = new WebProxy(telegramProxyUrl),
+        UseProxy = true
+    });
 builder.Services.AddSingleton<ITelegramBotClient>(
-    new TelegramBotClient(telegramToken));
+    new TelegramBotClient(telegramToken, telegramHttpClient));
 builder.Services.AddHostedService<TelegramBotHost>();
 
 var app = builder.Build();

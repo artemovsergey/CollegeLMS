@@ -123,6 +123,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
+      Telegram__ProxyUrl: ${TELEGRAM_PROXY_URL:-}
       Telegram__AllowedUserIds__0: ${TELEGRAM_ALLOWED_USER_ID:-}
       VkMax__AccessToken: ${VK_ACCESS_TOKEN:-}
       VkMax__GroupId: ${VK_GROUP_ID:-0}
