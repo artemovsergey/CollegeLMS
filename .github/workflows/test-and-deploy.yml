@@ -134,11 +134,27 @@ jobs:
             ufw allow from 172.18.0.0/16 to any port 4096 proto tcp comment 'OpenCode agent bridge' 2>/dev/null || true
 
             docker compose up --build -d
+
+            # Wait for containers to settle
+            sleep 5
+
+            # Diagnostic: check container status
+            echo "=== Container status ==="
+            docker compose ps --all
+            echo "=== Port check ==="
+            ss -tlnp | grep 5026 || echo "Port 5026 not listening"
+            echo "=== UFW status ==="
+            ufw status 2>/dev/null || echo "UFW not active"
+            echo "=== API logs (last 50) ==="
+            docker compose logs --tail=50 api 2>&1 || echo "No API logs"
+            echo "=== API exit code ==="
+            docker inspect $(docker compose ps -q api) --format='{{.State.ExitCode}} {{.State.Status}} {{.State.Error}}' 2>/dev/null || echo "Cannot inspect"
+
             docker compose exec -T api dotnet ef database update -- --provider Npgsql 2>/dev/null || echo "Migration skipped"
 
             # Import WordPress news data (idempotent — skips duplicates by slug)
             echo "=== Importing WordPress news ==="
-            for i in $(seq 1 12); do
+            for i in $(seq 1 18); do
               if curl -sf http://localhost:5026/api/news/categories > /dev/null 2>&1; then
                 echo "API ready after ${i}s"
                 break
