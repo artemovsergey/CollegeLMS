@@ -7,7 +7,6 @@ obj/
 *.userprefs
 .vs/
 *.DotSettings
-
 # Next.js / Node
 node_modules/
 .next/
@@ -16,33 +15,26 @@ dist/
 build/
 *.tsbuildinfo
 next-env.d.ts
-
 # Env files
 .env
 .env.local
 .env.*.local
 appsettings.Production.json
 appsettings.*.local.json
-
 # Generated agent skills (restore via: npx skills sync)
 .agents/
-
 # Agent config dirs
 .mimocode/
 .opencode/*
 !.opencode/skills/
 .impeccable/
 .superpowers/   
-
 # Generated lock files
 skills-lock.json
-
 # Logs
 logs/
-
 # MCP logs
 .playwright-mcp/
-
 # IDE
 .idea/
 *.swp
@@ -50,28 +42,22 @@ logs/
 *~
 .DS_Store
 Thumbs.db
-
 # Docker
 docker-data/
-
 # Import data (large JSON dumps from WordPress)
-import/wp_data_full.json
-
 # Runtime artifacts
 agent-timeline.jsonl
-
 # Test results
 TestResults/
 playwright-report/
 test-results/
-
 # OS
 .DS_Store
 Thumbs.db
 *.log
-
-
 # Playwright
-
 .playwright-cli
 output
+
+# Import data (large JSON dumps from WordPress)
+import/wp_data_full.json
