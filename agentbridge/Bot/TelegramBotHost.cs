@@ -57,43 +57,61 @@ public class TelegramBotHost : BackgroundService
 
     private async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken ct)
     {
-        if (update.CallbackQuery is { Data: { } callbackData })
+        try
         {
-            await HandleCallbackQueryAsync(bot, callbackData, ct);
-            return;
+            if (update.CallbackQuery is { Data: { } callbackData })
+            {
+                await HandleCallbackQueryAsync(bot, callbackData, ct);
+                return;
+            }
+
+            if (update.Message is not { Text: { } text } message)
+                return;
+
+            var chatId = message.Chat.Id;
+            var userId = message.From?.Id ?? 0;
+
+            if (_allowedUsers.Count > 0 && !_allowedUsers.Contains(userId))
+            {
+                _logger.LogWarning("Unauthorized user {UserId} in chat {ChatId}", userId, chatId);
+                return;
+            }
+
+            _logger.LogInformation("Message from {UserId} in chat {ChatId}: {Text}", userId, chatId, text);
+
+            _ = bot.SendChatAction(chatId, ChatAction.Typing, cancellationToken: ct);
+
+            var response = await _router.HandleCommandAsync(text, chatId, "telegram");
+            await _router.SendLongMessageAsync(bot, chatId, response);
         }
-
-        if (update.Message is not { Text: { } text } message)
-            return;
-
-        var chatId = message.Chat.Id;
-        var userId = message.From?.Id ?? 0;
-
-        if (_allowedUsers.Count > 0 && !_allowedUsers.Contains(userId))
+        catch (Exception ex)
         {
-            _logger.LogWarning("Unauthorized user {UserId} in chat {ChatId}", userId, chatId);
-            return;
+            _logger.LogError(ex, "Error handling update");
+            if (update.Message?.Chat.Id is { } chatId)
+            {
+                await bot.SendMessage(chatId, $"❌ Внутренняя ошибка: {ex.Message}");
+            }
         }
-
-        _logger.LogInformation("Message from {UserId} in chat {ChatId}: {Text}", userId, chatId, text);
-
-        _ = bot.SendChatAction(chatId, ChatAction.Typing, cancellationToken: ct);
-
-        var response = await _router.HandleCommandAsync(text, chatId, "telegram");
-        await _router.SendLongMessageAsync(bot, chatId, response);
     }
 
     private async Task HandleCallbackQueryAsync(ITelegramBotClient bot, string data, CancellationToken ct)
     {
-        if (!data.StartsWith("allow:") && !data.StartsWith("deny:"))
-            return;
+        try
+        {
+            if (!data.StartsWith("allow:") && !data.StartsWith("deny:"))
+                return;
 
-        var parts = data.Split(':');
-        var action = parts[0];
-        var permissionId = parts[1];
+            var parts = data.Split(':');
+            var action = parts[0];
+            var permissionId = parts[1];
 
-        var allow = action == "allow";
-        await _router.HandlePermissionResponseAsync(permissionId, allow);
+            var allow = action == "allow";
+            await _router.HandlePermissionResponseAsync(permissionId, allow);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling callback query");
+        }
     }
 
     private Task HandleErrorAsync(ITelegramBotClient bot, Exception ex, CancellationToken ct)
