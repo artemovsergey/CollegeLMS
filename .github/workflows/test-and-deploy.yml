@@ -165,6 +165,10 @@ jobs:
                 | python3 -m json.tool || echo "Import failed or already done"
             else
               echo "Skipping import — could not get admin token"
+              echo "=== API container status ==="
+              docker compose ps --all api
+              echo "=== API logs ==="
+              docker compose logs --tail=50 api 2>&1 | head -50
             fi
 
             docker image prune -f
