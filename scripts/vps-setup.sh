@@ -65,7 +65,7 @@ After=network.target
 Type=simple
 User=$OPENCODE_USER
 WorkingDirectory=$PROJECT_DIR
-ExecStart=/home/$OPENCODE_USER/.local/bin/opencode serve --port 4096
+ExecStart=/home/$OPENCODE_USER/.opencode/bin/opencode serve --port 4096 --hostname 0.0.0.0
 Restart=always
 RestartSec=5
 Environment=HOME=/home/$OPENCODE_USER
