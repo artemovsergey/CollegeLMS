@@ -95,6 +95,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Upload import data (72MB wp_data_full.json excluded from git)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "import/wp_data_full.json"
+          target: "/home/user1/CollegeLMS/"
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
         with:
