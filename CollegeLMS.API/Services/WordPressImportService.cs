@@ -26,8 +26,8 @@ public class WordPressImportService(AppDbContext db, ILogger<WordPressImportServ
 
         try
         {
-            var json = await File.ReadAllTextAsync(jsonPath, ct);
-            using var doc = JsonDocument.Parse(json);
+            var jsonBytes = await File.ReadAllBytesAsync(jsonPath, ct);
+            using var doc = JsonDocument.Parse(jsonBytes);
             var root = doc.RootElement;
 
             // --- 1. Import categories ---

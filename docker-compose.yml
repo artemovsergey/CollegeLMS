@@ -59,8 +59,8 @@ services:
       dockerfile: CollegeLMS.API/Dockerfile
       target: final
     container_name: collegelms-api
-    mem_limit: 512m
-    memswap_limit: 1g
+    mem_limit: 1g
+    memswap_limit: 2g
     ports:
       - "${API_PORT:-5026}:8080"
     volumes:
