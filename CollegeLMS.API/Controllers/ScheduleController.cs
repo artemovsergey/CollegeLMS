@@ -142,11 +142,7 @@ public class ScheduleController(IScheduleService service) : ControllerBase
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
 
-        return File(
-            result.Data!.FileContent,
-            result.Data.ContentType,
-            result.Data.FileName
-        );
+        return File(result.Data!.FileContent, result.Data.ContentType, result.Data.FileName);
     }
 
     [HttpPost("import")]

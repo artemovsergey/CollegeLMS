@@ -8,7 +8,7 @@ public enum AgentTaskStatus
     WaitingForReply,
     Completed,
     Failed,
-    Cancelled
+    Cancelled,
 }
 
 public class PendingPermission

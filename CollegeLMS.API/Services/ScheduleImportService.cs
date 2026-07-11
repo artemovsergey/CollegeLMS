@@ -1,34 +1,63 @@
+using ClosedXML.Excel;
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Response;
-using ClosedXML.Excel;
 
 namespace CollegeLMS.API.Services;
 
 public class ScheduleImportService(AppDbContext db)
 {
-    private static readonly Dictionary<string, DayOfWeek> DayMap = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, DayOfWeek> DayMap = new(
+        StringComparer.OrdinalIgnoreCase
+    )
     {
-        ["пн"] = DayOfWeek.Monday, ["понедельник"] = DayOfWeek.Monday, ["monday"] = DayOfWeek.Monday,
-        ["вт"] = DayOfWeek.Tuesday, ["вторник"] = DayOfWeek.Tuesday, ["tuesday"] = DayOfWeek.Tuesday,
-        ["ср"] = DayOfWeek.Wednesday, ["среда"] = DayOfWeek.Wednesday, ["wednesday"] = DayOfWeek.Wednesday,
-        ["чт"] = DayOfWeek.Thursday, ["четверг"] = DayOfWeek.Thursday, ["thursday"] = DayOfWeek.Thursday,
-        ["пт"] = DayOfWeek.Friday, ["пятница"] = DayOfWeek.Friday, ["friday"] = DayOfWeek.Friday,
-        ["сб"] = DayOfWeek.Saturday, ["суббота"] = DayOfWeek.Saturday, ["saturday"] = DayOfWeek.Saturday,
-        ["вс"] = DayOfWeek.Sunday, ["воскресенье"] = DayOfWeek.Sunday, ["sunday"] = DayOfWeek.Sunday,
+        ["пн"] = DayOfWeek.Monday,
+        ["понедельник"] = DayOfWeek.Monday,
+        ["monday"] = DayOfWeek.Monday,
+        ["вт"] = DayOfWeek.Tuesday,
+        ["вторник"] = DayOfWeek.Tuesday,
+        ["tuesday"] = DayOfWeek.Tuesday,
+        ["ср"] = DayOfWeek.Wednesday,
+        ["среда"] = DayOfWeek.Wednesday,
+        ["wednesday"] = DayOfWeek.Wednesday,
+        ["чт"] = DayOfWeek.Thursday,
+        ["четверг"] = DayOfWeek.Thursday,
+        ["thursday"] = DayOfWeek.Thursday,
+        ["пт"] = DayOfWeek.Friday,
+        ["пятница"] = DayOfWeek.Friday,
+        ["friday"] = DayOfWeek.Friday,
+        ["сб"] = DayOfWeek.Saturday,
+        ["суббота"] = DayOfWeek.Saturday,
+        ["saturday"] = DayOfWeek.Saturday,
+        ["вс"] = DayOfWeek.Sunday,
+        ["воскресенье"] = DayOfWeek.Sunday,
+        ["sunday"] = DayOfWeek.Sunday,
     };
 
-    private static readonly Dictionary<string, LessonType> LessonTypeMap = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, LessonType> LessonTypeMap = new(
+        StringComparer.OrdinalIgnoreCase
+    )
     {
-        ["лекция"] = LessonType.Lecture, ["лек"] = LessonType.Lecture, ["lecture"] = LessonType.Lecture,
-        ["практика"] = LessonType.Practice, ["пр"] = LessonType.Practice, ["practice"] = LessonType.Practice,
-        ["лабораторная"] = LessonType.Lab, ["лаб"] = LessonType.Lab, ["lab"] = LessonType.Lab,
-        ["экзамен"] = LessonType.Exam, ["экз"] = LessonType.Exam, ["exam"] = LessonType.Exam,
+        ["лекция"] = LessonType.Lecture,
+        ["лек"] = LessonType.Lecture,
+        ["lecture"] = LessonType.Lecture,
+        ["практика"] = LessonType.Practice,
+        ["пр"] = LessonType.Practice,
+        ["practice"] = LessonType.Practice,
+        ["лабораторная"] = LessonType.Lab,
+        ["лаб"] = LessonType.Lab,
+        ["lab"] = LessonType.Lab,
+        ["экзамен"] = LessonType.Exam,
+        ["экз"] = LessonType.Exam,
+        ["exam"] = LessonType.Exam,
     };
 
-    public async Task<Result<ScheduleImportResult>> ImportAsync(Stream fileStream, CancellationToken ct)
+    public async Task<Result<ScheduleImportResult>> ImportAsync(
+        Stream fileStream,
+        CancellationToken ct
+    )
     {
         var result = new ScheduleImportResult();
 
@@ -39,7 +68,10 @@ public class ScheduleImportService(AppDbContext db)
         }
         catch
         {
-            return Result<ScheduleImportResult>.Fail("Не удалось прочитать файл. Убедитесь, что это XLSX-файл.", 400);
+            return Result<ScheduleImportResult>.Fail(
+                "Не удалось прочитать файл. Убедитесь, что это XLSX-файл.",
+                400
+            );
         }
 
         using (workbook)
@@ -108,7 +140,9 @@ public class ScheduleImportService(AppDbContext db)
 
         if (errors.Count > 0)
         {
-            result.Errors.Add(new ImportError { Row = rowNum, Message = string.Join("; ", errors) });
+            result.Errors.Add(
+                new ImportError { Row = rowNum, Message = string.Join("; ", errors) }
+            );
             result.Skipped++;
             return null;
         }

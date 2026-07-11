@@ -67,12 +67,14 @@ public class UploadController : ControllerBase
         else if (image.Height < 600)
         {
             image.Mutate(x =>
-                x.Resize(new ResizeOptions
-                {
-                    Size = new Size(image.Width, 600),
-                    Mode = ResizeMode.BoxPad,
-                    PadColor = Color.White,
-                })
+                x.Resize(
+                    new ResizeOptions
+                    {
+                        Size = new Size(image.Width, 600),
+                        Mode = ResizeMode.BoxPad,
+                        PadColor = Color.White,
+                    }
+                )
             );
         }
 

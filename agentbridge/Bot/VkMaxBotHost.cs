@@ -17,7 +17,8 @@ public class VkMaxBotHost
         MessageRouter router,
         IConfiguration config,
         ILogger<VkMaxBotHost> logger,
-        IHttpClientFactory httpFactory)
+        IHttpClientFactory httpFactory
+    )
     {
         _router = router;
         _config = config;
@@ -57,7 +58,11 @@ public class VkMaxBotHost
             var peerId = evt.GetProperty("peer_id").GetInt64();
             var conversationMessageId = evt.GetProperty("conversation_message_id").GetInt32();
 
-            _logger.LogInformation("VK Max callback: peer={PeerId}, payload={Payload}", peerId, payload);
+            _logger.LogInformation(
+                "VK Max callback: peer={PeerId}, payload={Payload}",
+                peerId,
+                payload
+            );
 
             if (payload is not null)
             {
@@ -70,15 +75,17 @@ public class VkMaxBotHost
 
     public async Task SendMessageAsync(long peerId, string text, CancellationToken ct = default)
     {
-        if (!IsEnabled) return;
+        if (!IsEnabled)
+            return;
 
         var client = _httpFactory.CreateClient();
-        var url = $"https://api.vk.com/method/messages.send?" +
-                  $"access_token={_accessToken}" +
-                  $"&peer_id={peerId}" +
-                  $"&message={Uri.EscapeDataString(text)}" +
-                  $"&random_id={Random.Shared.Next()}" +
-                  $"&v=5.199";
+        var url =
+            $"https://api.vk.com/method/messages.send?"
+            + $"access_token={_accessToken}"
+            + $"&peer_id={peerId}"
+            + $"&message={Uri.EscapeDataString(text)}"
+            + $"&random_id={Random.Shared.Next()}"
+            + $"&v=5.199";
 
         var resp = await client.PostAsync(url, null, ct);
         if (!resp.IsSuccessStatusCode)
@@ -91,9 +98,11 @@ public class VkMaxBotHost
         long peerId,
         string text,
         string permissionId,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
-        if (!IsEnabled) return;
+        if (!IsEnabled)
+            return;
 
         var keyboard = new
         {
@@ -108,9 +117,9 @@ public class VkMaxBotHost
                         {
                             type = "callback",
                             label = "Разрешить",
-                            payload = JsonSerializer.Serialize($"allow:{permissionId}")
+                            payload = JsonSerializer.Serialize($"allow:{permissionId}"),
                         },
-                        color = "positive"
+                        color = "positive",
                     },
                     new
                     {
@@ -118,23 +127,24 @@ public class VkMaxBotHost
                         {
                             type = "callback",
                             label = "Отказать",
-                            payload = JsonSerializer.Serialize($"deny:{permissionId}")
+                            payload = JsonSerializer.Serialize($"deny:{permissionId}"),
                         },
-                        color = "negative"
-                    }
-                }
-            }
+                        color = "negative",
+                    },
+                },
+            },
         };
 
         var client = _httpFactory.CreateClient();
         var keyboardJson = JsonSerializer.Serialize(keyboard);
-        var url = $"https://api.vk.com/method/messages.send?" +
-                  $"access_token={_accessToken}" +
-                  $"&peer_id={peerId}" +
-                  $"&message={Uri.EscapeDataString(text)}" +
-                  $"&keyboard={Uri.EscapeDataString(keyboardJson)}" +
-                  $"&random_id={Random.Shared.Next()}" +
-                  $"&v=5.199";
+        var url =
+            $"https://api.vk.com/method/messages.send?"
+            + $"access_token={_accessToken}"
+            + $"&peer_id={peerId}"
+            + $"&message={Uri.EscapeDataString(text)}"
+            + $"&keyboard={Uri.EscapeDataString(keyboardJson)}"
+            + $"&random_id={Random.Shared.Next()}"
+            + $"&v=5.199";
 
         var resp = await client.PostAsync(url, null, ct);
         if (!resp.IsSuccessStatusCode)

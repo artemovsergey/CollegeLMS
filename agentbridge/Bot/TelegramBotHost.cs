@@ -5,7 +5,6 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
-
 namespace AgentBridge.Bot;
 
 public class TelegramBotHost : BackgroundService
@@ -23,7 +22,8 @@ public class TelegramBotHost : BackgroundService
         AgentTaskQueue queue,
         OpenCodeSseListener sse,
         IConfiguration config,
-        ILogger<TelegramBotHost> logger)
+        ILogger<TelegramBotHost> logger
+    )
     {
         _bot = bot;
         _router = router;
@@ -43,11 +43,9 @@ public class TelegramBotHost : BackgroundService
         _bot.StartReceiving(
             HandleUpdateAsync,
             HandleErrorAsync,
-            new ReceiverOptions
-            {
-                AllowedUpdates = [UpdateType.Message, UpdateType.CallbackQuery]
-            },
-            stoppingToken);
+            new ReceiverOptions { AllowedUpdates = [UpdateType.Message, UpdateType.CallbackQuery] },
+            stoppingToken
+        );
 
         var me = await _bot.GetMe(stoppingToken);
         _logger.LogInformation("Telegram bot started as @{Username}", me.Username);
@@ -55,7 +53,11 @@ public class TelegramBotHost : BackgroundService
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
-    private async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken ct)
+    private async Task HandleUpdateAsync(
+        ITelegramBotClient bot,
+        Update update,
+        CancellationToken ct
+    )
     {
         try
         {
@@ -77,7 +79,12 @@ public class TelegramBotHost : BackgroundService
                 return;
             }
 
-            _logger.LogInformation("Message from {UserId} in chat {ChatId}: {Text}", userId, chatId, text);
+            _logger.LogInformation(
+                "Message from {UserId} in chat {ChatId}: {Text}",
+                userId,
+                chatId,
+                text
+            );
 
             _ = bot.SendChatAction(chatId, ChatAction.Typing, cancellationToken: ct);
 
@@ -94,7 +101,11 @@ public class TelegramBotHost : BackgroundService
         }
     }
 
-    private async Task HandleCallbackQueryAsync(ITelegramBotClient bot, string data, CancellationToken ct)
+    private async Task HandleCallbackQueryAsync(
+        ITelegramBotClient bot,
+        string data,
+        CancellationToken ct
+    )
     {
         try
         {

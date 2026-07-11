@@ -3,7 +3,7 @@ namespace CollegeLMS.API.Dtos;
 public enum ExportFormat
 {
     Pdf,
-    Xlsx
+    Xlsx,
 }
 
 public class ExportResult

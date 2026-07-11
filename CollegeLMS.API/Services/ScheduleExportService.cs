@@ -1,7 +1,7 @@
+using ClosedXML.Excel;
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Response;
-using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -55,9 +55,7 @@ public class ScheduleExportService(AppDbContext db)
         if (entries.Count == 0)
             return Result<ExportResult>.Fail("Нет данных для экспорта", 404);
 
-        return format == ExportFormat.Pdf
-            ? ExportPdf(entries)
-            : ExportXlsx(entries);
+        return format == ExportFormat.Pdf ? ExportPdf(entries) : ExportXlsx(entries);
     }
 
     private static Result<ExportResult> ExportPdf(IReadOnlyList<Entities.ScheduleEntry> entries)
@@ -72,63 +70,71 @@ public class ScheduleExportService(AppDbContext db)
                 page.Margin(20);
                 page.DefaultTextStyle(x => x.FontSize(10));
 
-                page.Header().Text("Расписание занятий")
-                    .SemiBold().FontSize(16).AlignCenter();
+                page.Header().Text("Расписание занятий").SemiBold().FontSize(16).AlignCenter();
 
-                page.Content().Table(table =>
-                {
-                    table.ColumnsDefinition(c =>
+                page.Content()
+                    .Table(table =>
                     {
-                        c.RelativeColumn(1);
-                        c.RelativeColumn(3);
-                        c.RelativeColumn(2);
-                        c.RelativeColumn(1);
-                        c.RelativeColumn(1);
-                        c.RelativeColumn(1);
-                        c.RelativeColumn(1);
-                        c.RelativeColumn(1);
+                        table.ColumnsDefinition(c =>
+                        {
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(3);
+                            c.RelativeColumn(2);
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(1);
+                        });
+
+                        table.Header(h =>
+                        {
+                            h.Cell().Text("День").Bold();
+                            h.Cell().Text("Предмет").Bold();
+                            h.Cell().Text("Преподаватель").Bold();
+                            h.Cell().Text("Аудитория").Bold();
+                            h.Cell().Text("Начало").Bold();
+                            h.Cell().Text("Конец").Bold();
+                            h.Cell().Text("Группа").Bold();
+                            h.Cell().Text("Тип").Bold();
+                        });
+
+                        foreach (var e in entries)
+                        {
+                            table
+                                .Cell()
+                                .Text(
+                                    DaysMap.GetValueOrDefault(e.DayOfWeek, e.DayOfWeek.ToString())
+                                );
+                            table.Cell().Text(e.Subject);
+                            table.Cell().Text(e.Teacher?.User?.FullName ?? "");
+                            table.Cell().Text(e.Room);
+                            table.Cell().Text(e.StartTime.ToString(@"hh\:mm"));
+                            table.Cell().Text(e.EndTime.ToString(@"hh\:mm"));
+                            table.Cell().Text(e.Group?.Name ?? "");
+                            table.Cell().Text(e.LessonType.ToString());
+                        }
                     });
 
-                    table.Header(h =>
+                page.Footer()
+                    .AlignCenter()
+                    .Text(x =>
                     {
-                        h.Cell().Text("День").Bold();
-                        h.Cell().Text("Предмет").Bold();
-                        h.Cell().Text("Преподаватель").Bold();
-                        h.Cell().Text("Аудитория").Bold();
-                        h.Cell().Text("Начало").Bold();
-                        h.Cell().Text("Конец").Bold();
-                        h.Cell().Text("Группа").Bold();
-                        h.Cell().Text("Тип").Bold();
+                        x.Span("Страница ");
+                        x.CurrentPageNumber();
                     });
-
-                    foreach (var e in entries)
-                    {
-                        table.Cell().Text(DaysMap.GetValueOrDefault(e.DayOfWeek, e.DayOfWeek.ToString()));
-                        table.Cell().Text(e.Subject);
-                        table.Cell().Text(e.Teacher?.User?.FullName ?? "");
-                        table.Cell().Text(e.Room);
-                        table.Cell().Text(e.StartTime.ToString(@"hh\:mm"));
-                        table.Cell().Text(e.EndTime.ToString(@"hh\:mm"));
-                        table.Cell().Text(e.Group?.Name ?? "");
-                        table.Cell().Text(e.LessonType.ToString());
-                    }
-                });
-
-                page.Footer().AlignCenter().Text(x =>
-                {
-                    x.Span("Страница ");
-                    x.CurrentPageNumber();
-                });
             });
         });
 
         var bytes = doc.GeneratePdf();
-        return Result<ExportResult>.Ok(new ExportResult
-        {
-            FileContent = bytes,
-            ContentType = "application/pdf",
-            FileName = $"schedule_{DateTime.UtcNow:yyyyMMdd}.pdf"
-        });
+        return Result<ExportResult>.Ok(
+            new ExportResult
+            {
+                FileContent = bytes,
+                ContentType = "application/pdf",
+                FileName = $"schedule_{DateTime.UtcNow:yyyyMMdd}.pdf",
+            }
+        );
     }
 
     private static Result<ExportResult> ExportXlsx(IReadOnlyList<Entities.ScheduleEntry> entries)
@@ -169,11 +175,13 @@ public class ScheduleExportService(AppDbContext db)
         workbook.SaveAs(ms);
         ms.Seek(0, SeekOrigin.Begin);
 
-        return Result<ExportResult>.Ok(new ExportResult
-        {
-            FileContent = ms.ToArray(),
-            ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            FileName = $"schedule_{DateTime.UtcNow:yyyyMMdd}.xlsx"
-        });
+        return Result<ExportResult>.Ok(
+            new ExportResult
+            {
+                FileContent = ms.ToArray(),
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileName = $"schedule_{DateTime.UtcNow:yyyyMMdd}.xlsx",
+            }
+        );
     }
 }

@@ -310,7 +310,14 @@ public class ScheduleServiceTests : IDisposable
         _db.ScheduleEntries.AddRange(entries);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.ExportScheduleAsync(null, null, null, null, ExportFormat.Pdf, default);
+        var result = await _sut.ExportScheduleAsync(
+            null,
+            null,
+            null,
+            null,
+            ExportFormat.Pdf,
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().NotBeNull();
@@ -325,18 +332,34 @@ public class ScheduleServiceTests : IDisposable
         _db.ScheduleEntries.AddRange(entries);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.ExportScheduleAsync(null, null, null, null, ExportFormat.Xlsx, default);
+        var result = await _sut.ExportScheduleAsync(
+            null,
+            null,
+            null,
+            null,
+            ExportFormat.Xlsx,
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data.Should().NotBeNull();
         result.Data!.FileContent.Should().NotBeEmpty();
-        result.Data.ContentType.Should().Be("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        result
+            .Data.ContentType.Should()
+            .Be("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 
     [Fact]
     public async Task ExportScheduleAsync_ReturnsFail_WhenNoData()
     {
-        var result = await _sut.ExportScheduleAsync(null, null, null, null, ExportFormat.Pdf, default);
+        var result = await _sut.ExportScheduleAsync(
+            null,
+            null,
+            null,
+            null,
+            ExportFormat.Pdf,
+            default
+        );
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);

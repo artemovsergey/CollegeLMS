@@ -15,7 +15,8 @@ public class OpenCodeSseListener : IHostedService, IDisposable
     public OpenCodeSseListener(
         IHttpClientFactory httpFactory,
         IConfiguration config,
-        ILogger<OpenCodeSseListener> logger)
+        ILogger<OpenCodeSseListener> logger
+    )
     {
         _httpFactory = httpFactory;
         _config = config;
@@ -53,7 +54,8 @@ public class OpenCodeSseListener : IHostedService, IDisposable
                 if (!string.IsNullOrEmpty(password))
                 {
                     var cred = Convert.ToBase64String(
-                        System.Text.Encoding.UTF8.GetBytes($"{username}:{password}"));
+                        System.Text.Encoding.UTF8.GetBytes($"{username}:{password}")
+                    );
                     client.DefaultRequestHeaders.Authorization =
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", cred);
                 }
@@ -62,8 +64,11 @@ public class OpenCodeSseListener : IHostedService, IDisposable
                 _logger.LogInformation("Connecting to SSE: {Url}", url);
 
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
-                using var response = await client.SendAsync(request,
-                    HttpCompletionOption.ResponseHeadersRead, ct);
+                using var response = await client.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    ct
+                );
 
                 response.EnsureSuccessStatusCode();
 
@@ -79,7 +84,8 @@ public class OpenCodeSseListener : IHostedService, IDisposable
                         break;
                     }
 
-                    if (string.IsNullOrEmpty(line)) continue;
+                    if (string.IsNullOrEmpty(line))
+                        continue;
 
                     if (line.StartsWith("data: "))
                     {

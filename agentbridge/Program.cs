@@ -24,7 +24,8 @@ builder.Services.AddHttpClient<OpenCodeClient>(client =>
     if (!string.IsNullOrEmpty(openCodePass))
     {
         var credentials = Convert.ToBase64String(
-            System.Text.Encoding.UTF8.GetBytes($"{openCodeUser}:{openCodePass}"));
+            System.Text.Encoding.UTF8.GetBytes($"{openCodeUser}:{openCodePass}")
+        );
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
     }
@@ -40,13 +41,12 @@ builder.Services.AddSingleton<MessageRouter>();
 // Telegram bot (with optional proxy)
 var telegramHttpClient = string.IsNullOrEmpty(telegramProxyUrl)
     ? new HttpClient()
-    : new HttpClient(new HttpClientHandler
-    {
-        Proxy = new WebProxy(telegramProxyUrl),
-        UseProxy = true
-    });
+    : new HttpClient(
+        new HttpClientHandler { Proxy = new WebProxy(telegramProxyUrl), UseProxy = true }
+    );
 builder.Services.AddSingleton<ITelegramBotClient>(
-    new TelegramBotClient(telegramToken, telegramHttpClient));
+    new TelegramBotClient(telegramToken, telegramHttpClient)
+);
 builder.Services.AddHostedService<TelegramBotHost>();
 
 var app = builder.Build();
@@ -54,10 +54,13 @@ var app = builder.Build();
 app.MapControllers();
 
 // Health check
-app.MapGet("/health", async (OpenCodeClient oc) =>
-{
-    var healthy = await oc.IsHealthyAsync();
-    return Results.Ok(new { bridge = true, openCode = healthy });
-});
+app.MapGet(
+    "/health",
+    async (OpenCodeClient oc) =>
+    {
+        var healthy = await oc.IsHealthyAsync();
+        return Results.Ok(new { bridge = true, openCode = healthy });
+    }
+);
 
 app.Run();

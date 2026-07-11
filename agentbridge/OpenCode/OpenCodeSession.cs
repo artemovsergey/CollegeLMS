@@ -14,7 +14,8 @@ public class OpenCodeSession
     public async Task<(string sessionId, string? response)> RunAsync(
         string prompt,
         string? model = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var session = await _client.CreateSessionAsync(ct);
         if (session is null)
@@ -26,10 +27,10 @@ public class OpenCodeSession
         if (message is null)
             throw new InvalidOperationException("No response from OpenCode");
 
-        var text = string.Join("\n",
-            message.Parts
-                .Where(p => p.Type == "text" && p.Text is not null)
-                .Select(p => p.Text));
+        var text = string.Join(
+            "\n",
+            message.Parts.Where(p => p.Type == "text" && p.Text is not null).Select(p => p.Text)
+        );
 
         return (session.Id, text);
     }

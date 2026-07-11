@@ -470,15 +470,17 @@ public static class DataSeeder
             if (existing)
                 continue;
 
-            db.Teachers.Add(new Teacher
-            {
-                Id = Guid.Parse($"b2000000-0000-0000-0000-00000000000{i + 1:x}"),
-                UserId = user.Id,
-                Department = departments[i],
-                Position = positions[i],
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-            });
+            db.Teachers.Add(
+                new Teacher
+                {
+                    Id = Guid.Parse($"b2000000-0000-0000-0000-00000000000{i + 1:x}"),
+                    UserId = user.Id,
+                    Department = departments[i],
+                    Position = positions[i],
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
         }
         await db.SaveChangesAsync();
     }
@@ -492,8 +494,8 @@ public static class DataSeeder
         var groups = await db.Groups.Where(g => groupNames.Contains(g.Name)).ToListAsync();
         var groupMap = groups.ToDictionary(g => g.Name);
 
-        var studentUsers = await db.Users
-            .Where(u => u.Role == UserRole.Student)
+        var studentUsers = await db
+            .Users.Where(u => u.Role == UserRole.Student)
             .OrderBy(u => u.Email)
             .ToListAsync();
 
@@ -609,15 +611,17 @@ public static class DataSeeder
             },
         };
         var petrov = await db.Users.FirstAsync(u => u.Email == "student@collegelms.ru");
-        studentRecords.Add(new()
-        {
-            Id = Guid.Parse("b3000000-0000-0000-0000-000000000013"),
-            UserId = petrov.Id,
-            GroupId = groupMap["ИСП-11"].Id,
-            RecordBookNumber = "ЗК-2025-001",
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-        });
+        studentRecords.Add(
+            new()
+            {
+                Id = Guid.Parse("b3000000-0000-0000-0000-000000000013"),
+                UserId = petrov.Id,
+                GroupId = groupMap["ИСП-11"].Id,
+                RecordBookNumber = "ЗК-2025-001",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
 
         db.Students.AddRange(studentRecords);
         await db.SaveChangesAsync();
@@ -639,7 +643,8 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("c1000000-0000-0000-0000-000000000001"),
                 Title = "Основы программирования",
-                Description = "Базовый курс по программированию на C#: типы данных, управляющие конструкции, ООП",
+                Description =
+                    "Базовый курс по программированию на C#: типы данных, управляющие конструкции, ООП",
                 TeacherId = teacherMap["teacher@collegelms.ru"].Id,
                 GroupId = groupMap["ИСП-31"].Id,
                 Status = CourseStatus.Active,
@@ -650,7 +655,8 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("c1000000-0000-0000-0000-000000000002"),
                 Title = "Математика",
-                Description = "Высшая математика для IT-специальностей: линейная алгебра, матанализ",
+                Description =
+                    "Высшая математика для IT-специальностей: линейная алгебра, матанализ",
                 TeacherId = teacherMap["ivanova@collegelms.ru"].Id,
                 GroupId = groupMap["ИСП-31"].Id,
                 Status = CourseStatus.Active,
@@ -749,7 +755,11 @@ public static class DataSeeder
 
         foreach (var course in courses)
         {
-            if (!await db.Courses.AnyAsync(c => c.Title == course.Title && c.GroupId == course.GroupId))
+            if (
+                !await db.Courses.AnyAsync(c =>
+                    c.Title == course.Title && c.GroupId == course.GroupId
+                )
+            )
                 db.Courses.Add(course);
         }
         await db.SaveChangesAsync();
@@ -773,7 +783,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000001"),
                 CourseId = course1.Id,
                 Title = "Введение в C#",
-                Content = "История языка C#, платформа .NET, установка инструментов. Первая программа: Hello, World!",
+                Content =
+                    "История языка C#, платформа .NET, установка инструментов. Первая программа: Hello, World!",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -783,7 +794,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000002"),
                 CourseId = course1.Id,
                 Title = "Типы данных и переменные",
-                Content = "Целочисленные, вещественные, строковые, логические типы. Объявление переменных, приведение типов.",
+                Content =
+                    "Целочисленные, вещественные, строковые, логические типы. Объявление переменных, приведение типов.",
                 Order = 2,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -793,7 +805,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000003"),
                 CourseId = course1.Id,
                 Title = "Управляющие конструкции",
-                Content = "Условные операторы if/switch, циклы for/while/foreach, операторы break/continue.",
+                Content =
+                    "Условные операторы if/switch, циклы for/while/foreach, операторы break/continue.",
                 Order = 3,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -813,7 +826,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000005"),
                 CourseId = course1.Id,
                 Title = "Объектно-ориентированное программирование",
-                Content = "Классы, объекты, наследование, полиморфизм, инкапсуляция. Интерфейсы и абстрактные классы.",
+                Content =
+                    "Классы, объекты, наследование, полиморфизм, инкапсуляция. Интерфейсы и абстрактные классы.",
                 Order = 5,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -823,7 +837,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000006"),
                 CourseId = course2.Id,
                 Title = "Линейная алгебра: матрицы",
-                Content = "Определение матриц, операции над матрицами, определитель, обратная матрица.",
+                Content =
+                    "Определение матриц, операции над матрицами, определитель, обратная матрица.",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -833,7 +848,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000007"),
                 CourseId = course2.Id,
                 Title = "Пределы и непрерывность",
-                Content = "Предел функции, свойства пределов, непрерывность функции в точке и на отрезке.",
+                Content =
+                    "Предел функции, свойства пределов, непрерывность функции в точке и на отрезке.",
                 Order = 2,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -843,7 +859,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000008"),
                 CourseId = course2.Id,
                 Title = "Производные функции",
-                Content = "Определение производной, правила дифференцирования, производные сложных функций.",
+                Content =
+                    "Определение производной, правила дифференцирования, производные сложных функций.",
                 Order = 3,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -853,7 +870,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000009"),
                 CourseId = course3.Id,
                 Title = "Введение в базы данных",
-                Content = "Понятие БД, СУБД, реляционная модель, нормализация. Знакомство с PostgreSQL.",
+                Content =
+                    "Понятие БД, СУБД, реляционная модель, нормализация. Знакомство с PostgreSQL.",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -863,7 +881,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000010"),
                 CourseId = course3.Id,
                 Title = "SQL: SELECT и JOIN",
-                Content = "Основы SELECT, WHERE, GROUP BY, HAVING. INNER/LEFT/RIGHT JOIN, подзапросы.",
+                Content =
+                    "Основы SELECT, WHERE, GROUP BY, HAVING. INNER/LEFT/RIGHT JOIN, подзапросы.",
                 Order = 2,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -873,7 +892,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000011"),
                 CourseId = course3.Id,
                 Title = "Индексы и оптимизация",
-                Content = "Типы индексов, план запроса, анализ производительности, EXPLAIN ANALYZE.",
+                Content =
+                    "Типы индексов, план запроса, анализ производительности, EXPLAIN ANALYZE.",
                 Order = 3,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -883,7 +903,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000012"),
                 CourseId = course4.Id,
                 Title = "IT Vocabulary",
-                Content = "Basic IT terminology: hardware, software, networking, programming languages.",
+                Content =
+                    "Basic IT terminology: hardware, software, networking, programming languages.",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -893,7 +914,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000013"),
                 CourseId = course4.Id,
                 Title = "Technical Writing",
-                Content = "Writing documentation, emails, reports in English. Grammar and style for technical communication.",
+                Content =
+                    "Writing documentation, emails, reports in English. Grammar and style for technical communication.",
                 Order = 2,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -903,7 +925,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000014"),
                 CourseId = course5.Id,
                 Title = "HTML и CSS",
-                Content = "Семантическая вёрстка, Flexbox, Grid, адаптивный дизайн, CSS-переменные.",
+                Content =
+                    "Семантическая вёрстка, Flexbox, Grid, адаптивный дизайн, CSS-переменные.",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -923,7 +946,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000016"),
                 CourseId = course5.Id,
                 Title = "React: компоненты и состояние",
-                Content = "JSX, функциональные компоненты, хуки (useState, useEffect, useContext), роутинг.",
+                Content =
+                    "JSX, функциональные компоненты, хуки (useState, useEffect, useContext), роутинг.",
                 Order = 3,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -933,7 +957,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000017"),
                 CourseId = course6.Id,
                 Title = "Архитектура ОС",
-                Content = "Ядро и модули, режимы ядра/пользователя, системные вызовы, микроядерная архитектура.",
+                Content =
+                    "Ядро и модули, режимы ядра/пользователя, системные вызовы, микроядерная архитектура.",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -969,7 +994,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000001"),
                 CourseId = course1.Id,
                 Title = "Hello, World!",
-                Description = "Написать программу, выводящую 'Hello, World!' в консоль. Закрепить навыки работы с IDE.",
+                Description =
+                    "Написать программу, выводящую 'Hello, World!' в консоль. Закрепить навыки работы с IDE.",
                 DueDate = DateTime.UtcNow.AddDays(7),
                 MaxScore = 10,
                 Order = 1,
@@ -981,7 +1007,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000002"),
                 CourseId = course1.Id,
                 Title = "Калькулятор",
-                Description = "Реализовать консольный калькулятор с поддержкой базовых операций (+, -, *, /).",
+                Description =
+                    "Реализовать консольный калькулятор с поддержкой базовых операций (+, -, *, /).",
                 DueDate = DateTime.UtcNow.AddDays(14),
                 MaxScore = 20,
                 Order = 2,
@@ -993,7 +1020,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000003"),
                 CourseId = course1.Id,
                 Title = "Учёт студентов",
-                Description = "Разработать консольное приложение для учёта студентов с возможностью добавления, удаления и поиска.",
+                Description =
+                    "Разработать консольное приложение для учёта студентов с возможностью добавления, удаления и поиска.",
                 DueDate = DateTime.UtcNow.AddDays(21),
                 MaxScore = 30,
                 Order = 3,
@@ -1005,7 +1033,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000004"),
                 CourseId = course2.Id,
                 Title = "Операции с матрицами",
-                Description = "Реализовать операции сложения, умножения и нахождения определителя матриц 3x3.",
+                Description =
+                    "Реализовать операции сложения, умножения и нахождения определителя матриц 3x3.",
                 DueDate = DateTime.UtcNow.AddDays(10),
                 MaxScore = 15,
                 Order = 1,
@@ -1029,7 +1058,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000006"),
                 CourseId = course3.Id,
                 Title = "Проектирование БД",
-                Description = "Спроектировать схему БД для интернет-магазина. Выделить сущности, связи, нормализовать до 3НФ.",
+                Description =
+                    "Спроектировать схему БД для интернет-магазина. Выделить сущности, связи, нормализовать до 3НФ.",
                 DueDate = DateTime.UtcNow.AddDays(10),
                 MaxScore = 25,
                 Order = 1,
@@ -1041,7 +1071,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000007"),
                 CourseId = course3.Id,
                 Title = "SQL запросы",
-                Description = "Написать 15 SQL запросов различной сложности к схеме интернет-магазина.",
+                Description =
+                    "Написать 15 SQL запросов различной сложности к схеме интернет-магазина.",
                 DueDate = DateTime.UtcNow.AddDays(17),
                 MaxScore = 25,
                 Order = 2,
@@ -1053,7 +1084,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000008"),
                 CourseId = course4.Id,
                 Title = "IT Vocabulary Test",
-                Description = "Составить глоссарий из 50 IT-терминов на английском с переводом и примерами.",
+                Description =
+                    "Составить глоссарий из 50 IT-терминов на английском с переводом и примерами.",
                 DueDate = DateTime.UtcNow.AddDays(7),
                 MaxScore = 15,
                 Order = 1,
@@ -1065,7 +1097,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000009"),
                 CourseId = course5.Id,
                 Title = "Вёрстка landing page",
-                Description = "Сверстать landing page по макету с использованием HTML, CSS (Flexbox/Grid), адаптивная вёрстка.",
+                Description =
+                    "Сверстать landing page по макету с использованием HTML, CSS (Flexbox/Grid), адаптивная вёрстка.",
                 DueDate = DateTime.UtcNow.AddDays(14),
                 MaxScore = 30,
                 Order = 1,
@@ -1077,7 +1110,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000010"),
                 CourseId = course5.Id,
                 Title = "ToDo App на React",
-                Description = "Реализовать ToDo-приложение на React с добавлением, удалением, фильтрацией задач.",
+                Description =
+                    "Реализовать ToDo-приложение на React с добавлением, удалением, фильтрацией задач.",
                 DueDate = DateTime.UtcNow.AddDays(21),
                 MaxScore = 40,
                 Order = 2,
@@ -1109,182 +1143,282 @@ public static class DataSeeder
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000001"),
-                GroupId = group31.Id, TeacherId = teacher1.Id,
-                Subject = "Основы программирования", Room = "301",
-                DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(8, 30, 0), EndTime = new TimeSpan(10, 0, 0),
+                GroupId = group31.Id,
+                TeacherId = teacher1.Id,
+                Subject = "Основы программирования",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
                 LessonType = LessonType.Lecture,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000002"),
-                GroupId = group31.Id, TeacherId = teacher1.Id,
-                Subject = "Основы программирования", Room = "302",
-                DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(10, 15, 0), EndTime = new TimeSpan(11, 45, 0),
+                GroupId = group31.Id,
+                TeacherId = teacher1.Id,
+                Subject = "Основы программирования",
+                Room = "302",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(11, 45, 0),
                 LessonType = LessonType.Lab,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000003"),
-                GroupId = group31.Id, TeacherId = teacher5.Id,
-                Subject = "Физическая культура", Room = "Спортзал",
-                DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(12, 0, 0), EndTime = new TimeSpan(13, 30, 0),
+                GroupId = group31.Id,
+                TeacherId = teacher5.Id,
+                Subject = "Физическая культура",
+                Room = "Спортзал",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(12, 0, 0),
+                EndTime = new TimeSpan(13, 30, 0),
                 LessonType = LessonType.Practice,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000004"),
-                GroupId = group31.Id, TeacherId = teacher2.Id,
-                Subject = "Математика", Room = "205",
-                DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(8, 30, 0), EndTime = new TimeSpan(10, 0, 0),
+                GroupId = group31.Id,
+                TeacherId = teacher2.Id,
+                Subject = "Математика",
+                Room = "205",
+                DayOfWeek = DayOfWeek.Tuesday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
                 LessonType = LessonType.Lecture,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000005"),
-                GroupId = group31.Id, TeacherId = teacher2.Id,
-                Subject = "Математика", Room = "205",
-                DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(10, 15, 0), EndTime = new TimeSpan(11, 45, 0),
+                GroupId = group31.Id,
+                TeacherId = teacher2.Id,
+                Subject = "Математика",
+                Room = "205",
+                DayOfWeek = DayOfWeek.Tuesday,
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(11, 45, 0),
                 LessonType = LessonType.Practice,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000006"),
-                GroupId = group31.Id, TeacherId = teacher3.Id,
-                Subject = "Английский язык", Room = "410",
-                DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeSpan(8, 30, 0), EndTime = new TimeSpan(10, 0, 0),
+                GroupId = group31.Id,
+                TeacherId = teacher3.Id,
+                Subject = "Английский язык",
+                Room = "410",
+                DayOfWeek = DayOfWeek.Wednesday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
                 LessonType = LessonType.Practice,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000007"),
-                GroupId = group31.Id, TeacherId = teacher1.Id,
-                Subject = "Основы программирования", Room = "301",
-                DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeSpan(8, 30, 0), EndTime = new TimeSpan(10, 0, 0),
+                GroupId = group31.Id,
+                TeacherId = teacher1.Id,
+                Subject = "Основы программирования",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Thursday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
                 LessonType = LessonType.Practice,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000008"),
-                GroupId = group32.Id, TeacherId = teacher1.Id,
-                Subject = "Базы данных", Room = "310",
-                DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(10, 15, 0), EndTime = new TimeSpan(11, 45, 0),
+                GroupId = group32.Id,
+                TeacherId = teacher1.Id,
+                Subject = "Базы данных",
+                Room = "310",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(11, 45, 0),
                 LessonType = LessonType.Lecture,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000009"),
-                GroupId = group32.Id, TeacherId = teacher1.Id,
-                Subject = "Базы данных", Room = "310",
-                DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(12, 0, 0), EndTime = new TimeSpan(13, 30, 0),
+                GroupId = group32.Id,
+                TeacherId = teacher1.Id,
+                Subject = "Базы данных",
+                Room = "310",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(12, 0, 0),
+                EndTime = new TimeSpan(13, 30, 0),
                 LessonType = LessonType.Lab,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000010"),
-                GroupId = group32.Id, TeacherId = teacher4.Id,
-                Subject = "Компьютерные сети", Room = "315",
-                DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(8, 30, 0), EndTime = new TimeSpan(10, 0, 0),
+                GroupId = group32.Id,
+                TeacherId = teacher4.Id,
+                Subject = "Компьютерные сети",
+                Room = "315",
+                DayOfWeek = DayOfWeek.Tuesday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
                 LessonType = LessonType.Lecture,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000011"),
-                GroupId = group32.Id, TeacherId = teacher4.Id,
-                Subject = "Компьютерные сети", Room = "315",
-                DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(10, 15, 0), EndTime = new TimeSpan(11, 45, 0),
+                GroupId = group32.Id,
+                TeacherId = teacher4.Id,
+                Subject = "Компьютерные сети",
+                Room = "315",
+                DayOfWeek = DayOfWeek.Tuesday,
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(11, 45, 0),
                 LessonType = LessonType.Lab,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000012"),
-                GroupId = group32.Id, TeacherId = teacher5.Id,
-                Subject = "Физическая культура", Room = "Спортзал",
-                DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeSpan(10, 15, 0), EndTime = new TimeSpan(11, 45, 0),
+                GroupId = group32.Id,
+                TeacherId = teacher5.Id,
+                Subject = "Физическая культура",
+                Room = "Спортзал",
+                DayOfWeek = DayOfWeek.Wednesday,
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(11, 45, 0),
                 LessonType = LessonType.Practice,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000013"),
-                GroupId = group41.Id, TeacherId = teacher4.Id,
-                Subject = "Web-разработка", Room = "320",
-                DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(8, 30, 0), EndTime = new TimeSpan(10, 0, 0),
+                GroupId = group41.Id,
+                TeacherId = teacher4.Id,
+                Subject = "Web-разработка",
+                Room = "320",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
                 LessonType = LessonType.Lecture,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000014"),
-                GroupId = group41.Id, TeacherId = teacher4.Id,
-                Subject = "Web-разработка", Room = "320",
-                DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(10, 15, 0), EndTime = new TimeSpan(11, 45, 0),
+                GroupId = group41.Id,
+                TeacherId = teacher4.Id,
+                Subject = "Web-разработка",
+                Room = "320",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(11, 45, 0),
                 LessonType = LessonType.Lab,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000015"),
-                GroupId = group41.Id, TeacherId = teacher2.Id,
-                Subject = "Операционные системы", Room = "305",
-                DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeSpan(8, 30, 0), EndTime = new TimeSpan(10, 0, 0),
+                GroupId = group41.Id,
+                TeacherId = teacher2.Id,
+                Subject = "Операционные системы",
+                Room = "305",
+                DayOfWeek = DayOfWeek.Wednesday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
                 LessonType = LessonType.Lecture,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000016"),
-                GroupId = group41.Id, TeacherId = teacher2.Id,
-                Subject = "Операционные системы", Room = "305",
-                DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeSpan(10, 15, 0), EndTime = new TimeSpan(11, 45, 0),
+                GroupId = group41.Id,
+                TeacherId = teacher2.Id,
+                Subject = "Операционные системы",
+                Room = "305",
+                DayOfWeek = DayOfWeek.Wednesday,
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(11, 45, 0),
                 LessonType = LessonType.Lab,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000017"),
-                GroupId = group11.Id, TeacherId = teacher4.Id,
-                Subject = "Информатика", Room = "101",
-                DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(8, 30, 0), EndTime = new TimeSpan(10, 0, 0),
+                GroupId = group11.Id,
+                TeacherId = teacher4.Id,
+                Subject = "Информатика",
+                Room = "101",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
                 LessonType = LessonType.Lecture,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000018"),
-                GroupId = group11.Id, TeacherId = teacher4.Id,
-                Subject = "Информатика", Room = "101",
-                DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(10, 15, 0), EndTime = new TimeSpan(11, 45, 0),
+                GroupId = group11.Id,
+                TeacherId = teacher4.Id,
+                Subject = "Информатика",
+                Room = "101",
+                DayOfWeek = DayOfWeek.Monday,
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(11, 45, 0),
                 LessonType = LessonType.Lab,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000019"),
-                GroupId = group11.Id, TeacherId = teacher5.Id,
-                Subject = "Физическая культура", Room = "Спортзал",
-                DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(10, 15, 0), EndTime = new TimeSpan(11, 45, 0),
+                GroupId = group11.Id,
+                TeacherId = teacher5.Id,
+                Subject = "Физическая культура",
+                Room = "Спортзал",
+                DayOfWeek = DayOfWeek.Tuesday,
+                StartTime = new TimeSpan(10, 15, 0),
+                EndTime = new TimeSpan(11, 45, 0),
                 LessonType = LessonType.Practice,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
                 Id = Guid.Parse("f1000000-0000-0000-0000-000000000020"),
-                GroupId = group11.Id, TeacherId = teacher3.Id,
-                Subject = "Английский язык", Room = "110",
-                DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeSpan(8, 30, 0), EndTime = new TimeSpan(10, 0, 0),
+                GroupId = group11.Id,
+                TeacherId = teacher3.Id,
+                Subject = "Английский язык",
+                Room = "110",
+                DayOfWeek = DayOfWeek.Thursday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
                 LessonType = LessonType.Practice,
-                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             },
         };
         db.ScheduleEntries.AddRange(entries);
@@ -1402,9 +1536,10 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-000000000001"),
                 Title = "Начало учебного года 2026-2027",
                 Slug = "nachalo-uchebnogo-goda-2026-2027",
-                Content = "Уважаемые студенты и преподаватели! Поздравляем вас с началом нового учебного года. " +
-                    "Торжественная линейка состоится 1 сентября в 10:00 в актовом зале. Расписание занятий " +
-                    "будет опубликовано на сайте до 28 августа.",
+                Content =
+                    "Уважаемые студенты и преподаватели! Поздравляем вас с началом нового учебного года. "
+                    + "Торжественная линейка состоится 1 сентября в 10:00 в актовом зале. Расписание занятий "
+                    + "будет опубликовано на сайте до 28 августа.",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-10),
                 CreatedById = admin.Id,
@@ -1416,9 +1551,10 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-000000000002"),
                 Title = "День открытых дверей",
                 Slug = "den-otkrytyh-dverej",
-                Content = "Приглашаем абитуриентов и их родителей на День открытых дверей. " +
-                    "В программе: презентация специальностей, экскурсия по колледжу, мастер-классы. " +
-                    "Ждём вас 15 октября в 11:00 в главном корпусе.",
+                Content =
+                    "Приглашаем абитуриентов и их родителей на День открытых дверей. "
+                    + "В программе: презентация специальностей, экскурсия по колледжу, мастер-классы. "
+                    + "Ждём вас 15 октября в 11:00 в главном корпусе.",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-5),
                 CreatedById = admin.Id,
@@ -1430,8 +1566,9 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-000000000003"),
                 Title = "Победа в хакатоне «Цифровой прорыв»",
                 Slug = "pobeda-v-hakatone-cifrovoj-proryv",
-                Content = "Студенты группы ИСП-41 заняли I место в региональном хакатоне «Цифровой прорыв»! " +
-                    "Команда разработала сервис для мониторинга экологической обстановки. Поздравляем!",
+                Content =
+                    "Студенты группы ИСП-41 заняли I место в региональном хакатоне «Цифровой прорыв»! "
+                    + "Команда разработала сервис для мониторинга экологической обстановки. Поздравляем!",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-3),
                 CreatedById = admin.Id,
@@ -1443,9 +1580,10 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-000000000004"),
                 Title = "Изменение в расписании",
                 Slug = "izmenenie-v-raspisanii",
-                Content = "Уважаемые студенты! Обратите внимание на изменения в расписании на следующую неделю. " +
-                    "Занятия по математике в группе ИСП-31 переносятся со вторника на среду. " +
-                    "Актуальное расписание доступно в разделе «Расписание».",
+                Content =
+                    "Уважаемые студенты! Обратите внимание на изменения в расписании на следующую неделю. "
+                    + "Занятия по математике в группе ИСП-31 переносятся со вторника на среду. "
+                    + "Актуальное расписание доступно в разделе «Расписание».",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-1),
                 CreatedById = admin.Id,
@@ -1457,9 +1595,10 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-000000000005"),
                 Title = "Конкурс «Лучший студент года»",
                 Slug = "konkurs-luchshij-student-goda",
-                Content = "Объявляется приём заявок на ежегодный конкурс «Лучший студент года». " +
-                    "К участию приглашаются студенты всех курсов. Заявки принимаются до 1 ноября. " +
-                    "Подробности в студенческом отделе (кабинет 201).",
+                Content =
+                    "Объявляется приём заявок на ежегодный конкурс «Лучший студент года». "
+                    + "К участию приглашаются студенты всех курсов. Заявки принимаются до 1 ноября. "
+                    + "Подробности в студенческом отделе (кабинет 201).",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow,
                 CreatedById = admin.Id,
@@ -1471,9 +1610,10 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-000000000006"),
                 Title = "Спартакиада колледжа 2026",
                 Slug = "spartakiada-kolledzha-2026",
-                Content = "С 20 по 30 ноября пройдёт ежегодная спартакиада колледжа. " +
-                    "Соревнования по футболу, волейболу, баскетболу и лёгкой атлетике. " +
-                    "Приглашаются все желающие. Заявки от групп принимаются в спортклубе до 15 ноября.",
+                Content =
+                    "С 20 по 30 ноября пройдёт ежегодная спартакиада колледжа. "
+                    + "Соревнования по футболу, волейболу, баскетболу и лёгкой атлетике. "
+                    + "Приглашаются все желающие. Заявки от групп принимаются в спортклубе до 15 ноября.",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(1),
                 CreatedById = admin.Id,
@@ -1485,9 +1625,10 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-000000000007"),
                 Title = "Вечер поэзии «Осенний ритм»",
                 Slug = "vecher-poezii-osenij-ritm",
-                Content = "Литературный клуб приглашает на вечер поэзии «Осенний ритм». " +
-                    "В программе: чтение стихов классиков и современных авторов, музыкальные номера. " +
-                    "Мероприятие пройдёт 25 октября в актовом зале. Начало в 17:00.",
+                Content =
+                    "Литературный клуб приглашает на вечер поэзии «Осенний ритм». "
+                    + "В программе: чтение стихов классиков и современных авторов, музыкальные номера. "
+                    + "Мероприятие пройдёт 25 октября в актовом зале. Начало в 17:00.",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(2),
                 CreatedById = admin.Id,
@@ -1499,9 +1640,10 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-000000000008"),
                 Title = "Научно-практическая конференция",
                 Slug = "nauchno-prakticheskaya-konferenciya",
-                Content = "Приглашаем студентов принять участие в ежегодной научно-практической конференции. " +
-                    "Тематика: информационные технологии, математика, экономика. " +
-                    "Приём тезисов до 1 декабря. Лучшие работы будут опубликованы в сборнике.",
+                Content =
+                    "Приглашаем студентов принять участие в ежегодной научно-практической конференции. "
+                    + "Тематика: информационные технологии, математика, экономика. "
+                    + "Приём тезисов до 1 декабря. Лучшие работы будут опубликованы в сборнике.",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(3),
                 CreatedById = admin.Id,
@@ -1513,9 +1655,10 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-000000000009"),
                 Title = "Стажировка в IT-компаниях",
                 Slug = "stazhirovka-v-it-kompaniyah",
-                Content = "Центр карьеры приглашает студентов 3-4 курсов на стажировку в IT-компании города. " +
-                    "Доступны направления: разработка, тестирование, DevOps, аналитика. " +
-                    "Подробности и регистрация в кабинете 305 до 10 декабря.",
+                Content =
+                    "Центр карьеры приглашает студентов 3-4 курсов на стажировку в IT-компании города. "
+                    + "Доступны направления: разработка, тестирование, DevOps, аналитика. "
+                    + "Подробности и регистрация в кабинете 305 до 10 декабря.",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(4),
                 CreatedById = admin.Id,
@@ -1527,9 +1670,10 @@ public static class DataSeeder
                 Id = Guid.Parse("f3000000-0000-0000-0000-00000000000a"),
                 Title = "Работа студенческого совета в новом семестре",
                 Slug = "rabota-studencheskogo-soveta",
-                Content = "Состоялось первое заседание студенческого совета в новом семестре. " +
-                    "Избраны председатели комитетов, утверждён план мероприятий на семестр. " +
-                    "Следующее собрание — 15 ноября в 15:00 в кабинете 410.",
+                Content =
+                    "Состоялось первое заседание студенческого совета в новом семестре. "
+                    + "Избраны председатели комитетов, утверждён план мероприятий на семестр. "
+                    + "Следующее собрание — 15 ноября в 15:00 в кабинете 410.",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(5),
                 CreatedById = admin.Id,
@@ -1539,15 +1683,21 @@ public static class DataSeeder
         };
 
         // Assign categories
-        var catAnnouncements = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == "announcements");
+        var catAnnouncements = await db.NewsCategories.FirstOrDefaultAsync(c =>
+            c.Slug == "announcements"
+        );
         var catEvents = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == "events");
-        var catAchievements = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == "achievements");
+        var catAchievements = await db.NewsCategories.FirstOrDefaultAsync(c =>
+            c.Slug == "achievements"
+        );
         var catImportant = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == "important");
         var catSport = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == "sport");
         var catCulture = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == "culture");
         var catScience = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == "science");
         var catJobs = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == "jobs");
-        var catStudentCouncil = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == "student-council");
+        var catStudentCouncil = await db.NewsCategories.FirstOrDefaultAsync(c =>
+            c.Slug == "student-council"
+        );
 
         newsList[0].CategoryId = catImportant?.Id;
         newsList[1].CategoryId = catEvents?.Id;
@@ -1583,18 +1733,24 @@ public static class DataSeeder
             var student = students[i % students.Count];
             int? score = i % 3 == 0 ? null : Random.Shared.Next(5, assignment.MaxScore + 1);
 
-            submissions.Add(new AssignmentSubmission
-            {
-                Id = Guid.Parse($"e2000000-0000-0000-0000-00000000000{i + 1:x}"),
-                AssignmentId = assignment.Id,
-                StudentId = student.Id,
-                FilePath = $"/uploads/assignments/{assignment.Id}/{student.Id}/submission_{i + 1}.pdf",
-                Comment = score == null ? null : $"Работа сдана вовремя. Оценка: {score}/{assignment.MaxScore}",
-                Score = score,
-                SubmittedAt = DateTime.UtcNow.AddDays(-7 + i),
-                CreatedAt = DateTime.UtcNow.AddDays(-7 + i),
-                UpdatedAt = DateTime.UtcNow.AddDays(-7 + i),
-            });
+            submissions.Add(
+                new AssignmentSubmission
+                {
+                    Id = Guid.Parse($"e2000000-0000-0000-0000-00000000000{i + 1:x}"),
+                    AssignmentId = assignment.Id,
+                    StudentId = student.Id,
+                    FilePath =
+                        $"/uploads/assignments/{assignment.Id}/{student.Id}/submission_{i + 1}.pdf",
+                    Comment =
+                        score == null
+                            ? null
+                            : $"Работа сдана вовремя. Оценка: {score}/{assignment.MaxScore}",
+                    Score = score,
+                    SubmittedAt = DateTime.UtcNow.AddDays(-7 + i),
+                    CreatedAt = DateTime.UtcNow.AddDays(-7 + i),
+                    UpdatedAt = DateTime.UtcNow.AddDays(-7 + i),
+                }
+            );
         }
 
         db.AssignmentSubmissions.AddRange(submissions);
@@ -1630,7 +1786,8 @@ public static class DataSeeder
                 FileName = "Лекция 2. Типы данных.pptx",
                 FilePath = "/uploads/materials/csharp/lecture2.pptx",
                 FileSize = 3_120_000,
-                MimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                MimeType =
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             },
@@ -1641,7 +1798,8 @@ public static class DataSeeder
                 FileName = "Практическое задание 1.docx",
                 FilePath = "/uploads/materials/csharp/practice1.docx",
                 FileSize = 890_000,
-                MimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                MimeType =
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             },
@@ -1740,7 +1898,8 @@ public static class DataSeeder
                 Id = Guid.Parse("f4000000-0000-0000-0000-000000000001"),
                 Name = "Иванов Иван",
                 Email = "ivanov@example.com",
-                Message = "Отличный сайт! Очень удобно смотреть расписание онлайн. Спасибо разработчикам.",
+                Message =
+                    "Отличный сайт! Очень удобно смотреть расписание онлайн. Спасибо разработчикам.",
                 CreatedAt = DateTime.UtcNow.AddDays(-30),
                 UpdatedAt = DateTime.UtcNow.AddDays(-30),
             },
@@ -1749,7 +1908,8 @@ public static class DataSeeder
                 Id = Guid.Parse("f4000000-0000-0000-0000-000000000002"),
                 Name = "Петрова Анна",
                 Email = "petrova@example.com",
-                Message = "Хотелось бы видеть больше информации о предстоящих мероприятиях. А так всё нравится.",
+                Message =
+                    "Хотелось бы видеть больше информации о предстоящих мероприятиях. А так всё нравится.",
                 CreatedAt = DateTime.UtcNow.AddDays(-25),
                 UpdatedAt = DateTime.UtcNow.AddDays(-25),
             },
@@ -1767,7 +1927,8 @@ public static class DataSeeder
                 Id = Guid.Parse("f4000000-0000-0000-0000-000000000004"),
                 Name = "Кузнецова Елена",
                 Email = "kuznetsova@example.com",
-                Message = "Очень удобно, что можно смотреть оценки в личном кабинете. Ребёнок доволен.",
+                Message =
+                    "Очень удобно, что можно смотреть оценки в личном кабинете. Ребёнок доволен.",
                 CreatedAt = DateTime.UtcNow.AddDays(-15),
                 UpdatedAt = DateTime.UtcNow.AddDays(-15),
             },
@@ -1785,7 +1946,8 @@ public static class DataSeeder
                 Id = Guid.Parse("f4000000-0000-0000-0000-000000000006"),
                 Name = "Алексеева София",
                 Email = "alekseeva@example.com",
-                Message = "Спасибо за возможность быстрой связи с преподавателем через платформу. Очень удобно!",
+                Message =
+                    "Спасибо за возможность быстрой связи с преподавателем через платформу. Очень удобно!",
                 CreatedAt = DateTime.UtcNow.AddDays(-8),
                 UpdatedAt = DateTime.UtcNow.AddDays(-8),
             },
@@ -1794,7 +1956,8 @@ public static class DataSeeder
                 Id = Guid.Parse("f4000000-0000-0000-0000-000000000007"),
                 Name = "Григорьев Максим",
                 Email = "grigoriev@example.com",
-                Message = "Когда появится мобильное приложение? Было бы удобно смотреть расписание с телефона.",
+                Message =
+                    "Когда появится мобильное приложение? Было бы удобно смотреть расписание с телефона.",
                 CreatedAt = DateTime.UtcNow.AddDays(-5),
                 UpdatedAt = DateTime.UtcNow.AddDays(-5),
             },
@@ -1803,7 +1966,8 @@ public static class DataSeeder
                 Id = Guid.Parse("f4000000-0000-0000-0000-000000000008"),
                 Name = "Белова Татьяна",
                 Email = "belova@example.com",
-                Message = "Отличный портал! Всё интуитивно понятно. Особенно нравится раздел с новостями.",
+                Message =
+                    "Отличный портал! Всё интуитивно понятно. Особенно нравится раздел с новостями.",
                 CreatedAt = DateTime.UtcNow.AddDays(-3),
                 UpdatedAt = DateTime.UtcNow.AddDays(-3),
             },
@@ -1812,7 +1976,8 @@ public static class DataSeeder
                 Id = Guid.Parse("f4000000-0000-0000-0000-000000000009"),
                 Name = "Волков Андрей",
                 Email = "volkov@example.com",
-                Message = "Не хватает календаря событий. Было бы удобно видеть все мероприятия в календаре.",
+                Message =
+                    "Не хватает календаря событий. Было бы удобно видеть все мероприятия в календаре.",
                 CreatedAt = DateTime.UtcNow.AddDays(-1),
                 UpdatedAt = DateTime.UtcNow.AddDays(-1),
             },

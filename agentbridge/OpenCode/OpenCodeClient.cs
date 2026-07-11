@@ -11,7 +11,7 @@ public class OpenCodeClient
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
     };
 
     public OpenCodeClient(HttpClient http, ILogger<OpenCodeClient> logger)
@@ -25,7 +25,8 @@ public class OpenCodeClient
         try
         {
             var resp = await _http.GetAsync("/global/health", ct);
-            if (!resp.IsSuccessStatusCode) return false;
+            if (!resp.IsSuccessStatusCode)
+                return false;
             var health = await resp.Content.ReadFromJsonAsync<HealthResponse>(JsonOpts, ct);
             return health?.Healthy == true;
         }
@@ -47,12 +48,11 @@ public class OpenCodeClient
         string sessionId,
         string prompt,
         string? model = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var parts = new[] { new { type = "text", text = prompt } };
-        object body = model is not null
-            ? new { parts, model = ParseModel(model) }
-            : new { parts };
+        object body = model is not null ? new { parts, model = ParseModel(model) } : new { parts };
 
         var resp = await _http.PostAsJsonAsync($"/session/{sessionId}/message", body, JsonOpts, ct);
         resp.EnsureSuccessStatusCode();
@@ -63,14 +63,18 @@ public class OpenCodeClient
         string sessionId,
         string prompt,
         string? model = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var parts = new[] { new { type = "text", text = prompt } };
-        object body = model is not null
-            ? new { parts, model = ParseModel(model) }
-            : new { parts };
+        object body = model is not null ? new { parts, model = ParseModel(model) } : new { parts };
 
-        var resp = await _http.PostAsJsonAsync($"/session/{sessionId}/prompt_async", body, JsonOpts, ct);
+        var resp = await _http.PostAsJsonAsync(
+            $"/session/{sessionId}/prompt_async",
+            body,
+            JsonOpts,
+            ct
+        );
         resp.EnsureSuccessStatusCode();
     }
 
@@ -88,10 +92,13 @@ public class OpenCodeClient
         _logger.LogInformation("Abort session {SessionId}: {Status}", sessionId, resp.StatusCode);
     }
 
-    public async Task<List<SessionStatusResponse>?> GetSessionStatusAsync(CancellationToken ct = default)
+    public async Task<List<SessionStatusResponse>?> GetSessionStatusAsync(
+        CancellationToken ct = default
+    )
     {
         var resp = await _http.GetAsync("/session/status", ct);
-        if (!resp.IsSuccessStatusCode) return null;
+        if (!resp.IsSuccessStatusCode)
+            return null;
         return await resp.Content.ReadFromJsonAsync<List<SessionStatusResponse>>(JsonOpts, ct);
     }
 
@@ -100,38 +107,52 @@ public class OpenCodeClient
         string permissionId,
         bool allow,
         bool remember = false,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var body = new { response = allow ? "allow" : "deny", remember };
         var resp = await _http.PostAsJsonAsync(
-            $"/session/{sessionId}/permissions/{permissionId}", body, JsonOpts, ct);
-        _logger.LogInformation("Permission {PermissionId} → {Response} (status {Status})",
-            permissionId, allow ? "allow" : "deny", resp.StatusCode);
+            $"/session/{sessionId}/permissions/{permissionId}",
+            body,
+            JsonOpts,
+            ct
+        );
+        _logger.LogInformation(
+            "Permission {PermissionId} → {Response} (status {Status})",
+            permissionId,
+            allow ? "allow" : "deny",
+            resp.StatusCode
+        );
     }
 
     public async Task<MessageResponse?> GetMessageAsync(
         string sessionId,
         string messageId,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var resp = await _http.GetAsync($"/session/{sessionId}/message/{messageId}", ct);
-        if (!resp.IsSuccessStatusCode) return null;
+        if (!resp.IsSuccessStatusCode)
+            return null;
         return await resp.Content.ReadFromJsonAsync<MessageResponse>(JsonOpts, ct);
     }
 
     public async Task<List<MessageResponse>?> GetMessagesAsync(
         string sessionId,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var resp = await _http.GetAsync($"/session/{sessionId}/message", ct);
-        if (!resp.IsSuccessStatusCode) return null;
+        if (!resp.IsSuccessStatusCode)
+            return null;
         return await resp.Content.ReadFromJsonAsync<List<MessageResponse>>(JsonOpts, ct);
     }
 
     public async Task<ProviderResponse?> GetProvidersAsync(CancellationToken ct = default)
     {
         var resp = await _http.GetAsync("/provider", ct);
-        if (!resp.IsSuccessStatusCode) return null;
+        if (!resp.IsSuccessStatusCode)
+            return null;
         return await resp.Content.ReadFromJsonAsync<ProviderResponse>(JsonOpts, ct);
     }
 }
@@ -140,37 +161,46 @@ public class OpenCodeClient
 
 public record HealthResponse(
     [property: JsonPropertyName("healthy")] bool Healthy,
-    [property: JsonPropertyName("version")] string? Version);
+    [property: JsonPropertyName("version")] string? Version
+);
 
 public record SessionResponse(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("title")] string? Title);
+    [property: JsonPropertyName("title")] string? Title
+);
 
 public record MessageResponse(
     [property: JsonPropertyName("info")] MessageInfo Info,
-    [property: JsonPropertyName("parts")] List<MessagePart> Parts);
+    [property: JsonPropertyName("parts")] List<MessagePart> Parts
+);
 
 public record MessageInfo(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("role")] string Role);
+    [property: JsonPropertyName("role")] string Role
+);
 
 public record MessagePart(
     [property: JsonPropertyName("type")] string Type,
-    [property: JsonPropertyName("text")] string? Text);
+    [property: JsonPropertyName("text")] string? Text
+);
 
 public record SessionStatusResponse(
     [property: JsonPropertyName("sessionID")] string SessionId,
-    [property: JsonPropertyName("status")] string Status);
+    [property: JsonPropertyName("status")] string Status
+);
 
 public record ProviderResponse(
     [property: JsonPropertyName("all")] List<ProviderInfo> Providers,
-    [property: JsonPropertyName("connected")] List<string> Connected);
+    [property: JsonPropertyName("connected")] List<string> Connected
+);
 
 public record ProviderInfo(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("models")] Dictionary<string, ModelInfo> Models);
+    [property: JsonPropertyName("models")] Dictionary<string, ModelInfo> Models
+);
 
 public record ModelInfo(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("name")] string? Name);
+    [property: JsonPropertyName("name")] string? Name
+);

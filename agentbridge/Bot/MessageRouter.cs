@@ -22,7 +22,8 @@ public class MessageRouter
         OpenCodeClient openCode,
         AgentTaskQueue queue,
         IConfiguration config,
-        ILogger<MessageRouter> logger)
+        ILogger<MessageRouter> logger
+    )
     {
         _openCode = openCode;
         _queue = queue;
@@ -30,7 +31,12 @@ public class MessageRouter
         _defaultModel = config["OpenCode:DefaultModel"] ?? "opencode/deepseek-v4-flash-free";
     }
 
-    public async Task<string> HandleCommandAsync(string command, long chatId, string messenger, string? model = null)
+    public async Task<string> HandleCommandAsync(
+        string command,
+        long chatId,
+        string messenger,
+        string? model = null
+    )
     {
         var lower = command.ToLower();
 
@@ -59,9 +65,11 @@ public class MessageRouter
         }
 
         // Check if there's a task waiting for user reply in this chat
-        if (_chatActiveSession.TryGetValue(chatId, out var existingSessionId) &&
-            _activeTasks.TryGetValue(existingSessionId, out var existingTask) &&
-            existingTask.Status == AgentTaskStatus.WaitingForReply)
+        if (
+            _chatActiveSession.TryGetValue(chatId, out var existingSessionId)
+            && _activeTasks.TryGetValue(existingSessionId, out var existingTask)
+            && existingTask.Status == AgentTaskStatus.WaitingForReply
+        )
         {
             return await SendFollowUpAsync(existingSessionId, existingTask, command, model);
         }
@@ -69,7 +77,12 @@ public class MessageRouter
         return await CreateNewTaskAsync(command, chatId, messenger, model);
     }
 
-    private async Task<string> CreateNewTaskAsync(string prompt, long chatId, string messenger, string? model)
+    private async Task<string> CreateNewTaskAsync(
+        string prompt,
+        long chatId,
+        string messenger,
+        string? model
+    )
     {
         model ??= _chatModel.TryGetValue(chatId, out var cm) ? cm : _defaultModel;
         var task = _queue.Enqueue(prompt, chatId, messenger);
@@ -99,7 +112,12 @@ public class MessageRouter
         }
     }
 
-    private async Task<string> SendFollowUpAsync(string sessionId, AgentTask task, string message, string? model)
+    private async Task<string> SendFollowUpAsync(
+        string sessionId,
+        AgentTask task,
+        string message,
+        string? model
+    )
     {
         model ??= _chatModel.TryGetValue(task.ChatId, out var cm) ? cm : _defaultModel;
         task.Status = AgentTaskStatus.Running;
@@ -121,11 +139,14 @@ public class MessageRouter
 
     public async Task HandleSseEventAsync(SseEvent evt, ITelegramBotClient telegramBot)
     {
-        if (evt.Properties is not { } props) return;
+        if (evt.Properties is not { } props)
+            return;
 
         var sessionId = props.TryGetProperty("sessionID", out var sid) ? sid.GetString() : null;
-        if (sessionId is null) return;
-        if (!_activeTasks.ContainsKey(sessionId)) return;
+        if (sessionId is null)
+            return;
+        if (!_activeTasks.ContainsKey(sessionId))
+            return;
 
         switch (evt.Type)
         {
@@ -146,32 +167,38 @@ public class MessageRouter
     private async Task HandlePartUpdatedAsync(
         System.Text.Json.JsonElement props,
         string sessionId,
-        ITelegramBotClient telegramBot)
+        ITelegramBotClient telegramBot
+    )
     {
-        if (!props.TryGetProperty("part", out var part)) return;
+        if (!props.TryGetProperty("part", out var part))
+            return;
         var partType = part.TryGetProperty("type", out var pt) ? pt.GetString() : null;
-        if (partType != "step-finish") return;
+        if (partType != "step-finish")
+            return;
         var reason = part.TryGetProperty("reason", out var r) ? r.GetString() : null;
-        if (reason != "stop") return;
+        if (reason != "stop")
+            return;
 
         await HandleStepFinishAsync(sessionId, telegramBot);
     }
 
     private async Task HandleStepFinishAsync(string sessionId, ITelegramBotClient telegramBot)
     {
-        if (!_activeTasks.TryGetValue(sessionId, out var task)) return;
+        if (!_activeTasks.TryGetValue(sessionId, out var task))
+            return;
 
         try
         {
             var messages = await _openCode.GetMessagesAsync(sessionId);
-            var lastAssistant = messages?
-                .Where(m => m.Info.Role == "assistant")
-                .LastOrDefault();
+            var lastAssistant = messages?.Where(m => m.Info.Role == "assistant").LastOrDefault();
 
             var text = lastAssistant is not null
-                ? string.Join("\n", lastAssistant.Parts
-                    .Where(p => p.Type == "text" && p.Text is not null)
-                    .Select(p => p.Text))
+                ? string.Join(
+                    "\n",
+                    lastAssistant
+                        .Parts.Where(p => p.Type == "text" && p.Text is not null)
+                        .Select(p => p.Text)
+                )
                 : null;
 
             // If there's a follow-up pending user reply, don't send anything yet
@@ -188,16 +215,22 @@ public class MessageRouter
             }
 
             // Normal completion
-            if (!_activeTasks.TryRemove(sessionId, out _)) return;
+            if (!_activeTasks.TryRemove(sessionId, out _))
+                return;
             task.Status = AgentTaskStatus.Completed;
             CleanupChat(task.ChatId, sessionId);
 
-            await SendLongMessageAsync(telegramBot, task.ChatId, text ?? "✅ Агент завершил задачу.");
+            await SendLongMessageAsync(
+                telegramBot,
+                task.ChatId,
+                text ?? "✅ Агент завершил задачу."
+            );
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get completion result");
-            if (!_activeTasks.TryRemove(sessionId, out _)) return;
+            if (!_activeTasks.TryRemove(sessionId, out _))
+                return;
             task.Status = AgentTaskStatus.Failed;
             task.ErrorMessage = ex.Message;
             CleanupChat(task.ChatId, sessionId);
@@ -208,15 +241,20 @@ public class MessageRouter
     private async Task HandleSessionStatusAsync(
         System.Text.Json.JsonElement props,
         string sessionId,
-        ITelegramBotClient telegramBot)
+        ITelegramBotClient telegramBot
+    )
     {
-        if (!props.TryGetProperty("status", out var status)) return;
+        if (!props.TryGetProperty("status", out var status))
+            return;
         var type = status.TryGetProperty("type", out var t) ? t.GetString() : null;
 
         if (type == "retry")
         {
-            var message = status.TryGetProperty("message", out var m) ? m.GetString() : "Unknown error";
-            if (!_activeTasks.TryRemove(sessionId, out var task)) return;
+            var message = status.TryGetProperty("message", out var m)
+                ? m.GetString()
+                : "Unknown error";
+            if (!_activeTasks.TryRemove(sessionId, out var task))
+                return;
             task.Status = AgentTaskStatus.Failed;
             task.ErrorMessage = message;
             CleanupChat(task.ChatId, sessionId);
@@ -227,21 +265,30 @@ public class MessageRouter
     private async Task HandlePermissionRequestAsync(
         System.Text.Json.JsonElement props,
         string sessionId,
-        ITelegramBotClient telegramBot)
+        ITelegramBotClient telegramBot
+    )
     {
-        var permissionId = props.TryGetProperty("permissionID", out var pid) ? pid.GetString() : null;
-        var toolName = props.TryGetProperty("tool", out var tool) ? tool.GetString() ?? "unknown" : "unknown";
-        var description = props.TryGetProperty("description", out var desc) ? desc.GetString() ?? "" : "";
+        var permissionId = props.TryGetProperty("permissionID", out var pid)
+            ? pid.GetString()
+            : null;
+        var toolName = props.TryGetProperty("tool", out var tool)
+            ? tool.GetString() ?? "unknown"
+            : "unknown";
+        var description = props.TryGetProperty("description", out var desc)
+            ? desc.GetString() ?? ""
+            : "";
 
-        if (permissionId is null) return;
-        if (!_activeTasks.TryGetValue(sessionId, out var task)) return;
+        if (permissionId is null)
+            return;
+        if (!_activeTasks.TryGetValue(sessionId, out var task))
+            return;
 
         var pending = new PendingPermission
         {
             PermissionId = permissionId,
             SessionId = sessionId,
             ToolName = toolName,
-            Description = description
+            Description = description,
         };
         task.CurrentPermission = pending;
         task.Status = AgentTaskStatus.WaitingPermission;
@@ -251,18 +298,18 @@ public class MessageRouter
         var keyboard = new InlineKeyboardMarkup([
             [
                 InlineKeyboardButton.WithCallbackData("✅ Разрешить", $"allow:{permissionId}"),
-                InlineKeyboardButton.WithCallbackData("❌ Отказать", $"deny:{permissionId}")
-            ]
+                InlineKeyboardButton.WithCallbackData("❌ Отказать", $"deny:{permissionId}"),
+            ],
         ]);
         await telegramBot.SendMessage(task.ChatId, msg, replyMarkup: keyboard);
     }
 
     public async Task HandlePermissionResponseAsync(string permissionId, bool allow)
     {
-        if (!_pendingPermissions.TryRemove(permissionId, out var pending)) return;
+        if (!_pendingPermissions.TryRemove(permissionId, out var pending))
+            return;
 
-        await _openCode.RespondToPermissionAsync(
-            pending.SessionId, permissionId, allow);
+        await _openCode.RespondToPermissionAsync(pending.SessionId, permissionId, allow);
 
         if (_activeTasks.TryGetValue(pending.SessionId, out var task))
         {
@@ -277,8 +324,12 @@ public class MessageRouter
     {
         var healthy = await _openCode.IsHealthyAsync();
         var activeCount = _activeTasks.Count;
-        var waitingReplies = _activeTasks.Values.Count(t => t.Status == AgentTaskStatus.WaitingForReply);
-        var waitingPerms = _activeTasks.Values.Count(t => t.Status == AgentTaskStatus.WaitingPermission);
+        var waitingReplies = _activeTasks.Values.Count(t =>
+            t.Status == AgentTaskStatus.WaitingForReply
+        );
+        var waitingPerms = _activeTasks.Values.Count(t =>
+            t.Status == AgentTaskStatus.WaitingPermission
+        );
 
         return $"🤖 OpenCode: {(healthy ? "✅ онлайн" : "❌ офлайн")}\n"
             + $"Активных задач: {activeCount}\n"
@@ -288,13 +339,20 @@ public class MessageRouter
 
     private async Task<string> CancelAsync(long chatId)
     {
-        if (!_chatActiveSession.TryGetValue(chatId, out var sessionId) ||
-            !_activeTasks.TryGetValue(sessionId, out var task))
+        if (
+            !_chatActiveSession.TryGetValue(chatId, out var sessionId)
+            || !_activeTasks.TryGetValue(sessionId, out var task)
+        )
         {
             return "Нет активных задач для отмены.";
         }
 
-        if (task.Status is AgentTaskStatus.Completed or AgentTaskStatus.Failed or AgentTaskStatus.Cancelled)
+        if (
+            task.Status
+            is AgentTaskStatus.Completed
+                or AgentTaskStatus.Failed
+                or AgentTaskStatus.Cancelled
+        )
             return "Задача уже завершена.";
 
         try
@@ -325,7 +383,8 @@ public class MessageRouter
             foreach (var provider in providers.Providers)
             {
                 var modelIds = provider.Models?.Keys.ToList();
-                if (modelIds is null || modelIds.Count == 0) continue;
+                if (modelIds is null || modelIds.Count == 0)
+                    continue;
 
                 var connected = providers.Connected?.Contains(provider.Id) == true ? "✅" : "⛔";
                 lines.Add($"{connected} {provider.Name} ({provider.Id})");
@@ -355,7 +414,11 @@ public class MessageRouter
 
     private void CleanupChat(long chatId, string? sessionId)
     {
-        if (sessionId is not null && _chatActiveSession.TryGetValue(chatId, out var active) && active == sessionId)
+        if (
+            sessionId is not null
+            && _chatActiveSession.TryGetValue(chatId, out var active)
+            && active == sessionId
+        )
             _chatActiveSession.TryRemove(chatId, out _);
     }
 
