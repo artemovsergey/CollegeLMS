@@ -135,4 +135,21 @@ jobs:
 
             docker compose up --build -d
             docker compose exec -T api dotnet ef database update -- --provider Npgsql 2>/dev/null || echo "Migration skipped"
+
+            # Import WordPress news data (idempotent — skips duplicates by slug)
+            echo "=== Importing WordPress news ==="
+            sleep 5
+            TOKEN=$(curl -s -X POST http://localhost:5026/api/auth/login \
+              -H "Content-Type: application/json" \
+              -d '{"email":"admin@collegelms.ru","password":"admin"}' \
+              | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['token'])" 2>/dev/null || echo "")
+            if [ -n "$TOKEN" ]; then
+              curl -s -X POST "http://localhost:5026/api/import/wordpress?path=/import/wp_data_full.json" \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                | python3 -m json.tool || echo "Import failed or already done"
+            else
+              echo "Skipping import — could not get admin token"
+            fi
+
             docker image prune -f

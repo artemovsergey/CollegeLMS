@@ -13,7 +13,8 @@ CMD ["npm", "run", "dev"]
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN --mount=type=cache,id=npm,sharing=locked,target=/root/.npm \
+    npm ci
 
 FROM base AS builder
 ARG NEXT_PUBLIC_API_URL

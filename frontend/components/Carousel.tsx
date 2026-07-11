@@ -17,11 +17,11 @@ export default function Carousel() {
 
   useEffect(() => {
     api
-      .get<Result<PagedResponse<NewsResponse>>>("/api/news?page=1&pageSize=10")
+      .get<Result<PagedResponse<NewsResponse>>>("/api/news?page=1&pageSize=50")
       .then((res) => {
         const body = res.data
         if (body.isSuccess && body.data) {
-          setSlides(body.data.items.slice(0, 5))
+          setSlides(body.data.items.filter((n) => n.imageUrl).slice(0, 5))
         }
       })
       .catch(() => setError("Не удалось загрузить"))
