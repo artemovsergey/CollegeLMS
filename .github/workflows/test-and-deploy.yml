@@ -138,6 +138,9 @@ jobs:
             # Sync DB password — volume may have old password from first deploy
             docker compose exec -T db psql -U postgres -c "ALTER USER postgres PASSWORD '${DB_PASSWORD}';" 2>/dev/null || echo "Password already correct"
 
+            # Force restart API to clear Docker restart backoff from repeated crashes
+            docker compose restart api 2>/dev/null || true
+
             docker compose exec -T api dotnet ef database update -- --provider Npgsql 2>/dev/null || echo "Migration skipped"
 
             # Import WordPress news data (idempotent — skips duplicates by slug)
