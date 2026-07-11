@@ -7,19 +7,7 @@ import { useAuth } from "@/lib/auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
-const roleLabels: Record<string, string> = {
-  Admin: "Админ",
-  Teacher: "Преподаватель",
-  Student: "Студент",
-  Dispatcher: "Диспетчер",
-}
-
-const roleVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  Admin: "default",
-  Teacher: "secondary",
-  Student: "secondary",
-  Dispatcher: "outline",
-}
+import { roleLabels, roleVariants } from "@/lib/constants"
 
 const navItems = [
   { href: "/admin", label: "Пользователи", roles: ["Admin"] },

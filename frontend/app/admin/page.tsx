@@ -9,6 +9,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,20 +40,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
-const roleLabels: Record<string, string> = {
-  Admin: "Админ",
-  Teacher: "Преподаватель",
-  Student: "Студент",
-  Dispatcher: "Диспетчер",
-}
-
-const roleVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  Admin: "default",
-  Teacher: "secondary",
-  Student: "secondary",
-  Dispatcher: "outline",
-}
+import { roleLabels, roleVariants } from "@/lib/constants"
+import LoadingSpinner from "@/components/LoadingSpinner"
+import ErrorBanner from "@/components/ErrorBanner"
 
 export default function UsersPage() {
   const { user } = useAuth()
@@ -61,6 +60,8 @@ export default function UsersPage() {
   const [formRole, setFormRole] = useState("Student")
   const [formError, setFormError] = useState<string | null>(null)
   const [formSubmitting, setFormSubmitting] = useState(false)
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const isAdmin = user?.role === "Admin"
 
@@ -146,13 +147,15 @@ export default function UsersPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Деактивировать пользователя?")) return
+  const handleDelete = async () => {
+    if (!deleteConfirmId) return
     try {
-      await api.delete(`/api/users/${id}`)
+      await api.delete(`/api/users/${deleteConfirmId}`)
       await fetchUsers()
     } catch {
       setError("Ошибка деактивации")
+    } finally {
+      setDeleteConfirmId(null)
     }
   }
 
@@ -180,11 +183,7 @@ export default function UsersPage() {
                 <DialogTitle>Создать пользователя</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreate} className="flex flex-col gap-4">
-                {formError && (
-                  <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                    {formError}
-                  </div>
-                )}
+                {formError && <ErrorBanner message={formError} />}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="create-email">Email</Label>
                   <Input id="create-email" type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)} />
@@ -220,14 +219,10 @@ export default function UsersPage() {
         )}
       </div>
 
-      {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+      {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <Loading />
+        <LoadingSpinner className="py-16" />
       ) : users.length === 0 ? (
         <p className="text-muted-foreground">Нет пользователей</p>
       ) : (
@@ -284,11 +279,7 @@ export default function UsersPage() {
                               <DialogTitle>Редактировать пользователя</DialogTitle>
                             </DialogHeader>
                             <form onSubmit={handleUpdate} className="flex flex-col gap-4">
-                              {formError && (
-                                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                                  {formError}
-                                </div>
-                              )}
+                              {formError && <ErrorBanner message={formError} />}
                               <div className="flex flex-col gap-2">
                                 <Label htmlFor="edit-email">Email</Label>
                                 <Input id="edit-email" type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)} />
@@ -318,7 +309,7 @@ export default function UsersPage() {
                           </DialogContent>
                         </Dialog>
                         {u.isActive && (
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(u.id)} className="text-destructive hover:text-destructive">
+                          <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(u.id)} className="text-destructive hover:text-destructive">
                             Деакт.
                           </Button>
                         )}
@@ -331,14 +322,23 @@ export default function UsersPage() {
           </Table>
         </div>
       )}
-    </div>
-  )
-}
 
-function Loading() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(o) => !o && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Деактивировать пользователя?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Пользователь потеряет доступ к системе. Это действие можно отменить через редактирование.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Деактивировать
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

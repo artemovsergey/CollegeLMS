@@ -1,6 +1,9 @@
 networks:
   collegelms-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
 
 volumes:
   postgres_data:
@@ -133,7 +136,7 @@ services:
       OpenCode__Password: ${OPENCODE_PASSWORD:-}
       OpenCode__DefaultModel: ${OPENCODE_DEFAULT_MODEL:-opencode/deepseek-v4-flash-free}
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:172.18.0.1"
       - "api.telegram.org:149.154.167.220"
     restart: unless-stopped
     networks:
