@@ -138,12 +138,20 @@ jobs:
 
             # Import WordPress news data (idempotent — skips duplicates by slug)
             echo "=== Importing WordPress news ==="
-            sleep 5
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost:5026/api/news/categories > /dev/null 2>&1; then
+                echo "API ready after ${i}s"
+                break
+              fi
+              echo "Waiting for API... ${i}s"
+              sleep 5
+            done
             TOKEN=$(curl -s -X POST http://localhost:5026/api/auth/login \
               -H "Content-Type: application/json" \
               -d '{"email":"admin@collegelms.ru","password":"admin"}' \
               | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['token'])" 2>/dev/null || echo "")
             if [ -n "$TOKEN" ]; then
+              echo "Importing WordPress posts..."
               curl -s -X POST "http://localhost:5026/api/import/wordpress?path=/import/wp_data_full.json" \
                 -H "Authorization: Bearer $TOKEN" \
                 -H "Content-Type: application/json" \
