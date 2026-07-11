@@ -108,27 +108,31 @@ jobs:
 
             git pull origin master
 
-            cat > .env << ENVEOF
-            DB_PORT=5432
-            DB_USER=postgres
-            DB_PASSWORD=$DB_PASSWORD
-            DB_NAME=collegelms
-            REDIS_PORT=6379
-            API_PORT=5026
-            ASPNETCORE_ENVIRONMENT=Production
-            NGINX_HTTP_PORT=80
-            NGINX_HTTPS_PORT=443
-            AGENTBRIDGE_PORT=5030
-            TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
-            TELEGRAM_ALLOWED_USER_ID=$TELEGRAM_ALLOWED_USER_ID
-            OPENCODE_SERVER_URL=http://host.docker.internal:4096
-            OPENCODE_USERNAME=opencode
-            OPENCODE_PASSWORD=
-            OPENCODE_DEFAULT_MODEL=opencode/deepseek-v4-flash-free
-            VK_ACCESS_TOKEN=
-            VK_GROUP_ID=0
-            VK_CONFIRMATION_CODE=
-            ENVEOF
+            # WARNING: bash heredoc corrupts passwords with $ and special chars
+            # Python writes .env safely — it reads env vars natively
+            python3 << 'PYEOF'
+import os
+with open('.env', 'w') as f:
+    f.write('DB_PORT=5432\n')
+    f.write('DB_USER=postgres\n')
+    f.write(f"DB_PASSWORD={os.environ.get('DB_PASSWORD', 'postgres')}\n")
+    f.write('DB_NAME=collegelms\n')
+    f.write('REDIS_PORT=6379\n')
+    f.write('API_PORT=5026\n')
+    f.write('ASPNETCORE_ENVIRONMENT=Production\n')
+    f.write('NGINX_HTTP_PORT=80\n')
+    f.write('NGINX_HTTPS_PORT=443\n')
+    f.write('AGENTBRIDGE_PORT=5030\n')
+    f.write(f"TELEGRAM_BOT_TOKEN={os.environ.get('TELEGRAM_BOT_TOKEN', '')}\n")
+    f.write(f"TELEGRAM_ALLOWED_USER_ID={os.environ.get('TELEGRAM_ALLOWED_USER_ID', '')}\n")
+    f.write('OPENCODE_SERVER_URL=http://host.docker.internal:4096\n')
+    f.write('OPENCODE_USERNAME=opencode\n')
+    f.write('OPENCODE_PASSWORD=\n')
+    f.write('OPENCODE_DEFAULT_MODEL=opencode/deepseek-v4-flash-free\n')
+    f.write('VK_ACCESS_TOKEN=\n')
+    f.write('VK_GROUP_ID=0\n')
+    f.write('VK_CONFIRMATION_CODE=\n')
+PYEOF
 
             # Ensure UFW allows internal bridge traffic to OpenCode
             ufw allow from 172.18.0.0/16 to any port 4096 proto tcp comment 'OpenCode agent bridge' 2>/dev/null || true
@@ -136,7 +140,19 @@ jobs:
             docker compose up --build -d
 
             # Sync DB password — volume may have old password from first deploy
-            docker compose exec -T db psql -U postgres -c "ALTER USER postgres PASSWORD '${DB_PASSWORD}';" 2>/dev/null || echo "Password already correct"
+            python3 << 'PYEOF'
+import os, subprocess
+pw = os.environ.get('DB_PASSWORD', 'postgres')
+pw_escaped = pw.replace("'", "''")
+r = subprocess.run([
+    'docker', 'compose', 'exec', '-T', 'db', 'psql', '-U', 'postgres',
+    '-c', f"ALTER USER postgres PASSWORD '{pw_escaped}';"
+], capture_output=True, text=True)
+if r.returncode == 0:
+    print("ALTER ROLE succeeded")
+else:
+    print(f"ALTER ROLE skipped: {r.stderr.strip()}")
+PYEOF
 
             # Force restart API to clear Docker restart backoff from repeated crashes
             docker compose kill api 2>/dev/null || true
