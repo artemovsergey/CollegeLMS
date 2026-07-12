@@ -160,7 +160,7 @@ jobs:
             sleep 5
 
             # Now build and start everything
-            docker compose up --build -d
+            docker compose up --build -d --force-recreate
 
             docker compose exec -T api dotnet ef database update -- --provider Npgsql 2>/dev/null || echo "Migration skipped"
 
