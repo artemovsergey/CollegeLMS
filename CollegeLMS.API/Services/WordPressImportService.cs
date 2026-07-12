@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CollegeLMS.API.Data;
+using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
@@ -191,6 +192,40 @@ public class WordPressImportService(AppDbContext db, ILogger<WordPressImportServ
             logger.LogError(ex, "Ошибка импорта WordPress");
             return Result<ImportResult>.Fail($"Ошибка импорта: {ex.Message}", 500);
         }
+    }
+
+    public string StartImport(Func<CancellationToken, Task> importAction)
+    {
+        var importId = Guid.NewGuid().ToString();
+        logger.LogInformation("Запущен импорт {ImportId}", importId);
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await importAction(CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Ошибка в фоновом импорте {ImportId}", importId);
+            }
+        });
+        return importId;
+    }
+
+    public ImportProgressDto? GetImportProgress(string importId)
+    {
+        return null;
+    }
+
+    public Task<Result<ImportResult>> ImportFromRestApiAsync(
+        string baseUrl,
+        CancellationToken ct
+    )
+    {
+        logger.LogInformation("REST API импорт из {BaseUrl} пока не реализован", baseUrl);
+        return Task.FromResult(
+            Result<ImportResult>.Fail("REST API импорт ещё не реализован", 501)
+        );
     }
 
     private static string SanitizeHtml(string input)
