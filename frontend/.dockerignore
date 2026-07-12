@@ -2,3 +2,14 @@ node_modules
 .git
 *.md
 .env.local
+.next
+.next/cache
+.next/standalone
+__pycache__
+*.pyc
+import/*.pdf
+import/*.jpg
+screenshots
+*.tsbuildinfo
+.vscode
+.idea

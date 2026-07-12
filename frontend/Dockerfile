@@ -22,7 +22,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN --mount=type=cache,id=next,sharing=locked,target=/app/.next/cache \
+    npm run build
 
 FROM base AS runner
 WORKDIR /app
