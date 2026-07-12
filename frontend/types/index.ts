@@ -219,3 +219,10 @@ export interface ImportProgressDto {
   errorMessages: string[]
   result: ImportResult | null
 }
+
+export interface SearchResult {
+  title: string
+  type: "news" | "page"
+  url: string
+  snippet: string
+}

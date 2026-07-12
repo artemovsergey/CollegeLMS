@@ -2,13 +2,23 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Menu, X } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Menu, X, Search } from "lucide-react"
 import ThemeToggle from "./ThemeToggle"
 import AccessibilityToggle from "./AccessibilityToggle"
 import { siteNavigation } from "@/data/site-content"
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const router = useRouter()
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background">
@@ -59,7 +69,19 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          <form onSubmit={handleSearch} className="hidden md:flex items-center">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск..."
+                className="h-9 w-48 rounded-md border border-border bg-background pl-8 pr-3 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
+              />
+            </div>
+          </form>
           <AccessibilityToggle />
           <ThemeToggle />
           <Link
@@ -80,6 +102,18 @@ export default function Header() {
 
       {mobileOpen && (
         <div className="lg:hidden border-t border-border bg-background px-4 pb-4 pt-2">
+          <form onSubmit={handleSearch} className="mb-3 md:hidden">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск..."
+                className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+              />
+            </div>
+          </form>
           <nav className="flex flex-col gap-1">
             {siteNavigation.map((section) => (
               <div key={section.slug}>

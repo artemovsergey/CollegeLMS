@@ -177,6 +177,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWordPressImportService, WordPressImportService>();
         services.AddScoped<IScheduleService, ScheduleService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
+        services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<ScheduleExportService>();
         services.AddScoped<ScheduleImportService>();
         services.AddFluentValidationAutoValidation();
