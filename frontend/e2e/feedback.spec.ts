@@ -89,7 +89,7 @@ test.describe("Admin feedback page (authenticated)", () => {
     await expect(page.getByRole("heading", { name: "Обратная связь" })).toBeVisible()
     await expect(page.getByText("Иван Иванов")).toBeVisible()
     await expect(page.getByText("Петр Петров")).toBeVisible()
-    await expect(page.getByText("2 сообщений")).toBeVisible()
+    await expect(page.getByText("2 сообщения")).toBeVisible()
   })
 
   test("shows empty state when no feedback", async ({ page }) => {

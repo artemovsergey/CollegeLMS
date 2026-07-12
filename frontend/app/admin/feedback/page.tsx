@@ -51,7 +51,7 @@ export default function AdminFeedbackPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Обратная связь</h2>
-        <Badge variant="secondary">{items.length} сообщений</Badge>
+        <Badge variant="secondary">{items.length} {items.length === 1 ? "сообщение" : (items.length >= 2 && items.length <= 4 ? "сообщения" : "сообщений")}</Badge>
       </div>
 
       {items.length === 0 ? (
