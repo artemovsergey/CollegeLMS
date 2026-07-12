@@ -13,10 +13,10 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
     {
         var user = await db
             .Users.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
+            .FirstOrDefaultAsync(u => u.Login == request.Login, ct);
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            return Result<LoginResponse>.Fail("Неверный email или пароль", 401);
+            return Result<LoginResponse>.Fail("Неверный логин или пароль", 401);
 
         if (!user.IsActive)
             return Result<LoginResponse>.Fail("Пользователь деактивирован", 403);

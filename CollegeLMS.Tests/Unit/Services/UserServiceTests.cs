@@ -73,6 +73,7 @@ public class UserServiceTests : IDisposable
     {
         var request = new CreateUserRequest
         {
+            Login = "newuser",
             Email = "new@test.ru",
             Password = "password123",
             FullName = "New User",
@@ -82,7 +83,8 @@ public class UserServiceTests : IDisposable
         var result = await _sut.CreateAsync(request, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.Email.Should().Be("new@test.ru");
+        result.Data!.Login.Should().Be("newuser");
+        result.Data.Email.Should().Be("new@test.ru");
         result.Data.FullName.Should().Be("New User");
         result.Data.IsActive.Should().BeTrue();
     }
@@ -96,6 +98,7 @@ public class UserServiceTests : IDisposable
 
         var request = new CreateUserRequest
         {
+            Login = existing.Login,
             Email = existing.Email,
             Password = "password123",
             FullName = "Another",
@@ -117,6 +120,7 @@ public class UserServiceTests : IDisposable
 
         var request = new UpdateUserRequest
         {
+            Login = "updateduser",
             Email = "updated@test.ru",
             FullName = "Updated Name",
             Role = UserRole.Teacher,
@@ -125,7 +129,7 @@ public class UserServiceTests : IDisposable
         var result = await _sut.UpdateAsync(user.Id, request, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.Email.Should().Be("updated@test.ru");
+        result.Data!.Login.Should().Be("updateduser");
         result.Data.FullName.Should().Be("Updated Name");
         result.Data.Role.Should().Be("Teacher");
     }
@@ -135,6 +139,7 @@ public class UserServiceTests : IDisposable
     {
         var request = new UpdateUserRequest
         {
+            Login = "anyuser",
             Email = "any@test.ru",
             FullName = "Any",
             Role = UserRole.Student,

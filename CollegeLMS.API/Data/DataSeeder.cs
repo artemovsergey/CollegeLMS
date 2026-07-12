@@ -310,7 +310,8 @@ public static class DataSeeder
 
         foreach (var user in users)
         {
-            if (!await db.Users.AnyAsync(u => u.Email == user.Email))
+            user.Login = user.Email.Split('@')[0];
+            if (!await db.Users.AnyAsync(u => u.Login == user.Login))
                 db.Users.Add(user);
         }
         await db.SaveChangesAsync();

@@ -54,6 +54,7 @@ export default function UsersPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
+  const [formLogin, setFormLogin] = useState("")
   const [formEmail, setFormEmail] = useState("")
   const [formPassword, setFormPassword] = useState("")
   const [formFullName, setFormFullName] = useState("")
@@ -88,6 +89,7 @@ export default function UsersPage() {
   }, [fetchUsers])
 
   const resetForm = () => {
+    setFormLogin("")
     setFormEmail("")
     setFormPassword("")
     setFormFullName("")
@@ -102,7 +104,7 @@ export default function UsersPage() {
     setFormError(null)
     setFormSubmitting(true)
     try {
-      const body: CreateUserRequest = { email: formEmail, password: formPassword, fullName: formFullName, role: formRole }
+      const body: CreateUserRequest = { login: formLogin, email: formEmail, password: formPassword, fullName: formFullName, role: formRole }
       const res = await api.post<Result<User>>("/api/users", body)
       if (res.data.isSuccess) {
         resetForm()
@@ -119,6 +121,7 @@ export default function UsersPage() {
 
   const startEdit = (u: User) => {
     setEditingId(u.id)
+    setFormLogin(u.login)
     setFormEmail(u.email)
     setFormFullName(u.fullName)
     setFormRole(u.role)
@@ -132,7 +135,7 @@ export default function UsersPage() {
     setFormError(null)
     setFormSubmitting(true)
     try {
-      const body: UpdateUserRequest = { email: formEmail, fullName: formFullName, role: formRole }
+      const body: UpdateUserRequest = { login: formLogin, email: formEmail, fullName: formFullName, role: formRole }
       const res = await api.put<Result<User>>(`/api/users/${editingId}`, body)
       if (res.data.isSuccess) {
         resetForm()
@@ -185,8 +188,12 @@ export default function UsersPage() {
               <form onSubmit={handleCreate} className="flex flex-col gap-4">
                 {formError && <ErrorBanner message={formError} />}
                 <div className="flex flex-col gap-2">
+                  <Label htmlFor="create-login">Логин</Label>
+                  <Input id="create-login" type="text" required value={formLogin} onChange={e => setFormLogin(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="create-email">Email</Label>
-                  <Input id="create-email" type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                  <Input id="create-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="create-password">Пароль</Label>
@@ -230,6 +237,7 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Логин</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>ФИО</TableHead>
                 <TableHead>Роль</TableHead>
@@ -240,7 +248,8 @@ export default function UsersPage() {
             <TableBody>
               {users.map(u => (
                 <TableRow key={u.id} className={!u.isActive ? "opacity-50" : ""}>
-                  <TableCell className="font-medium">{u.email}</TableCell>
+                  <TableCell className="font-medium">{u.login}</TableCell>
+                  <TableCell>{u.email}</TableCell>
                   <TableCell>{u.fullName}</TableCell>
                   <TableCell>
                     {isAdmin ? (
@@ -281,8 +290,12 @@ export default function UsersPage() {
                             <form onSubmit={handleUpdate} className="flex flex-col gap-4">
                               {formError && <ErrorBanner message={formError} />}
                               <div className="flex flex-col gap-2">
+                                <Label htmlFor="edit-login">Логин</Label>
+                                <Input id="edit-login" type="text" required value={formLogin} onChange={e => setFormLogin(e.target.value)} />
+                              </div>
+                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="edit-email">Email</Label>
-                                <Input id="edit-email" type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                                <Input id="edit-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
                               </div>
                               <div className="flex flex-col gap-2">
                                 <Label htmlFor="edit-name">ФИО</Label>

@@ -9,6 +9,7 @@ public static class UserFixture
     public static Faker<User> CreateFaker() =>
         new Faker<User>()
             .RuleFor(u => u.Id, f => f.Random.Guid())
+            .RuleFor(u => u.Login, f => f.Internet.UserName())
             .RuleFor(u => u.Email, f => f.Internet.Email())
             .RuleFor(u => u.FullName, f => f.Name.FullName())
             .RuleFor(u => u.PasswordHash, _ => BCrypt.Net.BCrypt.HashPassword("test123"))

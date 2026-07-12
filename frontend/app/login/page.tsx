@@ -26,18 +26,17 @@ import {
 import { UserRoundCog, UserRoundPen, UserRound, UserCog } from "lucide-react"
 
 const QUICK_LOGINS = [
-  { role: "Admin", email: "admin@collegelms.ru", password: "admin", label: "Администратор", icon: UserRoundCog },
-  { role: "Teacher", email: "teacher@collegelms.ru", password: "teacher", label: "Преподаватель", icon: UserRoundPen },
-  { role: "Student", email: "student@collegelms.ru", password: "student", label: "Студент", icon: UserRound },
-  { role: "Dispatcher", email: "dispatcher@collegelms.ru", password: "dispatcher", label: "Диспетчер", icon: UserCog },
+  { role: "Admin", login: "admin", password: "admin", label: "Администратор", icon: UserRoundCog },
+  { role: "Teacher", login: "teacher", password: "teacher", label: "Преподаватель", icon: UserRoundPen },
+  { role: "Student", login: "student", password: "student", label: "Студент", icon: UserRound },
+  { role: "Dispatcher", login: "dispatcher", password: "dispatcher", label: "Диспетчер", icon: UserCog },
 ]
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@collegelms.ru")
+  const [loginInput, setLoginInput] = useState("admin")
   const [password, setPassword] = useState("admin")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [quickRole, setQuickRole] = useState("")
   const { login } = useAuth()
   const router = useRouter()
 
@@ -47,7 +46,7 @@ export default function LoginPage() {
     setSubmitting(true)
 
     try {
-      const res = await api.post<Result<LoginResponse>>("/api/auth/login", { email, password })
+      const res = await api.post<Result<LoginResponse>>("/api/auth/login", { login: loginInput, password })
       const body = res.data
       if (body.isSuccess && body.data) {
         login(body.data.token, body.data.user)
@@ -64,7 +63,7 @@ export default function LoginPage() {
         setError(body.errorMessage ?? "Ошибка входа")
       }
     } catch {
-      setError("Неверный email или пароль")
+      setError("Неверный логин или пароль")
     } finally {
       setSubmitting(false)
     }
@@ -75,9 +74,8 @@ export default function LoginPage() {
       {/* Left: Logo */}
       <div className="flex w-full items-center justify-center p-8 md:w-1/2">
         <Link href="/">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="http://stvcc.ru/wp-content/uploads/2017/02/logo.jpg"
+            src="/logo.svg"
             alt="ГБПОУ СКС"
             className="max-w-xs h-auto"
           />
@@ -102,14 +100,12 @@ export default function LoginPage() {
               <div className="flex flex-col gap-2">
                 <Label>Быстрый вход</Label>
                 <Select
-                  value={quickRole}
                   onValueChange={(val) => {
                     const account = QUICK_LOGINS.find(a => a.role === val)
                     if (account) {
-                      setEmail(account.email)
+                      setLoginInput(account.login)
                       setPassword(account.password)
                     }
-                    setQuickRole("")
                   }}
                 >
                   <SelectTrigger>
@@ -132,16 +128,16 @@ export default function LoginPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@collegelms.ru"
-                  autoComplete="email"
-                />
+                <Label htmlFor="login">Логин</Label>
+                  <Input
+                    id="login"
+                    type="text"
+                    required
+                    value={loginInput}
+                    onChange={e => setLoginInput(e.target.value)}
+                    placeholder="admin"
+                    autoComplete="username"
+                  />
               </div>
 
               <div className="flex flex-col gap-2">

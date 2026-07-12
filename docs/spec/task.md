@@ -9,10 +9,10 @@
 ## Развертывание
 
 - При разработке будет использован docker-compose. 
-- Развертывание будет на отдельном VPS через СI/CD Github Action
+- Развертывание будет на отдельном VPS (cloud.ru) через СI/CD Github Action
 
 
-Основные сервисы системы (это не микросервисы, это общее понятие):
+## Основные сервисы системы (это не микросервисы, это общее понятие):
 
 Базовые сервисы (5 сервисов):
 
@@ -38,27 +38,27 @@
 - перенос данных с текущего сайта stvcc.ru
 - новый сайт будет на Next.js.
 - использовать компоненты Tailwind (версия 4)
-- дизайн должен соответствовать обязательно цветам логотипа колледжа. Логотип и основные цвета прилагаются
+- дизайн должен соответствовать обязательно цветам логотипа колледжа. Логотип в формате svg в import
 - сайт должен быть адаптивен под все разрешения
 
-текущая структура сайта и данные для анализа (домен для примера example.com):
- 
-http://example.com/sitemap.xml
-http://example.com/sitemap-misc.xml 
-http://example.com/category-sitemap.xml
-http://example.com/page-sitemap.xml
+Текущая структура сайта и данные для анализа:
 
-все типы контента и маршруты 
-http://example.com/wp-json/wp/v2/
+http://stvcc.ru/sitemap.xml
+http://stvcc.ru/sitemap-misc.xml 
+http://stvcc.ru/category-sitemap.xml
+http://stvcc.ru/page-sitemap.xml
 
-http://example.com/wp-json/wp/v2/categories?per_page=100
-http://example.com/wp-json/wp/v2/posts?per_page=100
-http://example.com/wp-json/wp/v2/pages?per_page=100
-http://example.com/wp-json/wp/v2/tags?per_page=100
-http://example.com/wp-json/wp/v2/users?per_page=100
+Все типы контента и маршруты 
+http://stvcc.ru/wp-json/wp/v2/
 
-для  определения меню:
-http://example.com/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug,link
+http://stvcc.ru/wp-json/wp/v2/categories?per_page=100
+http://stvcc.ru/wp-json/wp/v2/posts?per_page=100
+http://stvcc.ru/wp-json/wp/v2/pages?per_page=100
+http://stvcc.ru/wp-json/wp/v2/tags?per_page=100
+http://stvcc.ru/wp-json/wp/v2/users?per_page=100
+
+Для  определения меню:
+http://stvcc.ru/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug,link
 
 
 2. Сервис аутентификации и авторизации (AuthService)
@@ -70,7 +70,7 @@ http://example.com/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug
 
 3. Сервис расписания занятий (ScheduleService)
 
-Расписание формирует диспетчер вручную, данные получаются в виде файлов для каждой группы и преподавателя. Пример файлов прилагается
+Расписание формирует диспетчер вручную, данные получаются в виде файлов для каждой группы и преподавателя. Пример файлов прилагается (example_schedule_teacher.jpg, example_schedule_full.pdf).
 
 Базовые требования:
 - просмотр расписания по группе, преподавателю  
@@ -80,7 +80,7 @@ http://example.com/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug
 
 4. Сервис учебного процесса (LearningService)
 
-Референсы: udemy, cousera, moodle, stepik
+В систему студентов, группы, курсы добавляет администратор или преподаватель
 
 Базовые требования:
 
@@ -91,7 +91,7 @@ http://example.com/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug
 - личные кабинеты студентов и преподавателей
 - загрузка файлов (PDF, ppt, pptx, doc, docx, mp4) — делегируется FileService
 
-5. Сервис тестирования (TestingService)
+1. Сервис тестирования (TestingService)
 
 Базовые требования:
 - создание и проведение тестов
@@ -111,14 +111,18 @@ http://example.com/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug
 
 
 8. Сервис трансляции  (StreamService)
-
+- преподаватель запускает стрим с лекцией
+- студенты подключаются к лекции
+- запись лекции можно сохранить
 
 9. Сервис безопасности (SecurityService)
-
+- защита от DDos атак
+- внедрение капчи
+- 2 факторная авторизация
 
 10. Сервис логгирования  (LogService)
 - все модули шлют логи в брокер сообщений → централизованный сбор и анализ
-- временно: Serilog только на API (до внедрения брокера)
+- на бекенде работает Serilog
 
 11. Сервис резервного копирования (BackupService)
 - бекап базы данных раз в неделю
@@ -130,15 +134,13 @@ http://example.com/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug
 
 13. Сервис электронного журнала (JournalService)
 
-- данные: электронный вид бумажного журнала прилагается
-
 Базовые требования:
 - ведение журнала на каждой паре
 - учет посещаемости
 - контроль даты проведения занятий
 - контроль тем занятий
 
-14. Сервис классного руководителя (CuratorService)
+14.  Сервис классного руководителя (CuratorService)
 
 Базовые требования:
 - учет группы

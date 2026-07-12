@@ -23,6 +23,7 @@ public class UserControllerTests : BaseIntegrationTest
         var admin = new User
         {
             Id = Guid.NewGuid(),
+            Login = "admin",
             Email = "admin@test.ru",
             FullName = "Admin",
             PasswordHash = "hash",
@@ -39,6 +40,7 @@ public class UserControllerTests : BaseIntegrationTest
         var student = new User
         {
             Id = Guid.NewGuid(),
+            Login = "student",
             Email = "student@test.ru",
             FullName = "Student",
             PasswordHash = "hash",
@@ -79,6 +81,7 @@ public class UserControllerTests : BaseIntegrationTest
 
         var fakeUsers = new Faker<User>()
             .RuleFor(u => u.Id, f => Guid.NewGuid())
+            .RuleFor(u => u.Login, f => f.Internet.UserName())
             .RuleFor(u => u.Email, f => f.Internet.Email())
             .RuleFor(u => u.FullName, f => f.Name.FullName())
             .RuleFor(u => u.PasswordHash, _ => BCrypt.Net.BCrypt.HashPassword("test123"))
@@ -117,6 +120,7 @@ public class UserControllerTests : BaseIntegrationTest
             "/api/users",
             new CreateUserRequest
             {
+                Login = "newuser",
                 Email = "newuser@test.ru",
                 Password = "password123",
                 FullName = "New User",
@@ -129,6 +133,7 @@ public class UserControllerTests : BaseIntegrationTest
         var body = await DeserializeAsync<Result<UserResponse>>(response);
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
+        Assert.Equal("newuser", body.Data!.Login);
         Assert.Equal("newuser@test.ru", body.Data!.Email);
     }
 
@@ -141,6 +146,7 @@ public class UserControllerTests : BaseIntegrationTest
             "/api/users",
             new CreateUserRequest
             {
+                Login = "newuser",
                 Email = "newuser@test.ru",
                 Password = "password123",
                 FullName = "New User",
@@ -187,6 +193,7 @@ public class UserControllerTests : BaseIntegrationTest
             $"/api/users/{user.Id}",
             new UpdateUserRequest
             {
+                Login = "updateduser",
                 Email = "updated@test.ru",
                 FullName = "Updated Name",
                 Role = UserRole.Teacher,
@@ -198,7 +205,7 @@ public class UserControllerTests : BaseIntegrationTest
         var body = await DeserializeAsync<Result<UserResponse>>(response);
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
-        Assert.Equal("updated@test.ru", body.Data!.Email);
+        Assert.Equal("updateduser", body.Data!.Login);
         Assert.Equal("Updated Name", body.Data.FullName);
         Assert.Equal("Teacher", body.Data.Role);
     }

@@ -36,7 +36,7 @@ public class AuthServiceTests : IDisposable
             .Returns("test-token");
 
         var result = await _sut.LoginAsync(
-            new LoginRequest { Email = user.Email, Password = "correct-password" },
+            new LoginRequest { Login = user.Login, Password = "correct-password" },
             CancellationToken.None
         );
 
@@ -56,7 +56,7 @@ public class AuthServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         var result = await _sut.LoginAsync(
-            new LoginRequest { Email = user.Email, Password = "wrong-password" },
+            new LoginRequest { Login = user.Login, Password = "wrong-password" },
             CancellationToken.None
         );
 
@@ -68,7 +68,7 @@ public class AuthServiceTests : IDisposable
     public async Task LoginAsync_ReturnsFail_WhenUserNotFound()
     {
         var result = await _sut.LoginAsync(
-            new LoginRequest { Email = "nonexistent@test.ru", Password = "pass" },
+            new LoginRequest { Login = "nonexistent", Password = "pass" },
             CancellationToken.None
         );
 
@@ -86,7 +86,7 @@ public class AuthServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         var result = await _sut.LoginAsync(
-            new LoginRequest { Email = user.Email, Password = "password" },
+            new LoginRequest { Login = user.Login, Password = "password" },
             CancellationToken.None
         );
 

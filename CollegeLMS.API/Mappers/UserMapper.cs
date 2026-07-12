@@ -10,6 +10,7 @@ public static class UserMapper
         return new UserResponse
         {
             Id = entity.Id,
+            Login = entity.Login,
             Email = entity.Email,
             FullName = entity.FullName,
             Role = entity.Role.ToString(),
@@ -22,6 +23,7 @@ public static class UserMapper
         return new User
         {
             Id = Guid.NewGuid(),
+            Login = dto.Login,
             Email = dto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             FullName = dto.FullName,

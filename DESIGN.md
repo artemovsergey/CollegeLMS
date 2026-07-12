@@ -2,27 +2,27 @@
 name: CollegeLMS
 description: Clean, modern educational management system
 colors:
-  primary: "#568cd6"
-  primary-hover: "#3b6ea8"
+  primary: "#568edd"
+  primary-hover: "#4d74b4"
   primary-light: "#e4edf8"
-  secondary: "#b9b1e6"
-  accent-green: "#2d872d"
-  cream: "#f0e8d1"
+  secondary: "#b9b3e5"
+  accent-green: "#2f8733"
+  cream: "#efead7"
   neutral-bg: "#f5f7fa"
-  neutral-fg: "#152851"
-  neutral-muted: "#5a6a8a"
-  border: "#d4d9e3"
+  neutral-fg: "#24386a"
+  neutral-muted: "#545263"
+  border: "#c9cdc6"
   destructive: "#c43e3e"
   destructive-muted: "#f8e8e8"
   white: "#ffffff"
 typography:
   body:
-    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: '"Golos Text", ui-sans-serif, system-ui, sans-serif'
     fontSize: "0.9375rem"
     fontWeight: 400
     lineHeight: 1.6
   label:
-    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: '"Golos Text", ui-sans-serif, system-ui, sans-serif'
     fontSize: "0.8125rem"
     fontWeight: 500
     lineHeight: 1.25
@@ -83,40 +83,41 @@ components:
 
 CollegeLMS is a calm, authoritative academic workspace — a tool that feels like a well-organized dean's office in natural light, not a blinking dashboard in a server closet. Every screen prioritizes the task over the chrome. The interface recedes; the data steps forward.
 
-The system rejects decorative clutter — no gradient text, no glassmorphism, no side-stripe borders. Hierarchy comes from generous whitespace, clear typographic scale, and a restrained brand color used precisely. The palette is derived directly from the college logo: confident navy-blues, a heraldic purple from the crest, and warm cream accents.
+The system rejects decorative clutter — no gradient text, no glassmorphism, no side-stripe borders. Hierarchy comes from generous whitespace, clear typographic scale, and a restrained brand color used precisely. The palette is derived directly from the college logo SVG (`import/logo.svg`): confident navy-blues from the globe and text, a heraldic purple from the crest ribbon, warm cream from the antenna dish, and laurel green for success states.
 
 **Key Characteristics:**
-- Clean blue primary, drawn from the logo. Cool neutrals replace pure grays
-- One accent color (College Blue `#568cd6`), used on ≤15% of any screen. Its rarity is the point
-- The logo's purple (`#b9b1e6`) appears only for special badges and the Teacher role
+- Clean blue primary (`#568edd`), drawn from the logo's globe. Cool neutrals replace pure grays
+- One accent color (College Blue `#568edd`), used on ≤15% of any screen. Its rarity is the point
+- The logo's purple (`#b9b3e5`) appears only for special badges and the Teacher role
+- Body text uses the logo's deep navy (`#24386a`), not pure black
 - Cards are real containers with generous radius, not flat rectangles
 - Tables are the default data display, not card grids
 - Mobile-first: forms and tables survive 320px
 
 ## 2. Colors
 
-All colors are extracted from the college logo. The palette balances a cool blue primary with warm cream accents from the crest, anchored by a deep navy text color.
+All colors are extracted directly from the college logo SVG (`import/logo.svg`). The palette uses the exact fill colors from the logo's globe, crest, laurel branches, and metal elements — no approximations, no guesswork.
 
 ### Primary
-- **College Blue** (#568cd6 / oklch(0.62 0.11 255)): Interactive elements — buttons, links, focus rings. Used sparingly so every blue element means something.
-- **College Blue Dark** (#3b6ea8 / oklch(0.49 0.11 260)): Hover and active states. The pressed-down version of primary.
-- **College Blue Light** (#e4edf8 / oklch(0.93 0.02 260)): Muted backgrounds, table headers, admin badges, selected rows.
+- **College Blue** (#568edd / oklch(0.64 0.133 257)): Interactive elements — buttons, links, focus rings. Extracted from the globe outer ring. Used sparingly so every blue element means something.
+- **College Blue Dark** (#4d74b4 / oklch(0.56 0.109 260)): Hover and active states. Medium blue from the logo's gradient stops.
+- **College Blue Light** (#e4edf8 / oklch(0.94 0.018 253)): Muted backgrounds, table headers, admin badges, selected rows. Derived at ~15% opacity from primary.
 
 ### Secondary
-- **Crest Purple** (#b9b1e6 / oklch(0.68 0.09 290)): The heraldic purple from the college crest. Used for Teacher badges and secondary decorative elements only.
-- **Leaf Green** (#2d872d / oklch(0.58 0.17 145)): The green accent from the logo's leaf. Used exclusively for success states and the campus nature connection.
-- **Cream** (#f0e8d1 / oklch(0.93 0.03 90)): The warm parchment tone from the crest. Light banners, informational callouts, achievement highlights.
+- **Crest Purple** (#b9b3e5 / oklch(0.79 0.071 290)): The heraldic purple from the college crest ribbon. Used for Teacher badges and secondary decorative elements only.
+- **Leaf Green** (#2f8733 / oklch(0.55 0.147 144)): The green accent from the logo's laurel branches. Used exclusively for success states.
+- **Warm Cream** (#efead7 / oklch(0.94 0.026 95)): The cream tone from the antenna dish and light elements. Light banners, informational callouts, achievement highlights.
 
 ### Neutral
-- **Page Blue** (#f5f7fa / oklch(0.97 0.006 260)): Page background. A barely-there cool tint that complements the blue logo. The room the furniture sits on.
-- **White** (#ffffff): Card, dialog, input backgrounds. Elevated surfaces.
-- **Cool Border** (#d4d9e3 / oklch(0.87 0.01 260)): Borders, dividers, table row separators. A subtle blue undertone that ties back to the logo.
-- **Slate** (#5a6a8a / oklch(0.50 0.04 260)): Muted secondary text, placeholder text, metadata.
-- **Deep Navy** (#152851 / oklch(0.23 0.04 260)): Body text. The darkest tone from the logo text. Not pure black.
+- **Page Blue** (#f5f7fa / oklch(0.98 0.005 258)): Page background. A barely-there cool tint that complements the blue logo.
+- **White** (#ffffff / oklch(1 0 0)): Card, dialog, input backgrounds. Elevated surfaces.
+- **Light Steel** (#c9cdc6 / oklch(0.84 0.011 131)): Borders, dividers, table row separators. A neutral warm-light tone from the logo's antenna elements.
+- **Metal Gray** (#545263 / oklch(0.45 0.028 291)): Muted secondary text, placeholder text, metadata. The gray-blue from the logo's metal/antenna parts.
+- **Deep Navy** (#24386a / oklch(0.35 0.091 266)): Body text and headings. Extracted from the logo text and dark gradient stops. Not pure black.
 
 ### Semantic
 - **Blue Tint** (#e4edf8): Selected/active table rows, admin badge backgrounds, info banners.
-- **Rose Alert** (#c43e3e): Destructive actions, errors.
+- **Rose Alert** (#c43e3e / oklch(0.56 0.171 25)): Destructive actions, errors. Not from logo.
 - **Rose Tint** (#f8e8e8): Error banners background.
 
 ### Named Rules
@@ -124,17 +125,17 @@ All colors are extracted from the college logo. The palette balances a cool blue
 
 **The Crest Rule.** Purple is reserved for Teacher role identification and the college crest in headers. Never use purple for interactive elements.
 
-**The Cool Neutral Rule.** All neutrals carry a subtle blue-cool undertone (chroma ≤ 0.01, hue toward 260°). Pure gray is forbidden. The coolness should be barely perceptible — a quiet nod to the navy in the logo.
+**The Cold Steel Rule.** Neutrals are drawn from the logo's metal elements — a slight warm-gray-blue cast (chroma ≤ 0.03, hue 131–291°). Pure gray (#808080) is forbidden.
 
 ## 3. Typography
 
-**Body Font:** Inter, the system sans-serif stack
+**Body Font:** Golos Text, a modern humanist sans-serif with wide apertures and clear punctuation for Russian text
 
-**Display Font:** Inter (same family, scaled with weight)
+**Display Font:** Golos Text (same family, scaled with weight 500–700)
 
 **Monospace Font:** JetBrains Mono for code
 
-**Character:** Clean, readable, modern. Inter's open aperture and tall x-height keep body text legible at small sizes. No decorative typefaces — this is a productivity tool, not a magazine.
+**Character:** Clean, readable, modern. Golos Text was designed for multilingual support with excellent Cyrillic legibility — wide apertures, tall x-height, clear distinction between similar glyphs. No decorative typefaces — this is an educational tool, not a magazine.
 
 ### Hierarchy
 - **Headline** (600, 1.5rem/24px, 1.3): Page titles (`h1`). Top-level sections.
@@ -144,7 +145,7 @@ All colors are extracted from the college logo. The palette balances a cool blue
 - **Caption** (400, 0.75rem/12px, 1.4): Helper text, timestamps, secondary metadata.
 
 ### Named Rules
-**The Weight-Only Scale.** Hierarchy is expressed through weight (500 → 600) and size, not through font family switches or letter-spacing theatrics.
+**The Weight-Only Scale.** Hierarchy is expressed through weight (400 → 500 → 600) and size, not through font family switches or letter-spacing theatrics. Golos Text provides clear weight contrast at 400/500/600/700.
 
 ## 4. Elevation
 
@@ -152,7 +153,7 @@ Flat by default. Depth comes from tonal layering (background → card → border
 
 Cards, dialogs, and dropdowns sit on the surface without vertical lift. The card background (`#ffffff`) against the page background (`#f5f7fa`) provides enough separation. No box-shadows on cards.
 
-**The only shadow** is on the Dialog overlay — a soft ambient shadow on the content panel and a dark overlay behind it.
+**The only shadow** is on the Dialog overlay — a soft ambient shadow on the content panel and a Deep Navy (`#24386a`) overlay at 35% opacity behind it.
 
 ### Named Rules
 **The Flat-By-Default Rule.** Surfaces are flat at rest. The tonal contrast between page and card backgrounds provides depth. Shadows appear only for modals and dropdown menus.
@@ -161,8 +162,8 @@ Cards, dialogs, and dropdowns sit on the surface without vertical lift. The card
 
 ### Buttons
 - **Shape:** Gently rounded corners (8px)
-- **Primary:** College Blue background, white text, 10px 20px padding. Hover shifts to College Blue Dark (`#3b6ea8`). Active presses darker.
-- **Ghost:** Transparent background, Deep Navy text. Hover gets a Blue Tint background.
+- **Primary:** College Blue (`#568edd`) background, white text, 10px 20px padding. Hover shifts to College Blue Dark (`#4d74b4`). Active presses deeper navy.
+- **Ghost:** Transparent background, Deep Navy (`#24386a`) text. Hover gets a Blue Tint background.
 - **Outline:** 1px Cool Border, transparent background. Hover fills with Blue Tint.
 - **Destructive:** Rose Alert background.
 - **States:** All buttons use a 150ms ease-out transition on background-color and box-shadow. Focus-visible ring uses College Blue at 3px offset.
@@ -200,7 +201,7 @@ Cards, dialogs, and dropdowns sit on the surface without vertical lift. The card
 - **Mobile:** Collapse user email to just the badge.
 
 ### Dialogs
-- **Overlay:** `rgba(21,40,81,0.35)` dark backdrop (Deep Navy tinted)
+- **Overlay:** `rgba(36,56,106,0.35)` dark backdrop (Deep Navy tinted)
 - **Content:** White, 12px radius, 24px padding, soft ambient shadow
 - **Title:** Title type scale
 - **Actions:** Right-aligned, Cancel (ghost) then Save (primary)
@@ -288,10 +289,10 @@ Cards, dialogs, and dropdowns sit on the surface without vertical lift. The card
 ## 7. Do's and Don'ts
 
 ### Do:
-- **Do** use College Blue sparingly (<15% per screen). Blue means interactive.
-- **Do** use cool-tinted neutrals (blue undertone, chroma ≤ 0.01). Pure gray looks unfinished.
-- **Do** use Crest Purple exclusively for Teacher badges — never for buttons or links.
-- **Do** use Leaf Green only for success states and the campus leaf identity.
+- **Do** use College Blue (`#568edd`) sparingly (<15% per screen). Blue means interactive.
+- **Do** use metal-toned neutrals from the logo (`#545263`, `#c9cdc6`). Pure gray looks unfinished.
+- **Do** use Crest Purple (`#b9b3e5`) exclusively for Teacher badges — never for buttons or links.
+- **Do** use Leaf Green (`#2f8733`) only for success states.
 - **Do** use tables as the default data display — they scan faster than cards.
 - **Do** wrap forms and tables in cards for container consistency.
 - **Do** use generous whitespace between sections (32px+).
@@ -299,7 +300,7 @@ Cards, dialogs, and dropdowns sit on the surface without vertical lift. The card
 - **Do** show loading state as a centered spinner in the content area.
 
 ### Don't:
-- **Don't** use `#000` or pure `#fff` as text. Deep Navy for body, White for surfaces.
+- **Don't** use `#000` or pure `#fff` as text. Deep Navy (`#24386a`) for body, White for surfaces.
 - **Don't** add shadows to cards. Tonal separation is sufficient.
 - **Don't** use gradient text, glassmorphism, or side-stripe borders.
 - **Don't** put an accent border-left on cards. Use full borders or nothing.
@@ -309,35 +310,38 @@ Cards, dialogs, and dropdowns sit on the surface without vertical lift. The card
 - **Don't** use the Crest Purple for interactive elements — it's a heraldic identifier, not a call to action.
 
 
-# Color from Logo
+# Color from Logo (actual SVG fills)
 
-По логотипу можно выделить следующую основную цветовую палитру (приблизительные значения):
+Палитра извлечена прямым анализом fill-атрибутов `import/logo.svg`. Цвета в дизайн-системе используют именно эти значения.
 
-| Цвет                         | HEX         | RGB             | Использование                      |
-| ---------------------------- | ----------- | --------------- | ---------------------------------- |
-| 🔵 Яркий голубой             | **#578DD4** | (87, 141, 212)  | Фон глобуса, внешнее кольцо        |
-| 🔷 Темно-синий               | **#293553** | (41, 53, 83)    | Надписи, контуры                   |
-| 🟣 Светло-лиловый            | **#B0B0CE** | (176, 176, 206) | Лента с названием                  |
-| 🟩 Зеленый                   | **#348B38** | (52, 139, 56)   | Лавровые ветви                     |
-| ⚙️ Серо-графитовый           | **#617D81** | (97, 125, 129)  | Антенна, металлические элементы    |
-| 🤍 Светло-бежевый / кремовый | **#E6E4DE** | (230, 228, 222) | Тарелка антенны и светлые элементы |
+| Цвет                         | HEX         | OKLCH                         | В SVG                          |
+| ---------------------------- | ----------- | ----------------------------- | ------------------------------ |
+| 🔵 College Blue (primary)    | **#568edd** | `oklch(0.64 0.133 257)`       | Глобус, внешнее кольцо         |
+| 🔷 Deep Navy (текст)         | **#24386a** | `oklch(0.35 0.091 266)`       | Надписи, градиентные стопы     |
+| 🔷 Medium Blue (hover)       | **#4d74b4** | `oklch(0.56 0.109 260)`       | Промежуточные градиенты шара   |
+| 🟣 Crest Purple              | **#b9b3e5** | `oklch(0.79 0.071 290)`       | Лента с названием              |
+| 🟩 Leaf Green                | **#2f8733** | `oklch(0.55 0.147 144)`       | Лавровые ветви                 |
+| ⚙️ Metal Gray (muted text)   | **#545263** | `oklch(0.45 0.028 291)`       | Антенна, металлические элем.   |
+| 🔲 Light Steel (border)      | **#c9cdc6** | `oklch(0.84 0.011 131)`       | Светлые элементы антенны       |
+| 🤍 Warm Cream                | **#efead7** | `oklch(0.94 0.026 95)`        | Тарелка антенны                |
+| ⚫ Near Black                 | **#0e0a09** | `oklch(0.15 0.007 35)`        | Тёмные контуры                 |
 
-### Дополнительные акцентные цвета
+### Дополнительные цвета
 
-* **Белый** — `#FFFFFF`
-* **Черный** (контуры и текст) — `#1F1F1F`
-* **Темно-фиолетовый** (тени ленты) — около `#5A4A8A`
+* **White** — `#FFFFFF` — карточки, фоны поверхностей
+* **Page Blue** — `#f5f7fa` — фон страницы (не из логотипа)
+* **Rose Alert** — `#c43e3e` — ошибки, деструктивные действия (не из логотипа)
 
 ### Общая характеристика палитры
 
 Палитра сочетает:
 
-* холодные **синие** оттенки (технологии, связь, надежность);
-* **зеленый** (рост, развитие);
-* **лиловый** (официальность и торжественность);
-* нейтральные **серые и кремовые** тона для металлических элементов.
+* холодные **синие** оттенки (`#568edd` → `#24386a`) — технологии, связь, надёжность;
+* **зелёный** (`#2f8733`) — рост, развитие, лавровая ветвь;
+* **лиловый** (`#b9b3e5`) — официальность и торжественность;
+* нейтральные **серо-кремовые** тона (`#545263`, `#c9cdc6`, `#efead7`) — металл и конструктив.
 
-Эта комбинация хорошо соответствует тематике образовательного учреждения в сфере телекоммуникаций.
+Эта комбинация соответствует тематике образовательного учреждения в сфере телекоммуникаций и радиоэлектроники.
 
 
 # Example References

@@ -14,6 +14,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
 
+        builder.Property(x => x.Login).HasMaxLength(100);
+        builder.HasIndex(x => x.Login).IsUnique().HasDatabaseName("ix_users_login");
+
         builder.Property(x => x.Email).HasMaxLength(256);
         builder.HasIndex(x => x.Email).IsUnique().HasDatabaseName("ix_users_email");
 

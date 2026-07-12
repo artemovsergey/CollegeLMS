@@ -31,9 +31,9 @@ public class UserService(AppDbContext db) : IUserService
         CancellationToken ct
     )
     {
-        var exists = await db.Users.AnyAsync(u => u.Email == request.Email, ct);
+        var exists = await db.Users.AnyAsync(u => u.Login == request.Login, ct);
         if (exists)
-            return Result<UserResponse>.Fail("Пользователь с таким email уже существует", 409);
+            return Result<UserResponse>.Fail("Пользователь с таким логином уже существует", 409);
 
         var user = request.ToEntity();
         db.Users.Add(user);
@@ -52,11 +52,11 @@ public class UserService(AppDbContext db) : IUserService
         if (user is null)
             return Result<UserResponse>.Fail("Пользователь не найден", 404);
 
-        var emailExists = await db.Users.AnyAsync(u => u.Email == request.Email && u.Id != id, ct);
-        if (emailExists)
-            return Result<UserResponse>.Fail("Пользователь с таким email уже существует", 409);
+        var loginExists = await db.Users.AnyAsync(u => u.Login == request.Login && u.Id != id, ct);
+        if (loginExists)
+            return Result<UserResponse>.Fail("Пользователь с таким логином уже существует", 409);
 
-        user.Email = request.Email;
+        user.Login = request.Login;
         user.FullName = request.FullName;
         user.Role = request.Role;
         user.UpdatedAt = DateTime.UtcNow;

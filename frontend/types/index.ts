@@ -1,5 +1,6 @@
 export interface User {
   id: string
+  login: string
   email: string
   fullName: string
   role: string
@@ -7,7 +8,7 @@ export interface User {
 }
 
 export interface LoginRequest {
-  email: string
+  login: string
   password: string
 }
 
@@ -17,6 +18,7 @@ export interface LoginResponse {
 }
 
 export interface CreateUserRequest {
+  login: string
   email: string
   password: string
   fullName: string
@@ -24,6 +26,7 @@ export interface CreateUserRequest {
 }
 
 export interface UpdateUserRequest {
+  login: string
   email: string
   fullName: string
   role: string

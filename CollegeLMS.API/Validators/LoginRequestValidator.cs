@@ -7,11 +7,11 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
 {
     public LoginRequestValidator()
     {
-        RuleFor(x => x.Email)
+        RuleFor(x => x.Login)
             .NotEmpty()
-            .WithMessage("Email обязателен")
-            .EmailAddress()
-            .WithMessage("Некорректный email");
+            .WithMessage("Логин обязателен")
+            .MaximumLength(100)
+            .WithMessage("Логин не может быть длиннее 100 символов");
 
         RuleFor(x => x.Password).NotEmpty().WithMessage("Пароль обязателен");
     }

@@ -12,14 +12,13 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3 shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="http://stvcc.ru/wp-content/uploads/2017/02/logo.jpg"
+            src="/logo.svg"
             alt="ГБПОУ СКС"
-            className="rounded object-contain"
-            style={{ maxHeight: "3.5rem" }}
+            className="object-contain"
+            style={{ maxHeight: "4.5rem" }}
           />
           <div className="hidden flex-col sm:flex">
             <span className="text-sm font-semibold leading-tight text-primary">

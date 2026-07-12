@@ -21,6 +21,7 @@ public class AuthControllerTests : BaseIntegrationTest
         var user = new User
         {
             Id = Guid.NewGuid(),
+            Login = "testuser",
             Email = "test@test.ru",
             FullName = "Test User",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
@@ -32,7 +33,7 @@ public class AuthControllerTests : BaseIntegrationTest
 
         var response = await Client.PostAsJsonAsync(
             "/api/auth/login",
-            new LoginRequest { Email = "test@test.ru", Password = "password123" }
+            new LoginRequest { Login = "testuser", Password = "password123" }
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -42,7 +43,7 @@ public class AuthControllerTests : BaseIntegrationTest
         Assert.True(body!.IsSuccess);
         Assert.NotNull(body.Data);
         Assert.NotEmpty(body.Data.Token);
-        Assert.Equal("test@test.ru", body.Data.User.Email);
+        Assert.Equal("testuser", body.Data.User.Login);
     }
 
     [Fact]
@@ -53,6 +54,7 @@ public class AuthControllerTests : BaseIntegrationTest
         var user = new User
         {
             Id = Guid.NewGuid(),
+            Login = "testuser",
             Email = "test@test.ru",
             FullName = "Test User",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
@@ -64,7 +66,7 @@ public class AuthControllerTests : BaseIntegrationTest
 
         var response = await Client.PostAsJsonAsync(
             "/api/auth/login",
-            new LoginRequest { Email = "test@test.ru", Password = "wrong-password" }
+            new LoginRequest { Login = "testuser", Password = "wrong-password" }
         );
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -75,7 +77,7 @@ public class AuthControllerTests : BaseIntegrationTest
     {
         var response = await Client.PostAsJsonAsync(
             "/api/auth/login",
-            new LoginRequest { Email = "nonexistent@test.ru", Password = "password123" }
+            new LoginRequest { Login = "nonexistent", Password = "password123" }
         );
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -89,6 +91,7 @@ public class AuthControllerTests : BaseIntegrationTest
         var user = new User
         {
             Id = Guid.NewGuid(),
+            Login = "testuser",
             Email = "test@test.ru",
             FullName = "Test User",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
@@ -100,7 +103,7 @@ public class AuthControllerTests : BaseIntegrationTest
 
         var response = await Client.PostAsJsonAsync(
             "/api/auth/login",
-            new LoginRequest { Email = "test@test.ru", Password = "password123" }
+            new LoginRequest { Login = "testuser", Password = "password123" }
         );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -116,6 +119,7 @@ public class AuthControllerTests : BaseIntegrationTest
         var user = new User
         {
             Id = Guid.NewGuid(),
+            Login = "profileuser",
             Email = "profile@test.ru",
             FullName = "Profile User",
             PasswordHash = "hash",

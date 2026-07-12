@@ -33,7 +33,7 @@ export default function AuthenticatedLayout({ children }: { children: ReactNode 
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted-foreground sm:block">
-              {user.email}
+              {user.login}
             </span>
             <Badge variant={roleVariants[user.role] ?? "secondary"}>
               {roleLabels[user.role] ?? user.role}

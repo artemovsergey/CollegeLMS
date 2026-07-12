@@ -69,6 +69,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: http://+:8080
+      Jwt__Key: ${JWT_KEY}
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${DB_NAME:-collegelms};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
     depends_on:
       db:
