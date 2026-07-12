@@ -132,11 +132,11 @@
 - [x] Импорт из `import/wp_structure_raw.json` (структура: страницы, категории, меню)
 - [x] Импорт идемпотентен (повторный запуск не создаёт дубликатов — проверка по WP ID)
 - [x] Скрипт-парсер в `scripts/parsing_stvcc.py`
-- [ ] Импорт полного контента (тело страниц, медиа) через WordPress REST API
-- [ ] Прогресс импорта: `{ total, processed, errors }`
-- [ ] UI-1, UI-3, UI-4
+- [x] Импорт полного контента (тело страниц, медиа) через WordPress REST API
+- [x] Прогресс импорта: `{ total, processed, errors }`
+- [x] UI-1, UI-3, UI-4
 
-**Статус:** ⚠️ Частично (импорт структуры из JSON готов, полный REST API импорт — нет)
+**Статус:** ✅ Реализовано (JSON + REST API импорт, прогресс, admin UI)
 
 **Источники:**
 - Структура: `import/wp_structure_raw.json` (уже выгружен)
@@ -1103,19 +1103,19 @@
 
 ---
 
-## 15. AgentBridge — Сервис интеграции с мессенджерами (P1)
+## 16. AgentBridge — Сервис интеграции с мессенджерами (P1)
 
-**Архитектура:** .NET 10 сервис, подключается к OpenCode Server API (HTTP + SSE), обрабатывает Telegram и VK Max (Макс) ботов.
+**Архитектура:** .NET 10 сервис, подключается к OpenCode (внешний dev-tool на VPS) через HTTP + SSE, обрабатывает Telegram и Max (Макс) ботов.
 
-### UC-65: Студент может просмотреть расписание через бота VK Max
+### UC-65: Студент может просмотреть расписание через бота Max
 
 **Acceptance Criteria:**
-- [ ] Бот VK Max принимает команду `/schedule ИВТ-21` или текст "расписание ИВТ-21"
+- [ ] Бот Max принимает команду `/schedule ИВТ-21` или текст "расписание ИВТ-21"
 - [ ] Бот вызывает `GET /api/schedule?groupId={id}` через CollegeLMS API
 - [ ] Ответ форматируется как текстовое сообщение: день недели, время, предмет, преподаватель, аудитория
 - [ ] Поддержка фильтров: "расписание на завтра", "расписание преподавателя Иванов"
 - [ ] Если группа/преподаватель не найден — сообщение "Не найдено"
-- [ ] Бот работает через webhook VK Bots API (callback URL: `https://{domain}/vk`)
+- [ ] Бот работает через webhook Max REST API (callback URL: `https://{domain}/max`)
 - [ ] Inline-кнопки для навигации: "На сегодня", "На завтра", "На неделю"
 
 **Статус:** ❌ Не реализовано
@@ -1129,7 +1129,7 @@
 **Acceptance Criteria:**
 - [ ] Диспетчер создает/редактирует расписание через веб-интерфейс (`/dispatcher/schedule`)
 - [ ] При изменении расписания автоматическая рассылка уведомлений затронутым группам
-- [ ] Уведомления отправляются в VK Max бот и Telegram боду
+- [ ] Уведомления отправляются в Max бот и Telegram бота
 - [ ] Шаблон уведомления: "Изменение расписания: {группа} — {дата}: {предмет} перенесен на {новое время/аудитория}"
 - [ ] Диспетчер может отправить ручное уведомление группе: "Завтра пар нет" / "Замена по расписанию вторника"
 - [ ] История отправленных уведомлений: `/api/notifications?sentBy=dispatcher`
@@ -1148,18 +1148,18 @@
 
 **Acceptance Criteria:**
 - [ ] Сервис `agentbridge` запускается как Docker контейнер в docker-compose
-- [ ] Подключение к OpenCode Server API: `POST /session`, `POST /session/:id/prompt_async`
+- [ ] Подключение к OpenCode (внешний dev-tool): `POST /session`, `POST /session/:id/prompt_async`
 - [ ] SSE listener: `GET /event` — получение событий от OpenCode (permission, completion, error)
-- [ ] Telegram бод: long polling, команды `/start`, `/status`, `/cancel`
-- [ ] VK Max бод: webhook callback (`POST /vk`), подтверждение, `message_new`, `message_event`
+- [ ] Telegram бот: long polling, команды `/start`, `/status`, `/cancel`
+- [ ] Max бот: webhook callback (`POST /max`), подтверждение, `message_new`, `message_event`
 - [ ] Запросы разрешений OpenCode прокидываются в мессенджер (inline keyboard Allow/Deny)
 - [ ] Ответы пользователя пересылаются в OpenCode: `POST /session/:id/permissions/:permissionId`
-- [ ] Конфигурация через env vars: `TELEGRAM_BOT_TOKEN`, `VK_ACCESS_TOKEN`, `OPENCODE_SERVER_URL`
+- [ ] Конфигурация через env vars: `TELEGRAM_BOT_TOKEN`, `MAX_ACCESS_TOKEN`, `OPENCODE_SERVER_URL`
 - [ ] Health check: `GET /health` возвращает статус bridge + OpenCode
 
 **Статус:** ⚠️ Частично (базовый каркас создан, тестирование не пройдено)
 
-**Dependencies:** OpenCode Server, Telegram BotFather, VK Bots API
+**Dependencies:** OpenCode (внешний dev-tool), Telegram BotFather, Max REST API
 
 ### UC-68: Пользователь может взаимодействовать с AI-агентом через мессенджер
 
@@ -1175,11 +1175,11 @@
 
 **Статус:** ⚠️ Частично (базовый каркас создан)
 
-**Dependencies:** OpenCode Server, AgentBridge (UC-67)
+**Dependencies:** OpenCode (внешний dev-tool), AgentBridge (UC-67)
 
 ---
 
-## 16. AnalyticsService — Сервис аналитики сайта (P1)
+## 17. AnalyticsService — Сервис аналитики сайта (P1)
 
 **Архитектура:** комбинированный трекинг (nginx access logs + JS-сниппет). Серверная часть — парсер nginx-логов в БД, клиентская — JS-события в POST /api/analytics/event.
 
@@ -1328,12 +1328,12 @@
     - **Добавлен UC-5 (Feedback)** — публичная форма обратной связи (реализована)
     - **Итого: 65 User Stories** (было 63)
 21. **Добавлен AgentBridge (UC-65..68)** — сервис интеграции с мессенджерами:
-    - UC-65: просмотр расписания через бота VK Max (Макс)
+    - UC-65: просмотр расписания через бота Max (Макс)
     - UC-66: диспетчер управляет расписанием и рассылает уведомления через ботов
-    - UC-67: архитектура AgentBridge (.NET 10, OpenCode API, SSE, Telegram + VK Max)
+    - UC-67: архитектура AgentBridge (.NET 10, OpenCode API, SSE, Telegram + Max)
     - UC-68: взаимодействие с AI-агентом через мессенджер
     - **Итого: 69 User Stories** (было 65)
-22. **Добавлен AnalyticsService (UC-69..73)** — сервис аналитики сайта (P1):
+22. **Добавлен AnalyticsService (UC-69..73)** — сервис аналитики сайта (P1, section 17):
      - UC-69: система собирает базовую статистику посещений (nginx logs)
      - UC-70: система собирает клиентские события через JS-сниппет
      - UC-71: администратор просматривает дашборд аналитики

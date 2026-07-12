@@ -199,6 +199,14 @@ export interface ImportResult {
   errors: string[]
 }
 
+export interface FeedbackListItemDto {
+  id: string
+  name: string
+  email: string
+  message: string
+  createdAt: string
+}
+
 export interface ImportProgressDto {
   importId: string
   status: "running" | "completed" | "failed"

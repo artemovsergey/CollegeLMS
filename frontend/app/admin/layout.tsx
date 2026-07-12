@@ -12,6 +12,7 @@ import { roleLabels, roleVariants } from "@/lib/constants"
 const navItems = [
   { href: "/admin", label: "Пользователи", roles: ["Admin"] },
   { href: "/admin/news", label: "Новости", roles: ["Admin", "Dispatcher"] },
+  { href: "/admin/feedback", label: "Обратная связь", roles: ["Admin"] },
   { href: "/admin/import", label: "Импорт", roles: ["Admin"] },
 ]
 

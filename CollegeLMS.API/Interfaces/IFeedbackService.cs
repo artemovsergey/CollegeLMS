@@ -9,4 +9,6 @@ public interface IFeedbackService
         FeedbackRequest request,
         CancellationToken ct = default
     );
+
+    Task<Result<List<FeedbackListItemDto>>> GetAllAsync(CancellationToken ct = default);
 }
