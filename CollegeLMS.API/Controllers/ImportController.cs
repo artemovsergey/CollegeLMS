@@ -34,7 +34,7 @@ public class ImportController(
         string importId = null!;
         importId = importService.StartImport(async ct =>
         {
-            var result = await importService.ImportFromJsonAsync(jsonPath, ct);
+            var result = await importService.ImportFromJsonAsync(jsonPath, ct, importId);
             var progress = importService.GetImportProgress(importId);
             if (progress != null && result.IsSuccess)
             {
@@ -63,7 +63,7 @@ public class ImportController(
         string importId = null!;
         importId = importService.StartImport(async ct =>
         {
-            var result = await importService.ImportFromRestApiAsync(baseUrl, ct);
+            var result = await importService.ImportFromRestApiAsync(baseUrl, ct, importId);
             var progress = importService.GetImportProgress(importId);
             if (progress != null && result.IsSuccess)
             {

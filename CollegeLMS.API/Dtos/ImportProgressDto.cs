@@ -11,4 +11,5 @@ public class ImportProgressDto
     public int Errors { get; set; }
     public List<string> ErrorMessages { get; set; } = [];
     public ImportResult? Result { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

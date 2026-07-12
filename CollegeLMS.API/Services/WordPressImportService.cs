@@ -64,7 +64,8 @@ public class WordPressImportService(
 
     public async Task<Result<ImportResult>> ImportFromJsonAsync(
         string jsonPath,
-        CancellationToken ct
+        CancellationToken ct,
+        string? importId = null
     )
     {
         if (!File.Exists(jsonPath))
@@ -76,7 +77,8 @@ public class WordPressImportService(
             using var doc = JsonDocument.Parse(jsonBytes);
             var root = doc.RootElement;
 
-            return await ProcessImportAsync(root, ct);
+            var progress = importId != null ? GetImportProgress(importId) : null;
+            return await ProcessImportAsync(root, ct, progress);
         }
         catch (Exception ex)
         {
@@ -87,7 +89,8 @@ public class WordPressImportService(
 
     public async Task<Result<ImportResult>> ImportFromRestApiAsync(
         string baseUrl,
-        CancellationToken ct
+        CancellationToken ct,
+        string? importId = null
     )
     {
         try
@@ -95,30 +98,26 @@ public class WordPressImportService(
             using var httpClient = new HttpClient { BaseAddress = new Uri(baseUrl) };
             httpClient.DefaultRequestHeaders.Add("User-Agent", "CollegeLMS/1.0");
 
-            // Fetch categories
             var categoriesJson = await httpClient.GetStringAsync(
                 "/wp-json/wp/v2/categories?per_page=100",
                 ct
             );
-            var categories = JsonSerializer.Deserialize<List<JsonElement>>(categoriesJson) ?? [];
 
-            // Fetch posts
             var postsJson = await httpClient.GetStringAsync(
                 "/wp-json/wp/v2/posts?per_page=100&_embed=1",
                 ct
             );
-            var posts = JsonSerializer.Deserialize<List<JsonElement>>(postsJson) ?? [];
 
-            // Build a combined structure matching JSON import format
             using var combinedDoc = JsonDocument.Parse(
                 $"{{\"categories\":{categoriesJson},\"posts\":{postsJson}}}"
             );
 
-            return await ProcessImportAsync(combinedDoc.RootElement, ct);
+            var progress = importId != null ? GetImportProgress(importId) : null;
+            return await ProcessImportAsync(combinedDoc.RootElement, ct, progress);
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "Ошибка连接到 WordPress REST API");
+            logger.LogError(ex, "Ошибка подключения к WordPress REST API");
             return Result<ImportResult>.Fail(
                 $"Не удалось подключиться к WordPress REST API: {ex.Message}",
                 502
@@ -133,7 +132,8 @@ public class WordPressImportService(
 
     private async Task<Result<ImportResult>> ProcessImportAsync(
         JsonElement root,
-        CancellationToken ct
+        CancellationToken ct,
+        ImportProgressDto? progress = null
     )
     {
         using var scope = scopeFactory.CreateScope();
@@ -201,6 +201,9 @@ public class WordPressImportService(
             var totalPosts = 0;
             foreach (var _ in postsEl.EnumerateArray())
                 totalPosts++;
+
+            if (progress != null)
+                progress.Total = totalPosts;
 
             var processed = 0;
             foreach (var post in postsEl.EnumerateArray())
@@ -293,6 +296,9 @@ public class WordPressImportService(
                     errors.Add($"Ошибка при импорте поста: {ex.Message}");
                 }
 
+                if (progress != null)
+                    progress.Processed = processed;
+
                 if (postsImported % 50 == 0)
                 {
                     await db.SaveChangesAsync(ct);
@@ -329,7 +335,7 @@ public class WordPressImportService(
     {
         var cutoff = DateTime.UtcNow - CleanupAge;
         var stale = _imports
-            .Where(kvp => kvp.Value.Status != "running")
+            .Where(kvp => kvp.Value.Status != "running" && kvp.Value.CreatedAt < cutoff)
             .ToList();
 
         foreach (var kvp in stale)
