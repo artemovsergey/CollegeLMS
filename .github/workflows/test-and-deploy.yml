@@ -147,14 +147,12 @@ jobs:
             ufw allow from 172.18.0.0/16 to any port 4096 proto tcp comment 'OpenCode agent bridge' 2>/dev/null || true
 
             # Start DB first and sync password BEFORE API starts
+            # Recreate DB volume to ensure correct password
+            docker compose down db 2>/dev/null || true
+            docker volume rm collegelms_postgres_data 2>/dev/null || true
             docker compose up -d db redis
             docker compose exec -T db pg_isready -U postgres --timeout=10 || true
-            sleep 2
-            DB_PASSWORD_ESC=$(printf '%s\n' "$DB_PASSWORD" | sed "s/'/''/g")
-            docker compose exec -T db psql -U postgres \
-              -c "ALTER USER postgres PASSWORD '${DB_PASSWORD_ESC}';" \
-              2>/dev/null && echo "ALTER ROLE succeeded" || echo "ALTER ROLE skipped or failed"
-            sleep 3
+            sleep 5
 
             # Now build and start everything
             docker compose up --build -d
