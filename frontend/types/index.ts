@@ -191,3 +191,20 @@ export interface StudentDashboardResponse {
   recentGrades: { courseName: string; score: number | null }[]
   upcomingDeadlines: { assignmentTitle: string; dueDate: string | null }[]
 }
+
+export interface ImportResult {
+  categoriesCreated: number
+  postsImported: number
+  postsSkipped: number
+  errors: string[]
+}
+
+export interface ImportProgressDto {
+  importId: string
+  status: "running" | "completed" | "failed"
+  total: number
+  processed: number
+  errors: number
+  errorMessages: string[]
+  result: ImportResult | null
+}
