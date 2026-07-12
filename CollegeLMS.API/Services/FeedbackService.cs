@@ -11,8 +11,7 @@ public class FeedbackService(AppDbContext db) : IFeedbackService
 {
     public async Task<Result<List<FeedbackListItemDto>>> GetAllAsync(CancellationToken ct)
     {
-        var items = await db
-            .Set<Entities.Feedback>()
+        var items = await db.Set<Entities.Feedback>()
             .AsNoTracking()
             .OrderByDescending(f => f.CreatedAt)
             .Select(f => f.ToListItemDto())
@@ -20,7 +19,6 @@ public class FeedbackService(AppDbContext db) : IFeedbackService
 
         return Result<List<FeedbackListItemDto>>.Ok(items);
     }
-
 
     public async Task<Result<FeedbackResponse>> CreateAsync(
         FeedbackRequest request,

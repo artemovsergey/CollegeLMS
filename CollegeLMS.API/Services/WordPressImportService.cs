@@ -24,11 +24,7 @@ public class WordPressImportService(
         CleanupOldEntries();
 
         var importId = Guid.NewGuid().ToString();
-        var progress = new ImportProgressDto
-        {
-            ImportId = importId,
-            Status = "running",
-        };
+        var progress = new ImportProgressDto { ImportId = importId, Status = "running" };
         _imports[importId] = progress;
 
         _ = Task.Run(async () =>

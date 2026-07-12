@@ -5,13 +5,21 @@ namespace CollegeLMS.API.Interfaces;
 
 public interface IWordPressImportService
 {
-    Task<Result<ImportResult>> ImportFromJsonAsync(string jsonPath, CancellationToken ct, string? importId = null);
+    Task<Result<ImportResult>> ImportFromJsonAsync(
+        string jsonPath,
+        CancellationToken ct,
+        string? importId = null
+    );
 
     string StartImport(Func<CancellationToken, Task> importAction);
 
     ImportProgressDto? GetImportProgress(string importId);
 
-    Task<Result<ImportResult>> ImportFromRestApiAsync(string baseUrl, CancellationToken ct, string? importId = null);
+    Task<Result<ImportResult>> ImportFromRestApiAsync(
+        string baseUrl,
+        CancellationToken ct,
+        string? importId = null
+    );
 }
 
 public record ImportResult(
