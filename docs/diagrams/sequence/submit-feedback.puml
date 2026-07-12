@@ -1,0 +1,20 @@
+@startuml
+actor "Посетитель" as Visitor
+participant "FeedbackController" as Ctrl
+participant "FeedbackService" as Svc
+database "PostgreSQL" as DB
+
+Visitor -> Ctrl: POST /api/feedback { name, email, message }
+Ctrl -> Svc: CreateAsync(request)
+Svc -> DB: SELECT (check last 5 min)
+DB --> Svc: last feedback or null
+alt ⏱ less than 5 min since last
+  Svc --> Ctrl: Result.Fail(429, "Вы уже отправляли...")
+  Ctrl --> Visitor: 429 Too Many Requests
+else ✅ first or old enough
+  Svc -> DB: INSERT INTO feedback
+  DB --> Svc: entity
+  Svc --> Ctrl: Result.Ok({ message: "Сообщение отправлено" })
+  Ctrl --> Visitor: 200 OK
+end
+@enduml

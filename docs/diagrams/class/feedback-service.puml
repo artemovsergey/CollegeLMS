@@ -1,0 +1,24 @@
+@startuml
+namespace CollegeLMS.API {
+  interface IFeedbackService {
+    + CreateAsync(request, ct) : Result<FeedbackResponse>
+    + GetAllAsync(ct) : Result<List<FeedbackListItemDto>>
+  }
+
+  class FeedbackService {
+    - db : AppDbContext
+    + CreateAsync(request, ct)
+    + GetAllAsync(ct)
+  }
+
+  class FeedbackController {
+    - service : IFeedbackService
+    + Create(request, ct) : ActionResult
+    + GetAll(ct) : ActionResult
+  }
+
+  FeedbackService ..|> IFeedbackService
+  FeedbackController --> IFeedbackService
+  FeedbackService --> AppDbContext
+}
+@enduml

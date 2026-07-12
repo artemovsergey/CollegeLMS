@@ -1,0 +1,14 @@
+@startuml
+!define table(x) class x << (T,#FFAAAA) >>
+!define primary_key(x) <color:red><b><u>x</u></b></color>
+!define column(x) <color:black>x</color>
+
+table(feedback) {
+  <color:red><b><u>id (PK)</u></b></color>
+  name
+  email
+  message
+  created_at
+  updated_at
+}
+@enduml
