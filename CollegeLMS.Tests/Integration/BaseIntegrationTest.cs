@@ -19,6 +19,7 @@ public abstract class BaseIntegrationTest : IAsyncLifetime
         Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Environment", "Testing");
+            builder.UseSetting("Jwt:Key", "TestKey_12345678901234567890123456789012");
             builder.ConfigureServices(services =>
             {
                 var efServices = services

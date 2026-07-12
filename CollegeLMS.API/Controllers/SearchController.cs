@@ -29,7 +29,7 @@ public class SearchController(ISearchService service) : ControllerBase
     [ProducesResponseType(typeof(Result<PagedResponse<SearchResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result<PagedResponse<SearchResponse>>>> Search(
-        [FromQuery] string q,
+        [FromQuery] string? q = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default
