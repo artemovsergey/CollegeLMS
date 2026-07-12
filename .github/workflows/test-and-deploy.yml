@@ -166,7 +166,7 @@ jobs:
 
             # Import WordPress news data (idempotent — skips duplicates by slug)
             echo "=== Waiting for API to be ready ==="
-            curl --retry 25 --retry-delay 5 --retry-all-errors -sf http://localhost:5026/api/health > /dev/null 2>&1 && echo "API ready" || echo "API not ready after timeout"
+            curl --retry 25 --retry-delay 5 --retry-all-errors -sf http://localhost:5026/healthz > /dev/null 2>&1 && echo "API ready" || echo "API not ready after timeout"
             TOKEN=$(curl -s -X POST http://localhost:5026/api/auth/login \
               -H "Content-Type: application/json" \
               -d '{"login":"admin","password":"admin"}' \
