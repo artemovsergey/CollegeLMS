@@ -1,0 +1,16 @@
+@startuml
+!theme plain
+
+actor "Посетитель" as User
+participant "SearchController" as Ctrl
+participant "SearchService" as Svc
+database "PostgreSQL" as DB
+
+User -> Ctrl: GET /api/search?q={query}&page=1&pageSize=20
+Ctrl -> Svc: SearchAsync(query, page, pageSize)
+Svc -> DB: SELECT FROM news WHERE title/content LIKE %query%
+DB --> Svc: news results
+Svc -> Svc: Search static pages (in-memory)
+Svc --> Ctrl: Result<PagedResponse<SearchResponse>>
+Ctrl --> User: 200 JSON { items, totalCount, page, pageSize, totalPages }
+@enduml

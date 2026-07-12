@@ -1,0 +1,28 @@
+@startuml
+!theme plain
+
+interface ISearchService {
+  + SearchAsync(query, page, pageSize, ct): Result<PagedResponse<SearchResponse>>
+}
+
+class SearchService {
+  - db: AppDbContext
+  + SearchAsync(query, page, pageSize, ct): Result<PagedResponse<SearchResponse>>
+}
+
+class SearchController {
+  - service: ISearchService
+  + Search(q, page, pageSize, ct): ActionResult
+}
+
+class SearchResponse {
+  + Title: string
+  + Type: string
+  + Url: string
+  + Snippet: string
+}
+
+ISearchService <|.. SearchService
+SearchController --> ISearchService
+SearchService ..> SearchResponse
+@enduml
