@@ -4,6 +4,7 @@ using CollegeLMS.API.Data;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Services;
 using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -178,6 +179,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ScheduleExportService>();
         services.AddScoped<ScheduleImportService>();
+        services.AddFluentValidationAutoValidation();
         services.AddValidatorsFromAssemblyContaining<Program>();
 
         return services;
