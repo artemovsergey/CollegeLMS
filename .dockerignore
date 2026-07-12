@@ -6,3 +6,8 @@
 **/logs
 **/TestResults
 import/wp_data_full.json
+frontend/
+docs/
+scripts/
+import/
+agentbridge/
