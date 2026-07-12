@@ -154,6 +154,7 @@ jobs:
             docker compose exec -T db psql -U postgres \
               -c "ALTER USER postgres PASSWORD '${DB_PASSWORD_ESC}';" \
               2>/dev/null && echo "ALTER ROLE succeeded" || echo "ALTER ROLE skipped or failed"
+            sleep 3
 
             # Now build and start everything
             docker compose up --build -d
