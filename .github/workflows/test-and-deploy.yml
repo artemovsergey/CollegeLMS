@@ -133,7 +133,7 @@ jobs:
               echo "AGENTBRIDGE_PORT=5030"
               echo "TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}"
               echo "TELEGRAM_ALLOWED_USER_ID=${TELEGRAM_ALLOWED_USER_ID}"
-              echo "JWT_KEY=${JWT_KEY}"
+              echo "JWT_KEY=${JWT_KEY:-clm_jwt_secret_fallback_2026}"
               echo "OPENCODE_SERVER_URL=http://host.docker.internal:4096"
               echo "OPENCODE_USERNAME=opencode"
               echo "OPENCODE_PASSWORD="
