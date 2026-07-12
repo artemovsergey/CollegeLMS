@@ -1,5 +1,9 @@
 # CollegeLMS — Agent instructions
 
+## Spec
+
+- каждое базовое требование в основных сервисах должно быть разбито на конкретные пользовательские истории (User Stories) с четкими критериями приемки. 
+
 ## Stack
 - Backend: .NET 10, ASP.NET Core Web API (single project, no .sln)
 - Frontend: Next.js 14, TS, Tailwind CSS 4 (in `frontend/`)
