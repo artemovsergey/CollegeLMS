@@ -1,0 +1,61 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DB_PASSWORD,TELEGRAM_BOT_TOKEN,TELEGRAM_ALLOWED_USER_ID,JWT_KEY
+          script: |
+            set -e
+            cd /home/user1/CollegeLMS
+
+            echo "=== git pull ==="
+            git pull origin master
+
+            echo "=== .env from secrets ==="
+            {
+              echo "DB_PORT=5432"
+              echo "DB_USER=postgres"
+              echo "DB_PASSWORD=${DB_PASSWORD}"
+              echo "DB_NAME=collegelms"
+              echo "REDIS_PORT=6379"
+              echo "API_PORT=5026"
+              echo "ASPNETCORE_ENVIRONMENT=Production"
+              echo "NGINX_HTTP_PORT=80"
+              echo "NGINX_HTTPS_PORT=443"
+              echo "AGENTBRIDGE_PORT=5030"
+              echo "TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}"
+              echo "TELEGRAM_ALLOWED_USER_ID=${TELEGRAM_ALLOWED_USER_ID}"
+              echo "JWT_KEY=${JWT_KEY}"
+              echo "OPENCODE_SERVER_URL=http://host.docker.internal:4096"
+              echo "OPENCODE_USERNAME=opencode"
+              echo "OPENCODE_PASSWORD="
+              echo "OPENCODE_DEFAULT_MODEL=opencode/deepseek-v4-flash-free"
+              echo "VK_ACCESS_TOKEN="
+              echo "VK_GROUP_ID=0"
+              echo "VK_CONFIRMATION_CODE="
+            } > .env
+
+            echo "=== Build & start all services ==="
+            docker compose up --build -d --force-recreate --profile agentbridge
+
+            echo "=== Migrations ==="
+            docker compose exec -T api dotnet ef database update -- --provider Npgsql 2>/dev/null || echo "Migration skipped"
+
+            echo "=== Health check ==="
+            sleep 5
+            curl -s http://localhost:5030/health || echo "AgentBridge not responding"
+            curl -s http://localhost:5026/healthz || echo "API not responding"
+
+            docker image prune -f
