@@ -17,7 +17,7 @@ if [ ! -f .env ] || [ -z "$(grep TELEGRAM_BOT_TOKEN .env | cut -d= -f2)" ]; then
 fi
 
 echo "=== Build & start all services ==="
-docker compose up --build -d --profile agentbridge
+docker compose --profile agentbridge up --build -d
 
 echo "=== Health check ==="
 sleep 5

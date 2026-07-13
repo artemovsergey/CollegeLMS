@@ -49,7 +49,7 @@ jobs:
             } > .env
 
             echo "=== Build & start all services ==="
-            docker compose up --build -d --force-recreate --profile agentbridge
+            docker compose --profile agentbridge up --build -d --force-recreate
 
             echo "=== Migrations ==="
             docker compose exec -T api dotnet ef database update -- --provider Npgsql 2>/dev/null || echo "Migration skipped"
