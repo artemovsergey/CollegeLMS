@@ -57,9 +57,6 @@ jobs:
             echo "=== Build & start all services ==="
             docker compose --profile agentbridge up --build -d --force-recreate
 
-            echo "=== Migrations ==="
-            docker compose exec -T api dotnet ef database update -- --provider Npgsql 2>/dev/null || echo "Migration skipped"
-
             echo "=== Health check ==="
             sleep 5
             curl -s http://localhost:5030/health || echo "AgentBridge not responding"

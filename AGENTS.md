@@ -264,9 +264,8 @@ Phase 5: MERGE & DEPLOY (Architect)
   CD на VPS:
     1. git pull
     2. запись .env из GitHub Secrets
-    3. docker compose up --build -d --profile agentbridge
-    4. миграции
-    5. health check
+    3. docker compose --profile agentbridge up --build -d --force-recreate
+    4. health check (миграции — автоматически при старте API)
 ```
 
 
