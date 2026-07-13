@@ -3,6 +3,7 @@ using AgentBridge.Models;
 using AgentBridge.OpenCode;
 using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace AgentBridge.Bot;
@@ -234,7 +235,11 @@ public class MessageRouter
             task.Status = AgentTaskStatus.Failed;
             task.ErrorMessage = ex.Message;
             CleanupChat(task.ChatId, sessionId);
-            await telegramBot.SendMessage(task.ChatId, "❌ Не удалось получить результат.");
+            await telegramBot.SendMessage(
+                task.ChatId,
+                "❌ Не удалось получить результат.",
+                parseMode: ParseMode.None
+            );
         }
     }
 
@@ -258,7 +263,11 @@ public class MessageRouter
             task.Status = AgentTaskStatus.Failed;
             task.ErrorMessage = message;
             CleanupChat(task.ChatId, sessionId);
-            await telegramBot.SendMessage(task.ChatId, $"❌ Ошибка агента: {message}");
+            await telegramBot.SendMessage(
+                task.ChatId,
+                $"❌ Ошибка агента: {message}",
+                parseMode: ParseMode.None
+            );
         }
     }
 
@@ -301,7 +310,12 @@ public class MessageRouter
                 InlineKeyboardButton.WithCallbackData("❌ Отказать", $"deny:{permissionId}"),
             ],
         ]);
-        await telegramBot.SendMessage(task.ChatId, msg, replyMarkup: keyboard);
+        await telegramBot.SendMessage(
+            task.ChatId,
+            msg,
+            replyMarkup: keyboard,
+            parseMode: ParseMode.None
+        );
     }
 
     public async Task HandlePermissionResponseAsync(string permissionId, bool allow)
@@ -427,14 +441,14 @@ public class MessageRouter
         const int maxLen = 4096;
         if (text.Length <= maxLen)
         {
-            await bot.SendMessage(chatId, text);
+            await bot.SendMessage(chatId, text, parseMode: ParseMode.None);
             return;
         }
 
         for (var i = 0; i < text.Length; i += maxLen)
         {
             var chunk = text.Substring(i, Math.Min(maxLen, text.Length - i));
-            await bot.SendMessage(chatId, chunk);
+            await bot.SendMessage(chatId, chunk, parseMode: ParseMode.None);
         }
     }
 }

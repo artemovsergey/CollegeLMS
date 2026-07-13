@@ -96,7 +96,11 @@ public class TelegramBotHost : BackgroundService
             _logger.LogError(ex, "Error handling update");
             if (update.Message?.Chat.Id is { } chatId)
             {
-                await bot.SendMessage(chatId, $"❌ Внутренняя ошибка: {ex.Message}");
+                await bot.SendMessage(
+                    chatId,
+                    $"❌ Внутренняя ошибка: {ex.Message}",
+                    parseMode: ParseMode.Markdown
+                );
             }
         }
     }
