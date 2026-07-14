@@ -20,10 +20,7 @@ var app = builder.Build();
 app.UseExceptionMiddleware();
 app.UseCors("AllowFrontend");
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwaggerWithUi();
-}
+app.UseSwaggerWithUi();
 
 app.UseAuthentication();
 app.UseAuthorization();

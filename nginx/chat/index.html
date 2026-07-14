@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>OpenCode Chat</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0f0f;--surface:#1a1a1e;--border:#2a2a2e;--text:#e8e8ed;--text-dim:#8e8e93;--accent:#0a84ff;--user-msg:#0a84ff;--assistant-msg:#1c1c1e;--input-bg:#1c1c1e;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:720px;margin:0 auto}
+header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+header h1{font-size:17px;font-weight:600}
+header .status{width:8px;height:8px;border-radius:50%;background:#30d158;flex-shrink:0}
+#messages{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
+#messages::-webkit-scrollbar{width:4px}
+#messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.msg{max-width:85%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.45;word-wrap:break-word;animation:fadeIn .2s ease}
+.msg.user{align-self:flex-end;background:var(--user-msg);color:#fff;border-bottom-right-radius:4px}
+.msg.assistant{align-self:flex-start;background:var(--assistant-msg);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg.reasoning{background:transparent;border:1px dashed var(--border);color:var(--text-dim);font-size:13px;align-self:flex-start;max-width:75%}
+.msg.system{align-self:center;font-size:12px;color:var(--text-dim);background:transparent;padding:4px 8px}
+.msg .time{font-size:10px;color:var(--text-dim);margin-top:4px;opacity:.6}
+.msg.user .time{color:rgba(255,255,255,.6)}
+.thinking{display:flex;align-items:center;gap:6px;padding:14px 18px;border-radius:18px;align-self:flex-start;background:var(--assistant-msg);border:1px solid var(--border);font-size:14px;color:var(--text-dim)}
+.thinking .dot{width:6px;height:6px;border-radius:50%;background:var(--text-dim);animation:bounce 1.4s infinite ease-in-out both}
+.thinking .dot:nth-child(1){animation-delay:-.32s}
+.thinking .dot:nth-child(2){animation-delay:-.16s}
+.thinking .dot:nth-child(3){animation-delay:0s}
+@keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#input-area{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+#input{flex:1;padding:10px 16px;border-radius:20px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);font-size:16px;outline:none;font-family:var(--font)}
+#input:focus{border-color:var(--accent)}
+#input::placeholder{color:var(--text-dim)}
+#send{width:40px;height:40px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s}
+#send:disabled{opacity:.4}
+#send svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.error-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#ff453a;color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;z-index:100;animation:fadeIn .2s ease;max-width:90%}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="status" id="statusDot"></div>
+    <h1>OpenCode</h1>
+  </header>
+  <div id="messages"></div>
+  <div id="input-area">
+    <input id="input" type="text" placeholder="Сообщение..." autocomplete="off" autofocus>
+    <button id="send" disabled aria-label="Отправить"><svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>
+  </div>
+</div>
+<script>
+const SESSION_KEY = 'oc_chat_session'
+const MODEL = { id: 'deepseek-v4-flash-free', providerID: 'opencode' }
+const AGENT = 'ask'
+let sessionId = localStorage.getItem(SESSION_KEY)
+let messagesEl = document.getElementById('messages')
+let inputEl = document.getElementById('input')
+let sendBtn = document.getElementById('send')
+let statusDot = document.getElementById('statusDot')
+let loading = false
+
+async function init() {
+  if (sessionId) {
+    const ok = await loadHistory()
+    if (!ok) sessionId = null
+  }
+  if (!sessionId) {
+    await createSession()
+  }
+}
+
+async function createSession() {
+  try {
+    statusDot.style.background = '#ff9f0a'
+    const r = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, agent: AGENT })
+    })
+    const d = await r.json()
+    const id = d?.data?.id || d?.id
+    if (!id) throw new Error('No session ID')
+    sessionId = id
+    localStorage.setItem(SESSION_KEY, id)
+    statusDot.style.background = '#30d158'
+    addMessage('system', 'Новая сессия создана')
+    inputEl.focus()
+  } catch (e) {
+    statusDot.style.background = '#ff453a'
+    showError('Не удалось создать сессию: ' + e.message)
+  }
+}
+
+async function loadHistory() {
+  try {
+    const r = await fetch('/session/' + sessionId + '/message')
+    if (!r.ok) return false
+    const msgs = await r.json()
+    if (!Array.isArray(msgs) || msgs.length === 0) return true
+    const container = document.getElementById('messages')
+    container.innerHTML = ''
+    for (const msg of msgs) {
+      const role = msg?.info?.role || 'assistant'
+      const parts = msg?.parts || []
+      for (const p of parts) {
+        if (p.type === 'text' && p.text) {
+          addMessage(role, p.text)
+        }
+      }
+    }
+    scrollBottom()
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function sendMessage(text) {
+  if (loading || !text.trim() || !sessionId) return
+  loading = true
+  sendBtn.disabled = true
+  inputEl.disabled = true
+
+  addMessage('user', text.trim())
+  showThinking()
+  scrollBottom()
+
+  try {
+    const r = await fetch('/session/' + sessionId + '/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parts: [{ type: 'text', text: text.trim() }] })
+    })
+    const d = await r.json()
+    hideThinking()
+    if (d.error || d.name) {
+      showError(d?.data?.message || d?.name || 'Ошибка')
+      return
+    }
+    const parts = d?.parts || []
+    for (const p of parts) {
+      if (p.type === 'reasoning' && p.text) {
+        addMessage('reasoning', p.text)
+      } else if (p.type === 'text' && p.text) {
+        addMessage('assistant', p.text)
+      }
+    }
+    scrollBottom()
+  } catch (e) {
+    hideThinking()
+    showError('Ошибка: ' + e.message)
+  } finally {
+    loading = false
+    sendBtn.disabled = false
+    inputEl.disabled = false
+    inputEl.focus()
+  }
+}
+
+function addMessage(role, text) {
+  const div = document.createElement('div')
+  div.className = 'msg ' + role
+  div.textContent = text
+  const time = document.createElement('div')
+  time.className = 'time'
+  time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  div.appendChild(time)
+  messagesEl.appendChild(div)
+  scrollBottom()
+}
+
+function showThinking() {
+  const div = document.createElement('div')
+  div.className = 'thinking'
+  div.id = 'thinking-indicator'
+  div.innerHTML = '<span>Думает</span><span class="dot"></span><span class="dot"></span><span class="dot"></span>'
+  messagesEl.appendChild(div)
+  scrollBottom()
+}
+
+function hideThinking() {
+  const el = document.getElementById('thinking-indicator')
+  if (el) el.remove()
+}
+
+function scrollBottom() {
+  requestAnimationFrame(() => {
+    messagesEl.scrollTop = messagesEl.scrollHeight
+  })
+}
+
+function showError(msg) {
+  const toast = document.createElement('div')
+  toast.className = 'error-toast'
+  toast.textContent = msg
+  document.body.appendChild(toast)
+  setTimeout(() => toast.remove(), 4000)
+}
+
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    const text = inputEl.value
+    inputEl.value = ''
+    sendMessage(text)
+  }
+})
+
+inputEl.addEventListener('input', () => {
+  sendBtn.disabled = !inputEl.value.trim() || loading
+})
+
+sendBtn.addEventListener('click', () => {
+  const text = inputEl.value
+  inputEl.value = ''
+  sendMessage(text)
+})
+
+init()
+</script>
+</body>
+</html>

@@ -18,6 +18,7 @@ public class UploadController : ControllerBase
     private const long MaxFileSize = 10 * 1024 * 1024;
 
     [HttpPost]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [Authorize(Roles = "Admin")]
     [Consumes("multipart/form-data")]
     [SwaggerOperation(Summary = "Загрузить изображение для новости (только Admin)")]
