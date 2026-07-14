@@ -595,13 +595,7 @@ public class MessageRouter
             return $"<code>{escaped}</code>";
         });
 
-        // 3. Escape HTML special chars outside code blocks
-        //    (code blocks already escaped, now escape the rest)
-        text = Regex.Replace(text, @"&(?!amp;|lt;|gt;)", "&amp;");
-        text = Regex.Replace(text, @"<(?!/?[biuspa/])", "&lt;");
-        text = Regex.Replace(text, @"(?<![\"'=/])>(?!\s|$|</)", "&gt;");
-
-        // 4. Bold **text**
+        // 3. Bold **text**
         text = Regex.Replace(text, @"\*\*(.+?)\*\*", "<b>$1</b>");
 
         // 5. Italic *text* (but not ** which is bold)
