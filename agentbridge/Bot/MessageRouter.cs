@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using AgentBridge.Models;
 using AgentBridge.OpenCode;
 using Microsoft.Extensions.Configuration;
@@ -549,19 +550,78 @@ public class MessageRouter
             _chatActiveSession.TryRemove(chatId, out _);
     }
 
-    public async Task SendLongMessageAsync(ITelegramBotClient bot, long chatId, string text)
+    public async Task SendLongMessageAsync(ITelegramBotClient bot, long chatId, string text, ReplyKeyboardMarkup? keyboard = null)
     {
+        var html = MarkdownToHtml(text);
         const int maxLen = 4096;
-        if (text.Length <= maxLen)
+        if (html.Length <= maxLen)
         {
-            await bot.SendMessage(chatId, text, parseMode: ParseMode.Markdown);
+            await bot.SendMessage(chatId, html, replyMarkup: keyboard, parseMode: ParseMode.HTML);
             return;
         }
 
-        for (var i = 0; i < text.Length; i += maxLen)
+        for (var i = 0; i < html.Length; i += maxLen)
         {
-            var chunk = text.Substring(i, Math.Min(maxLen, text.Length - i));
-            await bot.SendMessage(chatId, chunk, parseMode: ParseMode.Markdown);
+            var chunk = html.Substring(i, Math.Min(maxLen, html.Length - i));
+            var markup = i == 0 ? keyboard : null;
+            await bot.SendMessage(chatId, chunk, replyMarkup: markup, parseMode: ParseMode.HTML);
         }
+    }
+
+    private static string MarkdownToHtml(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        // 1. Protect fenced code blocks (process first to avoid inner formatting)
+        text = Regex.Replace(text, @"```(\w*)\n([\s\S]*?)```", m =>
+        {
+            var code = m.Groups[2].Value;
+            var escaped = code
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;");
+            return $"<pre>{escaped}</pre>";
+        });
+
+        // 2. Inline code (process before bold/italic so `**code**` stays code)
+        text = Regex.Replace(text, @"`([^`]+)`", m =>
+        {
+            var code = m.Groups[1].Value;
+            var escaped = code
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;");
+            return $"<code>{escaped}</code>";
+        });
+
+        // 3. Escape HTML special chars outside code blocks
+        //    (code blocks already escaped, now escape the rest)
+        text = Regex.Replace(text, @"&(?!amp;|lt;|gt;)", "&amp;");
+        text = Regex.Replace(text, @"<(?!/?[biuspa/])", "&lt;");
+        text = Regex.Replace(text, @"(?<![\"'=/])>(?!\s|$|</)", "&gt;");
+
+        // 4. Bold **text**
+        text = Regex.Replace(text, @"\*\*(.+?)\*\*", "<b>$1</b>");
+
+        // 5. Italic *text* (but not ** which is bold)
+        text = Regex.Replace(text, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "<i>$1</i>");
+
+        // 6. Strikethrough ~~text~~
+        text = Regex.Replace(text, @"~~(.+?)~~", "<s>$1</s>");
+
+        // 7. Links [text](url)
+        text = Regex.Replace(text, @"\[([^\]]+)\]\(([^)]+)\)", "<a href=\"$2\">$1</a>");
+
+        // 8. Images ![alt](url) → keep alt
+        text = Regex.Replace(text, @"!\[([^\]]*)\]\([^)]+\)", "$1");
+
+        // 9. Headings # → bold
+        text = Regex.Replace(text, @"^#{1,6}\s+(.+)$", "<b>$1</b>", RegexOptions.Multiline);
+
+        // 10. Horizontal rules
+        text = Regex.Replace(text, @"^[-*_]{3,}\s*$", "\n---\n", RegexOptions.Multiline);
+
+        return text.Trim();
     }
 }

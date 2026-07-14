@@ -123,7 +123,7 @@ public class TelegramBotHost : BackgroundService
 
             if (text == "/start" || text == "/menu")
             {
-                await bot.SendMessage(chatId, response, replyMarkup: MenuKeyboard, parseMode: ParseMode.None);
+                await _router.SendLongMessageAsync(bot, chatId, response, MenuKeyboard);
             }
             else
             {
@@ -138,7 +138,7 @@ public class TelegramBotHost : BackgroundService
                 await bot.SendMessage(
                     chatId,
                     $"❌ Внутренняя ошибка: {ex.Message}",
-                    parseMode: ParseMode.Markdown
+                    parseMode: ParseMode.None
                 );
             }
         }
