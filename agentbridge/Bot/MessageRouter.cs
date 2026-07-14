@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using AgentBridge.Models;
 using AgentBridge.OpenCode;
 using Microsoft.Extensions.Configuration;
@@ -551,17 +552,73 @@ public class MessageRouter
 
     public async Task SendLongMessageAsync(ITelegramBotClient bot, long chatId, string text)
     {
+        var clean = StripMarkdown(text);
         const int maxLen = 4096;
-        if (text.Length <= maxLen)
+        if (clean.Length <= maxLen)
         {
-            await bot.SendMessage(chatId, text, parseMode: ParseMode.None);
+            await bot.SendMessage(chatId, clean, parseMode: ParseMode.None);
             return;
         }
 
-        for (var i = 0; i < text.Length; i += maxLen)
+        for (var i = 0; i < clean.Length; i += maxLen)
         {
-            var chunk = text.Substring(i, Math.Min(maxLen, text.Length - i));
+            var chunk = clean.Substring(i, Math.Min(maxLen, clean.Length - i));
             await bot.SendMessage(chatId, chunk, parseMode: ParseMode.None);
         }
+    }
+
+    private static string StripMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        // Remove fenced code blocks ```...``` — keep content
+        text = Regex.Replace(text, @"```[\s\S]*?```", m =>
+        {
+            var inner = m.Value[3..^3].Trim();
+            // If first line is a language tag, skip it
+            var firstNewline = inner.IndexOf('\n');
+            if (firstNewline > 0 && firstNewline < 20 && !inner.Contains(' '))
+                inner = inner[(firstNewline + 1)..];
+            return inner;
+        });
+
+        // Remove inline code backticks — keep content
+        text = Regex.Replace(text, @"`([^`]+)`", "$1");
+
+        // Remove bold **text**
+        text = Regex.Replace(text, @"\*\*(.+?)\*\*", "$1");
+
+        // Remove italic *text* (but not when surrounded by digits or standalone *)
+        text = Regex.Replace(text, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "$1");
+
+        // Remove italic _text_
+        text = Regex.Replace(text, @"(?<!\w)_(.+?)_(?!\w)", "$1");
+
+        // Remove strikethrough ~~text~~
+        text = Regex.Replace(text, @"~~(.+?)~~", "$1");
+
+        // Remove markdown links [text](url) → keep text
+        text = Regex.Replace(text, @"\[([^\]]+)\]\([^)]+\)", "$1");
+
+        // Remove image links ![alt](url)
+        text = Regex.Replace(text, @"!\[([^\]]*)\]\([^)]+\)", "$1");
+
+        // Remove heading markers
+        text = Regex.Replace(text, @"^#{1,6}\s+", "", RegexOptions.Multiline);
+
+        // Remove horizontal rules
+        text = Regex.Replace(text, @"^[-*_]{3,}\s*$", "", RegexOptions.Multiline);
+
+        // Remove blockquote markers
+        text = Regex.Replace(text, @"^>+\s?", "", RegexOptions.Multiline);
+
+        // Remove list markers
+        text = Regex.Replace(text, @"^\s*[-*+]\s+", "", RegexOptions.Multiline);
+
+        // Remove numbered list markers
+        text = Regex.Replace(text, @"^\s*\d+\.\s+", "", RegexOptions.Multiline);
+
+        return text.Trim();
     }
 }
