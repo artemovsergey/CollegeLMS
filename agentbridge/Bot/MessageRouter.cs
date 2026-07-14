@@ -556,7 +556,7 @@ public class MessageRouter
         const int maxLen = 4096;
         if (html.Length <= maxLen)
         {
-            await bot.SendMessage(chatId, html, replyMarkup: keyboard, parseMode: ParseMode.HTML);
+            await bot.SendMessage(chatId, html, replyMarkup: keyboard, parseMode: ParseMode.Html);
             return;
         }
 
@@ -564,7 +564,7 @@ public class MessageRouter
         {
             var chunk = html.Substring(i, Math.Min(maxLen, html.Length - i));
             var markup = i == 0 ? keyboard : null;
-            await bot.SendMessage(chatId, chunk, replyMarkup: markup, parseMode: ParseMode.HTML);
+            await bot.SendMessage(chatId, chunk, replyMarkup: markup, parseMode: ParseMode.Html);
         }
     }
 
