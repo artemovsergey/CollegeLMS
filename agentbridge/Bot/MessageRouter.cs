@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net;
 using System.Text.RegularExpressions;
 using AgentBridge.Models;
 using AgentBridge.OpenCode;
@@ -573,48 +574,51 @@ public class MessageRouter
         if (string.IsNullOrEmpty(text))
             return text;
 
-        // 1. Protect fenced code blocks (process first to avoid inner formatting)
+        var blocks = new List<string>();
+
+        // 1. Extract fenced code blocks → placeholder
         text = Regex.Replace(text, @"```(\w*)\n([\s\S]*?)```", m =>
         {
-            var code = m.Groups[2].Value;
-            var escaped = code
-                .Replace("&", "&amp;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;");
-            return $"<pre>{escaped}</pre>";
+            var encoded = WebUtility.HtmlEncode(m.Groups[2].Value);
+            blocks.Add($"<pre>{encoded}</pre>");
+            return $"\x00CB{blocks.Count - 1}\x00";
         });
 
-        // 2. Inline code (process before bold/italic so `**code**` stays code)
+        // 2. Extract inline code → placeholder
         text = Regex.Replace(text, @"`([^`]+)`", m =>
         {
-            var code = m.Groups[1].Value;
-            var escaped = code
-                .Replace("&", "&amp;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;");
-            return $"<code>{escaped}</code>";
+            var encoded = WebUtility.HtmlEncode(m.Groups[1].Value);
+            blocks.Add($"<code>{encoded}</code>");
+            return $"\x00CB{blocks.Count - 1}\x00";
         });
 
-        // 3. Bold **text**
+        // 3. HTML-escape everything else (so <id> → &lt;id&gt; etc.)
+        text = WebUtility.HtmlEncode(text);
+
+        // 4. Restore code blocks
+        for (var i = 0; i < blocks.Count; i++)
+            text = text.Replace($"\x00CB{i}\x00", blocks[i]);
+
+        // 5. Bold **text**
         text = Regex.Replace(text, @"\*\*(.+?)\*\*", "<b>$1</b>");
 
-        // 5. Italic *text* (but not ** which is bold)
+        // 6. Italic *text* (but not ** which is bold)
         text = Regex.Replace(text, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "<i>$1</i>");
 
-        // 6. Strikethrough ~~text~~
+        // 7. Strikethrough ~~text~~
         text = Regex.Replace(text, @"~~(.+?)~~", "<s>$1</s>");
 
-        // 7. Links [text](url)
+        // 8. Links [text](url)
         text = Regex.Replace(text, @"\[([^\]]+)\]\(([^)]+)\)", "<a href=\"$2\">$1</a>");
 
-        // 8. Images ![alt](url) → keep alt
+        // 9. Images ![alt](url) → keep alt
         text = Regex.Replace(text, @"!\[([^\]]*)\]\([^)]+\)", "$1");
 
-        // 9. Headings # → bold
+        // 10. Headings # → bold
         text = Regex.Replace(text, @"^#{1,6}\s+(.+)$", "<b>$1</b>", RegexOptions.Multiline);
 
-        // 10. Horizontal rules
-        text = Regex.Replace(text, @"^[-*_]{3,}\s*$", "\n---\n", RegexOptions.Multiline);
+        // 11. Horizontal rules
+        text = Regex.Replace(text, @"^[-*_]{3,}\s*$", "\n—\n", RegexOptions.Multiline);
 
         return text.Trim();
     }
