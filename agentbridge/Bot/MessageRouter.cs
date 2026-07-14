@@ -551,23 +551,17 @@ public class MessageRouter
 
     public async Task SendLongMessageAsync(ITelegramBotClient bot, long chatId, string text)
     {
-        const string fence = "```markdown\n";
-        const string close = "\n```";
         const int maxLen = 4096;
-        var wrapped = $"{fence}{text}{close}";
-
-        if (wrapped.Length <= maxLen)
+        if (text.Length <= maxLen)
         {
-            await bot.SendMessage(chatId, wrapped, parseMode: ParseMode.Markdown);
+            await bot.SendMessage(chatId, text, parseMode: ParseMode.Markdown);
             return;
         }
 
-        // Если ответ не влезает — просто шлём кусками, первый с обёрткой
         for (var i = 0; i < text.Length; i += maxLen)
         {
             var chunk = text.Substring(i, Math.Min(maxLen, text.Length - i));
-            var part = i == 0 ? $"{fence}{chunk}{close}" : chunk;
-            await bot.SendMessage(chatId, part, parseMode: i == 0 ? ParseMode.Markdown : ParseMode.None);
+            await bot.SendMessage(chatId, chunk, parseMode: ParseMode.Markdown);
         }
     }
 }
