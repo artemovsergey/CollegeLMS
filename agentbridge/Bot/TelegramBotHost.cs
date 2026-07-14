@@ -4,6 +4,7 @@ using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace AgentBridge.Bot;
 
@@ -15,6 +16,32 @@ public class TelegramBotHost : BackgroundService
     private readonly OpenCodeSseListener _sse;
     private readonly ILogger<TelegramBotHost> _logger;
     private readonly HashSet<long> _allowedUsers;
+
+    private static readonly BotCommand[] Commands =
+    [
+        new() { Command = "new", Description = "Новая сессия" },
+        new() { Command = "status", Description = "Статус OpenCode" },
+        new() { Command = "models", Description = "Список моделей" },
+        new() { Command = "model", Description = "Сменить модель" },
+        new() { Command = "cancel", Description = "Отменить задачу" },
+        new() { Command = "files", Description = "Просмотр файлов" },
+        new() { Command = "read", Description = "Чтение файла" },
+        new() { Command = "search", Description = "Поиск по файлам" },
+        new() { Command = "undo", Description = "Откатить изменения" },
+        new() { Command = "menu", Description = "Показать меню" },
+        new() { Command = "help", Description = "Помощь" },
+    ];
+
+    private static readonly ReplyKeyboardMarkup MenuKeyboard = new([
+        [new KeyboardButton("📋 Новая сессия"), new KeyboardButton("📁 Файлы")],
+        [new KeyboardButton("🤖 Статус"), new KeyboardButton("⚙️ Модель")],
+        [new KeyboardButton("🔍 Поиск"), new KeyboardButton("💡 Помощь")],
+        [new KeyboardButton("❌ Отмена")],
+    ])
+    {
+        ResizeKeyboard = true,
+        InputFieldPlaceholder = "Напишите задачу агенту...",
+    };
 
     public TelegramBotHost(
         ITelegramBotClient bot,
@@ -40,6 +67,11 @@ public class TelegramBotHost : BackgroundService
 
         _sse.OnEvent += async evt => await _router.HandleSseEventAsync(evt, _bot);
 
+        var me = await _bot.GetMe(stoppingToken);
+
+        await _bot.SetMyCommands(Commands, cancellationToken: stoppingToken);
+        _logger.LogInformation("Bot commands registered");
+
         _bot.StartReceiving(
             HandleUpdateAsync,
             HandleErrorAsync,
@@ -47,7 +79,6 @@ public class TelegramBotHost : BackgroundService
             stoppingToken
         );
 
-        var me = await _bot.GetMe(stoppingToken);
         _logger.LogInformation("Telegram bot started as @{Username}", me.Username);
 
         await Task.Delay(Timeout.Infinite, stoppingToken);
@@ -61,9 +92,9 @@ public class TelegramBotHost : BackgroundService
     {
         try
         {
-            if (update.CallbackQuery is { Data: { } callbackData })
+            if (update.CallbackQuery is { Data: { } callbackData } cbQuery)
             {
-                await HandleCallbackQueryAsync(bot, callbackData, ct);
+                await HandleCallbackQueryAsync(bot, cbQuery, ct);
                 return;
             }
 
@@ -89,7 +120,15 @@ public class TelegramBotHost : BackgroundService
             _ = bot.SendChatAction(chatId, ChatAction.Typing, cancellationToken: ct);
 
             var response = await _router.HandleCommandAsync(text, chatId, "telegram");
-            await _router.SendLongMessageAsync(bot, chatId, response);
+
+            if (text == "/start" || text == "/menu")
+            {
+                await bot.SendMessage(chatId, response, replyMarkup: MenuKeyboard, parseMode: ParseMode.None);
+            }
+            else
+            {
+                await _router.SendLongMessageAsync(bot, chatId, response);
+            }
         }
         catch (Exception ex)
         {
@@ -107,21 +146,28 @@ public class TelegramBotHost : BackgroundService
 
     private async Task HandleCallbackQueryAsync(
         ITelegramBotClient bot,
-        string data,
+        CallbackQuery cbQuery,
         CancellationToken ct
     )
     {
+        var data = cbQuery.Data;
+        if (string.IsNullOrEmpty(data))
+            return;
+
         try
         {
-            if (!data.StartsWith("allow:") && !data.StartsWith("deny:"))
+            if (data.StartsWith("allow:") || data.StartsWith("deny:"))
+            {
+                var parts = data.Split(':');
+                var action = parts[0];
+                var permissionId = parts[1];
+                var allow = action == "allow";
+                await _router.HandlePermissionResponseAsync(permissionId, allow);
+                await bot.AnswerCallbackQuery(cbQuery.Id,
+                    text: allow ? "✅ Разрешено" : "❌ Отказано",
+                    cancellationToken: ct);
                 return;
-
-            var parts = data.Split(':');
-            var action = parts[0];
-            var permissionId = parts[1];
-
-            var allow = action == "allow";
-            await _router.HandlePermissionResponseAsync(permissionId, allow);
+            }
         }
         catch (Exception ex)
         {

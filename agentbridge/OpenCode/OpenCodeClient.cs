@@ -155,7 +155,45 @@ public class OpenCodeClient
             return null;
         return await resp.Content.ReadFromJsonAsync<ProviderResponse>(JsonOpts, ct);
     }
+
+    public async Task<List<FileNode>?> ListFilesAsync(string path = "", CancellationToken ct = default)
+    {
+        var url = string.IsNullOrEmpty(path) ? "/file" : $"/file?path={Uri.EscapeDataString(path)}";
+        var resp = await _http.GetAsync(url, ct);
+        if (!resp.IsSuccessStatusCode)
+            return null;
+        return await resp.Content.ReadFromJsonAsync<List<FileNode>>(JsonOpts, ct);
+    }
+
+    public async Task<string?> ReadFileAsync(string path, CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"/file/content?path={Uri.EscapeDataString(path)}", ct);
+        if (!resp.IsSuccessStatusCode)
+            return null;
+        var content = await resp.Content.ReadFromJsonAsync<FileContent>(JsonOpts, ct);
+        return content?.Content;
+    }
+
+    public async Task<List<string>?> SearchFilesAsync(string query, CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"/find/file?query={Uri.EscapeDataString(query)}", ct);
+        if (!resp.IsSuccessStatusCode)
+            return null;
+        return await resp.Content.ReadFromJsonAsync<List<string>>(JsonOpts, ct);
+    }
 }
+
+public record FileNode(
+    [property: JsonPropertyName("path")] string Path,
+    [property: JsonPropertyName("type")] string Type
+)
+{
+    public bool IsDirectory => Type == "directory";
+}
+
+public record FileContent(
+    [property: JsonPropertyName("content")] string? Content
+);
 
 // --- DTOs ---
 

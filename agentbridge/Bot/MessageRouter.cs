@@ -39,24 +39,44 @@ public class MessageRouter
         string? model = null
     )
     {
-        var lower = command.ToLower();
+        var lower = command.ToLower().Trim();
 
-        if (lower == "/cancel")
+        if (lower == "/cancel" || lower == "❌ отмена")
             return await CancelAsync(chatId);
 
-        if (lower == "/start")
-            return "Я бот AgentBridge.\n\nОтправьте задачу → агент OpenCode выполнит.\n\n/status — статус\n/model — сменить модель\n/cancel — отмена задачи";
+        if (lower == "/start" || lower == "/menu")
+            return "🤖 *AgentBridge*\n\nНапишите задачу — агент OpenCode выполнит.\n\nИспользуйте кнопки меню ниже или команды:";
 
-        if (lower == "/status")
+        if (lower == "/new" || lower == "📋 новая сессия")
+        {
+            CleanupChat(chatId, _chatActiveSession.TryGetValue(chatId, out var sid) ? sid : null);
+            return "✅ Новая сессия создана. Предыдущий контекст сброшен.";
+        }
+
+        if (lower == "/help" || lower == "💡 помощь")
+            return "🤖 *AgentBridge — помощь*\n\n"
+                + "Просто напишите задачу — агент выполнит.\n\n"
+                + "*/new* — новая сессия (сброс контекста)\n"
+                + "*/status* — статус OpenCode\n"
+                + "*/models* — доступные модели\n"
+                + "*/model <id>* — сменить модель\n"
+                + "*/files* — файлы проекта\n"
+                + "*/read <путь>* — чтение файла\n"
+                + "*/search <текст>* — поиск по файлам\n"
+                + "*/cancel* — отменить задачу\n"
+                + "*/menu* — показать меню\n"
+                + "*/help* — эта справка";
+
+        if (lower == "/status" || lower == "🤖 статус")
             return await GetStatusAsync();
 
         if (lower == "/models")
             return await ListModelsAsync();
 
-        if (lower == "/model" || lower.StartsWith("/model "))
+        if (lower == "/model" || lower.StartsWith("/model ") || lower == "⚙️ модель")
         {
             var parts = command.Split(' ', 2, StringSplitOptions.TrimEntries);
-            if (parts.Length < 2 || string.IsNullOrEmpty(parts[1]))
+            if (parts.Length < 2 || string.IsNullOrEmpty(parts[1]) || lower == "⚙️ модель")
             {
                 var currentModel = _chatModel.TryGetValue(chatId, out var cm) ? cm : _defaultModel;
                 return $"🤖 Текущая модель: `{currentModel}`\n\nСписок: `/models`\n\nСменить: `/model github-models/openai/gpt-4o-mini`";
@@ -64,6 +84,21 @@ public class MessageRouter
             _chatModel[chatId] = parts[1];
             return $"✅ Модель сменена на: `{parts[1]}`";
         }
+
+        if (lower == "/files" || lower == "📁 файлы")
+            return await ListFilesAsync();
+
+        if (lower.StartsWith("/read "))
+            return await ReadFileAsync(command["/read ".Length..].Trim());
+
+        if (lower == "/search" || lower == "🔍 поиск")
+            return "🔍 Отправьте запрос для поиска:\n\n`/search <текст>`";
+
+        if (lower.StartsWith("/search "))
+            return await SearchFilesAsync(command["/search ".Length..].Trim());
+
+        if (lower == "/undo")
+            return "⏪ `/undo` пока не поддерживается в Telegram боте.";
 
         // Check if there's a task waiting for user reply in this chat
         if (
@@ -417,6 +452,84 @@ public class MessageRouter
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to list models");
+            return $"❌ Ошибка: {ex.Message}";
+        }
+    }
+
+    private async Task<string> ListFilesAsync()
+    {
+        try
+        {
+            var files = await _openCode.ListFilesAsync();
+            if (files is null || files.Count == 0)
+                return "📁 Корень проекта. Напишите `/read <путь>` для чтения файла.";
+
+            var lines = new List<string> { "📁 Файлы проекта:\n" };
+            foreach (var file in files.Take(30))
+                lines.Add($"{(file.IsDirectory ? "📁" : "📄")} {file.Path}");
+
+            if (files.Count > 30)
+                lines.Add($"\n... и ещё {files.Count - 30} файлов.");
+
+            return string.Join("\n", lines);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to list files");
+            return $"❌ Ошибка: {ex.Message}";
+        }
+    }
+
+    private async Task<string> ReadFileAsync(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return "Укажите путь: `/read <путь>`";
+
+        try
+        {
+            var content = await _openCode.ReadFileAsync(path);
+            if (content is null)
+                return $"❌ Файл не найден: `{path}`";
+
+            var lines = content.Split('\n');
+            var maxLines = 100;
+            var text = string.Join("\n", lines.Take(maxLines));
+
+            if (lines.Length > maxLines)
+                text += $"\n\n... и ещё {lines.Length - maxLines} строк.";
+
+            return $"📄 `{path}`\n\n```\n{text}\n```";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to read file {Path}", path);
+            return $"❌ Ошибка: {ex.Message}";
+        }
+    }
+
+    private async Task<string> SearchFilesAsync(string query)
+    {
+        if (string.IsNullOrEmpty(query))
+            return "Укажите запрос: `/search <текст>`";
+
+        try
+        {
+            var results = await _openCode.SearchFilesAsync(query);
+            if (results is null || results.Count == 0)
+                return $"🔍 Ничего не найдено по запросу: `{query}`";
+
+            var lines = new List<string> { $"🔍 Результаты поиска: `{query}`\n" };
+            foreach (var r in results.Take(20))
+                lines.Add($"📄 `{r}`");
+
+            if (results.Count > 20)
+                lines.Add($"\n... и ещё {results.Count - 20} результатов.");
+
+            return string.Join("\n", lines);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to search files");
             return $"❌ Ошибка: {ex.Message}";
         }
     }
