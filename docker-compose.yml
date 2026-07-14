@@ -135,7 +135,7 @@ services:
       VkMax__AccessToken: ${VK_ACCESS_TOKEN:-}
       VkMax__GroupId: ${VK_GROUP_ID:-0}
       VkMax__ConfirmationCode: ${VK_CONFIRMATION_CODE:-}
-      OpenCode__ServerUrl: ${OPENCODE_SERVER_URL:-http://host.docker.internal:4098}
+      OpenCode__ServerUrl: ${OPENCODE_SERVER_URL:-http://host.docker.internal:4096}
       OpenCode__Username: ${OPENCODE_USERNAME:-opencode}
       OpenCode__Password: ${OPENCODE_PASSWORD:-}
       OpenCode__DefaultModel: ${OPENCODE_DEFAULT_MODEL:-opencode/deepseek-v4-flash-free}
