@@ -31,7 +31,7 @@ export const siteNavigation: Section[] = [
     ],
   },
   {
-    title: "Обучение",
+    title: "Образование",
     slug: "education",
     href: "/education",
     subsections: [
@@ -58,7 +58,7 @@ export const siteNavigation: Section[] = [
     ],
   },
   {
-    title: "Студентам",
+    title: "Студенту",
     slug: "student-life",
     href: "/student-life",
     subsections: [
@@ -68,11 +68,7 @@ export const siteNavigation: Section[] = [
       { title: "Задолженности", slug: "raspisanie-likvidatsii-akademicheskih-zadolzhennostej", href: "/student-life/raspisanie-likvidatsii-akademicheskih-zadolzhennostej", content: "" },
       { title: "Библиотека", slug: "biblioteka", href: "/student-life/biblioteka", content: "" },
       { title: "Дистанционное обучение", slug: "distancionnoeobuch", href: "/student-life/distancionnoeobuch", content: "" },
-      { title: "Трудоустройство и карьера", slug: "trudoustroystvo-i-karera", href: "/graduates/trudoustroystvo-i-karera", content: "" },
-      { title: "Центр содействия трудоустройству", slug: "tsentr-sodejstviya-trudoustrojstvu-vypusknikov", href: "/graduates/tsentr-sodejstviya-trudoustrojstvu-vypusknikov", content: "" },
-      { title: "Актуальные вакансии", slug: "aktualnyie-vakansii", href: "/graduates/aktualnyie-vakansii", content: "" },
-      { title: "Оставить резюме", slug: "ostavit-rezyume-dlya-poiska-rabotyi", href: "/graduates/ostavit-rezyume-dlya-poiska-rabotyi", content: "" },
-      { title: "Полезные ссылки", slug: "poleznyie-ssyilki", href: "/graduates/poleznyie-ssyilki", content: "" },
+      { title: "Трудоустройство", slug: "trudoustroystvo", href: "/student-life/trudoustroystvo", content: "" },
     ],
   },
 ]
