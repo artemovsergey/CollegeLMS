@@ -12,7 +12,7 @@ export default function ContentRenderer({
 
   return (
     <div
-      className={`prose prose-sm max-w-none ${className}`}
+      className={`docs-content ${className}`}
       dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   )
