@@ -553,23 +553,23 @@ public class MessageRouter
 
     public async Task SendLongMessageAsync(ITelegramBotClient bot, long chatId, string text, ReplyKeyboardMarkup? keyboard = null)
     {
-        var html = MarkdownToHtml(text);
+        var md = MarkdownToTelegramV2(text);
         const int maxLen = 4096;
-        if (html.Length <= maxLen)
+        if (md.Length <= maxLen)
         {
-            await bot.SendMessage(chatId, html, replyMarkup: keyboard, parseMode: ParseMode.Html);
+            await bot.SendMessage(chatId, md, replyMarkup: keyboard, parseMode: ParseMode.MarkdownV2);
             return;
         }
 
-        for (var i = 0; i < html.Length; i += maxLen)
+        for (var i = 0; i < md.Length; i += maxLen)
         {
-            var chunk = html.Substring(i, Math.Min(maxLen, html.Length - i));
+            var chunk = md.Substring(i, Math.Min(maxLen, md.Length - i));
             var markup = i == 0 ? keyboard : null;
-            await bot.SendMessage(chatId, chunk, replyMarkup: markup, parseMode: ParseMode.Html);
+            await bot.SendMessage(chatId, chunk, replyMarkup: markup, parseMode: ParseMode.MarkdownV2);
         }
     }
 
-    private static string MarkdownToHtml(string text)
+    private static string MarkdownToTelegramV2(string text)
     {
         if (string.IsNullOrEmpty(text))
             return text;
@@ -579,47 +579,58 @@ public class MessageRouter
         // 1. Extract fenced code blocks → placeholder
         text = Regex.Replace(text, @"```(\w*)\n([\s\S]*?)```", m =>
         {
-            var encoded = WebUtility.HtmlEncode(m.Groups[2].Value);
-            blocks.Add($"<pre>{encoded}</pre>");
+            var encoded = EscapeMarkdownV2(m.Groups[2].Value);
+            blocks.Add($"```\n{encoded}\n```");
             return $"\x00CB{blocks.Count - 1}\x00";
         });
 
         // 2. Extract inline code → placeholder
         text = Regex.Replace(text, @"`([^`]+)`", m =>
         {
-            var encoded = WebUtility.HtmlEncode(m.Groups[1].Value);
-            blocks.Add($"<code>{encoded}</code>");
+            var encoded = EscapeMarkdownV2(m.Groups[1].Value);
+            blocks.Add($"`{encoded}`");
             return $"\x00CB{blocks.Count - 1}\x00";
         });
 
-        // 3. HTML-escape everything else (so <id> → &lt;id&gt; etc.)
-        text = WebUtility.HtmlEncode(text);
+        // 3. Tables: | H1 | H2 | → H1 | H2 (remove decorators, skip separator)
+        text = Regex.Replace(text, @"^(\|[^\n]+)\|\n\|[^\n]+\|\n((?:\|[^\n]+\|\n?)*)", m =>
+        {
+            var sb = new System.Text.StringBuilder();
+            var lines = m.Value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                if (line.TrimStart().StartsWith("|-")) continue;
+                var cells = line.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                sb.AppendLine(string.Join(" | ", cells.Select(c => c.Trim())));
+            }
+            return sb.ToString();
+        }, RegexOptions.Multiline);
 
-        // 4. Restore code blocks
+        // 4. Headings # → Telegram bold
+        text = Regex.Replace(text, @"^#{1,6}\s+(.+)$", "*$1*", RegexOptions.Multiline);
+
+        // 5. Escape all MarkdownV2 special characters
+        text = Regex.Replace(text, @"([_*\[\]()~`>#+=|{}.!-])", @"\$1");
+
+        // 6. Convert markdown patterns → Telegram MarkdownV2
+        // Bold: **text** → *text*
+        text = Regex.Replace(text, @"\\\*\\\*(.+?)\\\*\\\*", "*$1*");
+        // Italic: *text* → _text_ (but not **)
+        text = Regex.Replace(text, @"(?<!\*)\\\*(?!\\\*)(.+?)(?<!\*)\\\*(?!\\\*)", "_$1_");
+        // Strikethrough: ~~text~~ → ~text~
+        text = Regex.Replace(text, @"\\~\\~(.+?)\\~\\~", "~$1~");
+        // Links: [text](url) → [text](url)
+        text = Regex.Replace(text, @"\\\[(.+?)\\\]\\\((.+?)\\\)", "[$1]($2)");
+
+        // 7. Restore code blocks
         for (var i = 0; i < blocks.Count; i++)
             text = text.Replace($"\x00CB{i}\x00", blocks[i]);
 
-        // 5. Bold **text**
-        text = Regex.Replace(text, @"\*\*(.+?)\*\*", "<b>$1</b>");
-
-        // 6. Italic *text* (but not ** which is bold)
-        text = Regex.Replace(text, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "<i>$1</i>");
-
-        // 7. Strikethrough ~~text~~
-        text = Regex.Replace(text, @"~~(.+?)~~", "<s>$1</s>");
-
-        // 8. Links [text](url)
-        text = Regex.Replace(text, @"\[([^\]]+)\]\(([^)]+)\)", "<a href=\"$2\">$1</a>");
-
-        // 9. Images ![alt](url) → keep alt
-        text = Regex.Replace(text, @"!\[([^\]]*)\]\([^)]+\)", "$1");
-
-        // 10. Headings # → bold
-        text = Regex.Replace(text, @"^#{1,6}\s+(.+)$", "<b>$1</b>", RegexOptions.Multiline);
-
-        // 11. Horizontal rules
-        text = Regex.Replace(text, @"^[-*_]{3,}\s*$", "\n—\n", RegexOptions.Multiline);
-
         return text.Trim();
+    }
+
+    private static string EscapeMarkdownV2(string text)
+    {
+        return Regex.Replace(text, @"([_*\[\]()~`>#+=|{}.!-])", @"\$1");
     }
 }
