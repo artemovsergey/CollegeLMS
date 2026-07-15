@@ -14,8 +14,8 @@ Create or update `docker-compose.yml` for local development.
 | `db` | postgres:16-alpine | 5432 | Main database |
 | `redis` | redis:7-alpine | 6379 | Session cache |
 | `api` | build from CollegeLMS.API/Dockerfile | 5026 | ASP.NET API |
-| `frontend` | build from frontend/Dockerfile | 3000 | Next.js UI |
-| `nginx` | custom ./nginx | 80/443 | Reverse proxy |
+| `collegelms-next` | build from CollegeLMS.Next/Dockerfile | 3000 | Next.js UI |
+| `loadbalancer` | custom ./loadbalancer | 80/443 | Reverse proxy |
 
 ## docker-compose.yml
 

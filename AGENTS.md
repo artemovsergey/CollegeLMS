@@ -7,7 +7,7 @@
 ## Стек
 
 - Backend: .NET 10, ASP.NET Core Web API
-- Frontend: Next.js 14, TS, Tailwind CSS 4 (в `frontend/`)
+- Frontend: Next.js 14, TS, Tailwind CSS 4 (в `CollegeLMS.Next/`)
 - DB: PostgreSQL 16
 - Cache: Redis (только сессии)
 - Deploy: Docker Compose, GitHub Actions CD (только деплой, тесты локально)
@@ -75,7 +75,7 @@ CollegeLMS.Tests/
   Integration/Controllers/
   Unit/Services/
   Fixtures/              # Фикстуры Bogus
-frontend/                # Next.js 14 + Tailwind CSS 4 + TypeScript
+CollegeLMS.Next/         # Next.js 14 + Tailwind CSS 4 + TypeScript
   components/ui/         # Примитивы shadcn/ui
   components/            # Проектные компоненты
   lib/utils.ts           # Хелпер cn()

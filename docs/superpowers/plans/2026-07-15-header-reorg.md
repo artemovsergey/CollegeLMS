@@ -1,39 +1,37 @@
-export interface Subsection {
-  title: string
-  slug: string
-  href: string
-  content: string
-}
+# Header Reorganization Implementation Plan
 
-export interface Section {
-  title: string
-  slug: string
-  href: string
-  subsections: Subsection[]
-}
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Goal:** Уместить строку поиска и навигацию в `max-w-7xl` без горизонтального скролла
+
+**Architecture:** Перегруппировка 6 разделов навигации в 4 + компактный поиск-иконка
+
+**Tech Stack:** Next.js 14, TypeScript, Tailwind CSS 4, Lucide React
+
+## Global Constraints
+
+- Use `data/site-content.ts` as the single source of truth for navigation
+- All existing slugs must remain valid (pages already exist)
+- Search icon navigates to `/search` via `next/link`
+- Header container: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`
+
+---
+
+### Task 1: Перегруппировать данные навигации
+
+**Files:**
+- Modify: `CollegeLMS.Next/data/site-content.ts`
+
+**Interfaces:**
+- Consumes: existing `Section`, `Subsection` types (unchanged)
+- Produces: `siteNavigation` array with 4 sections instead of 6
+
+- [ ] **Step 1: Заменить `siteNavigation` на 4 раздела**
+
+Заменить весь массив `siteNavigation` в `CollegeLMS.Next/data/site-content.ts`:
+
+```ts
 export const siteNavigation: Section[] = [
-  {
-    title: "Сведения об ОО",
-    slug: "about",
-    href: "/about",
-    subsections: [
-      { title: "Основные сведения", slug: "common", href: "/about/common", content: "" },
-      { title: "Структура и органы управления", slug: "struct", href: "/about/struct", content: "" },
-      { title: "Документы", slug: "document", href: "/about/document", content: "" },
-      { title: "Образование", slug: "education", href: "/about/education", content: "" },
-      { title: "Образовательные стандарты", slug: "edustandarts", href: "/about/edustandarts", content: "" },
-      { title: "Руководство", slug: "rucovodstvo", href: "/about/rucovodstvo", content: "" },
-      { title: "Педагогический состав", slug: "teachingstaff", href: "/about/teachingstaff", content: "" },
-      { title: "Материально-техническое обеспечение", slug: "objects", href: "/about/objects", content: "" },
-      { title: "Организация питания", slug: "meals", href: "/about/meals", content: "" },
-      { title: "Стипендии и меры поддержки", slug: "grants", href: "/about/grants", content: "" },
-      { title: "Платные образовательные услуги", slug: "paid_edu", href: "/about/paid_edu", content: "" },
-      { title: "Финансово-хозяйственная деятельность", slug: "budget", href: "/about/budget", content: "" },
-      { title: "Вакантные места", slug: "vacant", href: "/about/vacant", content: "" },
-      { title: "Международное сотрудничество", slug: "inter", href: "/about/inter", content: "" },
-    ],
-  },
   {
     title: "Колледж",
     slug: "college",
@@ -48,10 +46,11 @@ export const siteNavigation: Section[] = [
       { title: "Независимая оценка качества", slug: "nezavisimaya-otsenka-kachestva-uslovij-osushhestvleniya-obrazovatelnoj-deyatelnosti", href: "/college/nezavisimaya-otsenka-kachestva-uslovij-osushhestvleniya-obrazovatelnoj-deyatelnosti", content: "" },
       { title: "План работы", slug: "plan-raboty-gbpou-sks-na-tekushhij-uchebnyj-god", href: "/college/plan-raboty-gbpou-sks-na-tekushhij-uchebnyj-god", content: "" },
       { title: "Контакты", slug: "polnaya-kontaktnaya-informatsiya", href: "/college/polnaya-kontaktnaya-informatsiya", content: "" },
+      { title: "Сведения об ОО", slug: "svedeniya-oo", href: "/about", content: "" },
     ],
   },
   {
-    title: "Образование",
+    title: "Обучение",
     slug: "education",
     href: "/education",
     subsections: [
@@ -63,7 +62,7 @@ export const siteNavigation: Section[] = [
     ],
   },
   {
-    title: "Абитуриенту",
+    title: "Поступление",
     slug: "admissions",
     href: "/admissions",
     subsections: [
@@ -78,7 +77,7 @@ export const siteNavigation: Section[] = [
     ],
   },
   {
-    title: "Студенту",
+    title: "Студентам",
     slug: "student-life",
     href: "/student-life",
     subsections: [
@@ -88,13 +87,6 @@ export const siteNavigation: Section[] = [
       { title: "Задолженности", slug: "raspisanie-likvidatsii-akademicheskih-zadolzhennostej", href: "/student-life/raspisanie-likvidatsii-akademicheskih-zadolzhennostej", content: "" },
       { title: "Библиотека", slug: "biblioteka", href: "/student-life/biblioteka", content: "" },
       { title: "Дистанционное обучение", slug: "distancionnoeobuch", href: "/student-life/distancionnoeobuch", content: "" },
-    ],
-  },
-  {
-    title: "Выпускнику",
-    slug: "graduates",
-    href: "/graduates",
-    subsections: [
       { title: "Трудоустройство и карьера", slug: "trudoustroystvo-i-karera", href: "/graduates/trudoustroystvo-i-karera", content: "" },
       { title: "Центр содействия трудоустройству", slug: "tsentr-sodejstviya-trudoustrojstvu-vypusknikov", href: "/graduates/tsentr-sodejstviya-trudoustrojstvu-vypusknikov", content: "" },
       { title: "Актуальные вакансии", slug: "aktualnyie-vakansii", href: "/graduates/aktualnyie-vakansii", content: "" },
@@ -103,25 +95,55 @@ export const siteNavigation: Section[] = [
     ],
   },
 ]
+```
 
-export function getSectionBySlug(slug: string): Section | undefined {
-  return siteNavigation.find((s) => s.slug === slug)
-}
+- [ ] **Step 2: Проверить сборку**
 
-export function getSubsection(sectionSlug: string, subSlug: string): Subsection | undefined {
-  const section = getSectionBySlug(sectionSlug)
-  return section?.subsections.find((s) => s.slug === subSlug)
-}
+```powershell
+cd CollegeLMS.Next && npm run build
+```
 
-export const partnersContent = `
-  <h2>Наши партнёры</h2>
-  <p>Колледж сотрудничает с ведущими предприятиями связи и информационных технологий Ставропольского края и России.</p>
-  <ul>
-    <li>ПАО «Ростелеком»</li>
-    <li>ПАО «МТС»</li>
-    <li>ПАО «МегаФон»</li>
-    <li>ПАО «ВымпелКом»</li>
-    <li>АО «Почта России»</li>
-    <li>ПАО «ОДК-Сатурн»</li>
-  </ul>
-`
+- [ ] **Step 3: Commit**
+
+```bash
+git add CollegeLMS.Next/data/site-content.ts
+git commit -m "fix: regroup navigation from 6 to 4 sections for compact header"
+```
+
+---
+
+### Task 2: Заменить поиск на иконку + убрать мобильный поиск
+
+**Files:**
+- Modify: `CollegeLMS.Next/components/Header.tsx`
+
+- [ ] **Step 1: Заменить форму поиска на иконку-ссылку**
+
+В `CollegeLMS.Next/components/Header.tsx` заменить строки 73-84 (десктопный поиск):
+
+```tsx
+<Link
+  href="/search"
+  className="hidden md:flex items-center justify-center h-9 w-9 rounded-md text-muted-foreground hover:text-accent hover:bg-muted transition-colors"
+  aria-label="Поиск"
+>
+  <Search size={18} />
+</Link>
+```
+
+- [ ] **Step 2: Убрать форму поиска из мобильного меню**
+
+Удалить блок со строками 105-116 (мобильный поиск `<form className="mb-3 md:hidden">...`)
+
+- [ ] **Step 3: Проверить сборку**
+
+```powershell
+cd CollegeLMS.Next && npm run build
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add CollegeLMS.Next/components/Header.tsx
+git commit -m "fix: replace search form with search icon in header"
+```

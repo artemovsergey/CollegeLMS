@@ -36,11 +36,11 @@ opencode.json           # Конфиг OpenCode (MCP, плагины)
 ```
 CollegeLMS.API/         # C# backend
 CollegeLMS.Tests/       # Тесты
-frontend/               # Next.js фронтенд
+CollegeLMS.Next/        # Next.js фронтенд
 CollegeLMS.TelegramBot/  # Telegram-бот (бывший agentbridge)
 uploads/                # Пустая папка
 docker-compose.yml      # Инфраструктура стека
-nginx/                  # Конфиг nginx
+loadbalancer/            # Конфиг loadbalancer
 .github/workflows/      # CI/CD
 .config/                # dotnet-tools.json
 .playwright-mcp/        # Логи сессий
@@ -78,7 +78,7 @@ PRODUCT.md              # Краткое описание продукта
 ```
 CollegeLMS.API/         # C# backend
 CollegeLMS.Tests/       # Тесты
-frontend/               # Next.js фронтенд
+CollegeLMS.Next/        # Next.js фронтенд
 CollegeLMS.TelegramBot/  # Telegram-бот (бывший agentbridge)
 uploads/                # Пустая папка
 docs/diagrams/          # UML-диаграммы (подсказывают архитектуру)
@@ -94,7 +94,7 @@ opencode.json           # MCP-серверы, плагины (внешняя п�
 .mimocode/              # Плагин
 .github/                # Хуки, навыки, CI/CD
 docker-compose.yml      # Инфраструктура стека
-nginx/                  # Конфиг nginx
+loadbalancer/            # Конфиг loadbalancer
 .config/                # dotnet-tools.json
 .playwright-mcp/        # Логи
 .playwright-cli/        # Логи

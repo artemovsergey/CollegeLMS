@@ -75,15 +75,15 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: frontend
+        working-directory: CollegeLMS.Next
 
       - name: Lint
         run: npm run lint
-        working-directory: frontend
+        working-directory: CollegeLMS.Next
 
       - name: Build
         run: npm run build
-        working-directory: frontend
+        working-directory: CollegeLMS.Next
 ```
 
 ## Setup steps

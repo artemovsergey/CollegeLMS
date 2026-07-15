@@ -99,7 +99,7 @@ Check that the project builds, tests pass, and working tree is clean.
 
 - [ ] Run `dotnet build CollegeLMS.API\CollegeLMS.csproj --no-restore` — check exit code 0
 - [ ] Run `dotnet test CollegeLMS.Tests\CollegeLMS.Tests.csproj --no-restore` — check exit code 0
-- [ ] Run `cd frontend && npm run lint` — check exit code 0
+- [ ] Run \`cd CollegeLMS.Next && npm run lint\` — check exit code 0
 - [ ] Run `git status --porcelain` — check for uncommitted changes
 - [ ] Check git log for recent activity: `git log --oneline -5`
 

@@ -130,7 +130,7 @@ dotnet test CollegeLMS.Tests --verbosity normal
 Load skill: `skill("nextjs-page")`
 
 ```bash
-cd frontend
+cd CollegeLMS.Next
 
 # Create pages and components:
 # app/{route}/page.tsx
@@ -190,7 +190,7 @@ dotnet ef database update --project CollegeLMS.API
 dotnet run --project CollegeLMS.API
 
 # Start frontend
-cd frontend && npm run dev
+cd CollegeLMS.Next && npm run dev
 
 # Manual testing:
 # 1. Open Swagger -> authorize -> call endpoints

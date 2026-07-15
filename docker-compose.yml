@@ -78,13 +78,13 @@ services:
     networks:
       - collegelms-net
 
-  frontend:
+  collegelms-next:
     build:
-      context: ./frontend
+      context: ./CollegeLMS.Next
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ""
-    container_name: collegelms-frontend
+    container_name: collegelms-next
     mem_limit: 1g
     memswap_limit: 2g
     ports:
@@ -95,10 +95,10 @@ services:
     networks:
       - collegelms-net
 
-  nginx:
-    build: ./nginx
-    image: collegelms-nginx
-    container_name: collegelms-nginx
+  loadbalancer:
+    build: ./loadbalancer
+    image: collegelms-loadbalancer
+    container_name: collegelms-loadbalancer
     mem_limit: 64m
     memswap_limit: 128m
     ports:
@@ -111,7 +111,7 @@ services:
       - "host.docker.internal:172.18.0.1"
     depends_on:
       - api
-      - frontend
+      - collegelms-next
     restart: unless-stopped
     networks:
       - collegelms-net

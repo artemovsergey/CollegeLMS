@@ -6,7 +6,7 @@
 **/logs
 **/TestResults
 import/wp_data_full.json
-frontend/
+CollegeLMS.Next/
 docs/
 scripts/
 import/

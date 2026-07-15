@@ -32,7 +32,7 @@ CSS custom properties defined in `tokens/`. Import in `globals.css`:
 ## Component organization
 
 ```
-frontend/
+CollegeLMS.Next/
   components/
     ui/           # shadcn primitives (button, input, card, etc.)
     forms/        # Form-specific composed components

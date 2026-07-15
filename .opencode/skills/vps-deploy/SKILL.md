@@ -27,6 +27,6 @@ Configure VPS deployment with Nginx, Docker Compose, and GitHub Actions.
 ## Future setup steps
 
 1. Create `deploy.yml` GitHub Actions workflow
-2. Configure nginx production config
+2. Configure loadbalancer production config
 3. Set up SSL with Let's Encrypt
 4. Add health check monitoring
