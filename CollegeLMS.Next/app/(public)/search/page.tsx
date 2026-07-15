@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useEffect, useCallback, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect, useCallback, Suspense, type FormEvent } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search as SearchIcon } from "lucide-react"
 import type { Result, PagedResponse, SearchResult } from "@/types"
 import api from "@/lib/api"
 
 function SearchResults() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const query = searchParams.get("q") || ""
 
+  const [inputValue, setInputValue] = useState(query)
   const [results, setResults] = useState<SearchResult[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -51,14 +53,42 @@ function SearchResults() {
 
   useEffect(() => {
     setPage(1)
+    setInputValue(query)
     fetchResults(query, 1)
   }, [query, fetchResults])
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    const trimmed = inputValue.trim()
+    if (trimmed) {
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`)
+    }
+  }
 
   const totalPages = Math.ceil(totalCount / pageSize)
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="mb-2 text-2xl font-bold text-primary">Поиск</h1>
+
+      <form onSubmit={handleSubmit} className="relative mb-6">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Поиск по новостям и страницам..."
+          className="w-full rounded-lg border border-border bg-card px-4 py-2.5 pr-12 text-sm text-primary outline-none transition-colors placeholder:text-muted-foreground focus:border-accent"
+          autoFocus
+        />
+        <button
+          type="submit"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:text-accent"
+          aria-label="Найти"
+        >
+          <SearchIcon className="h-5 w-5" />
+        </button>
+      </form>
+
       {query && (
         <p className="mb-6 text-sm text-muted-foreground">
           Результаты по запросу: &laquo;{query}&raquo;

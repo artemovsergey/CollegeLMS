@@ -1,4 +1,4 @@
-import SectionPage from "@/components/SectionPage"
+import AboutPage from "@/components/AboutPage"
 import { type Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -6,5 +6,5 @@ export const metadata: Metadata = {
 }
 
 export default function Page({ params }: { params: { slug?: string[] } }) {
-  return <SectionPage sectionSlug="about" slug={params.slug} />
+  return <AboutPage slug={params.slug} />
 }
