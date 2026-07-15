@@ -27,6 +27,13 @@ jobs:
             set -e
             cd /home/user1/CollegeLMS
 
+            echo "=== Free disk space (before cleanup) ==="
+            df -h /
+
+            echo "=== Clean Docker cache before anything ==="
+            docker builder prune -af
+            docker image prune -f
+
             echo "=== git pull ==="
             git pull origin master
 
@@ -50,13 +57,6 @@ jobs:
               echo "OPENCODE_PASSWORD="
               echo "OPENCODE_DEFAULT_MODEL=opencode/deepseek-v4-flash-free"
             } > .env
-
-            echo "=== Free disk space ==="
-            df -h /
-
-            echo "=== Clean Docker cache ==="
-            docker builder prune -af
-            docker image prune -f
 
             echo "=== Build & start all services ==="
             docker compose --profile telegram-bot up --build -d --force-recreate
