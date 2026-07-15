@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using AgentBridge.Models;
 using AgentBridge.OpenCode;
@@ -238,6 +239,13 @@ public class MessageRouter
                         .Select(p => p.Text)
                 )
                 : null;
+
+            if (text is not null && text.Contains('Ë'))
+                _logger.LogWarning(
+                    "OpenCode response contains unresolved references Ë+N for session {Session}: {Text}",
+                    sessionId,
+                    text
+                );
 
             // If there's a follow-up pending user reply, don't send anything yet
             if (task.Status == AgentTaskStatus.WaitingForReply)
@@ -570,6 +578,26 @@ public class MessageRouter
     }
 
     private static string MarkdownToHtml(string text)
+        var processed = ToTelegramMarkdown(text);
+        const int maxLen = 4096;
+        if (processed.Length <= maxLen)
+        {
+            await bot.SendMessage(chatId, processed, parseMode: ParseMode.Markdown);
+            return;
+        }
+
+        for (var i = 0; i < processed.Length; i += maxLen)
+        {
+            var chunk = processed.Substring(i, Math.Min(maxLen, processed.Length - i));
+            await bot.SendMessage(chatId, chunk, parseMode: ParseMode.Markdown);
+        }
+    }
+
+    /// <summary>
+    /// Конвертирует стандартный markdown в диалект Telegram.
+    /// Telegram: *bold* (одна *), _italic_ (одно _), нет таблиц/заголовков.
+    /// </summary>
+    private static string ToTelegramMarkdown(string text)
     {
         if (string.IsNullOrEmpty(text))
             return text;
@@ -619,7 +647,130 @@ public class MessageRouter
 
         // 11. Horizontal rules
         text = Regex.Replace(text, @"^[-*_]{3,}\s*$", "\n—\n", RegexOptions.Multiline);
+        text = Regex.Replace(text, @"Ë\d+", "");
+
+        var blocks = new Dictionary<string, string>();
+        var idx = 0;
+
+        string Save(string value)
+        {
+            var key = $"\a{idx++}\a";
+            blocks[key] = value;
+            return key;
+        }
+
+        // 1. Save fenced code blocks
+        text = Regex.Replace(text, @"```(\w*)\s*\n([\s\S]*?)```", m =>
+            Save(m.Value));
+
+        // 2. Save inline code
+        text = Regex.Replace(text, @"`([^`\n]+)`", m =>
+            Save(m.Value));
+
+        // 3. Convert tables → formatted text
+        text = Regex.Replace(text, @"((?:^\|.+\|\s*$\n?)+)", m =>
+        {
+            var block = m.Value;
+            var lines = block.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            if (lines.All(l => l.Trim().StartsWith('|') && l.Trim().EndsWith('|')))
+                return Save(RenderTable(block));
+            return m.Value;
+        }, RegexOptions.Multiline);
+
+        // 4. Convert **bold** → *bold*
+        var boldMap = new Dictionary<string, string>();
+        text = Regex.Replace(text, @"\*\*(.+?)\*\*", m =>
+        {
+            var key = $"\a{idx++}\a";
+            boldMap[key] = "*" + m.Groups[1].Value + "*";
+            return key;
+        });
+
+        // 5. Convert *italic* → _italic_ (only single asterisks remain)
+        text = Regex.Replace(text, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "_$1_");
+
+        // 6. Restore bold
+        foreach (var kv in boldMap)
+            text = text.Replace(kv.Key, kv.Value);
+
+        // 7. Convert # headers → *header* 
+        text = Regex.Replace(text, @"^(#{1,6})\s+(.+)$", "*$2*", RegexOptions.Multiline);
+
+        // 8. Remove horizontal rules
+        text = Regex.Replace(text, @"^[-*_]{3,}\s*$", "", RegexOptions.Multiline);
+
+        // 9. Restore saved blocks (code, inline code, tables)
+        foreach (var kv in blocks)
+            text = text.Replace(kv.Key, kv.Value);
 
         return text.Trim();
+    }
+
+    private static string RenderTable(string tableBlock)
+    {
+        var lines = tableBlock
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(l => l.Trim())
+            .Where(l => l.Length > 2 && l.StartsWith('|') && l.EndsWith('|'))
+            .ToList();
+
+        var dataLines = lines
+            .Where(l => !IsSeparatorRow(l))
+            .ToList();
+
+        if (dataLines.Count == 0)
+            return "";
+
+        var rows = dataLines
+            .Select(l =>
+            {
+                var inner = l.TrimStart('|').TrimEnd('|');
+                return inner.Split('|').Select(c => c.Trim()).ToArray();
+            })
+            .ToList();
+
+        var colCount = rows.Max(r => r.Length);
+        if (colCount == 0)
+            return "";
+
+        var widths = new int[colCount];
+        foreach (var row in rows)
+        {
+            for (var i = 0; i < row.Length; i++)
+                widths[i] = Math.Max(widths[i], row[i].Length);
+        }
+
+        var sb = new StringBuilder();
+        for (var r = 0; r < rows.Count; r++)
+        {
+            var row = rows[r];
+            for (var c = 0; c < row.Length; c++)
+            {
+                if (c > 0) sb.Append(" │ ");
+                if (c < row.Length - 1)
+                    sb.Append(row[c].PadRight(widths[c]));
+                else
+                    sb.Append(row[c]);
+            }
+            sb.AppendLine();
+
+            if (r == 0 && rows.Count > 1)
+            {
+                var totalWidth = widths.Sum(w => w) + (colCount - 1) * 3;
+                sb.AppendLine(new string('─', totalWidth));
+            }
+        }
+        return sb.ToString().TrimEnd();
+    }
+
+    private static bool IsSeparatorRow(string line)
+    {
+        var inner = line.TrimStart('|').TrimEnd('|');
+        var cells = inner.Split('|');
+        return cells.Length > 0 && cells.All(c =>
+        {
+            var t = c.Trim();
+            return t.Length > 0 && Regex.IsMatch(t, @"^[\s\-:]+$");
+        });
     }
 }
