@@ -51,6 +51,13 @@ jobs:
               echo "OPENCODE_DEFAULT_MODEL=opencode/deepseek-v4-flash-free"
             } > .env
 
+            echo "=== Free disk space ==="
+            df -h /
+
+            echo "=== Clean Docker cache ==="
+            docker builder prune -af
+            docker image prune -f
+
             echo "=== Build & start all services ==="
             docker compose --profile telegram-bot up --build -d --force-recreate
 
@@ -59,4 +66,6 @@ jobs:
             curl -s http://localhost:5030/health || echo "Telegram bot not responding"
             curl -s http://localhost:5026/healthz || echo "API not responding"
 
+            echo "=== Final cleanup ==="
             docker image prune -f
+            docker builder prune -f
