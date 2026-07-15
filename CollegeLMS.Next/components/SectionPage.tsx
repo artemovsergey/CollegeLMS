@@ -48,7 +48,9 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
 
   if (!subsection) notFound()
 
-  const rawContent = getContent(subSlug) || subsection.content
+  const rawContent = subSlug === "trudoustroystvo"
+    ? (pageContents as Record<string, { content: string }>)["trudoustroystvo"]?.content || ""
+    : getContent(subSlug) || subsection.content
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -63,7 +65,7 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
         <ContentRenderer content={rawContent} />
       ) : (
         <div className="rounded-lg border border-border bg-card p-8 text-center">
-          <p className="text-muted-foreground">Содержание раздела загружается...</p>
+          <p className="text-muted-foreground">Нет данных</p>
         </div>
       )}
     </div>

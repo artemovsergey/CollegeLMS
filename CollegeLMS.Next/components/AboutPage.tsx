@@ -22,7 +22,7 @@ const aboutSubsections = [
   { title: "Вакантные места для приёма (перевода)", slug: "vacant" },
   { title: "Организация питания в образовательной организации", slug: "meals" },
   { title: "Международное сотрудничество", slug: "inter" },
-  { title: "Награды", slug: "gramoty" },
+  { title: "Свидетельство об аккредитации", slug: "svidetelstvo-ob-akkreditatsii" },
 ]
 
 function getContent(slug: string): string {
