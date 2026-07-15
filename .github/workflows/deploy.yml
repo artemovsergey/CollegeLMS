@@ -58,6 +58,9 @@ jobs:
               echo "OPENCODE_DEFAULT_MODEL=opencode/deepseek-v4-flash-free"
             } > .env
 
+            echo "=== Stop old containers ==="
+            docker compose --profile telegram-bot down --remove-orphans || true
+
             echo "=== Build & start all services ==="
             docker compose --profile telegram-bot up --build -d --force-recreate
 
