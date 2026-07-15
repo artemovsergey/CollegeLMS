@@ -3,6 +3,7 @@ using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace CollegeLMS.API.Controllers;
@@ -11,6 +12,7 @@ namespace CollegeLMS.API.Controllers;
 [ApiController]
 [Route("api/search")]
 [Produces("application/json")]
+[EnableRateLimiting("SearchPolicy")]
 public class SearchController(ISearchService service) : ControllerBase
 {
     /// <summary>Поиск по новостям и статическим страницам.</summary>

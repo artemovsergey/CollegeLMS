@@ -45,9 +45,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="flex h-14 items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Link href="/admin" className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-                CL
-              </div>
+              <img src="/logo.svg" alt="ГБПОУ СКС" className="h-8 w-8 object-contain" />
               <span className="text-sm font-semibold">CollegeLMS</span>
             </Link>
             {nav.length > 1 && (

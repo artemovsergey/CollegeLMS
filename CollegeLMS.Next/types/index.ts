@@ -225,4 +225,5 @@ export interface SearchResult {
   type: "news" | "page"
   url: string
   snippet: string
+  score: number
 }

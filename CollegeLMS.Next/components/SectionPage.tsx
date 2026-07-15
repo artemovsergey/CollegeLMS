@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation"
 import Breadcrumbs from "@/components/Breadcrumbs"
 import ContentRenderer from "@/components/ContentRenderer"
+import DocsSidebar from "@/components/DocsSidebar"
 import { getSectionBySlug } from "@/data/site-content"
 import { notFound } from "next/navigation"
 import pageContents from "@/data/page-contents.json"
@@ -24,23 +26,9 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
   if (!section) notFound()
 
   if (!slug || slug.length === 0) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <Breadcrumbs items={[{ label: section.title }]} />
-        <h1 className="mb-6 text-2xl font-bold text-primary">{section.title}</h1>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {section.subsections.map((sub) => (
-            <a
-              key={sub.slug}
-              href={sub.href}
-              className="rounded-lg border border-border bg-card p-5 transition-all hover:border-accent/30 hover:shadow-sm"
-            >
-              <h3 className="text-sm font-semibold text-primary">{sub.title}</h3>
-            </a>
-          ))}
-        </div>
-      </div>
-    )
+    const first = section.subsections[0]
+    if (first) redirect(first.href)
+    notFound()
   }
 
   const subSlug = slug[0]
@@ -53,21 +41,29 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
     : getContent(subSlug) || subsection.content
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <Breadcrumbs
-        items={[
-          { label: section.title, href: section.href },
-          { label: subsection.title },
-        ]}
+    <div className="mx-auto flex max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <DocsSidebar
+        sectionTitle={section.title}
+        sectionHref={section.href}
+        subsections={section.subsections}
+        currentSlug={subSlug}
       />
-      <h1 className="mb-6 text-2xl font-bold text-primary">{subsection.title}</h1>
-      {rawContent ? (
-        <ContentRenderer content={rawContent} />
-      ) : (
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
-          <p className="text-muted-foreground">Нет данных</p>
-        </div>
-      )}
+      <div className="min-w-0 flex-1 pl-0 md:pl-8">
+        <Breadcrumbs
+          items={[
+            { label: section.title, href: section.href },
+            { label: subsection.title },
+          ]}
+        />
+        <h1 className="mb-6 text-2xl font-bold text-primary">{subsection.title}</h1>
+        {rawContent ? (
+          <ContentRenderer content={rawContent} />
+        ) : (
+          <div className="rounded-lg border border-border bg-card p-8 text-center">
+            <p className="text-muted-foreground">Нет данных</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

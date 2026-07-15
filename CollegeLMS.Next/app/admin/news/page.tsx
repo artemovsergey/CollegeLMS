@@ -39,12 +39,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 
 const PAGE_SIZE = 20
 
 export default function AdminNewsPage() {
   const { user } = useAuth()
-  const canManage = user?.role === "Admin" || user?.role === "Dispatcher"
+  const canManage = user?.role === "Admin"
 
   const [news, setNews] = useState<NewsResponse[]>([])
   const [categories, setCategories] = useState<NewsCategoryResponse[]>([])
@@ -54,6 +65,7 @@ export default function AdminNewsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [showCreate, setShowCreate] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const [formTitle, setFormTitle] = useState("")
   const [formContent, setFormContent] = useState("")
@@ -135,6 +147,7 @@ export default function AdminNewsPage() {
       if (res.data.isSuccess) {
         resetForm()
         await fetchNews()
+        toast("Новость создана")
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка создания")
       }
@@ -162,6 +175,7 @@ export default function AdminNewsPage() {
       if (res.data.isSuccess) {
         resetForm()
         await fetchNews()
+        toast("Новость обновлена")
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка обновления")
       }
@@ -172,11 +186,13 @@ export default function AdminNewsPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Удалить новость?")) return
+  const handleDelete = async () => {
+    if (!deleteId) return
     try {
-      await api.delete(`/api/news/${id}`)
+      await api.delete(`/api/news/${deleteId}`)
+      setDeleteId(null)
       await fetchNews()
+      toast("Новость удалена")
     } catch {
       setError("Ошибка удаления")
     }
@@ -191,6 +207,7 @@ export default function AdminNewsPage() {
         isPublished: !item.isPublished,
       })
       await fetchNews()
+      toast(item.isPublished ? "Новость снята с публикации" : "Новость опубликована")
     } catch {
       setError("Ошибка изменения статуса")
     }
@@ -389,7 +406,7 @@ export default function AdminNewsPage() {
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => setDeleteId(item.id)}
                           >
                             Удал.
                           </Button>
@@ -427,6 +444,19 @@ export default function AdminNewsPage() {
           )}
         </>
       )}
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить новость?</AlertDialogTitle>
+            <AlertDialogDescription>Это действие нельзя отменить.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Удалить</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

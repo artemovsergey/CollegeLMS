@@ -19,6 +19,7 @@ import FAQSection from "@/components/FAQSection"
 
 export default function HomePage() {
   const [news, setNews] = useState<NewsResponse[]>([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -29,8 +30,12 @@ export default function HomePage() {
         if (body.isSuccess && body.data) {
           setNews(body.data.items)
         }
+        setLoading(false)
       })
-      .catch(() => setError("Не удалось загрузить новости"))
+      .catch(() => {
+        setError("Не удалось загрузить новости")
+        setLoading(false)
+      })
   }, [])
 
   return (
@@ -68,8 +73,18 @@ export default function HomePage() {
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
           )}
-          {news.length === 0 && !error ? (
-            <p className="text-center text-muted-foreground">Загрузка...</p>
+          {loading ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="animate-pulse rounded-lg border border-border bg-card p-5">
+                  <div className="mb-3 h-40 rounded-md bg-muted" />
+                  <div className="mb-2 h-3 w-24 rounded bg-muted" />
+                  <div className="h-4 w-3/4 rounded bg-muted" />
+                </div>
+              ))}
+            </div>
+          ) : news.length === 0 && !error ? (
+            <p className="text-center text-muted-foreground">Новостей пока нет</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {news.map((item) => (

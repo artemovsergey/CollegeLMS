@@ -6,4 +6,5 @@ public class SearchResponse
     public string Type { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
     public string Snippet { get; set; } = string.Empty;
+    public int Score { get; set; }
 }

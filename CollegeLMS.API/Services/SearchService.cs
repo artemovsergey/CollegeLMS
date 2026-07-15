@@ -25,6 +25,7 @@ public class SearchService(AppDbContext db) : ISearchService
         new("Финансово-хозяйственная деятельность", "/about/budget", "about"),
         new("Вакантные места", "/about/vacant", "about"),
         new("Международное сотрудничество", "/about/inter", "about"),
+        new("Свидетельство об аккредитации", "/about/svidetelstvo-ob-akkreditatsii", "about"),
         new("Колледж", "/college", "college"),
         new("О колледже", "/college/o-kolledzhe", "college"),
         new("История создания", "/college/istoriya-sozdaniya-kolledzha", "college"),
@@ -57,12 +58,7 @@ public class SearchService(AppDbContext db) : ISearchService
         new("Задолженности", "/student-life/raspisanie-likvidatsii-akademicheskih-zadolzhennostej", "student-life"),
         new("Библиотека", "/student-life/biblioteka", "student-life"),
         new("Дистанционное обучение", "/student-life/distancionnoeobuch", "student-life"),
-        new("Выпускнику", "/graduates", "graduates"),
-        new("Трудоустройство и карьера", "/graduates/trudoustroystvo-i-karera", "graduates"),
-        new("Центр содействия трудоустройству", "/graduates/tsentr-sodejstviya-trudoustrojstvu-vypusknikov", "graduates"),
-        new("Актуальные вакансии", "/graduates/aktualnyie-vakansii", "graduates"),
-        new("Оставить резюме", "/graduates/ostavit-rezyume-dlya-poiska-rabotyi", "graduates"),
-        new("Полезные ссылки", "/graduates/poleznyie-ssyilki", "graduates"),
+        new("Трудоустройство", "/student-life/trudoustroystvo", "student-life"),
     ];
 
     public async Task<Result<PagedResponse<SearchResponse>>> SearchAsync(
@@ -91,28 +87,42 @@ public class SearchService(AppDbContext db) : ISearchService
                 && n.IsPublished
                 && (n.Title.ToLower().Contains(term) || n.Content.ToLower().Contains(term))
             )
-            .OrderByDescending(n => n.PublishedAt)
             .Select(n => new SearchResponse
             {
                 Title = n.Title,
                 Type = "news",
                 Url = $"/news/{n.Id}",
                 Snippet = n.Content.Substring(0, Math.Min(n.Content.Length, 200)) + (n.Content.Length > 200 ? "..." : ""),
+                Score =
+                    n.Title.ToLower() == term ? 100 :
+                    n.Title.ToLower().Contains(term) ? 50 :
+                    10,
             })
             .ToListAsync(ct);
 
         var pageResults = StaticPages
-            .Where(p => p.Title.ToLower().Contains(term))
-            .Select(p => new SearchResponse
+            .Select(p => new
             {
-                Title = p.Title,
+                Entry = p,
+                LowerTitle = p.Title.ToLower(),
+            })
+            .Where(x => x.LowerTitle.Contains(term))
+            .Select(x => new SearchResponse
+            {
+                Title = x.Entry.Title,
                 Type = "page",
-                Url = p.Url,
-                Snippet = $"Раздел: {p.Section}",
+                Url = x.Entry.Url,
+                Snippet = $"Раздел: {x.Entry.Section}",
+                Score = x.LowerTitle == term ? 100 : 50,
             })
             .ToList();
 
-        var allResults = newsResults.Concat(pageResults).ToList();
+        var allResults = newsResults
+            .Concat(pageResults)
+            .OrderByDescending(r => r.Score)
+            .ThenBy(r => r.Title)
+            .ToList();
+
         var totalCount = allResults.Count;
         var items = allResults
             .Skip((page - 1) * pageSize)

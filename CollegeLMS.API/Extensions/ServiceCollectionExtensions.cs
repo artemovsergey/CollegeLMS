@@ -7,9 +7,11 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using System.Threading.RateLimiting;
 
 namespace CollegeLMS.API.Extensions;
 
@@ -192,6 +194,25 @@ public static class ServiceCollectionExtensions
     )
     {
         services.AddHealthChecks().AddNpgSql(config.GetConnectionString("DefaultConnection")!);
+
+        return services;
+    }
+
+    public static IServiceCollection AddRateLimit(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.AddPolicy("SearchPolicy", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 30,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0,
+                    }));
+        });
 
         return services;
     }

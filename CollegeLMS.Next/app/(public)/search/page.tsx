@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, Suspense, type FormEvent } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense, type FormEvent } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search as SearchIcon } from "lucide-react"
@@ -14,10 +14,15 @@ function SearchResults() {
 
   const [inputValue, setInputValue] = useState(query)
   const [results, setResults] = useState<SearchResult[]>([])
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
   const pageSize = 20
 
   const fetchResults = useCallback(
@@ -54,14 +59,72 @@ function SearchResults() {
   useEffect(() => {
     setPage(1)
     setInputValue(query)
-    fetchResults(query, 1)
+    if (query) fetchResults(query, 1)
   }, [query, fetchResults])
+
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setSuggestions([])
+      return
+    }
+    try {
+      const res = await api.get<Result<PagedResponse<SearchResult>>>("/api/search", {
+        params: { q, page: 1, pageSize: 5 },
+      })
+      const body = res.data
+      if (body.isSuccess && body.data) {
+        setSuggestions(body.data.items)
+        setShowSuggestions(true)
+      }
+    } catch {
+    }
+  }, [])
+
+  const handleInputChange = (value: string) => {
+    setInputValue(value)
+    setSelectedIndex(-1)
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    if (value.trim()) {
+      debounceRef.current = setTimeout(() => {
+        fetchSuggestions(value.trim())
+      }, 300)
+    } else {
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    setShowSuggestions(false)
     const trimmed = inputValue.trim()
     if (trimmed) {
       router.push(`/search?q=${encodeURIComponent(trimmed)}`)
+    }
+  }
+
+  function selectSuggestion(suggestion: SearchResult) {
+    setShowSuggestions(false)
+    setInputValue(suggestion.title)
+    router.push(suggestion.url)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!showSuggestions || suggestions.length === 0) return
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setSelectedIndex(i => Math.min(i + 1, suggestions.length - 1))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setSelectedIndex(i => Math.max(i - 1, 0))
+    } else if (e.key === "Enter" && selectedIndex >= 0) {
+      e.preventDefault()
+      selectSuggestion(suggestions[selectedIndex])
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false)
     }
   }
 
@@ -73,9 +136,13 @@ function SearchResults() {
 
       <form onSubmit={handleSubmit} className="relative mb-6">
         <input
+          ref={inputRef}
           type="text"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={e => handleInputChange(e.target.value)}
+          onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true) }}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          onKeyDown={handleKeyDown}
           placeholder="Поиск по новостям и страницам..."
           className="w-full rounded-lg border border-border bg-card px-4 py-2.5 pr-12 text-sm text-primary outline-none transition-colors placeholder:text-muted-foreground focus:border-accent"
           autoFocus
@@ -87,6 +154,32 @@ function SearchResults() {
         >
           <SearchIcon className="h-5 w-5" />
         </button>
+
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-card shadow-lg">
+            {suggestions.map((item, i) => (
+              <button
+                key={`${item.type}-${item.url}-${i}`}
+                type="button"
+                onMouseDown={() => selectSuggestion(item)}
+                className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
+                  i === selectedIndex ? "bg-accent/10" : "hover:bg-accent/5"
+                } ${i === 0 ? "rounded-t-lg" : ""} ${i === suggestions.length - 1 ? "rounded-b-lg" : ""}`}
+              >
+                <span
+                  className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
+                    item.type === "news"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                      : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                  }`}
+                >
+                  {item.type === "news" ? "Новость" : "Страница"}
+                </span>
+                <span className="truncate">{item.title}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </form>
 
       {query && (
@@ -145,7 +238,7 @@ function SearchResults() {
             <div className="mt-6 flex items-center justify-center gap-2">
               <button
                 onClick={() => {
-                  setPage((p) => Math.max(1, p - 1))
+                  setPage(p => Math.max(1, p - 1))
                   fetchResults(query, Math.max(1, page - 1))
                 }}
                 disabled={page === 1}
@@ -158,7 +251,7 @@ function SearchResults() {
               </span>
               <button
                 onClick={() => {
-                  setPage((p) => Math.min(totalPages, p + 1))
+                  setPage(p => Math.min(totalPages, p + 1))
                   fetchResults(query, Math.min(totalPages, page + 1))
                 }}
                 disabled={page === totalPages}

@@ -13,11 +13,13 @@ builder
     .AddCorsFrontend(builder.Configuration)
     .AddJsonSerializer()
     .AddApplicationServices()
-    .AddHealthChecksWithDb(builder.Configuration);
+    .AddHealthChecksWithDb(builder.Configuration)
+    .AddRateLimit();
 
 var app = builder.Build();
 
 app.UseExceptionMiddleware();
+app.UseRateLimiter();
 app.UseCors("AllowFrontend");
 
 app.UseSwaggerWithUi();
