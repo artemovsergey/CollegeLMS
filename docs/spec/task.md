@@ -162,7 +162,7 @@ http://stvcc.ru/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug,li
 17. Сервис отдела кадров (HrService)
 - учет личных дел сотрудников
 
-18. Сервис интеграции с мессенджерами (AgentBridge)
+18. Telegram-бот (CollegeLMS.TelegramBot)
 
 Базовые требования:
 - бот Max (Макс): просмотр расписания по группе/преподавателю, inline-кнопки навигации

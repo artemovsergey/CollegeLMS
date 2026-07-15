@@ -41,7 +41,7 @@ jobs:
               echo "ASPNETCORE_ENVIRONMENT=Production"
               echo "NGINX_HTTP_PORT=80"
               echo "NGINX_HTTPS_PORT=443"
-              echo "AGENTBRIDGE_PORT=5030"
+              echo "TELEGRAM_BOT_PORT=5030"
               echo "TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}"
               echo "TELEGRAM_ALLOWED_USER_ID=${TELEGRAM_ALLOWED_USER_ID}"
               echo "JWT_KEY=${JWT_KEY}"
@@ -49,17 +49,14 @@ jobs:
               echo "OPENCODE_USERNAME=opencode"
               echo "OPENCODE_PASSWORD="
               echo "OPENCODE_DEFAULT_MODEL=opencode/deepseek-v4-flash-free"
-              echo "VK_ACCESS_TOKEN="
-              echo "VK_GROUP_ID=0"
-              echo "VK_CONFIRMATION_CODE="
             } > .env
 
             echo "=== Build & start all services ==="
-            docker compose --profile agentbridge up --build -d --force-recreate
+            docker compose --profile telegram-bot up --build -d --force-recreate
 
             echo "=== Health check ==="
             sleep 5
-            curl -s http://localhost:5030/health || echo "AgentBridge not responding"
+            curl -s http://localhost:5030/health || echo "Telegram bot not responding"
             curl -s http://localhost:5026/healthz || echo "API not responding"
 
             docker image prune -f

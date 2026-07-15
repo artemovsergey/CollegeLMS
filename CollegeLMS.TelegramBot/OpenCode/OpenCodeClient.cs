@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace AgentBridge.OpenCode;
+namespace CollegeLMS.TelegramBot.OpenCode;
 
 public class OpenCodeClient
 {
@@ -242,3 +242,4 @@ public record ModelInfo(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string? Name
 );
+

@@ -2,45 +2,197 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using AgentBridge.Models;
-using AgentBridge.OpenCode;
+using CollegeLMS.TelegramBot.Models;
+using CollegeLMS.TelegramBot.OpenCode;
 using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
+using Telegram.Bot.Polling;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace AgentBridge.Bot;
+namespace CollegeLMS.TelegramBot.Bot;
 
-public class MessageRouter
+public class TelegramBotService : BackgroundService
 {
+    private readonly ITelegramBotClient _bot;
     private readonly OpenCodeClient _openCode;
     private readonly AgentTaskQueue _queue;
-    private readonly ILogger<MessageRouter> _logger;
+    private readonly OpenCodeSseListener _sse;
+    private readonly ILogger<TelegramBotService> _logger;
+    private readonly HashSet<long> _allowedUsers;
     private readonly ConcurrentDictionary<string, AgentTask> _activeTasks = new();
     private readonly ConcurrentDictionary<string, PendingPermission> _pendingPermissions = new();
     private readonly ConcurrentDictionary<long, string> _chatActiveSession = new();
     private readonly ConcurrentDictionary<long, string> _chatModel = new();
     private readonly string _defaultModel;
 
-    public MessageRouter(
+    private static readonly BotCommand[] Commands =
+    [
+        new() { Command = "new", Description = "Новая сессия" },
+        new() { Command = "status", Description = "Статус OpenCode" },
+        new() { Command = "models", Description = "Список моделей" },
+        new() { Command = "model", Description = "Сменить модель" },
+        new() { Command = "cancel", Description = "Отменить задачу" },
+        new() { Command = "files", Description = "Просмотр файлов" },
+        new() { Command = "read", Description = "Чтение файла" },
+        new() { Command = "search", Description = "Поиск по файлам" },
+        new() { Command = "undo", Description = "Откатить изменения" },
+        new() { Command = "menu", Description = "Показать меню" },
+        new() { Command = "help", Description = "Помощь" },
+    ];
+
+    private static readonly ReplyKeyboardMarkup MenuKeyboard = new([
+        [new KeyboardButton("📋 Новая сессия"), new KeyboardButton("📁 Файлы")],
+        [new KeyboardButton("🤖 Статус"), new KeyboardButton("⚙️ Модель")],
+        [new KeyboardButton("🔍 Поиск"), new KeyboardButton("💡 Помощь")],
+        [new KeyboardButton("❌ Отмена")],
+    ])
+    {
+        ResizeKeyboard = true,
+        InputFieldPlaceholder = "Напишите задачу агенту...",
+    };
+
+    public TelegramBotService(
+        ITelegramBotClient bot,
         OpenCodeClient openCode,
         AgentTaskQueue queue,
+        OpenCodeSseListener sse,
         IConfiguration config,
-        ILogger<MessageRouter> logger
+        ILogger<TelegramBotService> logger
     )
     {
+        _bot = bot;
         _openCode = openCode;
         _queue = queue;
+        _sse = sse;
         _logger = logger;
         _defaultModel = config["OpenCode:DefaultModel"] ?? "opencode/deepseek-v4-flash-free";
+        var allowed = config.GetSection("Telegram:AllowedUserIds").Get<List<long>>() ?? [];
+        _allowedUsers = new HashSet<long>(allowed);
     }
 
-    public async Task<string> HandleCommandAsync(
-        string command,
-        long chatId,
-        string messenger,
-        string? model = null
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Telegram bot starting...");
+
+        _sse.OnEvent += async evt => await HandleSseEventAsync(evt);
+
+        var me = await _bot.GetMe(stoppingToken);
+
+        await _bot.SetMyCommands(Commands, cancellationToken: stoppingToken);
+        _logger.LogInformation("Bot commands registered");
+
+        _bot.StartReceiving(
+            HandleUpdateAsync,
+            HandleErrorAsync,
+            new ReceiverOptions { AllowedUpdates = [UpdateType.Message, UpdateType.CallbackQuery] },
+            stoppingToken
+        );
+
+        _logger.LogInformation("Telegram bot started as @{Username}", me.Username);
+
+        await Task.Delay(Timeout.Infinite, stoppingToken);
+    }
+
+    private async Task HandleUpdateAsync(
+        ITelegramBotClient bot,
+        Update update,
+        CancellationToken ct
     )
+    {
+        try
+        {
+            if (update.CallbackQuery is { Data: { } callbackData } cbQuery)
+            {
+                await HandleCallbackQueryAsync(bot, cbQuery, ct);
+                return;
+            }
+
+            if (update.Message is not { Text: { } text } message)
+                return;
+
+            var chatId = message.Chat.Id;
+            var userId = message.From?.Id ?? 0;
+
+            if (_allowedUsers.Count > 0 && !_allowedUsers.Contains(userId))
+            {
+                _logger.LogWarning("Unauthorized user {UserId} in chat {ChatId}", userId, chatId);
+                return;
+            }
+
+            _logger.LogInformation(
+                "Message from {UserId} in chat {ChatId}: {Text}",
+                userId,
+                chatId,
+                text
+            );
+
+            _ = bot.SendChatAction(chatId, ChatAction.Typing, cancellationToken: ct);
+
+            var response = await HandleCommandAsync(text, chatId);
+
+            if (text == "/start" || text == "/menu")
+            {
+                await SendLongMessageAsync(bot, chatId, response, MenuKeyboard);
+            }
+            else
+            {
+                await SendLongMessageAsync(bot, chatId, response);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling update");
+            if (update.Message?.Chat.Id is { } chatId)
+            {
+                await bot.SendMessage(
+                    chatId,
+                    $"❌ Внутренняя ошибка: {ex.Message}",
+                    parseMode: ParseMode.None
+                );
+            }
+        }
+    }
+
+    private async Task HandleCallbackQueryAsync(
+        ITelegramBotClient bot,
+        CallbackQuery cbQuery,
+        CancellationToken ct
+    )
+    {
+        var data = cbQuery.Data;
+        if (string.IsNullOrEmpty(data))
+            return;
+
+        try
+        {
+            if (data.StartsWith("allow:") || data.StartsWith("deny:"))
+            {
+                var parts = data.Split(':');
+                var action = parts[0];
+                var permissionId = parts[1];
+                var allow = action == "allow";
+                await HandlePermissionResponseAsync(permissionId, allow);
+                await bot.AnswerCallbackQuery(cbQuery.Id,
+                    text: allow ? "✅ Разрешено" : "❌ Отказано",
+                    cancellationToken: ct);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling callback query");
+        }
+    }
+
+    private Task HandleErrorAsync(ITelegramBotClient bot, Exception ex, CancellationToken ct)
+    {
+        _logger.LogError(ex, "Telegram bot error");
+        return Task.CompletedTask;
+    }
+
+    public async Task<string> HandleCommandAsync(string command, long chatId, string? model = null)
     {
         var lower = command.ToLower().Trim();
 
@@ -48,7 +200,7 @@ public class MessageRouter
             return await CancelAsync(chatId);
 
         if (lower == "/start" || lower == "/menu")
-            return "🤖 *AgentBridge*\n\nНапишите задачу — агент OpenCode выполнит.\n\nИспользуйте кнопки меню ниже или команды:";
+            return "🤖 *CollegeLMS Telegram Bot*\n\nНапишите задачу — агент OpenCode выполнит.\n\nИспользуйте кнопки меню ниже или команды:";
 
         if (lower == "/new" || lower == "📋 новая сессия")
         {
@@ -57,7 +209,7 @@ public class MessageRouter
         }
 
         if (lower == "/help" || lower == "💡 помощь")
-            return "🤖 *AgentBridge — помощь*\n\n"
+            return "🤖 *CollegeLMS Telegram Bot — помощь*\n\n"
                 + "Просто напишите задачу — агент выполнит.\n\n"
                 + "*/new* — новая сессия (сброс контекста)\n"
                 + "*/status* — статус OpenCode\n"
@@ -103,7 +255,6 @@ public class MessageRouter
         if (lower == "/undo")
             return "⏪ `/undo` пока не поддерживается в Telegram боте.";
 
-        // Check if there's a task waiting for user reply in this chat
         if (
             _chatActiveSession.TryGetValue(chatId, out var existingSessionId)
             && _activeTasks.TryGetValue(existingSessionId, out var existingTask)
@@ -113,18 +264,13 @@ public class MessageRouter
             return await SendFollowUpAsync(existingSessionId, existingTask, command, model);
         }
 
-        return await CreateNewTaskAsync(command, chatId, messenger, model);
+        return await CreateNewTaskAsync(command, chatId, model);
     }
 
-    private async Task<string> CreateNewTaskAsync(
-        string prompt,
-        long chatId,
-        string messenger,
-        string? model
-    )
+    private async Task<string> CreateNewTaskAsync(string prompt, long chatId, string? model)
     {
         model ??= _chatModel.TryGetValue(chatId, out var cm) ? cm : _defaultModel;
-        var task = _queue.Enqueue(prompt, chatId, messenger);
+        var task = _queue.Enqueue(prompt, chatId, "telegram");
         task.Status = AgentTaskStatus.Running;
 
         try
@@ -151,12 +297,7 @@ public class MessageRouter
         }
     }
 
-    private async Task<string> SendFollowUpAsync(
-        string sessionId,
-        AgentTask task,
-        string message,
-        string? model
-    )
+    private async Task<string> SendFollowUpAsync(string sessionId, AgentTask task, string message, string? model)
     {
         model ??= _chatModel.TryGetValue(task.ChatId, out var cm) ? cm : _defaultModel;
         task.Status = AgentTaskStatus.Running;
@@ -176,7 +317,7 @@ public class MessageRouter
         }
     }
 
-    public async Task HandleSseEventAsync(SseEvent evt, ITelegramBotClient telegramBot)
+    public async Task HandleSseEventAsync(SseEvent evt)
     {
         if (evt.Properties is not { } props)
             return;
@@ -190,24 +331,20 @@ public class MessageRouter
         switch (evt.Type)
         {
             case "message.part.updated":
-                await HandlePartUpdatedAsync(props, sessionId, telegramBot);
+                await HandlePartUpdatedAsync(props, sessionId);
                 break;
 
             case "session.status":
-                await HandleSessionStatusAsync(props, sessionId, telegramBot);
+                await HandleSessionStatusAsync(props, sessionId);
                 break;
 
             case "permission.request":
-                await HandlePermissionRequestAsync(props, sessionId, telegramBot);
+                await HandlePermissionRequestAsync(props, sessionId);
                 break;
         }
     }
 
-    private async Task HandlePartUpdatedAsync(
-        System.Text.Json.JsonElement props,
-        string sessionId,
-        ITelegramBotClient telegramBot
-    )
+    private async Task HandlePartUpdatedAsync(System.Text.Json.JsonElement props, string sessionId)
     {
         if (!props.TryGetProperty("part", out var part))
             return;
@@ -218,10 +355,10 @@ public class MessageRouter
         if (reason != "stop")
             return;
 
-        await HandleStepFinishAsync(sessionId, telegramBot);
+        await HandleStepFinishAsync(sessionId);
     }
 
-    private async Task HandleStepFinishAsync(string sessionId, ITelegramBotClient telegramBot)
+    private async Task HandleStepFinishAsync(string sessionId)
     {
         if (!_activeTasks.TryGetValue(sessionId, out var task))
             return;
@@ -247,27 +384,24 @@ public class MessageRouter
                     text
                 );
 
-            // If there's a follow-up pending user reply, don't send anything yet
             if (task.Status == AgentTaskStatus.WaitingForReply)
                 return;
 
-            // If assistant asked a question → wait for user reply
-            if (text is not null && ContainsQuestion(text))
+            if (text is not null && text.Contains('?'))
             {
                 task.Status = AgentTaskStatus.WaitingForReply;
                 task.Result = text;
-                await SendLongMessageAsync(telegramBot, task.ChatId, text);
+                await SendLongMessageAsync(_bot, task.ChatId, text);
                 return;
             }
 
-            // Normal completion
             if (!_activeTasks.TryRemove(sessionId, out _))
                 return;
             task.Status = AgentTaskStatus.Completed;
             CleanupChat(task.ChatId, sessionId);
 
             await SendLongMessageAsync(
-                telegramBot,
+                _bot,
                 task.ChatId,
                 text ?? "✅ Агент завершил задачу."
             );
@@ -280,7 +414,7 @@ public class MessageRouter
             task.Status = AgentTaskStatus.Failed;
             task.ErrorMessage = ex.Message;
             CleanupChat(task.ChatId, sessionId);
-            await telegramBot.SendMessage(
+            await _bot.SendMessage(
                 task.ChatId,
                 "❌ Не удалось получить результат.",
                 parseMode: ParseMode.None
@@ -288,11 +422,7 @@ public class MessageRouter
         }
     }
 
-    private async Task HandleSessionStatusAsync(
-        System.Text.Json.JsonElement props,
-        string sessionId,
-        ITelegramBotClient telegramBot
-    )
+    private async Task HandleSessionStatusAsync(System.Text.Json.JsonElement props, string sessionId)
     {
         if (!props.TryGetProperty("status", out var status))
             return;
@@ -308,7 +438,7 @@ public class MessageRouter
             task.Status = AgentTaskStatus.Failed;
             task.ErrorMessage = message;
             CleanupChat(task.ChatId, sessionId);
-            await telegramBot.SendMessage(
+            await _bot.SendMessage(
                 task.ChatId,
                 $"❌ Ошибка агента: {message}",
                 parseMode: ParseMode.None
@@ -316,11 +446,7 @@ public class MessageRouter
         }
     }
 
-    private async Task HandlePermissionRequestAsync(
-        System.Text.Json.JsonElement props,
-        string sessionId,
-        ITelegramBotClient telegramBot
-    )
+    private async Task HandlePermissionRequestAsync(System.Text.Json.JsonElement props, string sessionId)
     {
         var permissionId = props.TryGetProperty("permissionID", out var pid)
             ? pid.GetString()
@@ -355,7 +481,7 @@ public class MessageRouter
                 InlineKeyboardButton.WithCallbackData("❌ Отказать", $"deny:{permissionId}"),
             ],
         ]);
-        await telegramBot.SendMessage(
+        await _bot.SendMessage(
             task.ChatId,
             msg,
             replyMarkup: keyboard,
@@ -363,7 +489,7 @@ public class MessageRouter
         );
     }
 
-    public async Task HandlePermissionResponseAsync(string permissionId, bool allow)
+    private async Task HandlePermissionResponseAsync(string permissionId, bool allow)
     {
         if (!_pendingPermissions.TryRemove(permissionId, out var pending))
             return;
@@ -544,11 +670,6 @@ public class MessageRouter
         }
     }
 
-    private static bool ContainsQuestion(string text)
-    {
-        return text.Contains('?');
-    }
-
     private void CleanupChat(long chatId, string? sessionId)
     {
         if (
@@ -559,128 +680,29 @@ public class MessageRouter
             _chatActiveSession.TryRemove(chatId, out _);
     }
 
-    public async Task SendLongMessageAsync(ITelegramBotClient bot, long chatId, string text, ReplyKeyboardMarkup? keyboard = null)
+    private async Task SendLongMessageAsync(ITelegramBotClient bot, long chatId, string text, ReplyKeyboardMarkup? keyboard = null)
     {
-        var md = MarkdownToTelegramV2(text);
-        const int maxLen = 4096;
-        if (md.Length <= maxLen)
-        {
-            await bot.SendMessage(chatId, md, replyMarkup: keyboard, parseMode: ParseMode.MarkdownV2);
-            return;
-        }
-
-        for (var i = 0; i < md.Length; i += maxLen)
-        {
-            var chunk = md.Substring(i, Math.Min(maxLen, md.Length - i));
-            var markup = i == 0 ? keyboard : null;
-            await bot.SendMessage(chatId, chunk, replyMarkup: markup, parseMode: ParseMode.MarkdownV2);
-        }
-    }
-
-    private static string MarkdownToTelegramV2(string text)
-    private static string MarkdownToHtml(string text)
         var processed = ToTelegramMarkdown(text);
         const int maxLen = 4096;
         if (processed.Length <= maxLen)
         {
-            await bot.SendMessage(chatId, processed, parseMode: ParseMode.Markdown);
+            await bot.SendMessage(chatId, processed, replyMarkup: keyboard, parseMode: ParseMode.Markdown);
             return;
         }
 
         for (var i = 0; i < processed.Length; i += maxLen)
         {
             var chunk = processed.Substring(i, Math.Min(maxLen, processed.Length - i));
-            await bot.SendMessage(chatId, chunk, parseMode: ParseMode.Markdown);
+            var markup = i == 0 ? keyboard : null;
+            await bot.SendMessage(chatId, chunk, replyMarkup: markup, parseMode: ParseMode.Markdown);
         }
     }
 
-    /// <summary>
-    /// Конвертирует стандартный markdown в диалект Telegram.
-    /// Telegram: *bold* (одна *), _italic_ (одно _), нет таблиц/заголовков.
-    /// </summary>
     private static string ToTelegramMarkdown(string text)
     {
         if (string.IsNullOrEmpty(text))
             return text;
 
-        var blocks = new List<string>();
-
-        // 1. Extract fenced code blocks → placeholder
-        text = Regex.Replace(text, @"```(\w*)\n([\s\S]*?)```", m =>
-        {
-            var encoded = EscapeMarkdownV2(m.Groups[2].Value);
-            blocks.Add($"```\n{encoded}\n```");
-            return $"\x00CB{blocks.Count - 1}\x00";
-        });
-
-        // 2. Extract inline code → placeholder
-        text = Regex.Replace(text, @"`([^`]+)`", m =>
-        {
-            var encoded = EscapeMarkdownV2(m.Groups[1].Value);
-            blocks.Add($"`{encoded}`");
-            return $"\x00CB{blocks.Count - 1}\x00";
-        });
-
-        // 3. Tables: | H1 | H2 | → H1 | H2 (remove decorators, skip separator)
-        text = Regex.Replace(text, @"^(\|[^\n]+)\|\n\|[^\n]+\|\n((?:\|[^\n]+\|\n?)*)", m =>
-        {
-            var sb = new System.Text.StringBuilder();
-            var lines = m.Value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
-            {
-                if (line.TrimStart().StartsWith("|-")) continue;
-                var cells = line.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                sb.AppendLine(string.Join(" | ", cells.Select(c => c.Trim())));
-            }
-            return sb.ToString();
-        }, RegexOptions.Multiline);
-
-        // 4. Headings # → Telegram bold
-        text = Regex.Replace(text, @"^#{1,6}\s+(.+)$", "*$1*", RegexOptions.Multiline);
-
-        // 5. Escape all MarkdownV2 special characters
-        text = Regex.Replace(text, @"([_*\[\]()~`>#+=|{}.!-])", @"\$1");
-
-        // 6. Convert markdown patterns → Telegram MarkdownV2
-        // Bold: **text** → *text*
-        text = Regex.Replace(text, @"\\\*\\\*(.+?)\\\*\\\*", "*$1*");
-        // Italic: *text* → _text_ (but not **)
-        text = Regex.Replace(text, @"(?<!\*)\\\*(?!\\\*)(.+?)(?<!\*)\\\*(?!\\\*)", "_$1_");
-        // Strikethrough: ~~text~~ → ~text~
-        text = Regex.Replace(text, @"\\~\\~(.+?)\\~\\~", "~$1~");
-        // Links: [text](url) → [text](url)
-        text = Regex.Replace(text, @"\\\[(.+?)\\\]\\\((.+?)\\\)", "[$1]($2)");
-
-        // 7. Restore code blocks
-        for (var i = 0; i < blocks.Count; i++)
-            text = text.Replace($"\x00CB{i}\x00", blocks[i]);
-
-        return text.Trim();
-    }
-
-    private static string EscapeMarkdownV2(string text)
-    {
-        return Regex.Replace(text, @"([_*\[\]()~`>#+=|{}.!-])", @"\$1");
-        // 5. Bold **text**
-        text = Regex.Replace(text, @"\*\*(.+?)\*\*", "<b>$1</b>");
-
-        // 6. Italic *text* (but not ** which is bold)
-        text = Regex.Replace(text, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "<i>$1</i>");
-
-        // 7. Strikethrough ~~text~~
-        text = Regex.Replace(text, @"~~(.+?)~~", "<s>$1</s>");
-
-        // 8. Links [text](url)
-        text = Regex.Replace(text, @"\[([^\]]+)\]\(([^)]+)\)", "<a href=\"$2\">$1</a>");
-
-        // 9. Images ![alt](url) → keep alt
-        text = Regex.Replace(text, @"!\[([^\]]*)\]\([^)]+\)", "$1");
-
-        // 10. Headings # → bold
-        text = Regex.Replace(text, @"^#{1,6}\s+(.+)$", "<b>$1</b>", RegexOptions.Multiline);
-
-        // 11. Horizontal rules
-        text = Regex.Replace(text, @"^[-*_]{3,}\s*$", "\n—\n", RegexOptions.Multiline);
         text = Regex.Replace(text, @"Ë\d+", "");
 
         var blocks = new Dictionary<string, string>();
@@ -693,15 +715,12 @@ public class MessageRouter
             return key;
         }
 
-        // 1. Save fenced code blocks
         text = Regex.Replace(text, @"```(\w*)\s*\n([\s\S]*?)```", m =>
             Save(m.Value));
 
-        // 2. Save inline code
         text = Regex.Replace(text, @"`([^`\n]+)`", m =>
             Save(m.Value));
 
-        // 3. Convert tables → formatted text
         text = Regex.Replace(text, @"((?:^\|.+\|\s*$\n?)+)", m =>
         {
             var block = m.Value;
@@ -711,7 +730,6 @@ public class MessageRouter
             return m.Value;
         }, RegexOptions.Multiline);
 
-        // 4. Convert **bold** → *bold*
         var boldMap = new Dictionary<string, string>();
         text = Regex.Replace(text, @"\*\*(.+?)\*\*", m =>
         {
@@ -720,20 +738,15 @@ public class MessageRouter
             return key;
         });
 
-        // 5. Convert *italic* → _italic_ (only single asterisks remain)
         text = Regex.Replace(text, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "_$1_");
 
-        // 6. Restore bold
         foreach (var kv in boldMap)
             text = text.Replace(kv.Key, kv.Value);
 
-        // 7. Convert # headers → *header* 
         text = Regex.Replace(text, @"^(#{1,6})\s+(.+)$", "*$2*", RegexOptions.Multiline);
 
-        // 8. Remove horizontal rules
         text = Regex.Replace(text, @"^[-*_]{3,}\s*$", "", RegexOptions.Multiline);
 
-        // 9. Restore saved blocks (code, inline code, tables)
         foreach (var kv in blocks)
             text = text.Replace(kv.Key, kv.Value);
 

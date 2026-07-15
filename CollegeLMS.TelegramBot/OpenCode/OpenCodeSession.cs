@@ -1,4 +1,4 @@
-namespace AgentBridge.OpenCode;
+namespace CollegeLMS.TelegramBot.OpenCode;
 
 public class OpenCodeSession
 {
@@ -40,3 +40,4 @@ public class OpenCodeSession
         await _client.AbortSessionAsync(sessionId, ct);
     }
 }
+

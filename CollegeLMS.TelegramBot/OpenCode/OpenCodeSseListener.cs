@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AgentBridge.OpenCode;
+namespace CollegeLMS.TelegramBot.OpenCode;
 
 public class OpenCodeSseListener : IHostedService, IDisposable
 {
@@ -133,3 +133,4 @@ public class SseEvent
     [System.Text.Json.Serialization.JsonPropertyName("properties")]
     public JsonElement? Properties { get; set; }
 }
+

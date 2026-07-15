@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace AgentBridge.Models;
+namespace CollegeLMS.TelegramBot.Models;
 
 public class AgentTaskQueue
 {
@@ -30,3 +30,4 @@ public class AgentTaskQueue
 
     public int ActiveCount => _tasks.Values.Count(t => t.Status == AgentTaskStatus.Running);
 }
+

@@ -1,4 +1,4 @@
-namespace AgentBridge.Models;
+namespace CollegeLMS.TelegramBot.Models;
 
 public enum AgentTaskStatus
 {
@@ -33,3 +33,4 @@ public class AgentTask
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public PendingPermission? CurrentPermission { get; set; }
 }
+

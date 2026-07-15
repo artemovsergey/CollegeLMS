@@ -116,25 +116,22 @@ services:
     networks:
       - collegelms-net
 
-  agentbridge:
+  telegram-bot:
     profiles:
-      - agentbridge
+      - telegram-bot
     build:
       context: .
-      dockerfile: agentbridge/Dockerfile
-    container_name: collegelms-agentbridge
+      dockerfile: CollegeLMS.TelegramBot/Dockerfile
+    container_name: collegelms-telegram-bot
     mem_limit: 256m
     memswap_limit: 512m
     ports:
-      - "${AGENTBRIDGE_PORT:-5030}:8080"
+      - "${TELEGRAM_BOT_PORT:-5030}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
       Telegram__ProxyUrl: ${TELEGRAM_PROXY_URL:-}
       Telegram__AllowedUserIds__0: ${TELEGRAM_ALLOWED_USER_ID:-}
-      VkMax__AccessToken: ${VK_ACCESS_TOKEN:-}
-      VkMax__GroupId: ${VK_GROUP_ID:-0}
-      VkMax__ConfirmationCode: ${VK_CONFIRMATION_CODE:-}
       OpenCode__ServerUrl: ${OPENCODE_SERVER_URL:-http://host.docker.internal:4096}
       OpenCode__Username: ${OPENCODE_USERNAME:-opencode}
       OpenCode__Password: ${OPENCODE_PASSWORD:-}

@@ -31,7 +31,7 @@ frontend/
 docs/
 scripts/
 import/
-agentbridge/
+CollegeLMS.TelegramBot/
 ```
 
 - [ ] **Step 2: Проверить, что frontend не затронут**
@@ -196,7 +196,7 @@ API_PORT=5026
 ASPNETCORE_ENVIRONMENT=Production
 NGINX_HTTP_PORT=80
 NGINX_HTTPS_PORT=443
-AGENTBRIDGE_PORT=5030
+TELEGRAM_BOT_PORT=5030
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
 TELEGRAM_ALLOWED_USER_ID=${TELEGRAM_ALLOWED_USER_ID}
 OPENCODE_SERVER_URL=http://host.docker.internal:4096

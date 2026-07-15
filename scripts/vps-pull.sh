@@ -17,11 +17,11 @@ if [ ! -f .env ] || [ -z "$(grep TELEGRAM_BOT_TOKEN .env | cut -d= -f2)" ]; then
 fi
 
 echo "=== Build & start all services ==="
-docker compose --profile agentbridge up --build -d
+docker compose --profile telegram-bot up --build -d
 
 echo "=== Health check ==="
 sleep 5
-curl -s http://localhost:5030/health || echo "AgentBridge not responding"
+curl -s http://localhost:5030/health || echo "Telegram bot not responding"
 curl -s http://localhost:5026/healthz || echo "API not responding"
 
 echo "=== DONE ==="

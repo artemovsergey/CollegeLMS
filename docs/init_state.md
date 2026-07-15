@@ -37,7 +37,7 @@ opencode.json           # Конфиг OpenCode (MCP, плагины)
 CollegeLMS.API/         # C# backend
 CollegeLMS.Tests/       # Тесты
 frontend/               # Next.js фронтенд
-agentbridge/            # Telegram-бот
+CollegeLMS.TelegramBot/  # Telegram-бот (бывший agentbridge)
 uploads/                # Пустая папка
 docker-compose.yml      # Инфраструктура стека
 nginx/                  # Конфиг nginx
@@ -79,7 +79,7 @@ PRODUCT.md              # Краткое описание продукта
 CollegeLMS.API/         # C# backend
 CollegeLMS.Tests/       # Тесты
 frontend/               # Next.js фронтенд
-agentbridge/            # Telegram-бот
+CollegeLMS.TelegramBot/  # Telegram-бот (бывший agentbridge)
 uploads/                # Пустая папка
 docs/diagrams/          # UML-диаграммы (подсказывают архитектуру)
 docs/superpowers/specs/ # Готовые дизайн-спеки (подсказывают решения)
