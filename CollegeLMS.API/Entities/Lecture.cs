@@ -9,6 +9,11 @@ public class Lecture : Entity
     public string Content { get; set; } = string.Empty;
     public int Order { get; set; }
 
+    public Guid? TestId { get; set; }
+
     [JsonIgnore]
     public Course Course { get; set; } = null!;
+
+    [JsonIgnore]
+    public Test? Test { get; set; }
 }

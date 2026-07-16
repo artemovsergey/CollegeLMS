@@ -20,6 +20,14 @@ public class LectureConfiguration : IEntityTypeConfiguration<Lecture>
             .HasForeignKey(x => x.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
         builder
+            .HasOne(x => x.Test)
+            .WithMany()
+            .HasForeignKey(x => x.TestId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => x.TestId).HasDatabaseName("ix_lectures_test_id");
+
+        builder
             .HasIndex(x => new { x.CourseId, x.Order })
             .HasDatabaseName("ix_lectures_course_id_order");
     }
