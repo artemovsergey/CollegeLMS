@@ -71,4 +71,27 @@ public class AuthController(IAuthService authService) : ControllerBase
             return StatusCode(result.StatusCode, result);
         return Ok(result);
     }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Сменить пароль")]
+    [SwaggerResponse(200, "Пароль изменён", typeof(Result))]
+    [SwaggerResponse(400, "Неверный старый пароль")]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result>> ChangePassword(
+        ChangePasswordRequest request,
+        CancellationToken ct
+    )
+    {
+        var userId = User.GetUserId();
+        var result = await authService.ChangePasswordAsync(userId, request, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
 }

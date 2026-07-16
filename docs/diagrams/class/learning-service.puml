@@ -1,0 +1,365 @@
+@startuml
+!theme plain
+
+' === Group Service ===
+interface IGroupService {
+  + GetAllAsync(query, ct): Result<PagedResponse<GroupResponse>>
+  + GetByIdAsync(id, ct): Result<GroupResponse>
+  + CreateAsync(req, ct): Result<GroupResponse>
+  + UpdateAsync(id, req, ct): Result<GroupResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class GroupService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<GroupResponse>>
+  + GetByIdAsync(id, ct): Result<GroupResponse>
+  + CreateAsync(req, ct): Result<GroupResponse>
+  + UpdateAsync(id, req, ct): Result<GroupResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class GroupController {
+  - service: IGroupService
+  + GetAll(query, ct): ActionResult
+  + GetById(id, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Delete(id, ct): ActionResult
+}
+
+' === Student Service ===
+interface IStudentService {
+  + GetAllAsync(query, ct): Result<PagedResponse<StudentResponse>>
+  + GetByIdAsync(id, ct): Result<StudentResponse>
+  + CreateAsync(req, ct): Result<StudentResponse>
+  + UpdateAsync(id, req, ct): Result<StudentResponse>
+  + TransferAsync(id, req, ct): Result<StudentResponse>
+  + GetTransfersAsync(id, ct): Result<List<TransferResponse>>
+  + ImportAsync(file, ct): Result<ImportResult>
+}
+
+class StudentService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<StudentResponse>>
+  + GetByIdAsync(id, ct): Result<StudentResponse>
+  + CreateAsync(req, ct): Result<StudentResponse>
+  + UpdateAsync(id, req, ct): Result<StudentResponse>
+  + TransferAsync(id, req, ct): Result<StudentResponse>
+  + GetTransfersAsync(id, ct): Result<List<TransferResponse>>
+  + ImportAsync(file, ct): Result<ImportResult>
+}
+
+class StudentController {
+  - service: IStudentService
+  + GetAll(query, ct): ActionResult
+  + GetById(id, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Transfer(id, req, ct): ActionResult
+  + GetTransfers(id, ct): ActionResult
+  + Import(file, ct): ActionResult
+}
+
+' === Teacher Service ===
+interface ITeacherService {
+  + GetAllAsync(query, ct): Result<PagedResponse<TeacherResponse>>
+  + GetByIdAsync(id, ct): Result<TeacherResponse>
+  + CreateAsync(req, ct): Result<TeacherResponse>
+  + UpdateAsync(id, req, ct): Result<TeacherResponse>
+}
+
+class TeacherService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<TeacherResponse>>
+  + GetByIdAsync(id, ct): Result<TeacherResponse>
+  + CreateAsync(req, ct): Result<TeacherResponse>
+  + UpdateAsync(id, req, ct): Result<TeacherResponse>
+}
+
+class TeacherController {
+  - service: ITeacherService
+  + GetAll(query, ct): ActionResult
+  + GetById(id, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+}
+
+' === Course Service ===
+interface ICourseService {
+  + GetAllAsync(query, ct): Result<PagedResponse<CourseResponse>>
+  + GetByIdAsync(id, ct): Result<CourseResponse>
+  + CreateAsync(req, ct): Result<CourseResponse>
+  + UpdateAsync(id, req, ct): Result<CourseResponse>
+  + DeleteAsync(id, ct): Result
+  + AssignGroupsAsync(id, req, ct): Result
+  + GetGroupsAsync(id, ct): Result<List<GroupResponse>>
+  + RemoveGroupAsync(id, groupId, ct): Result
+}
+
+class CourseService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<CourseResponse>>
+  + GetByIdAsync(id, ct): Result<CourseResponse>
+  + CreateAsync(req, ct): Result<CourseResponse>
+  + UpdateAsync(id, req, ct): Result<CourseResponse>
+  + DeleteAsync(id, ct): Result
+  + AssignGroupsAsync(id, req, ct): Result
+  + GetGroupsAsync(id, ct): Result<List<GroupResponse>>
+  + RemoveGroupAsync(id, groupId, ct): Result
+}
+
+class CourseController {
+  - service: ICourseService
+  + GetAll(query, ct): ActionResult
+  + GetById(id, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Delete(id, ct): ActionResult
+  + AssignGroups(id, req, ct): ActionResult
+  + GetGroups(id, ct): ActionResult
+  + RemoveGroup(id, groupId, ct): ActionResult
+}
+
+' === Lecture Service ===
+interface ILectureService {
+  + GetAllAsync(courseId, ct): Result<List<LectureResponse>>
+  + GetByIdAsync(id, ct): Result<LectureResponse>
+  + CreateAsync(courseId, req, ct): Result<LectureResponse>
+  + UpdateAsync(id, req, ct): Result<LectureResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class LectureService {
+  - db: AppDbContext
+  + GetAllAsync(courseId, ct): Result<List<LectureResponse>>
+  + GetByIdAsync(id, ct): Result<LectureResponse>
+  + CreateAsync(courseId, req, ct): Result<LectureResponse>
+  + UpdateAsync(id, req, ct): Result<LectureResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class LectureController {
+  - service: ILectureService
+  + GetAll(courseId, ct): ActionResult
+  + GetById(courseId, id, ct): ActionResult
+  + Create(courseId, req, ct): ActionResult
+  + Update(courseId, id, req, ct): ActionResult
+  + Delete(courseId, id, ct): ActionResult
+}
+
+' === Assignment Service ===
+interface IAssignmentService {
+  + GetAllAsync(courseId, ct): Result<List<AssignmentResponse>>
+  + GetByIdAsync(id, ct): Result<AssignmentResponse>
+  + CreateAsync(courseId, req, ct): Result<AssignmentResponse>
+  + UpdateAsync(id, req, ct): Result<AssignmentResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class AssignmentService {
+  - db: AppDbContext
+  + GetAllAsync(courseId, ct): Result<List<AssignmentResponse>>
+  + GetByIdAsync(id, ct): Result<AssignmentResponse>
+  + CreateAsync(courseId, req, ct): Result<AssignmentResponse>
+  + UpdateAsync(id, req, ct): Result<AssignmentResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class AssignmentController {
+  - service: IAssignmentService
+  + GetAll(courseId, ct): ActionResult
+  + GetById(courseId, id, ct): ActionResult
+  + Create(courseId, req, ct): ActionResult
+  + Update(courseId, id, req, ct): ActionResult
+  + Delete(courseId, id, ct): ActionResult
+}
+
+' === Submission Service ===
+interface ISubmissionService {
+  + GetByAssignmentAsync(assignmentId, ct): Result<List<SubmissionResponse>>
+  + GetByStudentAsync(studentId, ct): Result<List<SubmissionResponse>>
+  + SubmitAsync(assignmentId, studentId, req, ct): Result<SubmissionResponse>
+  + GradeAsync(id, score, ct): Result
+}
+
+class SubmissionService {
+  - db: AppDbContext
+  + GetByAssignmentAsync(assignmentId, ct): Result<List<SubmissionResponse>>
+  + GetByStudentAsync(studentId, ct): Result<List<SubmissionResponse>>
+  + SubmitAsync(assignmentId, studentId, req, ct): Result<SubmissionResponse>
+  + GradeAsync(id, score, ct): Result
+}
+
+class SubmissionController {
+  - service: ISubmissionService
+  + GetByAssignment(assignmentId, ct): ActionResult
+  + GetByStudent(ct): ActionResult
+  + Submit(assignmentId, req, ct): ActionResult
+  + Grade(id, score, ct): ActionResult
+}
+
+' === Material Service ===
+interface IMaterialService {
+  + GetAllAsync(courseId, ct): Result<List<MaterialResponse>>
+  + UploadAsync(courseId, file, ct): Result<MaterialResponse>
+  + DownloadAsync(id, ct): Result<FileStreamResult>
+  + DeleteAsync(id, ct): Result
+}
+
+class MaterialService {
+  - db: AppDbContext
+  - fileService: IFileService
+  + GetAllAsync(courseId, ct): Result<List<MaterialResponse>>
+  + UploadAsync(courseId, file, ct): Result<MaterialResponse>
+  + DownloadAsync(id, ct): Result<FileStreamResult>
+  + DeleteAsync(id, ct): Result
+}
+
+class MaterialController {
+  - service: IMaterialService
+  + GetAll(courseId, ct): ActionResult
+  + Upload(courseId, file, ct): ActionResult
+  + Download(id, ct): ActionResult
+  + Delete(id, ct): ActionResult
+}
+
+' === Dashboard ===
+interface IDashboardService {
+  + GetStudentDashboardAsync(userId, ct): Result<StudentDashboardResponse>
+  + GetTeacherDashboardAsync(userId, ct): Result<TeacherDashboardResponse>
+}
+
+class DashboardService {
+  - db: AppDbContext
+  + GetStudentDashboardAsync(userId, ct): Result<StudentDashboardResponse>
+  + GetTeacherDashboardAsync(userId, ct): Result<TeacherDashboardResponse>
+}
+
+class DashboardController {
+  - service: IDashboardService
+  + GetStudentDashboard(ct): ActionResult
+  + GetTeacherDashboard(ct): ActionResult
+}
+
+' === Specialty ===
+interface ISpecialtyService {
+  + GetAllAsync(query, ct): Result<PagedResponse<SpecialtyResponse>>
+  + CreateAsync(req, ct): Result<SpecialtyResponse>
+  + UpdateAsync(id, req, ct): Result<SpecialtyResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class SpecialtyService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<SpecialtyResponse>>
+  + CreateAsync(req, ct): Result<SpecialtyResponse>
+  + UpdateAsync(id, req, ct): Result<SpecialtyResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class SpecialtyController {
+  - service: ISpecialtyService
+  + GetAll(query, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Delete(id, ct): ActionResult
+}
+
+' === Exam ===
+interface IExamService {
+  + GetAllAsync(query, ct): Result<PagedResponse<ExamResponse>>
+  + CreateAsync(req, ct): Result<ExamResponse>
+  + UpdateAsync(id, req, ct): Result<ExamResponse>
+  + DeleteAsync(id, ct): Result
+  + CreateRetakeAsync(examId, req, ct): Result<RetakeResponse>
+  + GetRetakesAsync(examId, ct): Result<List<RetakeResponse>>
+  + UpdateRetakeStatusAsync(retakeId, status, ct): Result
+  + DeleteRetakeAsync(retakeId, ct): Result
+}
+
+class ExamService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<ExamResponse>>
+  + CreateAsync(req, ct): Result<ExamResponse>
+  + UpdateAsync(id, req, ct): Result<ExamResponse>
+  + DeleteAsync(id, ct): Result
+  + CreateRetakeAsync(examId, req, ct): Result<RetakeResponse>
+  + GetRetakesAsync(examId, ct): Result<List<RetakeResponse>>
+  + UpdateRetakeStatusAsync(retakeId, status, ct): Result
+  + DeleteRetakeAsync(retakeId, ct): Result
+}
+
+class ExamController {
+  - service: IExamService
+  + GetAll(query, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Delete(id, ct): ActionResult
+  + CreateRetake(examId, req, ct): ActionResult
+  + GetRetakes(examId, ct): ActionResult
+  + UpdateRetakeStatus(retakeId, req, ct): ActionResult
+  + DeleteRetake(retakeId, ct): ActionResult
+}
+
+' === Stipend ===
+interface IStipendService {
+  + GenerateAsync(semesterId, ct): Result<StipendListResponse>
+  + GetListsAsync(ct): Result<List<StipendListResponse>>
+  + GetListByIdAsync(id, ct): Result<StipendListResponse>
+  + DeleteListAsync(id, ct): Result
+}
+
+class StipendService {
+  - db: AppDbContext
+  + GenerateAsync(semesterId, ct): Result<StipendListResponse>
+  + GetListsAsync(ct): Result<List<StipendListResponse>>
+  + GetListByIdAsync(id, ct): Result<StipendListResponse>
+  + DeleteListAsync(id, ct): Result
+}
+
+class StipendController {
+  - service: IStipendService
+  + Generate(semesterId, ct): ActionResult
+  + GetLists(ct): ActionResult
+  + GetListById(id, ct): ActionResult
+  + DeleteList(id, ct): ActionResult
+}
+
+IGroupService <|.. GroupService
+GroupController --> IGroupService
+
+IStudentService <|.. StudentService
+StudentController --> IStudentService
+
+ITeacherService <|.. TeacherService
+TeacherController --> ITeacherService
+
+ICourseService <|.. CourseService
+CourseController --> ICourseService
+
+ILectureService <|.. LectureService
+LectureController --> ILectureService
+
+IAssignmentService <|.. AssignmentService
+AssignmentController --> IAssignmentService
+
+ISubmissionService <|.. SubmissionService
+SubmissionController --> ISubmissionService
+
+IMaterialService <|.. MaterialService
+MaterialController --> IMaterialService
+MaterialService --> IFileService
+
+IDashboardService <|.. DashboardService
+DashboardController --> IDashboardService
+
+ISpecialtyService <|.. SpecialtyService
+SpecialtyController --> ISpecialtyService
+
+IExamService <|.. ExamService
+ExamController --> IExamService
+
+IStipendService <|.. StipendService
+StipendController --> IStipendService
+@enduml

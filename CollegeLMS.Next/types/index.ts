@@ -210,6 +210,243 @@ export interface FeedbackListItemDto {
   createdAt: string
 }
 
+export interface ExamResponse {
+  id: string
+  subject: string
+  groupId: string
+  groupName: string
+  examDate: string
+  type: string
+  teacherId: string
+  teacherName: string
+  semesterId: string
+  semesterName: string
+  status: string
+}
+
+export interface CreateExamRequest {
+  subject: string
+  groupId: string
+  examDate: string
+  type: string
+  teacherId: string
+  semesterId: string
+}
+
+export interface UpdateExamRequest {
+  subject: string
+  examDate: string
+  type: string
+  teacherId: string
+  semesterId: string
+  status: string
+}
+
+export interface RetakeResponse {
+  id: string
+  examId: string
+  studentId: string
+  studentName: string
+  retakeDate: string
+  status: string
+}
+
+export interface CreateRetakeRequest {
+  studentId: string
+  retakeDate: string
+}
+
+export interface UpdateRetakeStatusRequest {
+  status: string
+}
+
+export interface TestResponse {
+  id: string
+  title: string
+  description: string
+  courseId: string
+  courseName: string
+  maxAttempts: number
+  timeLimitMinutes: number
+  passingScore: number
+  type: string
+}
+
+export interface CreateTestRequest {
+  title: string
+  description: string
+  courseId: string
+  maxAttempts: number
+  timeLimitMinutes: number
+  passingScore: number
+  type: string
+}
+
+export interface UpdateTestRequest {
+  title: string
+  description: string
+  maxAttempts: number
+  timeLimitMinutes: number
+  passingScore: number
+  type: string
+}
+
+export interface TestQuestionResponse {
+  id: string
+  testId: string
+  text: string
+  type: string
+  options: string
+  correctAnswer: string
+  points: number
+  orderIndex: number
+}
+
+export interface CreateTestQuestionRequest {
+  text: string
+  type: string
+  options: string
+  correctAnswer: string
+  points: number
+  orderIndex: number
+}
+
+export interface UpdateTestQuestionRequest {
+  text: string
+  type: string
+  options: string
+  correctAnswer: string
+  points: number
+  orderIndex: number
+}
+
+export interface TestAssignmentResponse {
+  id: string
+  testId: string
+  groupId: string
+  groupName: string
+  openDate: string
+  closeDate: string
+  maxAttempts: number
+}
+
+export interface CreateTestAssignmentRequest {
+  groupId: string
+  openDate: string
+  closeDate: string
+  maxAttempts: number
+}
+
+export interface TestAttemptResponse {
+  id: string
+  testId: string
+  studentId: string
+  studentName: string
+  startedAt: string
+  completedAt: string | null
+  score: number | null
+  status: string
+}
+
+export interface SemesterResponse {
+  id: string
+  name: string
+  startDate: string
+  endDate: string
+  type: string
+}
+
+export interface CreateSemesterRequest {
+  name: string
+  startDate: string
+  endDate: string
+  type: string
+}
+
+export interface UpdateSemesterRequest {
+  name: string
+  startDate: string
+  endDate: string
+  type: string
+}
+
+export interface SpecialtyResponse {
+  id: string
+  code: string
+  name: string
+  description: string
+  isActive: boolean
+}
+
+export interface CreateSpecialtyRequest {
+  code: string
+  name: string
+  description: string
+}
+
+export interface UpdateSpecialtyRequest {
+  code: string
+  name: string
+  description: string
+  isActive: boolean
+}
+
+export interface StipendListResponse {
+  id: string
+  title: string
+  semesterId: string
+  semesterName: string
+  studentCount: number
+  createdAt: string
+}
+
+export interface StipendListItemResponse {
+  id: string
+  studentId: string
+  studentName: string
+  groupName: string
+  amount: number
+  type: string
+  comment: string | null
+}
+
+export interface GenerateStipendRequest {
+  semesterId: string
+  type: string
+  minScore: number
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string
+  newPassword: string
+}
+
+export interface TransferRecordResponse {
+  id: string
+  studentId: string
+  fromGroupName: string
+  toGroupName: string
+  reason: string
+  transferredAt: string
+}
+
+export interface CourseGroupResponse {
+  id: string
+  groupId: string
+  groupName: string
+}
+
+export interface CourseProgressResponse {
+  courseId: string
+  courseTitle: string
+  totalAssignments: number
+  completedAssignments: number
+  totalTests: number
+  completedTests: number
+  averageScore: number
+  completionPercent: number
+}
+
 export interface ImportProgressDto {
   importId: string
   status: "running" | "completed" | "failed"

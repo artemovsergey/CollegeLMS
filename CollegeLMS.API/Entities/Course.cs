@@ -25,4 +25,10 @@ public class Course : Entity
 
     [JsonIgnore]
     public ICollection<CourseMaterial> Materials { get; set; } = new List<CourseMaterial>();
+
+    [JsonIgnore]
+    public ICollection<Test> Tests { get; set; } = new List<Test>();
+
+    [JsonIgnore]
+    public ICollection<CourseGroup> CourseGroups { get; set; } = new List<CourseGroup>();
 }

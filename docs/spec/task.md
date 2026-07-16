@@ -91,7 +91,7 @@ http://stvcc.ru/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug,li
 - личные кабинеты студентов и преподавателей
 - загрузка файлов (PDF, ppt, pptx, doc, docx, mp4) — делегируется FileService
 
-1. Сервис тестирования (TestingService)
+5. Сервис тестирования (TestingService)
 
 Базовые требования:
 - создание и проведение тестов

@@ -1,0 +1,342 @@
+@startuml
+!theme plain
+
+' === SiteService ===
+entity News {
+  * id: GUID
+  --
+  * title: string
+  * content: text
+  * announcement: string
+  * image_url: string
+  news_category_id: GUID (FK)
+  is_deleted: bool
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity NewsCategory {
+  * id: GUID
+  --
+  * name: string
+  * slug: string
+  created_at: datetime
+}
+
+entity Feedback {
+  * id: GUID
+  --
+  * name: string
+  * email: string
+  * message: text
+  created_at: datetime
+}
+
+' === AuthService ===
+entity User {
+  * id: GUID
+  --
+  * login: string
+  * password_hash: string
+  * full_name: string
+  * role: string
+  * is_active: bool
+  created_at: datetime
+  updated_at: datetime
+}
+
+' === ScheduleService ===
+entity ScheduleEntry {
+  * id: GUID
+  --
+  * group_id: GUID (FK)
+  * teacher_id: GUID (FK)
+  * subject: string
+  * room: string
+  * day_of_week: int
+  * start_time: time
+  * end_time: time
+  * lesson_type: string
+  * semester_id: GUID (FK)
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity Semester {
+  * id: GUID
+  --
+  * name: string
+  * start_date: date
+  * end_date: date
+  * type: string
+  * academic_year: string
+  created_at: datetime
+  updated_at: datetime
+}
+
+' === LearningService ===
+entity Group {
+  * id: GUID
+  --
+  * name: string
+  * course: int
+  specialty_id: GUID (FK)
+  is_deleted: bool
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity Specialty {
+  * id: GUID
+  --
+  * code: string
+  * name: string
+  * description: text
+  * department: string
+  is_deleted: bool
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity Student {
+  * id: GUID
+  --
+  * user_id: GUID (FK)
+  * group_id: GUID (FK)
+  * record_book: string
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity Teacher {
+  * id: GUID
+  --
+  * user_id: GUID (FK)
+  * department: string
+  * position: string
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity Course {
+  * id: GUID
+  --
+  * title: string
+  * description: text
+  * teacher_id: GUID (FK)
+  * status: string
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity CourseGroup {
+  * id: GUID
+  --
+  * course_id: GUID (FK)
+  * group_id: GUID (FK)
+}
+
+entity Lecture {
+  * id: GUID
+  --
+  * course_id: GUID (FK)
+  * topic: string
+  * content: text
+  * order: int
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity Assignment {
+  * id: GUID
+  --
+  * course_id: GUID (FK)
+  * title: string
+  * description: text
+  * due_date: datetime
+  * max_score: int
+  * order: int
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity AssignmentSubmission {
+  * id: GUID
+  --
+  * assignment_id: GUID (FK)
+  * student_id: GUID (FK)
+  * comment: text
+  * file_path: string
+  * score: int
+  * version: int
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity CourseMaterial {
+  * id: GUID
+  --
+  * course_id: GUID (FK)
+  * file_name: string
+  * file_size: long
+  * mime_type: string
+  * file_path: string
+  created_at: datetime
+}
+
+entity Exam {
+  * id: GUID
+  --
+  * subject: string
+  * group_id: GUID (FK)
+  * teacher_id: GUID (FK)
+  * exam_date: datetime
+  * type: string
+  * semester_id: GUID (FK)
+  * status: string
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity Retake {
+  * id: GUID
+  --
+  * exam_id: GUID (FK)
+  * student_id: GUID (FK)
+  * retake_date: datetime
+  * reason: string
+  * status: string
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity StipendList {
+  * id: GUID
+  --
+  * semester_id: GUID (FK)
+  * generated_at: datetime
+  created_at: datetime
+}
+
+entity StipendListItem {
+  * id: GUID
+  --
+  * stipend_list_id: GUID (FK)
+  * student_id: GUID (FK)
+  * amount: decimal
+}
+
+' === TestingService ===
+entity Test {
+  * id: GUID
+  --
+  * course_id: GUID (FK)
+  * title: string
+  * description: text
+  * duration_minutes: int
+  * max_attempts: int
+  * type: string
+  * passing_score: int
+  * auto_check: bool
+  * show_answers: bool
+  * shuffle_questions: bool
+  * shuffle_options: bool
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity TestQuestion {
+  * id: GUID
+  --
+  * test_id: GUID (FK)
+  * text: text
+  * type: string
+  * options: jsonb
+  * correct_answers: jsonb
+  * score: int
+  * order: int
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity TestAssignment {
+  * id: GUID
+  --
+  * test_id: GUID (FK)
+  * group_id: GUID (FK)
+  * open_date: datetime
+  * close_date: datetime
+  * max_attempts: int
+  created_at: datetime
+}
+
+entity TestAttempt {
+  * id: GUID
+  --
+  * test_id: GUID (FK)
+  * student_id: GUID (FK)
+  * started_at: datetime
+  * submitted_at: datetime
+  * score: int
+  * status: string
+}
+
+entity TestAnswer {
+  * id: GUID
+  --
+  * attempt_id: GUID (FK)
+  * question_id: GUID (FK)
+  * answer: jsonb
+  * is_correct: bool
+  * score: int
+}
+
+' === RELATIONSHIPS ===
+
+' SiteService
+NewsCategory ||--o{ News : has
+User ||--o{ Feedback : submits
+
+' AuthService
+User ||--o{ Student : is
+User ||--o{ Teacher : is
+
+' ScheduleService
+Semester ||--o{ ScheduleEntry : contains
+User ||--o{ ScheduleEntry : teaches
+Group ||--o{ ScheduleEntry : attends
+
+' LearningService
+Specialty ||--o{ Group : defines
+Group ||--o{ Student : contains
+
+Course ||--o{ CourseGroup : assigned_to
+CourseGroup }o--|| Group : references
+
+User ||--o{ Course : creates
+Course ||--o{ Lecture : has
+Course ||--o{ Assignment : has
+Course ||--o{ CourseMaterial : has
+Course ||--o{ Test : includes
+
+Student ||--o{ AssignmentSubmission : submits
+Assignment ||--o{ AssignmentSubmission : receives
+
+Exam ||--o{ Retake : has
+Student ||--o{ Retake : takes
+Semester ||--o{ Exam : scheduled_in
+
+Semester ||--o{ StipendList : generates
+StipendList ||--o{ StipendListItem : contains
+Student ||--o{ StipendListItem : listed
+
+' TestingService
+Test ||--o{ TestQuestion : contains
+Test ||--o{ TestAssignment : assigned
+TestAssignment }o--|| Group : targets
+Test ||--o{ TestAttempt : started
+Student ||--o{ TestAttempt : starts
+TestAttempt ||--o{ TestAnswer : has
+TestQuestion ||--o{ TestAnswer : answered
+
+@enduml

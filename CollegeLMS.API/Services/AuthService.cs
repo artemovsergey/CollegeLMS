@@ -35,4 +35,20 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
 
         return Result<UserResponse>.Ok(user.ToDto());
     }
+
+    public async Task<Result> ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken ct)
+    {
+        var user = await db.Users.FindAsync([userId], ct);
+        if (user is null)
+            return Result.Fail("Пользователь не найден", 404);
+
+        if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash))
+            return Result.Fail("Неверный старый пароль", 400);
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        return Result.Ok();
+    }
 }

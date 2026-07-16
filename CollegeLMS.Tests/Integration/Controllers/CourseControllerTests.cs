@@ -32,11 +32,16 @@ public class CourseControllerTests : BaseIntegrationTest
 
     private string GetStudentToken()
     {
+        return GetStudentToken(Guid.NewGuid());
+    }
+
+    private string GetStudentToken(Guid userId)
+    {
         using var scope = Factory.Services.CreateScope();
         var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
         var student = new User
         {
-            Id = Guid.NewGuid(),
+            Id = userId,
             Email = "student@test.ru",
             FullName = "Student",
             PasswordHash = "hash",
@@ -136,5 +141,74 @@ public class CourseControllerTests : BaseIntegrationTest
         var response = await Client.GetAsync($"/api/courses/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AssignGroups_AssignsGroups_WhenAdmin()
+    {
+        SetAuthHeader(GetAdminToken());
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var course = CourseFixture.CreateFaker().Generate();
+        db.Courses.Add(course);
+        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        db.Groups.Add(group);
+        await db.SaveChangesAsync();
+
+        var response = await Client.PostAsJsonAsync(
+            $"/api/courses/{course.Id}/groups",
+            new AssignGroupsRequest { GroupIds = new List<Guid> { group.Id } }
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetCourseGroups_ReturnsGroups_WhenAdmin()
+    {
+        SetAuthHeader(GetAdminToken());
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var course = CourseFixture.CreateFaker().Generate();
+        db.Courses.Add(course);
+        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        db.Groups.Add(group);
+        db.CourseGroups.Add(new CourseGroup
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            GroupId = group.Id,
+        });
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync($"/api/courses/{course.Id}/groups");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProgress_ReturnsProgress_WhenStudent()
+    {
+        var studentUserId = Guid.NewGuid();
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var course = CourseFixture.CreateFaker().Generate();
+        db.Courses.Add(course);
+        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        db.Groups.Add(group);
+        var student = new Student { Id = Guid.NewGuid(), UserId = studentUserId, GroupId = group.Id, RecordBookNumber = "ЗК-001" };
+        db.Users.Add(new User { Id = studentUserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true });
+        db.Students.Add(student);
+        db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = group.Id });
+        await db.SaveChangesAsync();
+
+        SetAuthHeader(GetStudentToken(studentUserId));
+
+        var response = await Client.GetAsync($"/api/my/courses/{course.Id}/progress");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }

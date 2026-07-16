@@ -1,0 +1,87 @@
+@startuml
+!theme plain
+
+interface IScheduleService {
+  + GetAllAsync(query, ct): Result<PagedResponse<ScheduleEntryResponse>>
+  + GetByIdAsync(id, ct): Result<ScheduleEntryResponse>
+  + CreateAsync(req, ct): Result<ScheduleEntryResponse>
+  + UpdateAsync(id, req, ct): Result<ScheduleEntryResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class ScheduleService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<ScheduleEntryResponse>>
+  + GetByIdAsync(id, ct): Result<ScheduleEntryResponse>
+  + CreateAsync(req, ct): Result<ScheduleEntryResponse>
+  + UpdateAsync(id, req, ct): Result<ScheduleEntryResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class ScheduleController {
+  - service: IScheduleService
+  - exportService: IScheduleExportService
+  - importService: IScheduleImportService
+  + GetAll(query, ct): ActionResult
+  + GetById(id, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Delete(id, ct): ActionResult
+  + Export(query, format, ct): ActionResult
+  + Import(file, ct): ActionResult
+}
+
+interface IScheduleExportService {
+  + ExportPdfAsync(query, ct): Result<byte[]>
+  + ExportXlsxAsync(query, ct): Result<byte[]>
+}
+
+class ScheduleExportService {
+  + ExportPdfAsync(query, ct): Result<byte[]>
+  + ExportXlsxAsync(query, ct): Result<byte[]>
+}
+
+interface IScheduleImportService {
+  + ImportAsync(file, ct): Result<ImportResult>
+}
+
+class ScheduleImportService {
+  - db: AppDbContext
+  + ImportAsync(file, ct): Result<ImportResult>
+}
+
+interface ISemesterService {
+  + GetAllAsync(query, ct): Result<PagedResponse<SemesterResponse>>
+  + GetByIdAsync(id, ct): Result<SemesterResponse>
+  + CreateAsync(req, ct): Result<SemesterResponse>
+  + UpdateAsync(id, req, ct): Result<SemesterResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class SemesterService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<SemesterResponse>>
+  + GetByIdAsync(id, ct): Result<SemesterResponse>
+  + CreateAsync(req, ct): Result<SemesterResponse>
+  + UpdateAsync(id, req, ct): Result<SemesterResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class SemesterController {
+  - service: ISemesterService
+  + GetAll(query, ct): ActionResult
+  + GetById(id, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Delete(id, ct): ActionResult
+}
+
+IScheduleService <|.. ScheduleService
+ScheduleController --> IScheduleService
+ScheduleController --> IScheduleExportService
+ScheduleController --> IScheduleImportService
+IScheduleExportService <|.. ScheduleExportService
+IScheduleImportService <|.. ScheduleImportService
+ISemesterService <|.. SemesterService
+SemesterController --> ISemesterService
+@enduml

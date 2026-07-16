@@ -94,4 +94,17 @@ public class UserService(AppDbContext db) : IUserService
 
         return Result<UserResponse>.Ok(user.ToDto());
     }
+
+    public async Task<Result<UserResponse>> ToggleActiveAsync(Guid id, CancellationToken ct)
+    {
+        var user = await db.Users.FindAsync([id], ct);
+        if (user is null)
+            return Result<UserResponse>.Fail("Пользователь не найден", 404);
+
+        user.IsActive = !user.IsActive;
+        user.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        return Result<UserResponse>.Ok(user.ToDto());
+    }
 }

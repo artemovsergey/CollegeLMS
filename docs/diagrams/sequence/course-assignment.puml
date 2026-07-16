@@ -1,0 +1,37 @@
+@startuml
+!theme plain
+title Назначение курса группе + прогресс студента
+
+actor "Преподаватель" as Teacher
+actor "Студент" as Student
+participant "CourseController" as CourseCtrl
+participant "CourseService" as CourseSvc
+database "PostgreSQL" as DB
+
+== Преподаватель назначает курс группе ==
+
+Teacher -> CourseCtrl: POST /api/courses/{courseId}/groups\n{ groupIds: [...] }
+CourseCtrl -> CourseSvc: AssignGroupsAsync(courseId, req, ct)
+CourseSvc -> DB: SELECT * FROM courses WHERE id = @courseId
+DB --> CourseSvc: Course
+CourseSvc -> DB: INSERT INTO course_groups\n{ course_id, group_id } (for each group)
+DB --> CourseSvc: ok
+CourseSvc --> CourseCtrl: Result.Ok()
+CourseCtrl --> Teacher: 200 OK
+
+== Студент видит свой прогресс ==
+
+Student -> CourseCtrl: GET /api/my/courses/{id}/progress
+CourseCtrl -> CourseSvc: GetProgressAsync(courseId, studentId, ct)
+CourseSvc -> DB: SELECT * FROM assignments\nWHERE course_id = @courseId
+DB --> CourseSvc: List<Assignment>
+CourseSvc -> DB: SELECT * FROM assignment_submissions\nWHERE student_id = @studentId\nAND assignment_id IN (...)
+DB --> CourseSvc: List<Submission>
+CourseSvc -> DB: SELECT * FROM tests WHERE course_id = @courseId
+DB --> CourseSvc: List<Test>
+CourseSvc -> DB: SELECT * FROM test_attempts\nWHERE student_id = @studentId AND test_id IN (...)
+DB --> CourseSvc: List<TestAttempt>
+CourseSvc -> CourseSvc: Calculate: completed/total, average score
+CourseSvc --> CourseCtrl: Result.Ok({ completionPercent, assignmentsProgress, testsProgress, averageScore })
+CourseCtrl --> Student: 200 JSON
+@enduml

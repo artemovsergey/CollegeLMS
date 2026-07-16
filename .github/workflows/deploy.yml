@@ -34,8 +34,14 @@ jobs:
             docker builder prune -af
             docker image prune -f
 
+            echo "=== Store current commit for rollback ==="
+            PREVIOUS_COMMIT=$(git rev-parse HEAD)
+
             echo "=== git pull ==="
-            git pull origin master
+            git pull origin master || {
+              echo "Git pull failed. Aborting."
+              exit 1
+            }
 
             echo "=== .env from secrets ==="
             {
@@ -65,9 +71,18 @@ jobs:
             docker compose --profile telegram-bot up --build -d --force-recreate
 
             echo "=== Health check ==="
-            sleep 5
-            curl -s http://localhost:5030/health || echo "Telegram bot not responding"
-            curl -s http://localhost:5026/healthz || echo "API not responding"
+            sleep 10
+            API_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5026/healthz || echo "000")
+            if [ "$API_HEALTH" != "200" ]; then
+              echo "API health check FAILED (HTTP $API_HEALTH). Starting rollback..."
+              git reset --hard "$PREVIOUS_COMMIT"
+              docker compose --profile telegram-bot up --build -d --force-recreate
+              echo "Rollback complete."
+              exit 1
+            fi
+            echo "API health check PASSED"
+
+            curl -s http://localhost:5030/health || echo "Warning: Telegram bot not responding"
 
             echo "=== Final cleanup ==="
             docker image prune -f

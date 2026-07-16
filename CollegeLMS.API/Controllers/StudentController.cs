@@ -125,4 +125,40 @@ public class StudentController(IStudentService service) : ControllerBase
             return StatusCode(result.StatusCode, result);
         return Ok(result);
     }
+
+    [HttpPost("import")]
+    [SwaggerOperation(Summary = "Импортировать студентов из Excel")]
+    [SwaggerResponse(200, "Импорт завершён", typeof(Result<StudentImportProgress>))]
+    public async Task<ActionResult<Result<StudentImportProgress>>> Import(IFormFile file, CancellationToken ct)
+    {
+        var result = await service.ImportAsync(file, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    [HttpPatch("{id:guid}/transfer")]
+    [SwaggerOperation(Summary = "Перевести студента в другую группу")]
+    [SwaggerResponse(200, "Студент переведён", typeof(Result<StudentResponse>))]
+    [SwaggerResponse(404, "Студент или группа не найдены")]
+    public async Task<ActionResult<Result<StudentResponse>>> Transfer(
+        Guid id, TransferStudentRequest request, CancellationToken ct)
+    {
+        var result = await service.TransferAsync(id, request, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/transfers")]
+    [SwaggerOperation(Summary = "Получить историю переводов студента")]
+    [SwaggerResponse(200, "История получена", typeof(Result<List<TransferRecordResponse>>))]
+    public async Task<ActionResult<Result<List<TransferRecordResponse>>>> GetTransfers(
+        Guid id, CancellationToken ct)
+    {
+        var result = await service.GetTransfersAsync(id, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
 }

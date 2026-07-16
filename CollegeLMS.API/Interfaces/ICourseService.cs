@@ -32,4 +32,8 @@ public interface ICourseService
         string currentUserRole,
         CancellationToken ct = default
     );
+    Task<Result> AssignGroupsAsync(Guid courseId, AssignGroupsRequest request, Guid currentUserId, string currentUserRole, CancellationToken ct = default);
+    Task<Result<List<CourseGroupResponse>>> GetCourseGroupsAsync(Guid courseId, CancellationToken ct = default);
+    Task<Result> RemoveGroupAsync(Guid courseId, Guid groupId, Guid currentUserId, string currentUserRole, CancellationToken ct = default);
+    Task<Result<CourseProgressResponse>> GetProgressAsync(Guid courseId, Guid currentUserId, CancellationToken ct = default);
 }

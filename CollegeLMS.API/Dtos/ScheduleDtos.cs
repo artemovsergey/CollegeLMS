@@ -27,6 +27,19 @@ public class CreateScheduleRequest
     public string LessonType { get; set; } = string.Empty;
 }
 
+public class CalendarDayResponse
+{
+    public string Day { get; set; } = string.Empty;
+    public int DayOfWeek { get; set; }
+    public List<ScheduleResponse> Entries { get; set; } = new();
+}
+
+public class CalendarResponse
+{
+    public DateTime WeekStart { get; set; }
+    public List<CalendarDayResponse> Days { get; set; } = new();
+}
+
 public class UpdateScheduleRequest
 {
     public Guid GroupId { get; set; }

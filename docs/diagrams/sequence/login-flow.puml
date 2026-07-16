@@ -1,0 +1,35 @@
+@startuml
+!theme plain
+title Аутентификация — вход в систему
+
+actor "Пользователь" as User
+participant "AuthController" as Ctrl
+participant "AuthService" as Svc
+participant "JwtTokenService" as Jwt
+database "PostgreSQL" as DB
+database "Redis" as Redis
+
+User -> Ctrl: POST /api/auth/login\n{ login, password }
+Ctrl -> Svc: LoginAsync(request, ct)
+Svc -> Jwt: ValidateCredentials(login, password)
+Jwt -> DB: SELECT * FROM users WHERE login = @login
+DB --> Jwt: User (or null)
+alt User not found or inactive
+  Jwt --> Svc: Fail("Неверный логин или пароль")
+  Svc --> Ctrl: Result.Fail(401)
+  Ctrl --> User: 401 Unauthorized
+else User found + active
+  Jwt -> Jwt: BCrypt.Verify(password, hash)
+  alt Password mismatch
+    Jwt --> Svc: Fail("Неверный логин или пароль")
+    Svc --> Ctrl: Result.Fail(401)
+    Ctrl --> User: 401 Unauthorized
+  else Password correct
+    Jwt -> Jwt: GenerateToken(user)
+    Jwt --> Svc: Ok(token)
+    Svc -> Redis: Rate limit — reset counter
+    Svc --> Ctrl: Result.Ok({ token, user })
+    Ctrl --> User: 200 { token, user }
+  end
+end
+@enduml

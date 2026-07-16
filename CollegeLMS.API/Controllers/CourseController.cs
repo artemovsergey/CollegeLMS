@@ -133,4 +133,66 @@ public class CourseController(ICourseService service) : ControllerBase
             return StatusCode(result.StatusCode, result);
         return Ok(result);
     }
+
+    [HttpPost("{courseId:guid}/groups")]
+    [Authorize(Roles = "Admin,Teacher")]
+    [SwaggerOperation(Summary = "Назначить группы курсу")]
+    [SwaggerResponse(200, "Группы назначены", typeof(Result))]
+    public async Task<ActionResult<Result>> AssignGroups(
+        Guid courseId, AssignGroupsRequest request, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        var role = User.GetRole();
+        var result = await service.AssignGroupsAsync(courseId, request, userId, role, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    [HttpGet("{courseId:guid}/groups")]
+    [SwaggerOperation(Summary = "Получить группы курса")]
+    [SwaggerResponse(200, "Список групп получен", typeof(Result<List<CourseGroupResponse>>))]
+    public async Task<ActionResult<Result<List<CourseGroupResponse>>>> GetGroups(
+        Guid courseId, CancellationToken ct)
+    {
+        var result = await service.GetCourseGroupsAsync(courseId, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    [HttpDelete("{courseId:guid}/groups/{groupId:guid}")]
+    [Authorize(Roles = "Admin,Teacher")]
+    [SwaggerOperation(Summary = "Отвязать группу от курса")]
+    [SwaggerResponse(200, "Группа отвязана", typeof(Result))]
+    public async Task<ActionResult<Result>> RemoveGroup(Guid courseId, Guid groupId, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        var role = User.GetRole();
+        var result = await service.RemoveGroupAsync(courseId, groupId, userId, role, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+}
+
+[ApiController]
+[Route("api/my/courses")]
+[Authorize]
+[Produces("application/json")]
+public class MyCourseController(ICourseService service) : ControllerBase
+{
+    [HttpGet("{id:guid}/progress")]
+    [Authorize(Roles = "Student")]
+    [SwaggerOperation(Summary = "Получить прогресс по курсу")]
+    [SwaggerResponse(200, "Прогресс получен", typeof(Result<CourseProgressResponse>))]
+    public async Task<ActionResult<Result<CourseProgressResponse>>> GetProgress(
+        Guid id, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        var result = await service.GetProgressAsync(id, userId, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
 }

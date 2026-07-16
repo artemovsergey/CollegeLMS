@@ -47,7 +47,7 @@
             },
             "FrontendAgent": {
                 "model": "deepseek-v4-flash-free",
-                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS v4, shadcn/ui, Lucide icons. Uses skills: nextjs-page, design-system, layers-orient, layers-user-needs, layers-conceptual-model, layers-interaction-flow, layers-surface, refactor-ui. Runs: npm run dev."
+                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS v4, shadcn/ui, Lucide icons. Uses skills: nextjs-page, design-system, impeccable. Runs: npm run dev."
             },
             "TesterAgent": {
                 "model": "deepseek-v4-flash-free",

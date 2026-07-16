@@ -240,4 +240,27 @@ public class ScheduleControllerTests : BaseIntegrationTest
         Assert.True(body!.IsSuccess);
         Assert.Equal("Обновлено", body.Data!.Subject);
     }
+
+    [Fact]
+    public async Task GetCalendar_ReturnsCalendar_WhenGroupFilter()
+    {
+        var groupId = Guid.NewGuid();
+        var entry = ScheduleEntryFixture.CreateFaker().Generate();
+        entry.GroupId = groupId;
+        entry.Group!.Id = groupId;
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.ScheduleEntries.Add(entry);
+            await db.SaveChangesAsync();
+        }
+
+        var response = await Client.GetAsync($"/api/schedule?view=calendar&groupId={groupId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeWithEnumsAsync<Result<CalendarResponse>>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+    }
 }

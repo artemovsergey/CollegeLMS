@@ -1,0 +1,39 @@
+@startuml
+!theme plain
+title Управление расписанием
+
+actor "Диспетчер" as Dispatcher
+participant "ScheduleController" as Ctrl
+participant "ScheduleService" as Svc
+database "PostgreSQL" as DB
+
+== Просмотр расписания группы ==
+
+Dispatcher -> Ctrl: GET /api/schedule?groupId={id}&period=week
+Ctrl -> Svc: GetAllAsync(query, ct)
+Svc -> DB: SELECT * FROM schedule_entries\nWHERE group_id = @id\nORDER BY day_of_week, start_time
+DB --> Svc: List<ScheduleEntry>
+Svc -> Svc: Apply period filter (week)
+Svc --> Ctrl: Result.Ok({ items, totalCount, page })
+Ctrl --> Dispatcher: 200 JSON
+
+== Создание записи ==
+
+Dispatcher -> Ctrl: POST /api/schedule\n{ groupId, teacherId, subject, room, ... }
+Ctrl -> Svc: CreateAsync(request, ct)
+Svc -> DB: Validate — no overlaps (group, teacher, room)
+DB --> Svc: ok
+Svc -> DB: INSERT INTO schedule_entries
+DB --> Svc: entity
+Svc --> Ctrl: Result.Ok(entry)
+Ctrl --> Dispatcher: 200 JSON
+
+== Конфликт пересечений ==
+
+Dispatcher -> Ctrl: POST /api/schedule\n{ groupId, teacherId, ... }
+Ctrl -> Svc: CreateAsync(request, ct)
+Svc -> DB: Validate overlaps
+DB --> Svc: Found conflicts
+Svc --> Ctrl: Result.Fail("Группа уже занята в это время")
+Ctrl --> Dispatcher: 400 Bad Request { error, conflicts }
+@enduml

@@ -11,8 +11,15 @@ public interface IScheduleService
         string? room,
         DayOfWeek? dayOfWeek,
         string? period,
+        string? view,
         int? page,
         int? pageSize,
+        CancellationToken ct = default
+    );
+    Task<Result<CalendarResponse>> GetCalendarAsync(
+        Guid? groupId,
+        Guid? teacherId,
+        string? room,
         CancellationToken ct = default
     );
 

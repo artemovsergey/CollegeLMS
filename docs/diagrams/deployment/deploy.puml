@@ -1,0 +1,86 @@
+@startuml
+!theme plain
+title CollegeLMS — Deployment Diagram
+
+node "VPS (Cloud.ru)" {
+  rectangle "Docker Host" {
+
+    database "PostgreSQL 16" as DB {
+      [collegelms]
+    }
+
+    database "Redis 7" as Redis {
+      [sessions]
+      [rate_limits]
+      [token_blacklist]
+    }
+
+    component "nginx\n(loadbalancer)" as Nginx {
+      port "80"
+      port "443"
+    }
+
+    component "ASP.NET Core 10\nCollegeLMS.API" as API {
+      port "8080"
+      [Rest API]
+      [Swagger UI]
+      [Health Checks]
+    }
+
+    component "Next.js 14\nCollegeLMS.Next" as Frontend {
+      port "3000"
+      [Static Pages]
+      [App Router]
+      [shadcn/ui]
+    }
+
+    component ".NET 10\nCollegeLMS.TelegramBot" as Bot {
+      port "5030"
+      [Schedule Bot]
+      [Max Bot]
+      [OpenCode Integration]
+    }
+
+    folder "uploads" as Uploads {
+      [Materials]
+      [Submissions]
+    }
+
+    folder "import" as Import {
+      [wp_data_full.json]
+    }
+  }
+}
+
+rectangle "GitHub" {
+  [GitHub Actions] as GHA
+  [Source Code] as Repo
+}
+
+rectangle "stvcc.ru\n(WordPress)" as WP {
+  [REST API]
+}
+
+rectangle "Telegram" {
+  [Telegram API] as TG
+}
+
+rectangle "OpenCode Server" as OC {
+  [SSE / HTTP API]
+}
+
+GHA --> Nginx: git push → SSH deploy
+Repo --> GHA: push trigger
+WP --> API: WordPress import (UC-6)
+API --> DB: Entity Framework
+API --> Redis: Session + rate limiting
+API --> Uploads: File storage
+API --> Import: WP data
+Frontend --> API: REST API + JWT
+Nginx --> Frontend: / → Next.js
+Nginx --> API: /api/ → .NET
+Nginx --> API: /swagger → Swagger
+Bot --> TG: Telegram API
+Bot --> API: Schedule data
+Bot --> OC: OpenCode integration
+@enduml

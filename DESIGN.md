@@ -206,6 +206,27 @@ Cards, dialogs, and dropdowns sit on the surface without vertical lift. The card
 - **Title:** Title type scale
 - **Actions:** Right-aligned, Cancel (ghost) then Save (primary)
 
+### Skeleton (Loading Placeholder)
+
+- **Shape:** 6px border-radius, no border
+- **Colors:** Blue Tint (`#e4edf8`) background; pulsing via a 1.5s ease-in-out opacity animation from 100% to 40%
+- **Sizes:** Match the element they replace — card skeletons use card dimensions, text skeletons use `h-4`, avatar skeletons are circular
+- **CSS:** `@keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`
+- **Action:** Loading skeleton ONLY. Never use for empty states or error states — those use empty/error components instead
+
+### Toast (Sonner)
+
+- **Library:** Sonner (`sonner` npm package) — single source of truth for toasts
+- **Position:** `position="bottom-right"` (default)
+- **Duration:** Success/Info — 3s; Error — 5s
+- **Colors:**
+  - **Success:** Leaf Green (`#2f8733`) icon + title, Green Tint (`#e8f5e9`) background
+  - **Error:** Rose Alert (`#c43e3e`) icon + title, Rose Tint (`#f8e8e8`) background
+  - **Info:** College Blue (`#568edd`) icon, Blue Tint (`#e4edf8`) background
+- **Content:** Title only for simple messages; title + description for detail messages
+- **Dismiss:** Always dismissible by clicking. Auto-dismiss according to duration.
+- **Action button:** Optional; use `action` prop for undo/retry (ghost style, small)
+
 ## 6. Icons
 
 **Library:** Lucide React — single source of truth. No icon fonts, no second library, no raw SVGs for common UI.

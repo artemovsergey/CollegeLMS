@@ -22,23 +22,31 @@ public class ScheduleController(IScheduleService service) : ControllerBase
     [ProducesResponseType(typeof(Result<PagedResponse<ScheduleResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<PagedResponse<ScheduleResponse>>>> GetAll(
+    public async Task<IActionResult> GetAll(
         [FromQuery] Guid? groupId,
         [FromQuery] Guid? teacherId,
         [FromQuery] string? room,
         [FromQuery] DayOfWeek? dayOfWeek,
         [FromQuery] string? period,
+        [FromQuery] string? view,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
         CancellationToken ct
     )
     {
+        if (view == "calendar")
+        {
+            var calendarResult = await service.GetCalendarAsync(groupId, teacherId, room, ct);
+            return Ok(calendarResult);
+        }
+
         var result = await service.GetAllAsync(
             groupId,
             teacherId,
             room,
             dayOfWeek,
             period,
+            view,
             page,
             pageSize,
             ct

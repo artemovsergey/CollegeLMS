@@ -117,4 +117,55 @@ public class AuthServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
     }
+
+    [Fact]
+    public async Task ChangePasswordAsync_ChangesPassword_WhenOldPasswordCorrect()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("old-password");
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ChangePasswordAsync(
+            user.Id,
+            new ChangePasswordRequest { OldPassword = "old-password", NewPassword = "new-password" },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+
+        var updated = await _db.Users.FindAsync([user.Id]);
+        BCrypt.Net.BCrypt.Verify("new-password", updated!.PasswordHash).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_ReturnsFail_WhenUserNotFound()
+    {
+        var result = await _sut.ChangePasswordAsync(
+            Guid.NewGuid(),
+            new ChangePasswordRequest { OldPassword = "old", NewPassword = "new" },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_ReturnsFail_WhenOldPasswordInvalid()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct-password");
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ChangePasswordAsync(
+            user.Id,
+            new ChangePasswordRequest { OldPassword = "wrong-password", NewPassword = "new-password" },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+    }
 }

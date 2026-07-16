@@ -4,6 +4,7 @@ using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.Tests.Unit.Services;
@@ -236,5 +237,125 @@ public class StudentServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         var user = await _db.Users.FindAsync(student.UserId);
         user!.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task TransferAsync_TransfersStudent()
+    {
+        var student = StudentFixture.CreateFaker().Generate();
+        _db.Users.Add(student.User);
+        _db.Groups.Add(student.Group);
+        _db.Students.Add(student);
+
+        var newGroup = new API.Entities.Group { Id = Guid.NewGuid(), Name = "НГР-21", Course = 2 };
+        _db.Groups.Add(newGroup);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.TransferAsync(
+            student.Id,
+            new TransferStudentRequest { NewGroupId = newGroup.Id, Reason = "Смена группы" },
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+
+        var updated = await _db.Students.Include(s => s.Group).FirstAsync(s => s.Id == student.Id);
+        updated.GroupId.Should().Be(newGroup.Id);
+    }
+
+    [Fact]
+    public async Task TransferAsync_ReturnsNotFound_WhenStudentMissing()
+    {
+        var result = await _sut.TransferAsync(
+            Guid.NewGuid(),
+            new TransferStudentRequest { NewGroupId = Guid.NewGuid() },
+            default
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task TransferAsync_ReturnsNotFound_WhenGroupMissing()
+    {
+        var student = StudentFixture.CreateFaker().Generate();
+        _db.Users.Add(student.User);
+        _db.Groups.Add(student.Group);
+        _db.Students.Add(student);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.TransferAsync(
+            student.Id,
+            new TransferStudentRequest { NewGroupId = Guid.NewGuid() },
+            default
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task GetTransfersAsync_ReturnsTransfers()
+    {
+        var student = StudentFixture.CreateFaker().Generate();
+        _db.Users.Add(student.User);
+        _db.Groups.Add(student.Group);
+        _db.Students.Add(student);
+
+        var newGroup = new API.Entities.Group { Id = Guid.NewGuid(), Name = "НГР-21", Course = 2 };
+        _db.Groups.Add(newGroup);
+
+        _db.TransferRecords.Add(new TransferRecord
+        {
+            Id = Guid.NewGuid(),
+            StudentId = student.Id,
+            FromGroupId = student.GroupId,
+            ToGroupId = newGroup.Id,
+            Reason = "Перевод",
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetTransfersAsync(student.Id, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task ImportAsync_ImportsStudentsFromCsv()
+    {
+        var group = new API.Entities.Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        _db.Groups.Add(group);
+        await _db.SaveChangesAsync();
+
+        var csv = "FullName,Group,RecordBook\nИван Иванов,ГР-11,2024-001\nПётр Петров,ГР-11,2024-002";
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        var file = new FormFile(new MemoryStream(bytes), 0, bytes.Length, "file", "students.csv");
+
+        var result = await _sut.ImportAsync(file, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Imported.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ImportAsync_ReturnsFail_WhenFileEmpty()
+    {
+        var file = new FormFile(new MemoryStream(), 0, 0, "file", "empty.csv");
+
+        var result = await _sut.ImportAsync(file, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+    }
+
+    [Fact]
+    public async Task ImportAsync_ReturnsFail_WhenFileNull()
+    {
+        var result = await _sut.ImportAsync(null!, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
     }
 }

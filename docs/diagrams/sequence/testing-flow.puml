@@ -1,0 +1,52 @@
+@startuml
+!theme plain
+title Прохождение теста студентом
+
+actor "Студент" as Student
+participant "TestingController" as Ctrl
+participant "TestingService" as Svc
+database "PostgreSQL" as DB
+
+== Начало теста ==
+
+Student -> Ctrl: GET /api/tests/{testId}/start
+Ctrl -> Svc: StartAttemptAsync(testId, studentId, ct)
+Svc -> DB: SELECT * FROM test_assignments\nWHERE test_id = @testId AND group_id = @studentGroup
+DB --> Svc: TestAssignment
+Svc -> DB: SELECT COUNT(*) FROM test_attempts\nWHERE test_id = @testId AND student_id = @studentId
+DB --> Svc: attemptCount
+alt attemptCount >= maxAttempts
+  Svc --> Ctrl: Result.Fail(409, "Превышено количество попыток")
+  Ctrl --> Student: 409 Conflict
+else
+  Svc -> DB: INSERT INTO test_attempts\n{ test_id, student_id, started_at }
+  DB --> Svc: attempt
+  Svc --> Ctrl: Result.Ok(attemptId)
+  Ctrl --> Student: 200 { attemptId, durationMinutes }
+end
+
+== Получение вопросов ==
+
+Student -> Ctrl: GET /api/tests/{testId}/attempt/{attemptId}
+Ctrl -> Svc: GetAttemptAsync(testId, attemptId, ct)
+Svc -> DB: SELECT * FROM test_questions\nWHERE test_id = @testId ORDER BY "order"
+DB --> Svc: questions (shuffled if setting enabled)
+Svc -> Svc: Strip correct_answers from response
+Svc --> Ctrl: Result.Ok({ questions, timeRemaining })
+Ctrl --> Student: 200 JSON (questions without answers)
+
+== Отправка ответов ==
+
+Student -> Ctrl: POST /api/tests/{testId}/attempt/{attemptId}/submit\n{ answers: [...] }
+Ctrl -> Svc: SubmitAttemptAsync(testId, attemptId, answers, ct)
+Svc -> DB: SELECT * FROM test_attempts WHERE id = @attemptId
+DB --> Svc: attempt
+alt Time expired
+  Svc -> Svc: Auto-submit, mark as timed out
+end
+Svc -> DB: INSERT INTO test_answers\n{ attempt_id, question_id, answer, is_correct, score }
+Svc -> Svc: Calculate total score & auto-grade closed questions
+Svc -> DB: UPDATE test_attempts\nSET submitted_at = NOW(), score = @score, status = 'completed'
+Svc --> Ctrl: Result.Ok({ score, maxScore, passed })
+Ctrl --> Student: 200 JSON (result)
+@enduml

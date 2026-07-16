@@ -1,0 +1,71 @@
+@startuml
+!theme plain
+
+interface IAuthService {
+  + LoginAsync(req, ct): Result<LoginResponse>
+  + LogoutAsync(token, ct): Result
+  + GetProfileAsync(userId, ct): Result<UserResponse>
+  + ChangePasswordAsync(userId, req, ct): Result
+}
+
+class AuthService {
+  - db: AppDbContext
+  - redis: IConnectionMultiplexer
+  - jwt: JwtTokenService
+  + LoginAsync(req, ct): Result<LoginResponse>
+  + LogoutAsync(token, ct): Result
+  + GetProfileAsync(userId, ct): Result<UserResponse>
+  + ChangePasswordAsync(userId, req, ct): Result
+}
+
+class AuthController {
+  - service: IAuthService
+  + Login(req, ct): ActionResult
+  + Logout(ct): ActionResult
+  + GetProfile(ct): ActionResult
+  + ChangePassword(req, ct): ActionResult
+}
+
+interface IUserService {
+  + GetAllAsync(query, ct): Result<PagedResponse<UserResponse>>
+  + GetByIdAsync(id, ct): Result<UserResponse>
+  + CreateAsync(req, ct): Result<UserResponse>
+  + UpdateAsync(id, req, ct): Result<UserResponse>
+  + DeleteAsync(id, ct): Result
+  + ChangeRoleAsync(id, role, ct): Result
+  + ToggleActiveAsync(id, ct): Result
+}
+
+class UserService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<UserResponse>>
+  + GetByIdAsync(id, ct): Result<UserResponse>
+  + CreateAsync(req, ct): Result<UserResponse>
+  + UpdateAsync(id, req, ct): Result<UserResponse>
+  + DeleteAsync(id, ct): Result
+  + ChangeRoleAsync(id, role, ct): Result
+  + ToggleActiveAsync(id, ct): Result
+}
+
+class UserController {
+  - service: IUserService
+  + GetAll(query, ct): ActionResult
+  + GetById(id, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Delete(id, ct): ActionResult
+  + ChangeRole(id, role, ct): ActionResult
+  + ToggleActive(id, ct): ActionResult
+}
+
+class JwtTokenService {
+  + GenerateToken(user): string
+  + ValidateToken(token): ClaimsPrincipal
+}
+
+IAuthService <|.. AuthService
+AuthController --> IAuthService
+IUserService <|.. UserService
+UserController --> IUserService
+AuthService --> JwtTokenService
+@enduml

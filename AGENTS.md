@@ -159,10 +159,10 @@ scripts/                 # Скрипты парсинга WP
 |------|------------------|---------------|
 | **0: Planning** | brainstorming → writing-plans | Спецификация утверждена пользователем |
 | **1: Backend** | dotnet-entity, dotnet-endpoint, fluent-validation, swagger-docs, aspnet-core | dotnet build |
-| **2: Tests** | dotnet-test, test-driven-development | dotnet test |
-| **3: Frontend** | impeccable, design-system, nextjs-page | npm run dev |
-| **4: E2E** | playwright, playwright-interactive | npx playwright test |
-| **5: Docs** | plantuml-docs, security-threat-model | Визуальная проверка |
+| **2: Docs** | plantuml-docs, security-threat-model | Визуальная проверка |
+| **3: Tests** | dotnet-test, test-driven-development | dotnet test |
+| **4: Frontend** | impeccable, design-system, nextjs-page | npm run dev |
+| **5: E2E** | playwright, playwright-interactive | npx playwright test |
 | **6: DevOps** | docker-compose-dev, vps-deploy | docker compose up --build |
 | **7: Review** | verification-before-completion, requesting-code-review, yeet | Слияние + push |
 
@@ -212,7 +212,22 @@ Phase 1: BACKEND (BackendAgent)
   ⚠️ Локальная проверка: dotnet build
   git add -A && git commit -m "phase 1: {feature} backend"
 
-Phase 2: FRONTEND (FrontendAgent)
+Phase 2: DOCS (AnalystAgent)
+  Load: plantuml-docs, security-threat-model
+  PlantUML diagrams         → ER (entities), Class (services), Sequence (flows)
+  Security threat model     → trust boundaries, attack paths (если нужно)
+  skill("plantuml-docs")
+  ⚠️ Локальная проверка: dotnet build
+  git add -A && git commit -m "phase 2: {feature} docs"
+
+Phase 3: TESTS (TesterAgent)
+  Load: dotnet-test, test-driven-development
+  Модульные тесты (xUnit + Moq + Bogus)
+  Интеграционные тесты (WebApplicationFactory)
+  ⚠️ Локальная проверка: dotnet test
+  git add -A && git commit -m "phase 3: {feature} tests"
+
+Phase 4: FRONTEND (FrontendAgent)
   Load: impeccable, design-system, nextjs-page
 
   Step 1 — Design brief (shape)
@@ -235,24 +250,23 @@ Phase 2: FRONTEND (FrontendAgent)
     • Проверка против Web Interface Guidelines
 
   ⚠️ Локальная проверка: npm run dev
-  git add -A && git commit -m "phase 2: {feature} frontend"
+  git add -A && git commit -m "phase 4: {feature} frontend"
 
-Phase 3: DOCS (AnalystAgent)
-  Load: plantuml-docs, security-threat-model
-  PlantUML diagrams         → ER (entities), Class (services), Sequence (flows)
-  Security threat model     → trust boundaries, attack paths (если нужно)
-  skill("plantuml-docs")
-  git add -A && git commit -m "phase 3: {feature} docs"
+Phase 5: E2E (TesterAgent)
+  Load: playwright, playwright-interactive
+  Написать E2E-тесты для ключевых user flows
+  ⚠️ Локальная проверка: npx playwright test
+  git add -A && git commit -m "phase 5: {feature} e2e"
 
-Phase 4: LOCAL VERIFICATION (DevOpsAgent)
+Phase 6: LOCAL VERIFICATION (DevOpsAgent)
   Load: docker-compose-dev, vps-deploy
   Поднять полный compose:     docker compose up --build -d --profile telegram-bot
   Проверить что всё работает: docker compose ps
   Если Docker падает         → исправить
   ⚠️ verification-before-completion: docker compose up --build проходит
-  git add -A && git commit -m "phase 4: {feature} devops"
+  git add -A && git commit -m "phase 6: {feature} devops"
 
-Phase 5: MERGE & DEPLOY (Architect)
+Phase 7: MERGE & DEPLOY (Architect)
   Load: verification-before-completion, requesting-code-review, yeet
   ⚠️ verification-before-completion: проверить compose поднимается
   Load: requesting-code-review
@@ -266,8 +280,32 @@ Phase 5: MERGE & DEPLOY (Architect)
     2. запись .env из GitHub Secrets
     3. docker compose --profile telegram-bot up --build -d --force-recreate
     4. health check (миграции — автоматически при старте API)
+  ```
+
+
+### Hotfix workflow (срочный фикс)
+
+Для критических багов в production — минуя полный цикл фичи.
+
+```
+git checkout master
+git checkout -b hotfix/{description}
+
+# Фикс (без тестов и E2E)
+# Править код → проверить: dotnet build + npm run build
+
+git add -A && git commit -m "hotfix: {description}"
+git checkout master && git merge hotfix/{description}
+git push                  → CD deploy сразу в production
 ```
 
+**Правила hotfix:**
+- Только критические баги (недоступность сервиса, потеря данных, безопасность)
+- Без новых фич, без рефакторинга
+- Только build check перед merge — полный цикл не обязателен
+- После hotfix — создать задачу на полноценный фик с тестами
+
+---
 
 ### Шаблон User Story
 

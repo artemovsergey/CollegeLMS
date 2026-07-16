@@ -95,6 +95,63 @@ public static class DbConstraints
             """
         );
 
+        // Tests
+        await db.Database.ExecuteSqlRawAsync(
+            """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_tests_time_limit_positive') THEN
+                        ALTER TABLE tests ADD CONSTRAINT ck_tests_time_limit_positive CHECK (time_limit_minutes > 0);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_tests_passing_score_range') THEN
+                        ALTER TABLE tests ADD CONSTRAINT ck_tests_passing_score_range CHECK (passing_score BETWEEN 0 AND 100);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_tests_max_attempts_positive') THEN
+                        ALTER TABLE tests ADD CONSTRAINT ck_tests_max_attempts_positive CHECK (max_attempts > 0);
+                    END IF;
+                END $$;
+            """
+        );
+
+        // Semesters
+        await db.Database.ExecuteSqlRawAsync(
+            """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_semesters_dates_range') THEN
+                        ALTER TABLE semesters ADD CONSTRAINT ck_semesters_dates_range CHECK (end_date > start_date);
+                    END IF;
+                END $$;
+            """
+        );
+
+        // Specialties
+        await db.Database.ExecuteSqlRawAsync(
+            """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_specialties_code_not_empty') THEN
+                        ALTER TABLE specialties ADD CONSTRAINT ck_specialties_code_not_empty CHECK (length(code) > 0);
+                    END IF;
+                END $$;
+            """
+        );
+
+        // Test Assignments
+        await db.Database.ExecuteSqlRawAsync(
+            """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_test_assignments_dates_range') THEN
+                        ALTER TABLE test_assignments ADD CONSTRAINT ck_test_assignments_dates_range CHECK (close_date > open_date);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_test_assignments_max_attempts_positive') THEN
+                        ALTER TABLE test_assignments ADD CONSTRAINT ck_test_assignments_max_attempts_positive CHECK (max_attempts > 0);
+                    END IF;
+                END $$;
+            """
+        );
+
         // Submissions
         await db.Database.ExecuteSqlRawAsync(
             """

@@ -7,4 +7,5 @@ public interface IAuthService
 {
     Task<Result<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default);
     Task<Result<UserResponse>> GetProfileAsync(Guid userId, CancellationToken ct = default);
+    Task<Result> ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken ct = default);
 }

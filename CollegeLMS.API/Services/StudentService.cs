@@ -5,6 +5,7 @@ using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Response;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
@@ -157,5 +158,151 @@ public class StudentService(AppDbContext db) : IStudentService
         await db.SaveChangesAsync(ct);
 
         return Result.Ok();
+    }
+
+    public async Task<Result<StudentImportProgress>> ImportAsync(IFormFile file, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+            return Result<StudentImportProgress>.Fail("Файл не загружен", 400);
+
+        var progress = new StudentImportProgress();
+
+        using var stream = new MemoryStream();
+        await file.CopyToAsync(stream, ct);
+        stream.Position = 0;
+
+        using var reader = new StreamReader(stream);
+        string? headerLine = await reader.ReadLineAsync(ct);
+        if (string.IsNullOrWhiteSpace(headerLine))
+            return Result<StudentImportProgress>.Fail("Файл пуст", 400);
+
+        int row = 1;
+        while (!reader.EndOfStream)
+        {
+            row++;
+            var line = await reader.ReadLineAsync(ct);
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            var parts = line.Split(',');
+            if (parts.Length < 3)
+            {
+                progress.Errors.Add(new ImportError { Row = row, Message = "Недостаточно полей" });
+                continue;
+            }
+
+            var fullName = parts[0].Trim();
+            var groupName = parts[1].Trim();
+            var recordBook = parts[2].Trim();
+
+            if (string.IsNullOrWhiteSpace(fullName))
+            {
+                progress.Errors.Add(new ImportError { Row = row, Message = "ФИО обязательно" });
+                continue;
+            }
+
+            var group = await db.Groups.FirstOrDefaultAsync(g => g.Name == groupName, ct);
+            if (group is null)
+            {
+                progress.Errors.Add(new ImportError { Row = row, Message = $"Группа '{groupName}' не найдена" });
+                continue;
+            }
+
+            var exists = await db.Students.AnyAsync(s => s.RecordBookNumber == recordBook, ct);
+            if (exists)
+            {
+                progress.Skipped++;
+                continue;
+            }
+
+            var login = $"student{recordBook.Replace("-", "").Replace("/", "").Substring(0, Math.Min(6, recordBook.Length))}";
+            var loginExists = await db.Users.AnyAsync(u => u.Login == login, ct);
+            if (loginExists)
+                login = $"{login}{Guid.NewGuid().ToString()[..4]}";
+
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Login = login,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+                FullName = fullName,
+                Role = UserRole.Student,
+                IsActive = true,
+            };
+            db.Users.Add(user);
+
+            db.Students.Add(new Student
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                GroupId = group.Id,
+                RecordBookNumber = recordBook,
+            });
+
+            progress.Imported++;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Result<StudentImportProgress>.Ok(progress);
+    }
+
+    public async Task<Result<StudentResponse>> TransferAsync(Guid id, TransferStudentRequest request, CancellationToken ct)
+    {
+        var student = await db.Students.Include(s => s.User).Include(s => s.Group)
+            .FirstOrDefaultAsync(s => s.Id == id, ct);
+        if (student is null)
+            return Result<StudentResponse>.Fail("Студент не найден", 404);
+
+        var newGroup = await db.Groups.FindAsync([request.NewGroupId], ct);
+        if (newGroup is null)
+            return Result<StudentResponse>.Fail("Группа не найдена", 404);
+
+        var oldGroupId = student.GroupId;
+
+        db.TransferRecords.Add(new TransferRecord
+        {
+            Id = Guid.NewGuid(),
+            StudentId = id,
+            FromGroupId = oldGroupId,
+            ToGroupId = request.NewGroupId,
+            Reason = request.Reason,
+        });
+
+        student.GroupId = request.NewGroupId;
+        student.Group = newGroup;
+        student.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        return Result<StudentResponse>.Ok(student.ToDto());
+    }
+
+    public async Task<Result<List<TransferRecordResponse>>> GetTransfersAsync(Guid id, CancellationToken ct)
+    {
+        var student = await db.Students.AnyAsync(s => s.Id == id, ct);
+        if (!student)
+            return Result<List<TransferRecordResponse>>.Fail("Студент не найден", 404);
+
+        var records = await db.TransferRecords.AsNoTracking()
+            .Where(r => r.StudentId == id)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(ct);
+
+        var groupIds = records.SelectMany(r => new[] { r.FromGroupId, r.ToGroupId }).Distinct().ToList();
+        var groups = await db.Groups.AsNoTracking()
+            .Where(g => groupIds.Contains(g.Id))
+            .ToDictionaryAsync(g => g.Id, g => g.Name, ct);
+
+        var result = records.Select(r => new TransferRecordResponse
+        {
+            Id = r.Id,
+            StudentId = r.StudentId,
+            FromGroupId = r.FromGroupId,
+            FromGroupName = groups.GetValueOrDefault(r.FromGroupId, string.Empty),
+            ToGroupId = r.ToGroupId,
+            ToGroupName = groups.GetValueOrDefault(r.ToGroupId, string.Empty),
+            Reason = r.Reason,
+            CreatedAt = r.CreatedAt,
+        }).ToList();
+
+        return Result<List<TransferRecordResponse>>.Ok(result);
     }
 }

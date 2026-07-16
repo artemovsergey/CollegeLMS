@@ -1,0 +1,86 @@
+@startuml
+!theme plain
+
+interface INewsService {
+  + GetAllAsync(query, ct): Result<PagedResponse<NewsResponse>>
+  + GetByIdAsync(id, ct): Result<NewsResponse>
+  + CreateAsync(req, ct): Result<NewsResponse>
+  + UpdateAsync(id, req, ct): Result<NewsResponse>
+  + DeleteAsync(id, ct): Result
+  + GetCategoriesAsync(ct): Result<List<NewsCategoryResponse>>
+}
+
+class NewsService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<NewsResponse>>
+  + GetByIdAsync(id, ct): Result<NewsResponse>
+  + CreateAsync(req, ct): Result<NewsResponse>
+  + UpdateAsync(id, req, ct): Result<NewsResponse>
+  + DeleteAsync(id, ct): Result
+  + GetCategoriesAsync(ct): Result<List<NewsCategoryResponse>>
+}
+
+class NewsController {
+  - service: INewsService
+  + GetAll(query, ct): ActionResult
+  + GetById(id, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Delete(id, ct): ActionResult
+}
+
+interface IFeedbackService {
+  + CreateAsync(req, ct): Result<FeedbackResponse>
+}
+
+class FeedbackService {
+  - db: AppDbContext
+  + CreateAsync(req, ct): Result<FeedbackResponse>
+}
+
+class FeedbackController {
+  - service: IFeedbackService
+  + Create(req, ct): ActionResult
+}
+
+interface ISearchService {
+  + SearchAsync(query, ct): Result<PagedResponse<SearchResult>>
+}
+
+class SearchService {
+  - db: AppDbContext
+  + SearchAsync(query, ct): Result<PagedResponse<SearchResult>>
+}
+
+class SearchController {
+  - service: ISearchService
+  + Search(query, ct): ActionResult
+}
+
+interface IWordPressImportService {
+  + ImportAsync(ct): Result<ImportResult>
+  + GetStatusAsync(ct): Result<ImportStatus>
+}
+
+class WordPressImportService {
+  - db: AppDbContext
+  - http: HttpClient
+  + ImportAsync(ct): Result<ImportResult>
+  + GetStatusAsync(ct): Result<ImportStatus>
+}
+
+class ImportController {
+  - service: IWordPressImportService
+  + Import(ct): ActionResult
+  + GetStatus(ct): ActionResult
+}
+
+INewsService <|.. NewsService
+NewsController --> INewsService
+IFeedbackService <|.. FeedbackService
+FeedbackController --> IFeedbackService
+ISearchService <|.. SearchService
+SearchController --> ISearchService
+IWordPressImportService <|.. WordPressImportService
+ImportController --> IWordPressImportService
+@enduml

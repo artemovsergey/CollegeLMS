@@ -1,0 +1,175 @@
+@startuml
+!theme plain
+title CollegeLMS — Use Case Diagram
+
+left to right direction
+
+actor "Посетитель" as Guest
+actor "Студент" as Student
+actor "Преподаватель" as Teacher
+actor "Диспетчер" as Dispatcher
+actor "Администратор" as Admin
+actor "Зав. отделением" as Chairperson
+actor "Классный руководитель" as Curator
+actor "Абитуриент" as Applicant
+
+rectangle "SiteService" {
+  usecase "UC-1: Просмотр главной" as UC1
+  usecase "UC-2: Список новостей" as UC2
+  usecase "UC-3: Просмотр новости" as UC3
+  usecase "UC-4: Управление новостями" as UC4
+  usecase "UC-5: Обратная связь" as UC5
+  usecase "UC-6: Импорт WordPress" as UC6
+  usecase "UC-7: Статические страницы" as UC7
+  usecase "UC-8: Поиск по сайту" as UC8
+}
+
+rectangle "AuthService" {
+  usecase "UC-9: Вход" as UC9
+  usecase "UC-10: Выход" as UC10
+  usecase "UC-11: Профиль" as UC11
+  usecase "UC-12: Управление пользователями" as UC12
+  usecase "UC-13: Смена роли" as UC13
+  usecase "UC-14: Смена пароля" as UC14
+  usecase "UC-15: Блокировка" as UC15
+}
+
+rectangle "ScheduleService" {
+  usecase "UC-16: Расписание по группе" as UC16
+  usecase "UC-17: Расписание по преподавателю" as UC17
+  usecase "UC-18: Расписание по аудитории" as UC18
+  usecase "UC-19: Управление расписанием" as UC19
+  usecase "UC-20: Расписание за период" as UC20
+  usecase "UC-21: Экспорт расписания" as UC21
+  usecase "UC-22: Импорт расписания" as UC22
+  usecase "UC-23: Календарная сетка" as UC23
+}
+
+rectangle "LearningService" {
+  usecase "UC-24: Управление группами" as UC24
+  usecase "UC-25: Управление студентами" as UC25
+  usecase "UC-26: Управление преподавателями" as UC26
+  usecase "UC-27: Создание курса" as UC27
+  usecase "UC-28: Управление лекциями" as UC28
+  usecase "UC-29: Управление заданиями" as UC29
+  usecase "UC-30: Мои курсы (студент)" as UC30
+  usecase "UC-31: Просмотр лекций/материалов" as UC31
+  usecase "UC-32: Отправка задания" as UC32
+  usecase "UC-33: Оценивание" as UC33
+  usecase "UC-34: Дашборд студента" as UC34
+  usecase "UC-35: Дашборд преподавателя" as UC35
+  usecase "UC-36: Загрузка материалов" as UC36
+  usecase "UC-37: Управление семестрами" as UC37
+  usecase "UC-38: Импорт студентов" as UC38
+  usecase "UC-46: Специальности" as UC46
+  usecase "UC-47: Назначение курса группе" as UC47
+  usecase "UC-48: Прогресс студента" as UC48
+  usecase "UC-49: Экзамены/зачёты" as UC49
+  usecase "UC-50: Пересдачи" as UC50
+  usecase "UC-51: Перевод студентов" as UC51
+  usecase "UC-52: Стипендия" as UC52
+}
+
+rectangle "TestingService" {
+  usecase "UC-39: Управление тестами" as UC39
+  usecase "UC-40: Вопросы теста" as UC40
+  usecase "UC-41: Назначение теста" as UC41
+  usecase "UC-42: Прохождение теста" as UC42
+  usecase "UC-43: Результаты теста" as UC43
+  usecase "UC-44: Статистика теста" as UC44
+  usecase "UC-45: Настройки теста" as UC45
+}
+
+' Guest/Applicant
+Applicant --> UC1
+Applicant --> UC2
+Applicant --> UC3
+Applicant --> UC5
+Applicant --> UC7
+Applicant --> UC8
+
+' Student
+Student --> UC2
+Student --> UC3
+Student --> UC9
+Student --> UC10
+Student --> UC11
+Student --> UC14
+Student --> UC16
+Student --> UC17
+Student --> UC20
+Student --> UC23
+Student --> UC30
+Student --> UC31
+Student --> UC32
+Student --> UC34
+Student --> UC42
+Student --> UC43
+Student --> UC48
+
+' Teacher
+Teacher --> UC9
+Teacher --> UC10
+Teacher --> UC11
+Teacher --> UC14
+Teacher --> UC17
+Teacher --> UC20
+Teacher --> UC27
+Teacher --> UC28
+Teacher --> UC29
+Teacher --> UC33
+Teacher --> UC35
+Teacher --> UC36
+Teacher --> UC39
+Teacher --> UC40
+Teacher --> UC41
+Teacher --> UC44
+Teacher --> UC45
+Teacher --> UC47
+Teacher --> UC50
+
+' Dispatcher
+Dispatcher --> UC9
+Dispatcher --> UC10
+Dispatcher --> UC11
+Dispatcher --> UC14
+Dispatcher --> UC16
+Dispatcher --> UC17
+Dispatcher --> UC18
+Dispatcher --> UC19
+Dispatcher --> UC20
+Dispatcher --> UC21
+Dispatcher --> UC22
+Dispatcher --> UC23
+
+' Admin
+Admin --> UC4
+Admin --> UC6
+Admin --> UC9
+Admin --> UC10
+Admin --> UC11
+Admin --> UC12
+Admin --> UC13
+Admin --> UC14
+Admin --> UC15
+Admin --> UC19
+Admin --> UC24
+Admin --> UC25
+Admin --> UC26
+Admin --> UC37
+Admin --> UC38
+Admin --> UC46
+
+' Chairperson
+Chairperson --> UC25
+Chairperson --> UC46
+Chairperson --> UC49
+Chairperson --> UC50
+Chairperson --> UC51
+Chairperson --> UC52
+
+' Curator (out of base services)
+Curator --> UC34
+Curator --> UC35
+
+@enduml

@@ -196,6 +196,45 @@ namespace CollegeLMS.Migrations
                     b.ToTable("courses", (string)null);
                 });
 
+            modelBuilder.Entity("CollegeLMS.API.Entities.CourseGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("course_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_course_groups");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_course_groups_group_id");
+
+                    b.HasIndex("CourseId", "GroupId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_course_groups_course_group");
+
+                    b.ToTable("course_groups", (string)null);
+                });
+
             modelBuilder.Entity("CollegeLMS.API.Entities.CourseMaterial", b =>
                 {
                     b.Property<Guid>("Id")
@@ -255,6 +294,73 @@ namespace CollegeLMS.Migrations
                         .HasDatabaseName("ix_course_materials_course_id");
 
                     b.ToTable("course_materials", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.Exam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime>("ExamDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("exam_date");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("SemesterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("semester_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("subject");
+
+                    b.Property<Guid>("TeacherId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("teacher_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_exams");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_exams_group_id");
+
+                    b.HasIndex("SemesterId")
+                        .HasDatabaseName("ix_exams_semester_id");
+
+                    b.HasIndex("TeacherId")
+                        .HasDatabaseName("ix_exams_teacher_id");
+
+                    b.ToTable("exams", (string)null);
                 });
 
             modelBuilder.Entity("CollegeLMS.API.Entities.Feedback", b =>
@@ -503,6 +609,60 @@ namespace CollegeLMS.Migrations
                     b.ToTable("news_categories", (string)null);
                 });
 
+            modelBuilder.Entity("CollegeLMS.API.Entities.Retake", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("exam_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTime>("RetakeDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("retake_date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_retakes");
+
+                    b.HasIndex("ExamId")
+                        .HasDatabaseName("ix_retakes_exam_id");
+
+                    b.HasIndex("StudentId")
+                        .HasDatabaseName("ix_retakes_student_id");
+
+                    b.ToTable("retakes", (string)null);
+                });
+
             modelBuilder.Entity("CollegeLMS.API.Entities.ScheduleEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -572,6 +732,198 @@ namespace CollegeLMS.Migrations
                         .HasDatabaseName("ix_schedule_entries_teacher_id");
 
                     b.ToTable("schedule_entries", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.Semester", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AcademicYear")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("academic_year");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("end_date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("start_date");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_semesters");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("ix_semesters_name");
+
+                    b.ToTable("semesters", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.Specialty", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Department")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("department");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_specialties");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_specialties_code");
+
+                    b.ToTable("specialties", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.StipendList", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("SemesterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("semester_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_stipend_lists");
+
+                    b.HasIndex("SemesterId")
+                        .HasDatabaseName("ix_stipend_lists_semester_id");
+
+                    b.ToTable("stipend_lists", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.StipendListItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<double>("AverageScore")
+                        .HasColumnType("double precision")
+                        .HasColumnName("average_score");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("StipendListId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("stipend_list_id");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_stipend_list_items");
+
+                    b.HasIndex("StipendListId")
+                        .HasDatabaseName("ix_stipend_list_items_stipend_list_id");
+
+                    b.HasIndex("StudentId")
+                        .HasDatabaseName("ix_stipend_list_items_student_id");
+
+                    b.ToTable("stipend_list_items", (string)null);
                 });
 
             modelBuilder.Entity("CollegeLMS.API.Entities.Student", b =>
@@ -665,6 +1017,349 @@ namespace CollegeLMS.Migrations
                         .HasDatabaseName("ix_teachers_user_id");
 
                     b.ToTable("teachers", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.Test", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AutoCheck")
+                        .HasColumnType("boolean")
+                        .HasColumnName("auto_check");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("course_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("MaxAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_attempts");
+
+                    b.Property<int>("PassingScore")
+                        .HasColumnType("integer")
+                        .HasColumnName("passing_score");
+
+                    b.Property<bool>("ShowCorrectAnswers")
+                        .HasColumnType("boolean")
+                        .HasColumnName("show_correct_answers");
+
+                    b.Property<bool>("ShuffleOptions")
+                        .HasColumnType("boolean")
+                        .HasColumnName("shuffle_options");
+
+                    b.Property<bool>("ShuffleQuestions")
+                        .HasColumnType("boolean")
+                        .HasColumnName("shuffle_questions");
+
+                    b.Property<int>("TimeLimitMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("time_limit_minutes");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tests");
+
+                    b.HasIndex("CourseId")
+                        .HasDatabaseName("ix_tests_course_id");
+
+                    b.ToTable("tests", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TestAnswer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attempt_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("GivenAnswer")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("given_answer");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_correct");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("question_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_test_answers");
+
+                    b.HasIndex("AttemptId")
+                        .HasDatabaseName("ix_test_answers_attempt_id");
+
+                    b.HasIndex("QuestionId")
+                        .HasDatabaseName("ix_test_answers_question_id");
+
+                    b.ToTable("test_answers", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TestAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CloseDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("close_date");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<int>("MaxAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_attempts");
+
+                    b.Property<DateTime>("OpenDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("open_date");
+
+                    b.Property<Guid>("TestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("test_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_test_assignments");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_test_assignments_group_id");
+
+                    b.HasIndex("TestId")
+                        .HasDatabaseName("ix_test_assignments_test_id");
+
+                    b.ToTable("test_assignments", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TestAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("MaxScore")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_score");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer")
+                        .HasColumnName("score");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.Property<Guid>("TestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("test_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_test_attempts");
+
+                    b.HasIndex("StudentId")
+                        .HasDatabaseName("ix_test_attempts_student_id");
+
+                    b.HasIndex("TestId")
+                        .HasDatabaseName("ix_test_attempts_test_id");
+
+                    b.ToTable("test_attempts", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TestQuestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CorrectAnswer")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("correct_answer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Options")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)")
+                        .HasColumnName("options");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("integer")
+                        .HasColumnName("points");
+
+                    b.Property<Guid>("TestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("test_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_test_questions");
+
+                    b.HasIndex("TestId")
+                        .HasDatabaseName("ix_test_questions_test_id");
+
+                    b.ToTable("test_questions", (string)null);
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TransferRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("FromGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("from_group_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.Property<Guid>("ToGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("to_group_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("pk_transfer_records");
+
+                    b.HasIndex("StudentId")
+                        .HasDatabaseName("ix_transfer_records_student_id");
+
+                    b.ToTable("transfer_records", (string)null);
                 });
 
             modelBuilder.Entity("CollegeLMS.API.Entities.User", b =>
@@ -789,6 +1484,27 @@ namespace CollegeLMS.Migrations
                     b.Navigation("Teacher");
                 });
 
+            modelBuilder.Entity("CollegeLMS.API.Entities.CourseGroup", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.Course", "Course")
+                        .WithMany("CourseGroups")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_course_groups_courses_course_id");
+
+                    b.HasOne("CollegeLMS.API.Entities.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_course_groups_groups_group_id");
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("CollegeLMS.API.Entities.CourseMaterial", b =>
                 {
                     b.HasOne("CollegeLMS.API.Entities.Course", "Course")
@@ -799,6 +1515,36 @@ namespace CollegeLMS.Migrations
                         .HasConstraintName("fk_course_materials_courses_course_id");
 
                     b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.Exam", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_exams_groups_group_id");
+
+                    b.HasOne("CollegeLMS.API.Entities.Semester", "Semester")
+                        .WithMany()
+                        .HasForeignKey("SemesterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_exams_semesters_semester_id");
+
+                    b.HasOne("CollegeLMS.API.Entities.Teacher", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_exams_teachers_teacher_id");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("Semester");
+
+                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("CollegeLMS.API.Entities.Lecture", b =>
@@ -833,6 +1579,27 @@ namespace CollegeLMS.Migrations
                     b.Navigation("CreatedBy");
                 });
 
+            modelBuilder.Entity("CollegeLMS.API.Entities.Retake", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.Exam", "Exam")
+                        .WithMany("Retakes")
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_retakes_exams_exam_id");
+
+                    b.HasOne("CollegeLMS.API.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_retakes_students_student_id");
+
+                    b.Navigation("Exam");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("CollegeLMS.API.Entities.ScheduleEntry", b =>
                 {
                     b.HasOne("CollegeLMS.API.Entities.Group", "Group")
@@ -851,6 +1618,39 @@ namespace CollegeLMS.Migrations
                     b.Navigation("Group");
 
                     b.Navigation("Teacher");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.StipendList", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.Semester", "Semester")
+                        .WithMany()
+                        .HasForeignKey("SemesterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_stipend_lists_semesters_semester_id");
+
+                    b.Navigation("Semester");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.StipendListItem", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.StipendList", "StipendList")
+                        .WithMany("Items")
+                        .HasForeignKey("StipendListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_stipend_list_items_stipend_lists_stipend_list_id");
+
+                    b.HasOne("CollegeLMS.API.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_stipend_list_items_students_student_id");
+
+                    b.Navigation("StipendList");
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("CollegeLMS.API.Entities.Student", b =>
@@ -886,6 +1686,105 @@ namespace CollegeLMS.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CollegeLMS.API.Entities.Test", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.Course", "Course")
+                        .WithMany("Tests")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tests_courses_course_id");
+
+                    b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TestAnswer", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.TestAttempt", "Attempt")
+                        .WithMany("Answers")
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_test_answers_test_attempts_attempt_id");
+
+                    b.HasOne("CollegeLMS.API.Entities.TestQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_test_answers_test_questions_question_id");
+
+                    b.Navigation("Attempt");
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TestAssignment", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_test_assignments_groups_group_id");
+
+                    b.HasOne("CollegeLMS.API.Entities.Test", "Test")
+                        .WithMany("Assignments")
+                        .HasForeignKey("TestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_test_assignments_tests_test_id");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("Test");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TestAttempt", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.Student", "Student")
+                        .WithMany("TestAttempts")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_test_attempts_students_student_id");
+
+                    b.HasOne("CollegeLMS.API.Entities.Test", "Test")
+                        .WithMany("Attempts")
+                        .HasForeignKey("TestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_test_attempts_tests_test_id");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Test");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TestQuestion", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.Test", "Test")
+                        .WithMany("Questions")
+                        .HasForeignKey("TestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_test_questions_tests_test_id");
+
+                    b.Navigation("Test");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TransferRecord", b =>
+                {
+                    b.HasOne("CollegeLMS.API.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_transfer_records_students_student_id");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("CollegeLMS.API.Entities.Assignment", b =>
                 {
                     b.Navigation("Submissions");
@@ -895,9 +1794,18 @@ namespace CollegeLMS.Migrations
                 {
                     b.Navigation("Assignments");
 
+                    b.Navigation("CourseGroups");
+
                     b.Navigation("Lectures");
 
                     b.Navigation("Materials");
+
+                    b.Navigation("Tests");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.Exam", b =>
+                {
+                    b.Navigation("Retakes");
                 });
 
             modelBuilder.Entity("CollegeLMS.API.Entities.Group", b =>
@@ -905,14 +1813,35 @@ namespace CollegeLMS.Migrations
                     b.Navigation("Students");
                 });
 
+            modelBuilder.Entity("CollegeLMS.API.Entities.StipendList", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("CollegeLMS.API.Entities.Student", b =>
                 {
                     b.Navigation("Submissions");
+
+                    b.Navigation("TestAttempts");
                 });
 
             modelBuilder.Entity("CollegeLMS.API.Entities.Teacher", b =>
                 {
                     b.Navigation("Courses");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.Test", b =>
+                {
+                    b.Navigation("Assignments");
+
+                    b.Navigation("Attempts");
+
+                    b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("CollegeLMS.API.Entities.TestAttempt", b =>
+                {
+                    b.Navigation("Answers");
                 });
 #pragma warning restore 612, 618
         }

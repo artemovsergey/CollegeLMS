@@ -23,6 +23,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<NewsCategory> NewsCategories => Set<NewsCategory>();
     public DbSet<ScheduleEntry> ScheduleEntries => Set<ScheduleEntry>();
     public DbSet<Feedback> Feedbacks => Set<Feedback>();
+    public DbSet<Test> Tests => Set<Test>();
+    public DbSet<TestQuestion> TestQuestions => Set<TestQuestion>();
+    public DbSet<TestAssignment> TestAssignments => Set<TestAssignment>();
+    public DbSet<TestAttempt> TestAttempts => Set<TestAttempt>();
+    public DbSet<TestAnswer> TestAnswers => Set<TestAnswer>();
+    public DbSet<Semester> Semesters => Set<Semester>();
+    public DbSet<Specialty> Specialties => Set<Specialty>();
+    public DbSet<CourseGroup> CourseGroups => Set<CourseGroup>();
+    public DbSet<Exam> Exams => Set<Exam>();
+    public DbSet<Retake> Retakes => Set<Retake>();
+    public DbSet<StipendList> StipendLists => Set<StipendList>();
+    public DbSet<StipendListItem> StipendListItems => Set<StipendListItem>();
+    public DbSet<TransferRecord> TransferRecords => Set<TransferRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

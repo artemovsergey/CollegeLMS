@@ -21,6 +21,7 @@ public class ScheduleService(
         string? room,
         DayOfWeek? dayOfWeek,
         string? period,
+        string? view,
         int? page,
         int? pageSize,
         CancellationToken ct
@@ -243,6 +244,57 @@ public class ScheduleService(
 
         return await importService.ImportAsync(stream, ct);
     }
+
+    public async Task<Result<CalendarResponse>> GetCalendarAsync(
+        Guid? groupId, Guid? teacherId, string? room, CancellationToken ct)
+    {
+        var query = db.ScheduleEntries.AsNoTracking()
+            .Include(s => s.Group)
+            .Include(s => s.Teacher!).ThenInclude(t => t.User)
+            .AsQueryable();
+
+        if (groupId.HasValue) query = query.Where(s => s.GroupId == groupId.Value);
+        if (teacherId.HasValue) query = query.Where(s => s.TeacherId == teacherId.Value);
+        if (!string.IsNullOrEmpty(room)) query = query.Where(s => s.Room == room);
+
+        var entries = await query.OrderBy(s => s.DayOfWeek).ThenBy(s => s.StartTime).ToListAsync(ct);
+
+        var days = new List<CalendarDayResponse>();
+        foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
+        {
+            var dayEntries = entries.Where(s => s.DayOfWeek == day).Select(s => s.ToDto()).ToList();
+            if (dayEntries.Count > 0 || groupId.HasValue || teacherId.HasValue || !string.IsNullOrEmpty(room))
+            {
+                days.Add(new CalendarDayResponse
+                {
+                    Day = GetRussianDayName(day),
+                    DayOfWeek = (int)day,
+                    Entries = dayEntries,
+                });
+            }
+        }
+
+        var today = DateTime.UtcNow;
+        var weekStart = today.AddDays(-(int)today.DayOfWeek);
+
+        return Result<CalendarResponse>.Ok(new CalendarResponse
+        {
+            WeekStart = weekStart,
+            Days = days,
+        });
+    }
+
+    private static string GetRussianDayName(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Monday => "Понедельник",
+        DayOfWeek.Tuesday => "Вторник",
+        DayOfWeek.Wednesday => "Среда",
+        DayOfWeek.Thursday => "Четверг",
+        DayOfWeek.Friday => "Пятница",
+        DayOfWeek.Saturday => "Суббота",
+        DayOfWeek.Sunday => "Воскресенье",
+        _ => day.ToString(),
+    };
 
     private async Task<string?> CheckOverlapAsync(
         Guid? excludeId,

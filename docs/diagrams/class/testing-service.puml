@@ -1,0 +1,80 @@
+@startuml
+!theme plain
+
+interface ITestingService {
+  + GetAllAsync(query, ct): Result<PagedResponse<TestResponse>>
+  + GetByIdAsync(id, ct): Result<TestResponse>
+  + CreateAsync(req, ct): Result<TestResponse>
+  + UpdateAsync(id, req, ct): Result<TestResponse>
+  + DeleteAsync(id, ct): Result
+  + GetSettingsAsync(id, ct): Result<TestSettingsResponse>
+  + UpdateSettingsAsync(id, req, ct): Result
+  + GetQuestionsAsync(testId, ct): Result<List<QuestionResponse>>
+  + CreateQuestionAsync(testId, req, ct): Result<QuestionResponse>
+  + UpdateQuestionAsync(testId, id, req, ct): Result
+  + DeleteQuestionAsync(testId, id, ct): Result
+  + AssignAsync(testId, req, ct): Result
+  + GetAssignmentsAsync(testId, ct): Result<List<TestAssignmentResponse>>
+  + RemoveAssignmentAsync(assignmentId, ct): Result
+  + StartAttemptAsync(testId, studentId, ct): Result<AttemptResponse>
+  + GetAttemptAsync(testId, attemptId, ct): Result<AttemptResponse>
+  + SubmitAttemptAsync(testId, attemptId, answers, ct): Result<AttemptResultResponse>
+  + GetResultAsync(testId, studentId, ct): Result<TestResultResponse>
+  + GetStudentResultsAsync(studentId, ct): Result<List<TestResultResponse>>
+  + GetStatsAsync(testId, ct): Result<TestStatsResponse>
+  + ExportStatsAsync(testId, format, ct): Result<byte[]>
+}
+
+class TestingService {
+  - db: AppDbContext
+  + GetAllAsync(query, ct): Result<PagedResponse<TestResponse>>
+  + GetByIdAsync(id, ct): Result<TestResponse>
+  + CreateAsync(req, ct): Result<TestResponse>
+  + UpdateAsync(id, req, ct): Result<TestResponse>
+  + DeleteAsync(id, ct): Result
+  + GetSettingsAsync(id, ct): Result<TestSettingsResponse>
+  + UpdateSettingsAsync(id, req, ct): Result
+  + GetQuestionsAsync(testId, ct): Result<List<QuestionResponse>>
+  + CreateQuestionAsync(testId, req, ct): Result<QuestionResponse>
+  + UpdateQuestionAsync(testId, id, req, ct): Result
+  + DeleteQuestionAsync(testId, id, ct): Result
+  + AssignAsync(testId, req, ct): Result
+  + GetAssignmentsAsync(testId, ct): Result<List<TestAssignmentResponse>>
+  + RemoveAssignmentAsync(assignmentId, ct): Result
+  + StartAttemptAsync(testId, studentId, ct): Result<AttemptResponse>
+  + GetAttemptAsync(testId, attemptId, ct): Result<AttemptResponse>
+  + SubmitAttemptAsync(testId, attemptId, answers, ct): Result<AttemptResultResponse>
+  + GetResultAsync(testId, studentId, ct): Result<TestResultResponse>
+  + GetStudentResultsAsync(studentId, ct): Result<List<TestResultResponse>>
+  + GetStatsAsync(testId, ct): Result<TestStatsResponse>
+  + ExportStatsAsync(testId, format, ct): Result<byte[]>
+}
+
+class TestingController {
+  - service: ITestingService
+  + GetAll(query, ct): ActionResult
+  + GetById(id, ct): ActionResult
+  + Create(req, ct): ActionResult
+  + Update(id, req, ct): ActionResult
+  + Delete(id, ct): ActionResult
+  + GetSettings(id, ct): ActionResult
+  + UpdateSettings(id, req, ct): ActionResult
+  + GetQuestions(testId, ct): ActionResult
+  + CreateQuestion(testId, req, ct): ActionResult
+  + UpdateQuestion(testId, id, req, ct): ActionResult
+  + DeleteQuestion(testId, id, ct): ActionResult
+  + Assign(testId, req, ct): ActionResult
+  + GetAssignments(testId, ct): ActionResult
+  + RemoveAssignment(assignmentId, ct): ActionResult
+  + StartAttempt(testId, ct): ActionResult
+  + GetAttempt(testId, attemptId, ct): ActionResult
+  + SubmitAttempt(testId, attemptId, req, ct): ActionResult
+  + GetResult(testId, ct): ActionResult
+  + GetStudentResults(ct): ActionResult
+  + GetStats(testId, ct): ActionResult
+  + ExportStats(testId, format, ct): ActionResult
+}
+
+ITestingService <|.. TestingService
+TestingController --> ITestingService
+@enduml

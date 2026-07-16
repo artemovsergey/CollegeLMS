@@ -221,6 +221,194 @@ public class CourseServiceTests : IDisposable
         exists.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task AssignGroupsAsync_AssignsGroups_WhenAdmin()
+    {
+        var adminId = Guid.NewGuid();
+        AddAdminUser(adminId);
+        var course = CourseFixture.CreateFaker().Generate();
+        course.GroupId = Guid.NewGuid();
+        _db.Courses.Add(course);
+        var group1 = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        var group2 = new Group { Id = Guid.NewGuid(), Name = "ГР-12", Course = 1 };
+        _db.Groups.AddRange(group1, group2);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.AssignGroupsAsync(
+            course.Id,
+            new AssignGroupsRequest { GroupIds = new List<Guid> { group1.Id, group2.Id } },
+            adminId, "Admin", default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var assignments = await _db.CourseGroups.Where(cg => cg.CourseId == course.Id).ToListAsync();
+        assignments.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task AssignGroupsAsync_ReturnsNotFound_WhenCourseMissing()
+    {
+        var result = await _sut.AssignGroupsAsync(
+            Guid.NewGuid(),
+            new AssignGroupsRequest { GroupIds = new List<Guid>() },
+            Guid.NewGuid(), "Admin", default
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task GetCourseGroupsAsync_ReturnsGroups()
+    {
+        var course = CourseFixture.CreateFaker().Generate();
+        _db.Courses.Add(course);
+        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        _db.Groups.Add(group);
+        _db.CourseGroups.Add(new CourseGroup
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            GroupId = group.Id,
+            Group = group,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetCourseGroupsAsync(course.Id, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().HaveCount(1);
+        result.Data![0].GroupName.Should().Be("ГР-11");
+    }
+
+    [Fact]
+    public async Task GetCourseGroupsAsync_ReturnsNotFound_WhenCourseMissing()
+    {
+        var result = await _sut.GetCourseGroupsAsync(Guid.NewGuid(), default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task RemoveGroupAsync_RemovesGroup_WhenAdmin()
+    {
+        var adminId = Guid.NewGuid();
+        AddAdminUser(adminId);
+        var course = CourseFixture.CreateFaker().Generate();
+        _db.Courses.Add(course);
+        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        _db.Groups.Add(group);
+        _db.CourseGroups.Add(new CourseGroup
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            GroupId = group.Id,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RemoveGroupAsync(course.Id, group.Id, adminId, "Admin", default);
+
+        result.IsSuccess.Should().BeTrue();
+        var exists = await _db.CourseGroups.AnyAsync(cg => cg.CourseId == course.Id && cg.GroupId == group.Id);
+        exists.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RemoveGroupAsync_ReturnsNotFound_WhenNotAssigned()
+    {
+        var adminId = Guid.NewGuid();
+        AddAdminUser(adminId);
+        var course = CourseFixture.CreateFaker().Generate();
+        _db.Courses.Add(course);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RemoveGroupAsync(course.Id, Guid.NewGuid(), adminId, "Admin", default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task GetProgressAsync_ReturnsProgress_WhenStudentInCourse()
+    {
+        var course = CourseFixture.CreateFaker().Generate();
+        course.Assignments = new List<Assignment>();
+        _db.Courses.Add(course);
+
+        var studentUserId = Guid.NewGuid();
+        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        _db.Groups.Add(group);
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            GroupId = group.Id,
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(new User { Id = studentUserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true });
+        _db.Students.Add(student);
+        _db.CourseGroups.Add(new CourseGroup
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            GroupId = group.Id,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetProgressAsync(course.Id, studentUserId, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.CourseId.Should().Be(course.Id);
+    }
+
+    [Fact]
+    public async Task GetProgressAsync_ReturnsNotFound_WhenCourseMissing()
+    {
+        var result = await _sut.GetProgressAsync(Guid.NewGuid(), Guid.NewGuid(), default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task GetProgressAsync_ReturnsNotFound_WhenStudentNotFound()
+    {
+        var course = CourseFixture.CreateFaker().Generate();
+        _db.Courses.Add(course);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetProgressAsync(course.Id, Guid.NewGuid(), default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task GetProgressAsync_ReturnsForbidden_WhenNotInCourse()
+    {
+        var course = CourseFixture.CreateFaker().Generate();
+        course.GroupId = Guid.NewGuid();
+        _db.Courses.Add(course);
+
+        var studentUserId = Guid.NewGuid();
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            GroupId = Guid.NewGuid(),
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(new User { Id = studentUserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true });
+        _db.Students.Add(student);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetProgressAsync(course.Id, studentUserId, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(403);
+    }
+
     private void AddAdminUser(Guid userId)
     {
         _db.Users.Add(

@@ -149,4 +149,81 @@ public class AuthControllerTests : BaseIntegrationTest
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task ChangePassword_ReturnsOk_WhenOldPasswordCorrect()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+        var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Login = "changepwuser",
+            Email = "changepw@test.ru",
+            FullName = "Change PW User",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("old-password"),
+            Role = UserRole.Student,
+            IsActive = true,
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var token = tokenService.GenerateAccessToken(user);
+        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Client.PostAsJsonAsync(
+            "/api/auth/change-password",
+            new ChangePasswordRequest { OldPassword = "old-password", NewPassword = "new-password" }
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await DeserializeAsync<Result>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+    }
+
+    [Fact]
+    public async Task ChangePassword_ReturnsBadRequest_WhenOldPasswordWrong()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+        var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Login = "changepwuser2",
+            Email = "changepw2@test.ru",
+            FullName = "Change PW User 2",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct-password"),
+            Role = UserRole.Student,
+            IsActive = true,
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var token = tokenService.GenerateAccessToken(user);
+        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Client.PostAsJsonAsync(
+            "/api/auth/change-password",
+            new ChangePasswordRequest { OldPassword = "wrong-password", NewPassword = "new-password" }
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_ReturnsUnauthorized_WhenNoToken()
+    {
+        var response = await Client.PostAsJsonAsync(
+            "/api/auth/change-password",
+            new ChangePasswordRequest { OldPassword = "old", NewPassword = "new" }
+        );
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

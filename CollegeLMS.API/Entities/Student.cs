@@ -17,4 +17,7 @@ public class Student : Entity
     [JsonIgnore]
     public ICollection<AssignmentSubmission> Submissions { get; set; } =
         new List<AssignmentSubmission>();
+
+    [JsonIgnore]
+    public ICollection<TestAttempt> TestAttempts { get; set; } = new List<TestAttempt>();
 }
