@@ -305,12 +305,7 @@ export default function CourseDetailPage() {
                 >
                   <div className="flex flex-col gap-1">
                     <span className="font-medium">{a.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                      Макс. баллов: {a.maxScore}
-                      {a.dueDate ? ` · Срок: ${new Date(a.dueDate).toLocaleDateString("ru-RU")}` : ""}
-                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{a.submissionCount} работ</span>
                 </div>
               ))}
             </div>

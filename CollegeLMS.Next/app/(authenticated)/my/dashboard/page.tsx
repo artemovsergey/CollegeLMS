@@ -49,7 +49,7 @@ export default function StudentDashboardPage() {
 
       {dashboard && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -60,60 +60,6 @@ export default function StudentDashboardPage() {
                 <p className="text-3xl font-bold">{dashboard.coursesCount}</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Дедлайнов
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{dashboard.upcomingDeadlines.length}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Оценок
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{dashboard.recentGrades.length}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Ближайшие дедлайны</h3>
-            {dashboard.upcomingDeadlines.length === 0 ? (
-              <p className="text-muted-foreground">Нет дедлайнов</p>
-            ) : (
-              <div className="rounded-lg border bg-card divide-y">
-                {dashboard.upcomingDeadlines.map((d, i) => (
-                  <div key={i} className="flex items-center justify-between p-4">
-                    <span className="font-medium">{d.assignmentTitle}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {d.dueDate ? new Date(d.dueDate).toLocaleDateString("ru-RU") : "—"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Последние оценки</h3>
-            {dashboard.recentGrades.length === 0 ? (
-              <p className="text-muted-foreground">Нет оценок</p>
-            ) : (
-              <div className="rounded-lg border bg-card divide-y">
-                {dashboard.recentGrades.map((g, i) => (
-                  <div key={i} className="flex items-center justify-between p-4">
-                    <span className="font-medium">{g.courseName}</span>
-                    <span className="text-sm">{g.score !== null ? g.score : "—"}</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </>
       )}
