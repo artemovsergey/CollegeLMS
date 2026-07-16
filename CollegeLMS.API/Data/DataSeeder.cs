@@ -1740,7 +1740,7 @@ public static class DataSeeder
         db.Tests.AddRange(
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-000000000001"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000001"),
                 CourseId = course11.Id,
                 Title = "Основы C# и .NET",
                 Description = "Проверка знаний основ синтаксиса C#, типов данных, ООП",
@@ -1755,7 +1755,7 @@ public static class DataSeeder
             },
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-000000000002"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000002"),
                 CourseId = course11.Id,
                 Title = "Многопоточность и файлы",
                 Description = "Проверка знаний по многопоточности, async/await, обработке файлов",
@@ -1770,7 +1770,7 @@ public static class DataSeeder
             },
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-000000000003"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000003"),
                 CourseId = course11.Id,
                 Title = "EF Core и ASP.NET",
                 Description = "Проверка знаний по Entity Framework Core, ASP.NET Core, DI, JWT",
@@ -1786,7 +1786,7 @@ public static class DataSeeder
             // МДК 01.03 — Мобильные приложения
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-000000000004"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000004"),
                 CourseId = course12.Id,
                 Title = "Основы Kotlin",
                 Description = "Проверка знаний синтаксиса Kotlin: переменные, функции, коллекции, классы",
@@ -1801,7 +1801,7 @@ public static class DataSeeder
             },
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-000000000005"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000005"),
                 CourseId = course12.Id,
                 Title = "Jetpack Compose и навигация",
                 Description = "Проверка знаний по Compose, состояниям, навигации, ViewModel",
@@ -1817,7 +1817,7 @@ public static class DataSeeder
             // МДК 01.02 — Тестирование
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-000000000006"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000006"),
                 CourseId = course13.Id,
                 Title = "Основы тестирования",
                 Description = "Проверка знаний по тест-дизайну, тест-планам, баг-репортам",
@@ -1832,7 +1832,7 @@ public static class DataSeeder
             },
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-000000000007"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000007"),
                 CourseId = course13.Id,
                 Title = "xUnit и Moq",
                 Description = "Проверка знаний по юнит-тестированию, изоляции зависимостей",
@@ -1847,7 +1847,7 @@ public static class DataSeeder
             },
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-000000000008"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000008"),
                 CourseId = course13.Id,
                 Title = "Selenium и REST API",
                 Description = "Проверка знаний по UI-автоматизации и тестированию API",
@@ -1863,7 +1863,7 @@ public static class DataSeeder
             // МДК 01.03 ИБ — Мобильные приложения ИБ
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-000000000009"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000009"),
                 CourseId = course14.Id,
                 Title = "Основы Kotlin и Compose",
                 Description = "Проверка знаний по Kotlin, Jetpack Compose, навигации",
@@ -1878,7 +1878,7 @@ public static class DataSeeder
             },
             new Test
             {
-                Id = Guid.Parse("g1000000-0000-0000-0000-00000000000a"),
+                Id = Guid.Parse("a1000000-0000-0000-0000-00000000000a"),
                 CourseId = course14.Id,
                 Title = "ViewModel, Retrofit и Room",
                 Description = "Проверка знаний по архитектуре MVVM, сетевым запросам и локальным данным",
@@ -1915,7 +1915,7 @@ public static class DataSeeder
             // Тест 1: Основы C# и .NET
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000001"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000001"),
                 TestId = test1.Id,
                 Text = "Какой тип данных используется для хранения десятичных чисел с высокой точностью в C#?",
                 Type = QuestionType.SingleChoice,
@@ -1928,7 +1928,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000002"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000002"),
                 TestId = test1.Id,
                 Text = "Какой модификатор доступа делает член доступным только внутри класса?",
                 Type = QuestionType.SingleChoice,
@@ -1941,7 +1941,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000003"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000003"),
                 TestId = test1.Id,
                 Text = "Что такое CLR в контексте .NET?",
                 Type = QuestionType.SingleChoice,
@@ -1954,7 +1954,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000004"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000004"),
                 TestId = test1.Id,
                 Text = "Какой метод LINQ возвращает первый элемент коллекции или значение по умолчанию?",
                 Type = QuestionType.SingleChoice,
@@ -1967,7 +1967,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000005"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000005"),
                 TestId = test1.Id,
                 Text = "Какие принципы ООП вы знаете? (выберите все правильные)",
                 Type = QuestionType.MultipleChoice,
@@ -1980,7 +1980,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000006"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000006"),
                 TestId = test1.Id,
                 Text = "Что вернёт выражение 5 / 2 в C# при целочисленном делении?",
                 Type = QuestionType.SingleChoice,
@@ -1993,7 +1993,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000007"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000007"),
                 TestId = test1.Id,
                 Text = "Какой коллекции соответствует интерфейс IDictionary?",
                 Type = QuestionType.SingleChoice,
@@ -2007,7 +2007,7 @@ public static class DataSeeder
             // Тест 2: Многопоточность и файлы
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000008"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000008"),
                 TestId = test2.Id,
                 Text = "Какой тип используется для запуска асинхронной операции в C#?",
                 Type = QuestionType.SingleChoice,
@@ -2020,7 +2020,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000009"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000009"),
                 TestId = test2.Id,
                 Text = "Какой оператор используется для блокировки доступа к общему ресурсу?",
                 Type = QuestionType.SingleChoice,
@@ -2033,7 +2033,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000a"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000000a"),
                 TestId = test2.Id,
                 Text = "Что делает метод Parallel.For?",
                 Type = QuestionType.SingleChoice,
@@ -2046,7 +2046,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000b"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000000b"),
                 TestId = test2.Id,
                 Text = "Какой класс используется для чтения текстовых файлов в .NET?",
                 Type = QuestionType.SingleChoice,
@@ -2059,7 +2059,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000c"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000000c"),
                 TestId = test2.Id,
                 Text = "Что такое гонка данных (race condition)?",
                 Type = QuestionType.SingleChoice,
@@ -2073,7 +2073,7 @@ public static class DataSeeder
             // Тест 3: EF Core и ASP.NET
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000d"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000000d"),
                 TestId = test3.Id,
                 Text = "Что такое Code First в Entity Framework?",
                 Type = QuestionType.SingleChoice,
@@ -2086,7 +2086,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000e"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000000e"),
                 TestId = test3.Id,
                 Text = "Какой паттерн инверсии зависимостей используется в ASP.NET Core для внедрения сервисов?",
                 Type = QuestionType.SingleChoice,
@@ -2099,7 +2099,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000f"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000000f"),
                 TestId = test3.Id,
                 Text = "Что такое JWT?",
                 Type = QuestionType.SingleChoice,
@@ -2112,7 +2112,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000010"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000010"),
                 TestId = test3.Id,
                 Text = "Какой метод EF Core выполняет миграцию?",
                 Type = QuestionType.SingleChoice,
@@ -2125,7 +2125,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000011"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000011"),
                 TestId = test3.Id,
                 Text = "Какой HTTP-метод используется для обновления данных?",
                 Type = QuestionType.SingleChoice,
@@ -2139,7 +2139,7 @@ public static class DataSeeder
             // Тест 4: Основы Kotlin
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000012"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000012"),
                 TestId = test4.Id,
                 Text = "Как объявляется переменная в Kotlin?",
                 Type = QuestionType.SingleChoice,
@@ -2152,7 +2152,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000013"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000013"),
                 TestId = test4.Id,
                 Text = "Что такое корутины в Kotlin?",
                 Type = QuestionType.SingleChoice,
@@ -2165,7 +2165,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000014"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000014"),
                 TestId = test4.Id,
                 Text = "Какой коллекции соответствует аналог List в Kotlin?",
                 Type = QuestionType.SingleChoice,
@@ -2178,7 +2178,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000015"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000015"),
                 TestId = test4.Id,
                 Text = "Какой оператор нулевой безопасности в Kotlin?",
                 Type = QuestionType.SingleChoice,
@@ -2191,7 +2191,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000016"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000016"),
                 TestId = test4.Id,
                 Text = "Что такое data class в Kotlin?",
                 Type = QuestionType.SingleChoice,
@@ -2205,7 +2205,7 @@ public static class DataSeeder
             // Тест 5: Jetpack Compose и навигация
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000017"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000017"),
                 TestId = test5.Id,
                 Text = "Что такое Composable функция в Jetpack Compose?",
                 Type = QuestionType.SingleChoice,
@@ -2218,7 +2218,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000018"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000018"),
                 TestId = test5.Id,
                 Text = "Какой хук используется для хранения состояния в Compose?",
                 Type = QuestionType.SingleChoice,
@@ -2231,7 +2231,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000019"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000019"),
                 TestId = test5.Id,
                 Text = "Как работает навигация в Jetpack Compose?",
                 Type = QuestionType.SingleChoice,
@@ -2244,7 +2244,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001a"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000001a"),
                 TestId = test5.Id,
                 Text = "Для чего используется ViewModel в архитектуре MVVM?",
                 Type = QuestionType.SingleChoice,
@@ -2257,7 +2257,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001b"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000001b"),
                 TestId = test5.Id,
                 Text = "Какой компонент отвечает за Material Design в Compose?",
                 Type = QuestionType.SingleChoice,
@@ -2271,7 +2271,7 @@ public static class DataSeeder
             // Тест 6: Основы тестирования
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001c"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000001c"),
                 TestId = test6.Id,
                 Text = "Что такое тест-кейс?",
                 Type = QuestionType.SingleChoice,
@@ -2284,7 +2284,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001d"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000001d"),
                 TestId = test6.Id,
                 Text = "Какая техника тест-дизайна основана на проверке граничных значений?",
                 Type = QuestionType.SingleChoice,
@@ -2297,7 +2297,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001e"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000001e"),
                 TestId = test6.Id,
                 Text = "Что такое баг-репорт?",
                 Type = QuestionType.SingleChoice,
@@ -2310,7 +2310,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001f"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000001f"),
                 TestId = test6.Id,
                 Text = "Какие виды тестирования вы знаете? (выберите все правильные)",
                 Type = QuestionType.MultipleChoice,
@@ -2323,7 +2323,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000020"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000020"),
                 TestId = test6.Id,
                 Text = "Что такое жизненный цикл ПО (SDLC)?",
                 Type = QuestionType.SingleChoice,
@@ -2337,7 +2337,7 @@ public static class DataSeeder
             // Тест 7: xUnit и Moq
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000021"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000021"),
                 TestId = test7.Id,
                 Text = "Какой атрибут помечает тестовый метод в xUnit?",
                 Type = QuestionType.SingleChoice,
@@ -2350,7 +2350,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000022"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000022"),
                 TestId = test7.Id,
                 Text = "Какой атрибут используется для параметризованных тестов в xUnit?",
                 Type = QuestionType.SingleChoice,
@@ -2363,7 +2363,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000023"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000023"),
                 TestId = test7.Id,
                 Text = "Для чего используется библиотека Moq?",
                 Type = QuestionType.SingleChoice,
@@ -2376,7 +2376,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000024"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000024"),
                 TestId = test7.Id,
                 Text = "Что проверяет метод Verify() в Moq?",
                 Type = QuestionType.SingleChoice,
@@ -2389,7 +2389,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000025"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000025"),
                 TestId = test7.Id,
                 Text = "Как проверяется исключение в xUnit?",
                 Type = QuestionType.SingleChoice,
@@ -2403,7 +2403,7 @@ public static class DataSeeder
             // Тест 8: Selenium и REST API
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000026"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000026"),
                 TestId = test8.Id,
                 Text = "Что такое Page Object Model (POM) в Selenium?",
                 Type = QuestionType.SingleChoice,
@@ -2416,7 +2416,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000027"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000027"),
                 TestId = test8.Id,
                 Text = "Какой локатор считается самым надёжным в Selenium?",
                 Type = QuestionType.SingleChoice,
@@ -2429,7 +2429,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000028"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000028"),
                 TestId = test8.Id,
                 Text = "Какой HTTP-метод используется для создания нового ресурса в REST API?",
                 Type = QuestionType.SingleChoice,
@@ -2442,7 +2442,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000029"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000029"),
                 TestId = test8.Id,
                 Text = "Что такое Implicit Wait в Selenium?",
                 Type = QuestionType.SingleChoice,
@@ -2455,7 +2455,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002a"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000002a"),
                 TestId = test8.Id,
                 Text = "Какой формат данных используется в REST API для обмена данными?",
                 Type = QuestionType.SingleChoice,
@@ -2469,7 +2469,7 @@ public static class DataSeeder
             // Тест 9: Основы Kotlin и Compose (ИБ)
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002b"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000002b"),
                 TestId = test9.Id,
                 Text = "Чем отличается val от var в Kotlin?",
                 Type = QuestionType.SingleChoice,
@@ -2482,7 +2482,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002c"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000002c"),
                 TestId = test9.Id,
                 Text = "Какой оператор используется для безопасного вызова nullable-типа в Kotlin?",
                 Type = QuestionType.SingleChoice,
@@ -2495,7 +2495,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002d"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000002d"),
                 TestId = test9.Id,
                 Text = "Что делает suspend-функция в Kotlin?",
                 Type = QuestionType.SingleChoice,
@@ -2508,7 +2508,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002e"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000002e"),
                 TestId = test9.Id,
                 Text = "Какой аннотацией помечается Composable функция?",
                 Type = QuestionType.SingleChoice,
@@ -2521,7 +2521,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002f"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-00000000002f"),
                 TestId = test9.Id,
                 Text = "Какое хранилище данных предоставляет Room в Android?",
                 Type = QuestionType.SingleChoice,
@@ -2535,7 +2535,7 @@ public static class DataSeeder
             // Тест 10: ViewModel, Retrofit и Room (ИБ)
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000030"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000030"),
                 TestId = test10.Id,
                 Text = "Какой класс используется для HTTP-запросов через Retrofit?",
                 Type = QuestionType.SingleChoice,
@@ -2548,7 +2548,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000031"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000031"),
                 TestId = test10.Id,
                 Text = "Что такое Repository паттерн в архитектуре Android?",
                 Type = QuestionType.SingleChoice,
@@ -2561,7 +2561,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000032"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000032"),
                 TestId = test10.Id,
                 Text = "Для чего используется @Entity аннотация в Room?",
                 Type = QuestionType.SingleChoice,
@@ -2574,7 +2574,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000033"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000033"),
                 TestId = test10.Id,
                 Text = "Что такое LiveData в ViewModel?",
                 Type = QuestionType.SingleChoice,
@@ -2587,7 +2587,7 @@ public static class DataSeeder
             },
             new TestQuestion
             {
-                Id = Guid.Parse("h1000000-0000-0000-0000-000000000034"),
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000034"),
                 TestId = test10.Id,
                 Text = "Какой компонент связывает UI с ViewModel в Compose?",
                 Type = QuestionType.SingleChoice,
@@ -2621,7 +2621,7 @@ public static class DataSeeder
             // Системное программирование → ИСП-41, ИСП-42
             new CourseGroup
             {
-                Id = Guid.Parse("i1000000-0000-0000-0000-000000000001"),
+                Id = Guid.Parse("c1000000-0000-0000-0000-000000000001"),
                 CourseId = course11.Id,
                 GroupId = group41.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -2629,7 +2629,7 @@ public static class DataSeeder
             },
             new CourseGroup
             {
-                Id = Guid.Parse("i1000000-0000-0000-0000-000000000002"),
+                Id = Guid.Parse("c1000000-0000-0000-0000-000000000002"),
                 CourseId = course11.Id,
                 GroupId = group42.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -2638,7 +2638,7 @@ public static class DataSeeder
             // Мобильные приложения ИП → ИСП-31, ИСП-32
             new CourseGroup
             {
-                Id = Guid.Parse("i1000000-0000-0000-0000-000000000003"),
+                Id = Guid.Parse("c1000000-0000-0000-0000-000000000003"),
                 CourseId = course12.Id,
                 GroupId = group31.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -2646,7 +2646,7 @@ public static class DataSeeder
             },
             new CourseGroup
             {
-                Id = Guid.Parse("i1000000-0000-0000-0000-000000000004"),
+                Id = Guid.Parse("c1000000-0000-0000-0000-000000000004"),
                 CourseId = course12.Id,
                 GroupId = group32.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -2655,7 +2655,7 @@ public static class DataSeeder
             // Тестирование модулей → ИСП-31, ИСП-32
             new CourseGroup
             {
-                Id = Guid.Parse("i1000000-0000-0000-0000-000000000005"),
+                Id = Guid.Parse("c1000000-0000-0000-0000-000000000005"),
                 CourseId = course13.Id,
                 GroupId = group31.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -2663,7 +2663,7 @@ public static class DataSeeder
             },
             new CourseGroup
             {
-                Id = Guid.Parse("i1000000-0000-0000-0000-000000000006"),
+                Id = Guid.Parse("c1000000-0000-0000-0000-000000000006"),
                 CourseId = course13.Id,
                 GroupId = group32.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -2672,7 +2672,7 @@ public static class DataSeeder
             // Мобильные приложения ИБ → ИСП-41, ИСП-42
             new CourseGroup
             {
-                Id = Guid.Parse("i1000000-0000-0000-0000-000000000007"),
+                Id = Guid.Parse("c1000000-0000-0000-0000-000000000007"),
                 CourseId = course14.Id,
                 GroupId = group41.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -2680,7 +2680,7 @@ public static class DataSeeder
             },
             new CourseGroup
             {
-                Id = Guid.Parse("i1000000-0000-0000-0000-000000000008"),
+                Id = Guid.Parse("c1000000-0000-0000-0000-000000000008"),
                 CourseId = course14.Id,
                 GroupId = group42.Id,
                 CreatedAt = DateTime.UtcNow,
