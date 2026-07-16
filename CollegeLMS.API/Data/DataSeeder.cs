@@ -3451,6 +3451,7 @@ public static class DataSeeder
                     "Уважаемые студенты и преподаватели! Поздравляем вас с началом нового учебного года. "
                     + "Торжественная линейка состоится 1 сентября в 10:00 в актовом зале. Расписание занятий "
                     + "будет опубликовано на сайте до 28 августа.",
+                ImageUrl = "https://picsum.photos/seed/college-year/1200/600",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-10),
                 CreatedById = admin.Id,
@@ -3466,6 +3467,7 @@ public static class DataSeeder
                     "Приглашаем абитуриентов и их родителей на День открытых дверей. "
                     + "В программе: презентация специальностей, экскурсия по колледжу, мастер-классы. "
                     + "Ждём вас 15 октября в 11:00 в главном корпусе.",
+                ImageUrl = "https://picsum.photos/seed/open-day/1200/600",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-5),
                 CreatedById = admin.Id,
@@ -3480,6 +3482,7 @@ public static class DataSeeder
                 Content =
                     "Студенты группы ИСП-41 заняли I место в региональном хакатоне «Цифровой прорыв»! "
                     + "Команда разработала сервис для мониторинга экологической обстановки. Поздравляем!",
+                ImageUrl = "https://picsum.photos/seed/hackathon/1200/600",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-3),
                 CreatedById = admin.Id,
@@ -3495,6 +3498,7 @@ public static class DataSeeder
                     "Уважаемые студенты! Обратите внимание на изменения в расписании на следующую неделю. "
                     + "Занятия по математике в группе ИСП-31 переносятся со вторника на среду. "
                     + "Актуальное расписание доступно в разделе «Расписание».",
+                ImageUrl = "https://picsum.photos/seed/schedule/1200/600",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-1),
                 CreatedById = admin.Id,
@@ -3510,6 +3514,7 @@ public static class DataSeeder
                     "Объявляется приём заявок на ежегодный конкурс «Лучший студент года». "
                     + "К участию приглашаются студенты всех курсов. Заявки принимаются до 1 ноября. "
                     + "Подробности в студенческом отделе (кабинет 201).",
+                ImageUrl = "https://picsum.photos/seed/best-student/1200/600",
                 IsPublished = true,
                 PublishedAt = DateTime.UtcNow,
                 CreatedById = admin.Id,

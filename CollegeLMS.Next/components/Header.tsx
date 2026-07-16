@@ -12,7 +12,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3 shrink-0">
           <img
             src="/logo.svg"
@@ -86,7 +86,7 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden border-t border-border bg-background px-4 pb-4 pt-2">
+        <div className="lg:hidden border-t border-border bg-background px-4 pb-4 pt-2 max-h-[70vh] overflow-y-auto">
 
           <nav className="flex flex-col gap-1">
             {siteNavigation.map((section) => (
