@@ -20,7 +20,8 @@ public class LectureService(AppDbContext db) : ILectureService
             return Result<List<LectureResponse>>.Fail("Курс не найден", 404);
 
         var lectures = await db
-            .Lectures.AsNoTracking()
+            .Lectures.Include(l => l.Test)
+            .AsNoTracking()
             .Where(l => l.CourseId == courseId)
             .OrderBy(l => l.Order)
             .ToListAsync(ct);
@@ -35,7 +36,8 @@ public class LectureService(AppDbContext db) : ILectureService
     )
     {
         var lecture = await db
-            .Lectures.AsNoTracking()
+            .Lectures.Include(l => l.Test)
+            .AsNoTracking()
             .FirstOrDefaultAsync(l => l.Id == id && l.CourseId == courseId, ct);
 
         if (lecture is null)
@@ -80,6 +82,7 @@ public class LectureService(AppDbContext db) : ILectureService
             Title = request.Title,
             Content = request.Content,
             Order = maxOrder + 1,
+            TestId = request.TestId,
         };
         db.Lectures.Add(lecture);
         await db.SaveChangesAsync(ct);
@@ -121,6 +124,7 @@ public class LectureService(AppDbContext db) : ILectureService
 
         lecture.Title = request.Title;
         lecture.Content = request.Content;
+        lecture.TestId = request.TestId;
         lecture.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
