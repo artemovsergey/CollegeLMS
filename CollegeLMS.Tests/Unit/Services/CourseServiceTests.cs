@@ -229,19 +229,36 @@ public class CourseServiceTests : IDisposable
         var course = CourseFixture.CreateFaker().Generate();
         course.GroupId = Guid.NewGuid();
         _db.Courses.Add(course);
-        var group1 = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
-        var group2 = new Group { Id = Guid.NewGuid(), Name = "ГР-12", Course = 1 };
+        var group1 = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        var group2 = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-12",
+            Course = 1,
+        };
         _db.Groups.AddRange(group1, group2);
         await _db.SaveChangesAsync();
 
         var result = await _sut.AssignGroupsAsync(
             course.Id,
-            new AssignGroupsRequest { GroupIds = new List<Guid> { group1.Id, group2.Id } },
-            adminId, "Admin", default
+            new AssignGroupsRequest
+            {
+                GroupIds = new List<Guid> { group1.Id, group2.Id },
+            },
+            adminId,
+            "Admin",
+            default
         );
 
         result.IsSuccess.Should().BeTrue();
-        var assignments = await _db.CourseGroups.Where(cg => cg.CourseId == course.Id).ToListAsync();
+        var assignments = await _db
+            .CourseGroups.Where(cg => cg.CourseId == course.Id)
+            .ToListAsync();
         assignments.Should().HaveCount(2);
     }
 
@@ -251,7 +268,9 @@ public class CourseServiceTests : IDisposable
         var result = await _sut.AssignGroupsAsync(
             Guid.NewGuid(),
             new AssignGroupsRequest { GroupIds = new List<Guid>() },
-            Guid.NewGuid(), "Admin", default
+            Guid.NewGuid(),
+            "Admin",
+            default
         );
 
         result.IsSuccess.Should().BeFalse();
@@ -263,15 +282,22 @@ public class CourseServiceTests : IDisposable
     {
         var course = CourseFixture.CreateFaker().Generate();
         _db.Courses.Add(course);
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
-        _db.Groups.Add(group);
-        _db.CourseGroups.Add(new CourseGroup
+        var group = new Group
         {
             Id = Guid.NewGuid(),
-            CourseId = course.Id,
-            GroupId = group.Id,
-            Group = group,
-        });
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        _db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = group.Id,
+                Group = group,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetCourseGroupsAsync(course.Id, default);
@@ -297,20 +323,29 @@ public class CourseServiceTests : IDisposable
         AddAdminUser(adminId);
         var course = CourseFixture.CreateFaker().Generate();
         _db.Courses.Add(course);
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
-        _db.Groups.Add(group);
-        _db.CourseGroups.Add(new CourseGroup
+        var group = new Group
         {
             Id = Guid.NewGuid(),
-            CourseId = course.Id,
-            GroupId = group.Id,
-        });
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        _db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = group.Id,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.RemoveGroupAsync(course.Id, group.Id, adminId, "Admin", default);
 
         result.IsSuccess.Should().BeTrue();
-        var exists = await _db.CourseGroups.AnyAsync(cg => cg.CourseId == course.Id && cg.GroupId == group.Id);
+        var exists = await _db.CourseGroups.AnyAsync(cg =>
+            cg.CourseId == course.Id && cg.GroupId == group.Id
+        );
         exists.Should().BeFalse();
     }
 
@@ -323,7 +358,13 @@ public class CourseServiceTests : IDisposable
         _db.Courses.Add(course);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.RemoveGroupAsync(course.Id, Guid.NewGuid(), adminId, "Admin", default);
+        var result = await _sut.RemoveGroupAsync(
+            course.Id,
+            Guid.NewGuid(),
+            adminId,
+            "Admin",
+            default
+        );
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
@@ -337,7 +378,12 @@ public class CourseServiceTests : IDisposable
         _db.Courses.Add(course);
 
         var studentUserId = Guid.NewGuid();
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
         _db.Groups.Add(group);
         var student = new Student
         {
@@ -346,14 +392,26 @@ public class CourseServiceTests : IDisposable
             GroupId = group.Id,
             RecordBookNumber = "ЗК-001",
         };
-        _db.Users.Add(new User { Id = studentUserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true });
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                IsActive = true,
+            }
+        );
         _db.Students.Add(student);
-        _db.CourseGroups.Add(new CourseGroup
-        {
-            Id = Guid.NewGuid(),
-            CourseId = course.Id,
-            GroupId = group.Id,
-        });
+        _db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = group.Id,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetProgressAsync(course.Id, studentUserId, default);
@@ -399,7 +457,17 @@ public class CourseServiceTests : IDisposable
             GroupId = Guid.NewGuid(),
             RecordBookNumber = "ЗК-001",
         };
-        _db.Users.Add(new User { Id = studentUserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true });
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                IsActive = true,
+            }
+        );
         _db.Students.Add(student);
         await _db.SaveChangesAsync();
 

@@ -40,4 +40,3 @@ public class OpenCodeSession
         await _client.AbortSessionAsync(sessionId, ct);
     }
 }
-

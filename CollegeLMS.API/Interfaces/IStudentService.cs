@@ -21,6 +21,13 @@ public interface IStudentService
     );
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
     Task<Result<StudentImportProgress>> ImportAsync(IFormFile file, CancellationToken ct = default);
-    Task<Result<StudentResponse>> TransferAsync(Guid id, TransferStudentRequest request, CancellationToken ct = default);
-    Task<Result<List<TransferRecordResponse>>> GetTransfersAsync(Guid id, CancellationToken ct = default);
+    Task<Result<StudentResponse>> TransferAsync(
+        Guid id,
+        TransferStudentRequest request,
+        CancellationToken ct = default
+    );
+    Task<Result<List<TransferRecordResponse>>> GetTransfersAsync(
+        Guid id,
+        CancellationToken ct = default
+    );
 }

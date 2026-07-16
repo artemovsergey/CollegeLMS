@@ -83,7 +83,9 @@ public class SearchServiceTests : IDisposable
         var result = await _sut.SearchAsync("дверей", 1, 20, default);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.Items.Should().Contain(i => i.Type == "news" && i.Title == "День открытых дверей");
+        result
+            .Data!.Items.Should()
+            .Contain(i => i.Type == "news" && i.Title == "День открытых дверей");
     }
 
     [Fact]

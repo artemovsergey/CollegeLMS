@@ -32,8 +32,16 @@ public class SearchService(AppDbContext db) : ISearchService
         new("Воспитательная работа", "/college/vospitatelnaya-rabota", "college"),
         new("Наставничество", "/college/nastavnichestvo", "college"),
         new("Общежитие", "/college/obshhezhitie", "college"),
-        new("Профсоюзная организация", "/college/pervichnaya-profsoyuznaya-organizatsiya", "college"),
-        new("Независимая оценка качества", "/college/nezavisimaya-otsenka-kachestva-uslovij-osushhestvleniya-obrazovatelnoj-deyatelnosti", "college"),
+        new(
+            "Профсоюзная организация",
+            "/college/pervichnaya-profsoyuznaya-organizatsiya",
+            "college"
+        ),
+        new(
+            "Независимая оценка качества",
+            "/college/nezavisimaya-otsenka-kachestva-uslovij-osushhestvleniya-obrazovatelnoj-deyatelnosti",
+            "college"
+        ),
         new("План работы", "/college/plan-raboty-gbpou-sks-na-tekushhij-uchebnyj-god", "college"),
         new("Контакты", "/college/polnaya-kontaktnaya-informatsiya", "college"),
         new("Образование", "/education", "education"),
@@ -47,15 +55,31 @@ public class SearchService(AppDbContext db) : ISearchService
         new("Специальности", "/admissions/perechen-spetsialnostey", "admissions"),
         new("Дни открытых дверей", "/admissions/den-otkrytyh-dverej-2026", "admissions"),
         new("Приказы о зачислении", "/admissions/prikazy-na-zachislenie-2025", "admissions"),
-        new("Документы для приема", "/admissions/kakie-dokumentyi-neobhodimo-prinesti", "admissions"),
+        new(
+            "Документы для приема",
+            "/admissions/kakie-dokumentyi-neobhodimo-prinesti",
+            "admissions"
+        ),
         new("Общежитие", "/admissions/obshhezhitie", "admissions"),
         new("Количество заявлений", "/admissions/kolichestvo-podannyih-zayavleniy", "admissions"),
         new("Задать вопрос", "/admissions/8008-2", "admissions"),
         new("Студенту", "/student-life", "student-life"),
-        new("Расписание занятий", "/student-life/raspisanie-zanyatij-po-ochnoj-forme-obucheniya", "student-life"),
+        new(
+            "Расписание занятий",
+            "/student-life/raspisanie-zanyatij-po-ochnoj-forme-obucheniya",
+            "student-life"
+        ),
         new("Расписание экзаменов", "/student-life/raspisanie-ekzamenov", "student-life"),
-        new("Государственная итоговая аттестация", "/student-life/raspisanie-gosudarstvennoj-itogovoj-attestatsii", "student-life"),
-        new("Задолженности", "/student-life/raspisanie-likvidatsii-akademicheskih-zadolzhennostej", "student-life"),
+        new(
+            "Государственная итоговая аттестация",
+            "/student-life/raspisanie-gosudarstvennoj-itogovoj-attestatsii",
+            "student-life"
+        ),
+        new(
+            "Задолженности",
+            "/student-life/raspisanie-likvidatsii-akademicheskih-zadolzhennostej",
+            "student-life"
+        ),
         new("Библиотека", "/student-life/biblioteka", "student-life"),
         new("Дистанционное обучение", "/student-life/distancionnoeobuch", "student-life"),
         new("Трудоустройство", "/student-life/trudoustroystvo", "student-life"),
@@ -92,20 +116,18 @@ public class SearchService(AppDbContext db) : ISearchService
                 Title = n.Title,
                 Type = "news",
                 Url = $"/news/{n.Id}",
-                Snippet = n.Content.Substring(0, Math.Min(n.Content.Length, 200)) + (n.Content.Length > 200 ? "..." : ""),
+                Snippet =
+                    n.Content.Substring(0, Math.Min(n.Content.Length, 200))
+                    + (n.Content.Length > 200 ? "..." : ""),
                 Score =
-                    n.Title.ToLower() == term ? 100 :
-                    n.Title.ToLower().Contains(term) ? 50 :
-                    10,
+                    n.Title.ToLower() == term ? 100
+                    : n.Title.ToLower().Contains(term) ? 50
+                    : 10,
             })
             .ToListAsync(ct);
 
         var pageResults = StaticPages
-            .Select(p => new
-            {
-                Entry = p,
-                LowerTitle = p.Title.ToLower(),
-            })
+            .Select(p => new { Entry = p, LowerTitle = p.Title.ToLower() })
             .Where(x => x.LowerTitle.Contains(term))
             .Select(x => new SearchResponse
             {
@@ -124,10 +146,7 @@ public class SearchService(AppDbContext db) : ISearchService
             .ToList();
 
         var totalCount = allResults.Count;
-        var items = allResults
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
+        var items = allResults.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
         return Result<PagedResponse<SearchResponse>>.Ok(
             new PagedResponse<SearchResponse>(items, totalCount, page, pageSize)

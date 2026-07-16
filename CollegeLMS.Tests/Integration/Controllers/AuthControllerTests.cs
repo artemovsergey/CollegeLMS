@@ -210,7 +210,11 @@ public class AuthControllerTests : BaseIntegrationTest
 
         var response = await Client.PostAsJsonAsync(
             "/api/auth/change-password",
-            new ChangePasswordRequest { OldPassword = "wrong-password", NewPassword = "new-password" }
+            new ChangePasswordRequest
+            {
+                OldPassword = "wrong-password",
+                NewPassword = "new-password",
+            }
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

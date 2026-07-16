@@ -22,17 +22,19 @@ public static class TestFixture
             .RuleFor(t => t.ShuffleOptions, _ => false)
             .RuleFor(t => t.CreatedAt, f => f.Date.Past())
             .RuleFor(t => t.UpdatedAt, f => f.Date.Recent())
-            .FinishWith((f, t) =>
-            {
-                t.Course = new Course
+            .FinishWith(
+                (f, t) =>
                 {
-                    Id = t.CourseId,
-                    Title = f.Lorem.Sentence(2),
-                    TeacherId = f.Random.Guid(),
-                    GroupId = f.Random.Guid(),
-                    Status = CourseStatus.Draft,
-                    CreatedAt = t.CreatedAt,
-                    UpdatedAt = t.UpdatedAt,
-                };
-            });
+                    t.Course = new Course
+                    {
+                        Id = t.CourseId,
+                        Title = f.Lorem.Sentence(2),
+                        TeacherId = f.Random.Guid(),
+                        GroupId = f.Random.Guid(),
+                        Status = CourseStatus.Draft,
+                        CreatedAt = t.CreatedAt,
+                        UpdatedAt = t.UpdatedAt,
+                    };
+                }
+            );
 }

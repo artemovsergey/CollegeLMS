@@ -13,7 +13,8 @@ public class SemesterService(AppDbContext db) : ISemesterService
 {
     public async Task<Result<List<SemesterResponse>>> GetAllAsync(CancellationToken ct)
     {
-        var semesters = await db.Semesters.AsNoTracking()
+        var semesters = await db
+            .Semesters.AsNoTracking()
             .OrderByDescending(s => s.StartDate)
             .ToListAsync(ct);
         return Result<List<SemesterResponse>>.Ok(semesters.Select(s => s.ToDto()).ToList());
@@ -27,7 +28,10 @@ public class SemesterService(AppDbContext db) : ISemesterService
         return Result<SemesterResponse>.Ok(semester.ToDto());
     }
 
-    public async Task<Result<SemesterResponse>> CreateAsync(CreateSemesterRequest request, CancellationToken ct)
+    public async Task<Result<SemesterResponse>> CreateAsync(
+        CreateSemesterRequest request,
+        CancellationToken ct
+    )
     {
         if (!Enum.TryParse<SemesterType>(request.Type, out var type))
             return Result<SemesterResponse>.Fail("Некорректный тип семестра", 400);
@@ -46,7 +50,11 @@ public class SemesterService(AppDbContext db) : ISemesterService
         return Result<SemesterResponse>.Ok(semester.ToDto());
     }
 
-    public async Task<Result<SemesterResponse>> UpdateAsync(Guid id, UpdateSemesterRequest request, CancellationToken ct)
+    public async Task<Result<SemesterResponse>> UpdateAsync(
+        Guid id,
+        UpdateSemesterRequest request,
+        CancellationToken ct
+    )
     {
         var semester = await db.Semesters.FindAsync([id], ct);
         if (semester is null)

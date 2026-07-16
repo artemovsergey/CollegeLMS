@@ -174,9 +174,11 @@ public class TelegramBotService : BackgroundService
                 var permissionId = parts[1];
                 var allow = action == "allow";
                 await HandlePermissionResponseAsync(permissionId, allow);
-                await bot.AnswerCallbackQuery(cbQuery.Id,
+                await bot.AnswerCallbackQuery(
+                    cbQuery.Id,
                     text: allow ? "✅ Разрешено" : "❌ Отказано",
-                    cancellationToken: ct);
+                    cancellationToken: ct
+                );
                 return;
             }
         }
@@ -297,7 +299,12 @@ public class TelegramBotService : BackgroundService
         }
     }
 
-    private async Task<string> SendFollowUpAsync(string sessionId, AgentTask task, string message, string? model)
+    private async Task<string> SendFollowUpAsync(
+        string sessionId,
+        AgentTask task,
+        string message,
+        string? model
+    )
     {
         model ??= _chatModel.TryGetValue(task.ChatId, out var cm) ? cm : _defaultModel;
         task.Status = AgentTaskStatus.Running;
@@ -400,11 +407,7 @@ public class TelegramBotService : BackgroundService
             task.Status = AgentTaskStatus.Completed;
             CleanupChat(task.ChatId, sessionId);
 
-            await SendLongMessageAsync(
-                _bot,
-                task.ChatId,
-                text ?? "✅ Агент завершил задачу."
-            );
+            await SendLongMessageAsync(_bot, task.ChatId, text ?? "✅ Агент завершил задачу.");
         }
         catch (Exception ex)
         {
@@ -422,7 +425,10 @@ public class TelegramBotService : BackgroundService
         }
     }
 
-    private async Task HandleSessionStatusAsync(System.Text.Json.JsonElement props, string sessionId)
+    private async Task HandleSessionStatusAsync(
+        System.Text.Json.JsonElement props,
+        string sessionId
+    )
     {
         if (!props.TryGetProperty("status", out var status))
             return;
@@ -446,7 +452,10 @@ public class TelegramBotService : BackgroundService
         }
     }
 
-    private async Task HandlePermissionRequestAsync(System.Text.Json.JsonElement props, string sessionId)
+    private async Task HandlePermissionRequestAsync(
+        System.Text.Json.JsonElement props,
+        string sessionId
+    )
     {
         var permissionId = props.TryGetProperty("permissionID", out var pid)
             ? pid.GetString()
@@ -481,12 +490,7 @@ public class TelegramBotService : BackgroundService
                 InlineKeyboardButton.WithCallbackData("❌ Отказать", $"deny:{permissionId}"),
             ],
         ]);
-        await _bot.SendMessage(
-            task.ChatId,
-            msg,
-            replyMarkup: keyboard,
-            parseMode: ParseMode.None
-        );
+        await _bot.SendMessage(task.ChatId, msg, replyMarkup: keyboard, parseMode: ParseMode.None);
     }
 
     private async Task HandlePermissionResponseAsync(string permissionId, bool allow)
@@ -680,13 +684,23 @@ public class TelegramBotService : BackgroundService
             _chatActiveSession.TryRemove(chatId, out _);
     }
 
-    private async Task SendLongMessageAsync(ITelegramBotClient bot, long chatId, string text, ReplyKeyboardMarkup? keyboard = null)
+    private async Task SendLongMessageAsync(
+        ITelegramBotClient bot,
+        long chatId,
+        string text,
+        ReplyKeyboardMarkup? keyboard = null
+    )
     {
         var processed = ToTelegramMarkdown(text);
         const int maxLen = 4096;
         if (processed.Length <= maxLen)
         {
-            await bot.SendMessage(chatId, processed, replyMarkup: keyboard, parseMode: ParseMode.Markdown);
+            await bot.SendMessage(
+                chatId,
+                processed,
+                replyMarkup: keyboard,
+                parseMode: ParseMode.Markdown
+            );
             return;
         }
 
@@ -694,7 +708,12 @@ public class TelegramBotService : BackgroundService
         {
             var chunk = processed.Substring(i, Math.Min(maxLen, processed.Length - i));
             var markup = i == 0 ? keyboard : null;
-            await bot.SendMessage(chatId, chunk, replyMarkup: markup, parseMode: ParseMode.Markdown);
+            await bot.SendMessage(
+                chatId,
+                chunk,
+                replyMarkup: markup,
+                parseMode: ParseMode.Markdown
+            );
         }
     }
 
@@ -715,28 +734,35 @@ public class TelegramBotService : BackgroundService
             return key;
         }
 
-        text = Regex.Replace(text, @"```(\w*)\s*\n([\s\S]*?)```", m =>
-            Save(m.Value));
+        text = Regex.Replace(text, @"```(\w*)\s*\n([\s\S]*?)```", m => Save(m.Value));
 
-        text = Regex.Replace(text, @"`([^`\n]+)`", m =>
-            Save(m.Value));
+        text = Regex.Replace(text, @"`([^`\n]+)`", m => Save(m.Value));
 
-        text = Regex.Replace(text, @"((?:^\|.+\|\s*$\n?)+)", m =>
-        {
-            var block = m.Value;
-            var lines = block.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            if (lines.All(l => l.Trim().StartsWith('|') && l.Trim().EndsWith('|')))
-                return Save(RenderTable(block));
-            return m.Value;
-        }, RegexOptions.Multiline);
+        text = Regex.Replace(
+            text,
+            @"((?:^\|.+\|\s*$\n?)+)",
+            m =>
+            {
+                var block = m.Value;
+                var lines = block.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                if (lines.All(l => l.Trim().StartsWith('|') && l.Trim().EndsWith('|')))
+                    return Save(RenderTable(block));
+                return m.Value;
+            },
+            RegexOptions.Multiline
+        );
 
         var boldMap = new Dictionary<string, string>();
-        text = Regex.Replace(text, @"\*\*(.+?)\*\*", m =>
-        {
-            var key = $"\a{idx++}\a";
-            boldMap[key] = "*" + m.Groups[1].Value + "*";
-            return key;
-        });
+        text = Regex.Replace(
+            text,
+            @"\*\*(.+?)\*\*",
+            m =>
+            {
+                var key = $"\a{idx++}\a";
+                boldMap[key] = "*" + m.Groups[1].Value + "*";
+                return key;
+            }
+        );
 
         text = Regex.Replace(text, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "_$1_");
 
@@ -761,9 +787,7 @@ public class TelegramBotService : BackgroundService
             .Where(l => l.Length > 2 && l.StartsWith('|') && l.EndsWith('|'))
             .ToList();
 
-        var dataLines = lines
-            .Where(l => !IsSeparatorRow(l))
-            .ToList();
+        var dataLines = lines.Where(l => !IsSeparatorRow(l)).ToList();
 
         if (dataLines.Count == 0)
             return "";
@@ -793,7 +817,8 @@ public class TelegramBotService : BackgroundService
             var row = rows[r];
             for (var c = 0; c < row.Length; c++)
             {
-                if (c > 0) sb.Append(" │ ");
+                if (c > 0)
+                    sb.Append(" │ ");
                 if (c < row.Length - 1)
                     sb.Append(row[c].PadRight(widths[c]));
                 else
@@ -814,10 +839,11 @@ public class TelegramBotService : BackgroundService
     {
         var inner = line.TrimStart('|').TrimEnd('|');
         var cells = inner.Split('|');
-        return cells.Length > 0 && cells.All(c =>
-        {
-            var t = c.Trim();
-            return t.Length > 0 && Regex.IsMatch(t, @"^[\s\-:]+$");
-        });
+        return cells.Length > 0
+            && cells.All(c =>
+            {
+                var t = c.Trim();
+                return t.Length > 0 && Regex.IsMatch(t, @"^[\s\-:]+$");
+            });
     }
 }

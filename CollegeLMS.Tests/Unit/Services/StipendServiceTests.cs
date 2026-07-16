@@ -62,15 +62,24 @@ public class StipendServiceTests : IDisposable
     [Fact]
     public async Task GetAllAsync_ReturnsLists()
     {
-        var semester = new Semester { Id = Guid.NewGuid(), Name = "Семестр", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddMonths(6), Type = SemesterType.Autumn };
-        _db.Semesters.Add(semester);
-        _db.StipendLists.Add(new StipendList
+        var semester = new Semester
         {
             Id = Guid.NewGuid(),
-            SemesterId = semester.Id,
-            Name = "Список 1",
-            Semester = semester,
-        });
+            Name = "Семестр",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddMonths(6),
+            Type = SemesterType.Autumn,
+        };
+        _db.Semesters.Add(semester);
+        _db.StipendLists.Add(
+            new StipendList
+            {
+                Id = Guid.NewGuid(),
+                SemesterId = semester.Id,
+                Name = "Список 1",
+                Semester = semester,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetAllAsync(default);
@@ -82,7 +91,14 @@ public class StipendServiceTests : IDisposable
     [Fact]
     public async Task GetByIdAsync_ReturnsList_WhenFound()
     {
-        var semester = new Semester { Id = Guid.NewGuid(), Name = "Семестр", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddMonths(6), Type = SemesterType.Autumn };
+        var semester = new Semester
+        {
+            Id = Guid.NewGuid(),
+            Name = "Семестр",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddMonths(6),
+            Type = SemesterType.Autumn,
+        };
         var list = new StipendList
         {
             Id = Guid.NewGuid(),
@@ -112,8 +128,20 @@ public class StipendServiceTests : IDisposable
     [Fact]
     public async Task DeleteAsync_RemovesList()
     {
-        var semester = new Semester { Id = Guid.NewGuid(), Name = "Семестр", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddMonths(6), Type = SemesterType.Autumn };
-        var list = new StipendList { Id = Guid.NewGuid(), SemesterId = semester.Id, Name = "Список" };
+        var semester = new Semester
+        {
+            Id = Guid.NewGuid(),
+            Name = "Семестр",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddMonths(6),
+            Type = SemesterType.Autumn,
+        };
+        var list = new StipendList
+        {
+            Id = Guid.NewGuid(),
+            SemesterId = semester.Id,
+            Name = "Список",
+        };
         _db.Semesters.Add(semester);
         _db.StipendLists.Add(list);
         await _db.SaveChangesAsync();

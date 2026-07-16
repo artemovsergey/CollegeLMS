@@ -87,11 +87,7 @@ public class SemesterServiceTests : IDisposable
     public async Task CreateAsync_ReturnsFail_WhenInvalidType()
     {
         var result = await _sut.CreateAsync(
-            new CreateSemesterRequest
-            {
-                Name = "Семестр",
-                Type = "Invalid",
-            },
+            new CreateSemesterRequest { Name = "Семестр", Type = "Invalid" },
             default
         );
 

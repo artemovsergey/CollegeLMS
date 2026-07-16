@@ -133,4 +133,3 @@ public class SseEvent
     [System.Text.Json.Serialization.JsonPropertyName("properties")]
     public JsonElement? Properties { get; set; }
 }
-

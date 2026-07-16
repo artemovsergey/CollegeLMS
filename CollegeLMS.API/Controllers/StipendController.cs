@@ -18,7 +18,9 @@ public class StipendController(IStipendService service) : ControllerBase
     [SwaggerResponse(200, "Список сформирован", typeof(Result<StipendListDetailResponse>))]
     [SwaggerResponse(404, "Семестр не найден")]
     public async Task<ActionResult<Result<StipendListDetailResponse>>> Generate(
-        [FromQuery] Guid semesterId, CancellationToken ct)
+        [FromQuery] Guid semesterId,
+        CancellationToken ct
+    )
     {
         var result = await service.GenerateAsync(semesterId, ct);
         if (!result.IsSuccess)
@@ -39,7 +41,10 @@ public class StipendController(IStipendService service) : ControllerBase
     [SwaggerOperation(Summary = "Получить детали ведомости")]
     [SwaggerResponse(200, "Ведомость найдена", typeof(Result<StipendListDetailResponse>))]
     [SwaggerResponse(404, "Ведомость не найдена")]
-    public async Task<ActionResult<Result<StipendListDetailResponse>>> GetById(Guid id, CancellationToken ct)
+    public async Task<ActionResult<Result<StipendListDetailResponse>>> GetById(
+        Guid id,
+        CancellationToken ct
+    )
     {
         var result = await service.GetByIdAsync(id, ct);
         if (!result.IsSuccess)

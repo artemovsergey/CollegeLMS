@@ -5,8 +5,8 @@ using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Response;
-using CollegeLMS.Tests.Integration;
 using CollegeLMS.Tests.Fixtures;
+using CollegeLMS.Tests.Integration;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -59,7 +59,9 @@ public class SearchControllerTests : BaseIntegrationTest
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<Result<PagedResponse<SearchResponse>>>();
+        var result = await response.Content.ReadFromJsonAsync<
+            Result<PagedResponse<SearchResponse>>
+        >();
         result!.IsSuccess.Should().BeTrue();
         result.Data!.Items.Should().BeEmpty();
     }
@@ -73,7 +75,9 @@ public class SearchControllerTests : BaseIntegrationTest
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<Result<PagedResponse<SearchResponse>>>();
+        var result = await response.Content.ReadFromJsonAsync<
+            Result<PagedResponse<SearchResponse>>
+        >();
         result!.IsSuccess.Should().BeTrue();
         result.Data!.Items.Should().Contain(i => i.Title == "День открытых дверей");
     }
@@ -85,7 +89,9 @@ public class SearchControllerTests : BaseIntegrationTest
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<Result<PagedResponse<SearchResponse>>>();
+        var result = await response.Content.ReadFromJsonAsync<
+            Result<PagedResponse<SearchResponse>>
+        >();
         result!.IsSuccess.Should().BeTrue();
         result.Data!.Items.Should().Contain(i => i.Type == "page");
     }
@@ -99,7 +105,9 @@ public class SearchControllerTests : BaseIntegrationTest
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<Result<PagedResponse<SearchResponse>>>();
+        var result = await response.Content.ReadFromJsonAsync<
+            Result<PagedResponse<SearchResponse>>
+        >();
         result!.IsSuccess.Should().BeTrue();
         result.Data!.Items.Should().HaveCount(2);
         result.Data.PageSize.Should().Be(2);
@@ -112,7 +120,9 @@ public class SearchControllerTests : BaseIntegrationTest
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = await response.Content.ReadFromJsonAsync<Result<PagedResponse<SearchResponse>>>();
+        var result = await response.Content.ReadFromJsonAsync<
+            Result<PagedResponse<SearchResponse>>
+        >();
         result!.IsSuccess.Should().BeTrue();
         result.Data!.Items.Should().BeEmpty();
     }

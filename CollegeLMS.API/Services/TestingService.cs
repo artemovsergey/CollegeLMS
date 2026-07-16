@@ -18,14 +18,16 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var query = db.Tests.AsNoTracking()
+        var query = db
+            .Tests.AsNoTracking()
             .Include(t => t.Course)
             .Include(t => t.Questions)
             .AsQueryable();
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers.AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
             if (teacher is null)
                 return Result<List<TestResponse>>.Fail("Преподаватель не найден", 404);
@@ -41,7 +43,8 @@ public class TestingService(AppDbContext db) : ITestingService
 
     public async Task<Result<TestResponse>> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        var test = await db.Tests.AsNoTracking()
+        var test = await db
+            .Tests.AsNoTracking()
             .Include(t => t.Course)
             .Include(t => t.Questions)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
@@ -68,10 +71,14 @@ public class TestingService(AppDbContext db) : ITestingService
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers.AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
             if (teacher is null || course.TeacherId != teacher.Id)
-                return Result<TestResponse>.Fail("У вас нет прав на создание теста в этом курсе", 403);
+                return Result<TestResponse>.Fail(
+                    "У вас нет прав на создание теста в этом курсе",
+                    403
+                );
         }
 
         var test = new Test
@@ -88,7 +95,9 @@ public class TestingService(AppDbContext db) : ITestingService
         db.Tests.Add(test);
         await db.SaveChangesAsync(ct);
 
-        test = await db.Tests.Include(t => t.Course).Include(t => t.Questions)
+        test = await db
+            .Tests.Include(t => t.Course)
+            .Include(t => t.Questions)
             .FirstAsync(t => t.Id == test.Id, ct);
 
         return Result<TestResponse>.Ok(test.ToDto());
@@ -102,7 +111,9 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var test = await db.Tests.Include(t => t.Course).Include(t => t.Questions)
+        var test = await db
+            .Tests.Include(t => t.Course)
+            .Include(t => t.Questions)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
         if (test is null)
             return Result<TestResponse>.Fail("Тест не найден", 404);
@@ -155,7 +166,8 @@ public class TestingService(AppDbContext db) : ITestingService
         if (test is null)
             return Result<List<QuestionResponse>>.Fail("Тест не найден", 404);
 
-        var questions = await db.TestQuestions.AsNoTracking()
+        var questions = await db
+            .TestQuestions.AsNoTracking()
             .Where(q => q.TestId == testId)
             .OrderBy(q => q.OrderIndex)
             .ToListAsync(ct);
@@ -176,7 +188,10 @@ public class TestingService(AppDbContext db) : ITestingService
             return Result<QuestionResponse>.Fail("Тест не найден", 404);
 
         if (!await CanEditTest(test, currentUserId, currentUserRole, ct))
-            return Result<QuestionResponse>.Fail("У вас нет прав на редактирование этого теста", 403);
+            return Result<QuestionResponse>.Fail(
+                "У вас нет прав на редактирование этого теста",
+                403
+            );
 
         if (!Enum.TryParse<QuestionType>(request.Type, out var questionType))
             return Result<QuestionResponse>.Fail("Некорректный тип вопроса", 400);
@@ -212,9 +227,15 @@ public class TestingService(AppDbContext db) : ITestingService
             return Result<QuestionResponse>.Fail("Тест не найден", 404);
 
         if (!await CanEditTest(test, currentUserId, currentUserRole, ct))
-            return Result<QuestionResponse>.Fail("У вас нет прав на редактирование этого теста", 403);
+            return Result<QuestionResponse>.Fail(
+                "У вас нет прав на редактирование этого теста",
+                403
+            );
 
-        var question = await db.TestQuestions.FirstOrDefaultAsync(q => q.Id == questionId && q.TestId == testId, ct);
+        var question = await db.TestQuestions.FirstOrDefaultAsync(
+            q => q.Id == questionId && q.TestId == testId,
+            ct
+        );
         if (question is null)
             return Result<QuestionResponse>.Fail("Вопрос не найден", 404);
 
@@ -248,7 +269,10 @@ public class TestingService(AppDbContext db) : ITestingService
         if (!await CanEditTest(test, currentUserId, currentUserRole, ct))
             return Result.Fail("У вас нет прав на редактирование этого теста", 403);
 
-        var question = await db.TestQuestions.FirstOrDefaultAsync(q => q.Id == questionId && q.TestId == testId, ct);
+        var question = await db.TestQuestions.FirstOrDefaultAsync(
+            q => q.Id == questionId && q.TestId == testId,
+            ct
+        );
         if (question is null)
             return Result.Fail("Вопрос не найден", 404);
 
@@ -288,7 +312,8 @@ public class TestingService(AppDbContext db) : ITestingService
         db.TestAssignments.Add(assignment);
         await db.SaveChangesAsync(ct);
 
-        assignment = await db.TestAssignments.Include(a => a.Group)
+        assignment = await db
+            .TestAssignments.Include(a => a.Group)
             .FirstAsync(a => a.Id == assignment.Id, ct);
 
         return Result<TestAssignmentResponse>.Ok(assignment.ToDto());
@@ -305,7 +330,8 @@ public class TestingService(AppDbContext db) : ITestingService
         if (test is null)
             return Result<List<TestAssignmentResponse>>.Fail("Тест не найден", 404);
 
-        var assignments = await db.TestAssignments.AsNoTracking()
+        var assignments = await db
+            .TestAssignments.AsNoTracking()
             .Include(a => a.Group)
             .Where(a => a.TestId == testId)
             .OrderBy(a => a.OpenDate)
@@ -329,8 +355,10 @@ public class TestingService(AppDbContext db) : ITestingService
         if (!await CanEditTest(test, currentUserId, currentUserRole, ct))
             return Result.Fail("У вас нет прав на редактирование этого теста", 403);
 
-        var assignment = await db.TestAssignments
-            .FirstOrDefaultAsync(a => a.Id == assignmentId && a.TestId == testId, ct);
+        var assignment = await db.TestAssignments.FirstOrDefaultAsync(
+            a => a.Id == assignmentId && a.TestId == testId,
+            ct
+        );
         if (assignment is null)
             return Result.Fail("Назначение не найдено", 404);
 
@@ -347,7 +375,9 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var test = await db.Tests.Include(t => t.Course).Include(t => t.Questions)
+        var test = await db
+            .Tests.Include(t => t.Course)
+            .Include(t => t.Questions)
             .FirstOrDefaultAsync(t => t.Id == testId, ct);
         if (test is null)
             return Result<TestResponse>.Fail("Тест не найден", 404);
@@ -377,7 +407,8 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var test = await db.Tests.AsNoTracking()
+        var test = await db
+            .Tests.AsNoTracking()
             .Include(t => t.Questions.OrderBy(q => q.OrderIndex))
             .FirstOrDefaultAsync(t => t.Id == testId, ct);
         if (test is null)
@@ -386,19 +417,29 @@ public class TestingService(AppDbContext db) : ITestingService
         if (test.Questions.Count == 0)
             return Result<StartTestResponse>.Fail("Тест не содержит вопросов", 400);
 
-        var student = await db.Students.AsNoTracking()
+        var student = await db
+            .Students.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == currentUserId, ct);
         if (student is null)
             return Result<StartTestResponse>.Fail("Студент не найден", 404);
 
-        var canAccess = await db.TestAssignments.AsNoTracking()
-            .AnyAsync(a => a.TestId == testId && a.GroupId == student.GroupId
-                && a.OpenDate <= DateTime.UtcNow && a.CloseDate >= DateTime.UtcNow, ct);
+        var canAccess = await db
+            .TestAssignments.AsNoTracking()
+            .AnyAsync(
+                a =>
+                    a.TestId == testId
+                    && a.GroupId == student.GroupId
+                    && a.OpenDate <= DateTime.UtcNow
+                    && a.CloseDate >= DateTime.UtcNow,
+                ct
+            );
         if (!canAccess)
             return Result<StartTestResponse>.Fail("Тест не доступен для вашей группы", 403);
 
-        var attemptCount = await db.TestAttempts
-            .CountAsync(a => a.TestId == testId && a.StudentId == student.Id, ct);
+        var attemptCount = await db.TestAttempts.CountAsync(
+            a => a.TestId == testId && a.StudentId == student.Id,
+            ct
+        );
         if (attemptCount >= test.MaxAttempts)
             return Result<StartTestResponse>.Fail("Превышено количество попыток", 409);
 
@@ -418,20 +459,24 @@ public class TestingService(AppDbContext db) : ITestingService
             ? test.Questions.OrderBy(_ => Random.Shared.Next()).ToList()
             : test.Questions.ToList();
 
-        return Result<StartTestResponse>.Ok(new StartTestResponse
-        {
-            AttemptId = attempt.Id,
-            StartedAt = attempt.StartedAt,
-            TimeLimitMinutes = test.TimeLimitMinutes,
-            Questions = questions.Select(q => new TestQuestionDto
+        return Result<StartTestResponse>.Ok(
+            new StartTestResponse
             {
-                Id = q.Id,
-                Text = q.Text,
-                Type = q.Type.ToString(),
-                Options = q.ShuffleOptions() ?? q.Options,
-                OrderIndex = q.OrderIndex,
-            }).ToList(),
-        });
+                AttemptId = attempt.Id,
+                StartedAt = attempt.StartedAt,
+                TimeLimitMinutes = test.TimeLimitMinutes,
+                Questions = questions
+                    .Select(q => new TestQuestionDto
+                    {
+                        Id = q.Id,
+                        Text = q.Text,
+                        Type = q.Type.ToString(),
+                        Options = q.ShuffleOptions() ?? q.Options,
+                        OrderIndex = q.OrderIndex,
+                    })
+                    .ToList(),
+            }
+        );
     }
 
     public async Task<Result<AttemptResponse>> SubmitAnswersAsync(
@@ -442,14 +487,15 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var attempt = await db.TestAttempts
-            .Include(a => a.Test)
+        var attempt = await db
+            .TestAttempts.Include(a => a.Test)
             .Include(a => a.Answers)
             .FirstOrDefaultAsync(a => a.Id == attemptId && a.TestId == testId, ct);
         if (attempt is null)
             return Result<AttemptResponse>.Fail("Попытка не найдена", 404);
 
-        var student = await db.Students.AsNoTracking()
+        var student = await db
+            .Students.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == currentUserId, ct);
         if (student is null || attempt.StudentId != student.Id)
             return Result<AttemptResponse>.Fail("Это не ваша попытка", 403);
@@ -466,7 +512,8 @@ public class TestingService(AppDbContext db) : ITestingService
             return Result<AttemptResponse>.Fail("Время вышло", 408);
         }
 
-        var questions = await db.TestQuestions.AsNoTracking()
+        var questions = await db
+            .TestQuestions.AsNoTracking()
             .Where(q => q.TestId == testId)
             .ToListAsync(ct);
 
@@ -474,7 +521,8 @@ public class TestingService(AppDbContext db) : ITestingService
         foreach (var answer in request.Answers)
         {
             var question = questions.FirstOrDefault(q => q.Id == answer.QuestionId);
-            if (question is null) continue;
+            if (question is null)
+                continue;
 
             bool isCorrect = false;
             if (attempt.Test.AutoCheck && question.Type != QuestionType.OpenAnswer)
@@ -488,14 +536,16 @@ public class TestingService(AppDbContext db) : ITestingService
                     score += question.Points;
             }
 
-            db.TestAnswers.Add(new TestAnswer
-            {
-                Id = Guid.NewGuid(),
-                AttemptId = attemptId,
-                QuestionId = answer.QuestionId,
-                GivenAnswer = answer.GivenAnswer,
-                IsCorrect = isCorrect,
-            });
+            db.TestAnswers.Add(
+                new TestAnswer
+                {
+                    Id = Guid.NewGuid(),
+                    AttemptId = attemptId,
+                    QuestionId = answer.QuestionId,
+                    GivenAnswer = answer.GivenAnswer,
+                    IsCorrect = isCorrect,
+                }
+            );
         }
 
         attempt.Status = AttemptStatus.Completed;
@@ -514,12 +564,14 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var student = await db.Students.AsNoTracking()
+        var student = await db
+            .Students.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == currentUserId, ct);
         if (student is null)
             return Result<List<AttemptResponse>>.Fail("Студент не найден", 404);
 
-        var attempts = await db.TestAttempts.AsNoTracking()
+        var attempts = await db
+            .TestAttempts.AsNoTracking()
             .Where(a => a.TestId == testId && a.StudentId == student.Id)
             .OrderByDescending(a => a.StartedAt)
             .ToListAsync(ct);
@@ -533,12 +585,14 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var student = await db.Students.AsNoTracking()
+        var student = await db
+            .Students.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == currentUserId, ct);
         if (student is null)
             return Result<TestResultResponse>.Fail("Студент не найден", 404);
 
-        var attempt = await db.TestAttempts.AsNoTracking()
+        var attempt = await db
+            .TestAttempts.AsNoTracking()
             .Include(a => a.Answers)
                 .ThenInclude(a => a.Question)
             .Include(a => a.Test)
@@ -551,24 +605,30 @@ public class TestingService(AppDbContext db) : ITestingService
 
         var showAnswers = attempt.Test.ShowCorrectAnswers;
 
-        return Result<TestResultResponse>.Ok(new TestResultResponse
-        {
-            AttemptId = attempt.Id,
-            Score = attempt.Score,
-            MaxScore = attempt.MaxScore,
-            Percentage = attempt.MaxScore > 0 ? attempt.Score * 100 / attempt.MaxScore : 0,
-            Passed = attempt.Score >= attempt.Test.PassingScore,
-            CompletedAt = attempt.CompletedAt ?? attempt.StartedAt,
-            AnswerReviews = attempt.Answers.Select(a => new AnswerReviewDto
+        return Result<TestResultResponse>.Ok(
+            new TestResultResponse
             {
-                QuestionId = a.QuestionId,
-                QuestionText = a.Question?.Text ?? string.Empty,
-                GivenAnswer = a.GivenAnswer,
-                CorrectAnswer = showAnswers ? (a.Question?.CorrectAnswer ?? string.Empty) : string.Empty,
-                IsCorrect = a.IsCorrect,
-                Points = a.Question?.Points ?? 0,
-            }).ToList(),
-        });
+                AttemptId = attempt.Id,
+                Score = attempt.Score,
+                MaxScore = attempt.MaxScore,
+                Percentage = attempt.MaxScore > 0 ? attempt.Score * 100 / attempt.MaxScore : 0,
+                Passed = attempt.Score >= attempt.Test.PassingScore,
+                CompletedAt = attempt.CompletedAt ?? attempt.StartedAt,
+                AnswerReviews = attempt
+                    .Answers.Select(a => new AnswerReviewDto
+                    {
+                        QuestionId = a.QuestionId,
+                        QuestionText = a.Question?.Text ?? string.Empty,
+                        GivenAnswer = a.GivenAnswer,
+                        CorrectAnswer = showAnswers
+                            ? (a.Question?.CorrectAnswer ?? string.Empty)
+                            : string.Empty,
+                        IsCorrect = a.IsCorrect,
+                        Points = a.Question?.Points ?? 0,
+                    })
+                    .ToList(),
+            }
+        );
     }
 
     public async Task<Result<List<AttemptResponse>>> GetAllMyResultsAsync(
@@ -576,12 +636,14 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var student = await db.Students.AsNoTracking()
+        var student = await db
+            .Students.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == currentUserId, ct);
         if (student is null)
             return Result<List<AttemptResponse>>.Fail("Студент не найден", 404);
 
-        var attempts = await db.TestAttempts.AsNoTracking()
+        var attempts = await db
+            .TestAttempts.AsNoTracking()
             .Include(a => a.Test)
             .Where(a => a.StudentId == student.Id && a.Status == AttemptStatus.Completed)
             .OrderByDescending(a => a.CompletedAt)
@@ -597,7 +659,8 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var test = await db.Tests.AsNoTracking()
+        var test = await db
+            .Tests.AsNoTracking()
             .Include(t => t.Course)
             .FirstOrDefaultAsync(t => t.Id == testId, ct);
         if (test is null)
@@ -606,38 +669,46 @@ public class TestingService(AppDbContext db) : ITestingService
         if (!await CanEditTest(test, currentUserId, currentUserRole, ct))
             return Result<TestStatsResponse>.Fail("У вас нет прав на просмотр статистики", 403);
 
-        var attempts = await db.TestAttempts.AsNoTracking()
-            .Include(a => a.Student).ThenInclude(s => s.User)
-            .Include(a => a.Student).ThenInclude(s => s.Group)
+        var attempts = await db
+            .TestAttempts.AsNoTracking()
+            .Include(a => a.Student)
+                .ThenInclude(s => s.User)
+            .Include(a => a.Student)
+                .ThenInclude(s => s.Group)
             .Where(a => a.TestId == testId && a.Status == AttemptStatus.Completed)
             .ToListAsync(ct);
 
         var scores = attempts.Select(a => a.Score).OrderBy(s => s).ToList();
         var count = scores.Count;
-        double median = count > 0
-            ? count % 2 == 1
-                ? scores[count / 2]
-                : (scores[count / 2 - 1] + scores[count / 2]) / 2.0
-            : 0;
+        double median =
+            count > 0
+                ? count % 2 == 1
+                    ? scores[count / 2]
+                    : (scores[count / 2 - 1] + scores[count / 2]) / 2.0
+                : 0;
 
-        return Result<TestStatsResponse>.Ok(new TestStatsResponse
-        {
-            TotalAttempts = count,
-            PassedCount = attempts.Count(a => a.Score >= test.PassingScore),
-            FailedCount = attempts.Count(a => a.Score < test.PassingScore),
-            AverageScore = count > 0 ? attempts.Average(a => a.Score) : 0,
-            MedianScore = median,
-            MaxScore = count > 0 ? scores.Max() : 0,
-            MinScore = count > 0 ? scores.Min() : 0,
-            StudentResults = attempts.Select(a => new StudentResultDto
+        return Result<TestStatsResponse>.Ok(
+            new TestStatsResponse
             {
-                StudentName = a.Student?.User?.FullName ?? string.Empty,
-                GroupName = a.Student?.Group?.Name ?? string.Empty,
-                Score = a.Score,
-                MaxScore = a.MaxScore,
-                Passed = a.Score >= test.PassingScore,
-            }).ToList(),
-        });
+                TotalAttempts = count,
+                PassedCount = attempts.Count(a => a.Score >= test.PassingScore),
+                FailedCount = attempts.Count(a => a.Score < test.PassingScore),
+                AverageScore = count > 0 ? attempts.Average(a => a.Score) : 0,
+                MedianScore = median,
+                MaxScore = count > 0 ? scores.Max() : 0,
+                MinScore = count > 0 ? scores.Min() : 0,
+                StudentResults = attempts
+                    .Select(a => new StudentResultDto
+                    {
+                        StudentName = a.Student?.User?.FullName ?? string.Empty,
+                        GroupName = a.Student?.Group?.Name ?? string.Empty,
+                        Score = a.Score,
+                        MaxScore = a.MaxScore,
+                        Passed = a.Score >= test.PassingScore,
+                    })
+                    .ToList(),
+            }
+        );
     }
 
     private async Task<bool> CanEditTest(
@@ -647,13 +718,19 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        if (currentUserRole == "Admin") return true;
+        if (currentUserRole == "Admin")
+            return true;
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers.AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
-            return teacher is not null && test.CourseId != Guid.Empty
-                && await db.Courses.AnyAsync(c => c.Id == test.CourseId && c.TeacherId == teacher.Id, ct);
+            return teacher is not null
+                && test.CourseId != Guid.Empty
+                && await db.Courses.AnyAsync(
+                    c => c.Id == test.CourseId && c.TeacherId == teacher.Id,
+                    ct
+                );
         }
         return false;
     }
@@ -666,12 +743,14 @@ internal static class TestQuestionExtensions
         if (string.IsNullOrEmpty(question.Options))
             return question.Options;
 
-        var options = question.Options.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+        var options = question
+            .Options.Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Select(o => o.Trim())
             .Where(o => o.Length > 0)
             .ToList();
 
-        if (options.Count <= 1) return question.Options;
+        if (options.Count <= 1)
+            return question.Options;
 
         for (int i = options.Count - 1; i > 0; i--)
         {

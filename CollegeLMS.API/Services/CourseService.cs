@@ -199,7 +199,12 @@ public class CourseService(AppDbContext db) : ICourseService
     }
 
     public async Task<Result> AssignGroupsAsync(
-        Guid courseId, AssignGroupsRequest request, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        Guid courseId,
+        AssignGroupsRequest request,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
         var course = await db.Courses.FindAsync([courseId], ct);
         if (course is null)
@@ -215,15 +220,19 @@ public class CourseService(AppDbContext db) : ICourseService
                 return Result.Fail($"Группа {groupId} не найдена", 404);
 
             var alreadyAssigned = await db.CourseGroups.AnyAsync(
-                cg => cg.CourseId == courseId && cg.GroupId == groupId, ct);
+                cg => cg.CourseId == courseId && cg.GroupId == groupId,
+                ct
+            );
             if (!alreadyAssigned)
             {
-                db.CourseGroups.Add(new CourseGroup
-                {
-                    Id = Guid.NewGuid(),
-                    CourseId = courseId,
-                    GroupId = groupId,
-                });
+                db.CourseGroups.Add(
+                    new CourseGroup
+                    {
+                        Id = Guid.NewGuid(),
+                        CourseId = courseId,
+                        GroupId = groupId,
+                    }
+                );
             }
         }
 
@@ -231,13 +240,17 @@ public class CourseService(AppDbContext db) : ICourseService
         return Result.Ok();
     }
 
-    public async Task<Result<List<CourseGroupResponse>>> GetCourseGroupsAsync(Guid courseId, CancellationToken ct)
+    public async Task<Result<List<CourseGroupResponse>>> GetCourseGroupsAsync(
+        Guid courseId,
+        CancellationToken ct
+    )
     {
         var courseExists = await db.Courses.AnyAsync(c => c.Id == courseId, ct);
         if (!courseExists)
             return Result<List<CourseGroupResponse>>.Fail("Курс не найден", 404);
 
-        var groups = await db.CourseGroups.AsNoTracking()
+        var groups = await db
+            .CourseGroups.AsNoTracking()
             .Include(cg => cg.Group)
             .Where(cg => cg.CourseId == courseId)
             .Select(cg => new CourseGroupResponse
@@ -251,7 +264,12 @@ public class CourseService(AppDbContext db) : ICourseService
     }
 
     public async Task<Result> RemoveGroupAsync(
-        Guid courseId, Guid groupId, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        Guid courseId,
+        Guid groupId,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
         var course = await db.Courses.FindAsync([courseId], ct);
         if (course is null)
@@ -260,8 +278,10 @@ public class CourseService(AppDbContext db) : ICourseService
         if (!await CanManageCourse(courseId, currentUserId, currentUserRole, ct))
             return Result.Fail("У вас нет прав на редактирование этого курса", 403);
 
-        var courseGroup = await db.CourseGroups
-            .FirstOrDefaultAsync(cg => cg.CourseId == courseId && cg.GroupId == groupId, ct);
+        var courseGroup = await db.CourseGroups.FirstOrDefaultAsync(
+            cg => cg.CourseId == courseId && cg.GroupId == groupId,
+            ct
+        );
         if (courseGroup is null)
             return Result.Fail("Группа не привязана к курсу", 404);
 
@@ -271,40 +291,57 @@ public class CourseService(AppDbContext db) : ICourseService
     }
 
     public async Task<Result<CourseProgressResponse>> GetProgressAsync(
-        Guid courseId, Guid currentUserId, CancellationToken ct)
+        Guid courseId,
+        Guid currentUserId,
+        CancellationToken ct
+    )
     {
-        var course = await db.Courses.AsNoTracking()
+        var course = await db
+            .Courses.AsNoTracking()
             .Include(c => c.Assignments)
             .FirstOrDefaultAsync(c => c.Id == courseId, ct);
         if (course is null)
             return Result<CourseProgressResponse>.Fail("Курс не найден", 404);
 
-        var student = await db.Students.AsNoTracking()
+        var student = await db
+            .Students.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == currentUserId, ct);
         if (student is null)
             return Result<CourseProgressResponse>.Fail("Студент не найден", 404);
 
-        var inGroup = await db.CourseGroups.AnyAsync(cg => cg.CourseId == courseId && cg.GroupId == student.GroupId, ct)
+        var inGroup =
+            await db.CourseGroups.AnyAsync(
+                cg => cg.CourseId == courseId && cg.GroupId == student.GroupId,
+                ct
+            )
             || course.GroupId == student.GroupId;
         if (!inGroup)
             return Result<CourseProgressResponse>.Fail("Вы не привязаны к этому курсу", 403);
 
         var totalAssignments = course.Assignments.Count;
-        var completedAssignments = await db.AssignmentSubmissions
-            .CountAsync(s => s.StudentId == student.Id
+        var completedAssignments = await db.AssignmentSubmissions.CountAsync(
+            s =>
+                s.StudentId == student.Id
                 && course.Assignments.Select(a => a.Id).Contains(s.AssignmentId)
-                && s.Score.HasValue, ct);
+                && s.Score.HasValue,
+            ct
+        );
 
         var totalTests = await db.Tests.CountAsync(t => t.CourseId == courseId, ct);
-        var completedTests = await db.TestAttempts
-            .CountAsync(a => a.StudentId == student.Id
+        var completedTests = await db.TestAttempts.CountAsync(
+            a =>
+                a.StudentId == student.Id
                 && a.Test.CourseId == courseId
-                && a.Status == Entities.Enums.AttemptStatus.Completed, ct);
+                && a.Status == Entities.Enums.AttemptStatus.Completed,
+            ct
+        );
 
-        var scoreSubmissions = await db.AssignmentSubmissions
-            .Where(s => s.StudentId == student.Id
+        var scoreSubmissions = await db
+            .AssignmentSubmissions.Where(s =>
+                s.StudentId == student.Id
                 && course.Assignments.Select(a => a.Id).Contains(s.AssignmentId)
-                && s.Score.HasValue)
+                && s.Score.HasValue
+            )
             .Select(s => s.Score!.Value)
             .ToListAsync(ct);
         var avgScore = scoreSubmissions.Count > 0 ? scoreSubmissions.Average() : 0;
@@ -312,29 +349,41 @@ public class CourseService(AppDbContext db) : ICourseService
         var total = totalAssignments + totalTests;
         var completed = completedAssignments + completedTests;
 
-        return Result<CourseProgressResponse>.Ok(new CourseProgressResponse
-        {
-            CourseId = courseId,
-            CourseTitle = course.Title,
-            TotalAssignments = totalAssignments,
-            CompletedAssignments = completedAssignments,
-            TotalTests = totalTests,
-            CompletedTests = completedTests,
-            AverageScore = totalAssignments > 0 ? Math.Round(avgScore, 1) : 0,
-            CompletionPercent = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0,
-        });
+        return Result<CourseProgressResponse>.Ok(
+            new CourseProgressResponse
+            {
+                CourseId = courseId,
+                CourseTitle = course.Title,
+                TotalAssignments = totalAssignments,
+                CompletedAssignments = completedAssignments,
+                TotalTests = totalTests,
+                CompletedTests = completedTests,
+                AverageScore = totalAssignments > 0 ? Math.Round(avgScore, 1) : 0,
+                CompletionPercent = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0,
+            }
+        );
     }
 
     private async Task<bool> CanManageCourse(
-        Guid courseId, Guid currentUserId, string currentUserRole, CancellationToken ct)
+        Guid courseId,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
-        if (currentUserRole == "Admin") return true;
+        if (currentUserRole == "Admin")
+            return true;
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers.AsNoTracking()
+            var teacher = await db
+                .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
-            if (teacher is null) return false;
-            return await db.Courses.AnyAsync(c => c.Id == courseId && c.TeacherId == teacher.Id, ct);
+            if (teacher is null)
+                return false;
+            return await db.Courses.AnyAsync(
+                c => c.Id == courseId && c.TeacherId == teacher.Id,
+                ct
+            );
         }
         return false;
     }

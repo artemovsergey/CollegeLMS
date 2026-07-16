@@ -62,12 +62,15 @@ public class SpecialtyControllerTests : BaseIntegrationTest
     {
         SetAuthHeader(GetAdminToken());
 
-        var response = await Client.PostAsJsonAsync("/api/specialties", new CreateSpecialtyRequest
-        {
-            Code = "09.02.07",
-            Name = "ИС",
-            Department = "ИТ",
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/specialties",
+            new CreateSpecialtyRequest
+            {
+                Code = "09.02.07",
+                Name = "ИС",
+                Department = "ИТ",
+            }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

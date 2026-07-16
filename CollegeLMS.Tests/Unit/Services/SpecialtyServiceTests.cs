@@ -118,11 +118,7 @@ public class SpecialtyServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         var result = await _sut.CreateAsync(
-            new CreateSpecialtyRequest
-            {
-                Code = specialty.Code,
-                Name = "Другая",
-            },
+            new CreateSpecialtyRequest { Code = specialty.Code, Name = "Другая" },
             default
         );
 

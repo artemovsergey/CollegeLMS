@@ -211,7 +211,10 @@ public class UserController(IUserService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<UserResponse>>> ToggleActive(Guid id, CancellationToken ct)
+    public async Task<ActionResult<Result<UserResponse>>> ToggleActive(
+        Guid id,
+        CancellationToken ct
+    )
     {
         var result = await service.ToggleActiveAsync(id, ct);
         if (!result.IsSuccess)

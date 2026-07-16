@@ -26,7 +26,17 @@ public class ScheduleServiceTests : IDisposable
     [Fact]
     public async Task GetAllAsync_ReturnsEmpty_WhenNoEntries()
     {
-        var result = await _sut.GetAllAsync(null, null, null, null, null, null, null, null, default);
+        var result = await _sut.GetAllAsync(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Items.Should().BeEmpty();
@@ -40,7 +50,17 @@ public class ScheduleServiceTests : IDisposable
         _db.ScheduleEntries.AddRange(entries);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GetAllAsync(null, null, null, null, null, null, null, null, default);
+        var result = await _sut.GetAllAsync(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Items.Should().HaveCount(3);
@@ -57,7 +77,17 @@ public class ScheduleServiceTests : IDisposable
         _db.ScheduleEntries.AddRange(entries);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GetAllAsync(groupId, null, null, null, null, null, null, null, default);
+        var result = await _sut.GetAllAsync(
+            groupId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Items.Should().HaveCount(1);
@@ -368,7 +398,12 @@ public class ScheduleServiceTests : IDisposable
     [Fact]
     public async Task GetCalendarAsync_ReturnsCalendarWithDays()
     {
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
         _db.Groups.Add(group);
         var entry = new ScheduleEntry
         {

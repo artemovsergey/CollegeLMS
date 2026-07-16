@@ -129,7 +129,10 @@ public class StudentController(IStudentService service) : ControllerBase
     [HttpPost("import")]
     [SwaggerOperation(Summary = "Импортировать студентов из Excel")]
     [SwaggerResponse(200, "Импорт завершён", typeof(Result<StudentImportProgress>))]
-    public async Task<ActionResult<Result<StudentImportProgress>>> Import(IFormFile file, CancellationToken ct)
+    public async Task<ActionResult<Result<StudentImportProgress>>> Import(
+        IFormFile file,
+        CancellationToken ct
+    )
     {
         var result = await service.ImportAsync(file, ct);
         if (!result.IsSuccess)
@@ -142,7 +145,10 @@ public class StudentController(IStudentService service) : ControllerBase
     [SwaggerResponse(200, "Студент переведён", typeof(Result<StudentResponse>))]
     [SwaggerResponse(404, "Студент или группа не найдены")]
     public async Task<ActionResult<Result<StudentResponse>>> Transfer(
-        Guid id, TransferStudentRequest request, CancellationToken ct)
+        Guid id,
+        TransferStudentRequest request,
+        CancellationToken ct
+    )
     {
         var result = await service.TransferAsync(id, request, ct);
         if (!result.IsSuccess)
@@ -154,7 +160,9 @@ public class StudentController(IStudentService service) : ControllerBase
     [SwaggerOperation(Summary = "Получить историю переводов студента")]
     [SwaggerResponse(200, "История получена", typeof(Result<List<TransferRecordResponse>>))]
     public async Task<ActionResult<Result<List<TransferRecordResponse>>>> GetTransfers(
-        Guid id, CancellationToken ct)
+        Guid id,
+        CancellationToken ct
+    )
     {
         var result = await service.GetTransfersAsync(id, ct);
         if (!result.IsSuccess)

@@ -160,7 +160,10 @@ public class StudentService(AppDbContext db) : IStudentService
         return Result.Ok();
     }
 
-    public async Task<Result<StudentImportProgress>> ImportAsync(IFormFile file, CancellationToken ct)
+    public async Task<Result<StudentImportProgress>> ImportAsync(
+        IFormFile file,
+        CancellationToken ct
+    )
     {
         if (file is null || file.Length == 0)
             return Result<StudentImportProgress>.Fail("Файл не загружен", 400);
@@ -181,7 +184,8 @@ public class StudentService(AppDbContext db) : IStudentService
         {
             row++;
             var line = await reader.ReadLineAsync(ct);
-            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
 
             var parts = line.Split(',');
             if (parts.Length < 3)
@@ -203,7 +207,9 @@ public class StudentService(AppDbContext db) : IStudentService
             var group = await db.Groups.FirstOrDefaultAsync(g => g.Name == groupName, ct);
             if (group is null)
             {
-                progress.Errors.Add(new ImportError { Row = row, Message = $"Группа '{groupName}' не найдена" });
+                progress.Errors.Add(
+                    new ImportError { Row = row, Message = $"Группа '{groupName}' не найдена" }
+                );
                 continue;
             }
 
@@ -214,7 +220,8 @@ public class StudentService(AppDbContext db) : IStudentService
                 continue;
             }
 
-            var login = $"student{recordBook.Replace("-", "").Replace("/", "").Substring(0, Math.Min(6, recordBook.Length))}";
+            var login =
+                $"student{recordBook.Replace("-", "").Replace("/", "").Substring(0, Math.Min(6, recordBook.Length))}";
             var loginExists = await db.Users.AnyAsync(u => u.Login == login, ct);
             if (loginExists)
                 login = $"{login}{Guid.NewGuid().ToString()[..4]}";
@@ -230,13 +237,15 @@ public class StudentService(AppDbContext db) : IStudentService
             };
             db.Users.Add(user);
 
-            db.Students.Add(new Student
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                GroupId = group.Id,
-                RecordBookNumber = recordBook,
-            });
+            db.Students.Add(
+                new Student
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    GroupId = group.Id,
+                    RecordBookNumber = recordBook,
+                }
+            );
 
             progress.Imported++;
         }
@@ -245,9 +254,15 @@ public class StudentService(AppDbContext db) : IStudentService
         return Result<StudentImportProgress>.Ok(progress);
     }
 
-    public async Task<Result<StudentResponse>> TransferAsync(Guid id, TransferStudentRequest request, CancellationToken ct)
+    public async Task<Result<StudentResponse>> TransferAsync(
+        Guid id,
+        TransferStudentRequest request,
+        CancellationToken ct
+    )
     {
-        var student = await db.Students.Include(s => s.User).Include(s => s.Group)
+        var student = await db
+            .Students.Include(s => s.User)
+            .Include(s => s.Group)
             .FirstOrDefaultAsync(s => s.Id == id, ct);
         if (student is null)
             return Result<StudentResponse>.Fail("Студент не найден", 404);
@@ -258,14 +273,16 @@ public class StudentService(AppDbContext db) : IStudentService
 
         var oldGroupId = student.GroupId;
 
-        db.TransferRecords.Add(new TransferRecord
-        {
-            Id = Guid.NewGuid(),
-            StudentId = id,
-            FromGroupId = oldGroupId,
-            ToGroupId = request.NewGroupId,
-            Reason = request.Reason,
-        });
+        db.TransferRecords.Add(
+            new TransferRecord
+            {
+                Id = Guid.NewGuid(),
+                StudentId = id,
+                FromGroupId = oldGroupId,
+                ToGroupId = request.NewGroupId,
+                Reason = request.Reason,
+            }
+        );
 
         student.GroupId = request.NewGroupId;
         student.Group = newGroup;
@@ -275,33 +292,43 @@ public class StudentService(AppDbContext db) : IStudentService
         return Result<StudentResponse>.Ok(student.ToDto());
     }
 
-    public async Task<Result<List<TransferRecordResponse>>> GetTransfersAsync(Guid id, CancellationToken ct)
+    public async Task<Result<List<TransferRecordResponse>>> GetTransfersAsync(
+        Guid id,
+        CancellationToken ct
+    )
     {
         var student = await db.Students.AnyAsync(s => s.Id == id, ct);
         if (!student)
             return Result<List<TransferRecordResponse>>.Fail("Студент не найден", 404);
 
-        var records = await db.TransferRecords.AsNoTracking()
+        var records = await db
+            .TransferRecords.AsNoTracking()
             .Where(r => r.StudentId == id)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(ct);
 
-        var groupIds = records.SelectMany(r => new[] { r.FromGroupId, r.ToGroupId }).Distinct().ToList();
-        var groups = await db.Groups.AsNoTracking()
+        var groupIds = records
+            .SelectMany(r => new[] { r.FromGroupId, r.ToGroupId })
+            .Distinct()
+            .ToList();
+        var groups = await db
+            .Groups.AsNoTracking()
             .Where(g => groupIds.Contains(g.Id))
             .ToDictionaryAsync(g => g.Id, g => g.Name, ct);
 
-        var result = records.Select(r => new TransferRecordResponse
-        {
-            Id = r.Id,
-            StudentId = r.StudentId,
-            FromGroupId = r.FromGroupId,
-            FromGroupName = groups.GetValueOrDefault(r.FromGroupId, string.Empty),
-            ToGroupId = r.ToGroupId,
-            ToGroupName = groups.GetValueOrDefault(r.ToGroupId, string.Empty),
-            Reason = r.Reason,
-            CreatedAt = r.CreatedAt,
-        }).ToList();
+        var result = records
+            .Select(r => new TransferRecordResponse
+            {
+                Id = r.Id,
+                StudentId = r.StudentId,
+                FromGroupId = r.FromGroupId,
+                FromGroupName = groups.GetValueOrDefault(r.FromGroupId, string.Empty),
+                ToGroupId = r.ToGroupId,
+                ToGroupName = groups.GetValueOrDefault(r.ToGroupId, string.Empty),
+                Reason = r.Reason,
+                CreatedAt = r.CreatedAt,
+            })
+            .ToList();
 
         return Result<List<TransferRecordResponse>>.Ok(result);
     }

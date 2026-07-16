@@ -41,16 +41,25 @@ public class TestingControllerTests : BaseIntegrationTest
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
-        var course = new Course { Id = Guid.NewGuid(), Title = "Курс", TeacherId = Guid.NewGuid(), GroupId = Guid.NewGuid(), Status = CourseStatus.Draft };
-        db.Courses.Add(course);
-        db.Tests.Add(new Test
+        var course = new Course
         {
             Id = Guid.NewGuid(),
-            Title = "Тест 1",
-            CourseId = course.Id,
-            Type = TestType.SelfStudy,
-            Course = course,
-        });
+            Title = "Курс",
+            TeacherId = Guid.NewGuid(),
+            GroupId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        db.Courses.Add(course);
+        db.Tests.Add(
+            new Test
+            {
+                Id = Guid.NewGuid(),
+                Title = "Тест 1",
+                CourseId = course.Id,
+                Type = TestType.SelfStudy,
+                Course = course,
+            }
+        );
         await db.SaveChangesAsync();
 
         var response = await Client.GetAsync("/api/tests");
@@ -78,16 +87,26 @@ public class TestingControllerTests : BaseIntegrationTest
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
-        var course = new Course { Id = Guid.NewGuid(), Title = "Курс", TeacherId = Guid.NewGuid(), GroupId = Guid.NewGuid(), Status = CourseStatus.Draft };
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            TeacherId = Guid.NewGuid(),
+            GroupId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
         db.Courses.Add(course);
         await db.SaveChangesAsync();
 
-        var response = await Client.PostAsJsonAsync("/api/tests", new CreateTestRequest
-        {
-            Title = "Новый тест",
-            CourseId = course.Id,
-            Type = "SelfStudy",
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/tests",
+            new CreateTestRequest
+            {
+                Title = "Новый тест",
+                CourseId = course.Id,
+                Type = "SelfStudy",
+            }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

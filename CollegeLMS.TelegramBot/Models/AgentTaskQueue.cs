@@ -30,4 +30,3 @@ public class AgentTaskQueue
 
     public int ActiveCount => _tasks.Values.Count(t => t.Status == AgentTaskStatus.Running);
 }
-

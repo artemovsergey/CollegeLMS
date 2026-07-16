@@ -152,7 +152,12 @@ public class CourseControllerTests : BaseIntegrationTest
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var course = CourseFixture.CreateFaker().Generate();
         db.Courses.Add(course);
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
         db.Groups.Add(group);
         await db.SaveChangesAsync();
 
@@ -173,14 +178,21 @@ public class CourseControllerTests : BaseIntegrationTest
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var course = CourseFixture.CreateFaker().Generate();
         db.Courses.Add(course);
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
-        db.Groups.Add(group);
-        db.CourseGroups.Add(new CourseGroup
+        var group = new Group
         {
             Id = Guid.NewGuid(),
-            CourseId = course.Id,
-            GroupId = group.Id,
-        });
+            Name = "ГР-11",
+            Course = 1,
+        };
+        db.Groups.Add(group);
+        db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = group.Id,
+            }
+        );
         await db.SaveChangesAsync();
 
         var response = await Client.GetAsync($"/api/courses/{course.Id}/groups");
@@ -197,12 +209,40 @@ public class CourseControllerTests : BaseIntegrationTest
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var course = CourseFixture.CreateFaker().Generate();
         db.Courses.Add(course);
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
         db.Groups.Add(group);
-        var student = new Student { Id = Guid.NewGuid(), UserId = studentUserId, GroupId = group.Id, RecordBookNumber = "ЗК-001" };
-        db.Users.Add(new User { Id = studentUserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true });
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            GroupId = group.Id,
+            RecordBookNumber = "ЗК-001",
+        };
+        db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                IsActive = true,
+            }
+        );
         db.Students.Add(student);
-        db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = group.Id });
+        db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = group.Id,
+            }
+        );
         await db.SaveChangesAsync();
 
         SetAuthHeader(GetStudentToken(studentUserId));

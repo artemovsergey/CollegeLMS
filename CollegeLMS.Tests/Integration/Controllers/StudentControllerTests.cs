@@ -134,15 +134,25 @@ public class StudentControllerTests : BaseIntegrationTest
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var student = StudentFixture.CreateFaker().Generate();
         db.Users.Add(student.User);
-        var newGroup = new Group { Id = Guid.NewGuid(), Name = "НГР-21", Course = 2 };
+        var newGroup = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "НГР-21",
+            Course = 2,
+        };
         db.Groups.Add(newGroup);
         db.Groups.Add(student.Group);
         db.Students.Add(student);
         await db.SaveChangesAsync();
 
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/students/{student.Id}/transfer")
+        var request = new HttpRequestMessage(
+            HttpMethod.Patch,
+            $"/api/students/{student.Id}/transfer"
+        )
         {
-            Content = JsonContent.Create(new TransferStudentRequest { NewGroupId = newGroup.Id, Reason = "Перевод" })
+            Content = JsonContent.Create(
+                new TransferStudentRequest { NewGroupId = newGroup.Id, Reason = "Перевод" }
+            ),
         };
         var response = await Client.SendAsync(request);
 
@@ -161,17 +171,24 @@ public class StudentControllerTests : BaseIntegrationTest
         db.Groups.Add(student.Group);
         db.Students.Add(student);
 
-        var newGroup = new Group { Id = Guid.NewGuid(), Name = "НГР-21", Course = 2 };
-        db.Groups.Add(newGroup);
-
-        db.TransferRecords.Add(new TransferRecord
+        var newGroup = new Group
         {
             Id = Guid.NewGuid(),
-            StudentId = student.Id,
-            FromGroupId = student.GroupId,
-            ToGroupId = newGroup.Id,
-            Reason = "Перевод",
-        });
+            Name = "НГР-21",
+            Course = 2,
+        };
+        db.Groups.Add(newGroup);
+
+        db.TransferRecords.Add(
+            new TransferRecord
+            {
+                Id = Guid.NewGuid(),
+                StudentId = student.Id,
+                FromGroupId = student.GroupId,
+                ToGroupId = newGroup.Id,
+                Reason = "Перевод",
+            }
+        );
         await db.SaveChangesAsync();
 
         var response = await Client.GetAsync($"/api/students/{student.Id}/transfers");

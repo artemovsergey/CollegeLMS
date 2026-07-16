@@ -34,10 +34,36 @@ public class ExamServiceTests : IDisposable
     public async Task GetAllAsync_ReturnsExams_WhenGroupFilter()
     {
         var groupId = Guid.NewGuid();
-        var group = new Group { Id = groupId, Name = "ГР-11", Course = 1 };
-        var teacherUser = new User { Id = Guid.NewGuid(), FullName = "Учитель", Email = "t@t.ru", PasswordHash = "hash", Role = UserRole.Teacher, IsActive = true };
-        var teacher = new Teacher { Id = Guid.NewGuid(), UserId = teacherUser.Id, Department = "ИТ", Position = "П" };
-        var semester = new Semester { Id = Guid.NewGuid(), Name = "Семестр", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddMonths(6), Type = SemesterType.Autumn };
+        var group = new Group
+        {
+            Id = groupId,
+            Name = "ГР-11",
+            Course = 1,
+        };
+        var teacherUser = new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = "Учитель",
+            Email = "t@t.ru",
+            PasswordHash = "hash",
+            Role = UserRole.Teacher,
+            IsActive = true,
+        };
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = teacherUser.Id,
+            Department = "ИТ",
+            Position = "П",
+        };
+        var semester = new Semester
+        {
+            Id = Guid.NewGuid(),
+            Name = "Семестр",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddMonths(6),
+            Type = SemesterType.Autumn,
+        };
         var exam = new Exam
         {
             Id = Guid.NewGuid(),
@@ -74,9 +100,27 @@ public class ExamServiceTests : IDisposable
     [Fact]
     public async Task CreateAsync_CreatesExam()
     {
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
-        var teacher = new Teacher { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Department = "ИТ", Position = "Преподаватель" };
-        var semester = new Semester { Id = Guid.NewGuid(), Name = "Семестр", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddMonths(6), Type = SemesterType.Autumn };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            Department = "ИТ",
+            Position = "Преподаватель",
+        };
+        var semester = new Semester
+        {
+            Id = Guid.NewGuid(),
+            Name = "Семестр",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddMonths(6),
+            Type = SemesterType.Autumn,
+        };
 
         _db.Groups.Add(group);
         _db.Teachers.Add(teacher);
@@ -141,9 +185,27 @@ public class ExamServiceTests : IDisposable
     [Fact]
     public async Task UpdateAsync_UpdatesExam()
     {
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
-        var teacher = new Teacher { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Department = "ИТ", Position = "Преподаватель" };
-        var semester = new Semester { Id = Guid.NewGuid(), Name = "Семестр", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddMonths(6), Type = SemesterType.Autumn };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            Department = "ИТ",
+            Position = "Преподаватель",
+        };
+        var semester = new Semester
+        {
+            Id = Guid.NewGuid(),
+            Name = "Семестр",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddMonths(6),
+            Type = SemesterType.Autumn,
+        };
 
         var exam = new Exam
         {
@@ -296,19 +358,27 @@ public class ExamServiceTests : IDisposable
             SemesterId = Guid.NewGuid(),
             Status = ExamStatus.Scheduled,
         };
-        var student = new Student { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), GroupId = Guid.NewGuid(), RecordBookNumber = "ЗК-001" };
-        _db.Exams.Add(exam);
-        _db.Students.Add(student);
-        _db.Retakes.Add(new Retake
+        var student = new Student
         {
             Id = Guid.NewGuid(),
-            ExamId = exam.Id,
-            StudentId = student.Id,
-            RetakeDate = DateTime.UtcNow.AddDays(7),
-            Reason = "Не сдал",
-            Status = RetakeStatus.Scheduled,
-            Student = student,
-        });
+            UserId = Guid.NewGuid(),
+            GroupId = Guid.NewGuid(),
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Exams.Add(exam);
+        _db.Students.Add(student);
+        _db.Retakes.Add(
+            new Retake
+            {
+                Id = Guid.NewGuid(),
+                ExamId = exam.Id,
+                StudentId = student.Id,
+                RetakeDate = DateTime.UtcNow.AddDays(7),
+                Reason = "Не сдал",
+                Status = RetakeStatus.Scheduled,
+                Student = student,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetRetakesAsync(exam.Id, default);
@@ -329,7 +399,13 @@ public class ExamServiceTests : IDisposable
     [Fact]
     public async Task UpdateRetakeStatusAsync_UpdatesStatus()
     {
-        var student = new Student { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), GroupId = Guid.NewGuid(), RecordBookNumber = "ЗК-001" };
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            GroupId = Guid.NewGuid(),
+            RecordBookNumber = "ЗК-001",
+        };
         var retake = new Retake
         {
             Id = Guid.NewGuid(),
@@ -359,7 +435,8 @@ public class ExamServiceTests : IDisposable
     public async Task UpdateRetakeStatusAsync_ReturnsNotFound_WhenRetakeMissing()
     {
         var result = await _sut.UpdateRetakeStatusAsync(
-            Guid.NewGuid(), Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
             new UpdateRetakeStatusRequest { Status = "Passed" },
             default
         );

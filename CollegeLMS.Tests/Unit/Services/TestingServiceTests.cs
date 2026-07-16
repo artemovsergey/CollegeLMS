@@ -323,18 +323,25 @@ public class TestingServiceTests : IDisposable
     {
         var test = TestFixture.CreateFaker().Generate();
         _db.Tests.Add(test);
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
-        _db.Groups.Add(group);
-        _db.TestAssignments.Add(new TestAssignment
+        var group = new Group
         {
             Id = Guid.NewGuid(),
-            TestId = test.Id,
-            GroupId = group.Id,
-            OpenDate = DateTime.UtcNow,
-            CloseDate = DateTime.UtcNow.AddDays(7),
-            MaxAttempts = 1,
-            Group = group,
-        });
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        _db.TestAssignments.Add(
+            new TestAssignment
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                GroupId = group.Id,
+                OpenDate = DateTime.UtcNow,
+                CloseDate = DateTime.UtcNow.AddDays(7),
+                MaxAttempts = 1,
+                Group = group,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetAssignmentsAsync(test.Id, Guid.NewGuid(), "Admin", default);
@@ -380,7 +387,12 @@ public class TestingServiceTests : IDisposable
         };
         _db.Courses.Add(course);
 
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
         _db.Groups.Add(group);
 
         var studentUserId = Guid.NewGuid();
@@ -391,15 +403,17 @@ public class TestingServiceTests : IDisposable
             GroupId = group.Id,
             RecordBookNumber = "ЗК-001",
         };
-        _db.Users.Add(new User
-        {
-            Id = studentUserId,
-            FullName = "Студент",
-            Email = "s@t.ru",
-            PasswordHash = "hash",
-            Role = UserRole.Student,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                IsActive = true,
+            }
+        );
         _db.Students.Add(student);
 
         var test = TestFixture.CreateFaker().Generate();
@@ -421,15 +435,17 @@ public class TestingServiceTests : IDisposable
         };
         _db.TestQuestions.Add(question);
 
-        _db.TestAssignments.Add(new TestAssignment
-        {
-            Id = Guid.NewGuid(),
-            TestId = test.Id,
-            GroupId = group.Id,
-            OpenDate = DateTime.UtcNow.AddDays(-1),
-            CloseDate = DateTime.UtcNow.AddDays(30),
-            MaxAttempts = 3,
-        });
+        _db.TestAssignments.Add(
+            new TestAssignment
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                GroupId = group.Id,
+                OpenDate = DateTime.UtcNow.AddDays(-1),
+                CloseDate = DateTime.UtcNow.AddDays(30),
+                MaxAttempts = 3,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.StartTestAsync(test.Id, studentUserId, default);
@@ -450,15 +466,17 @@ public class TestingServiceTests : IDisposable
             GroupId = groupId,
             RecordBookNumber = "ЗК-001",
         };
-        _db.Users.Add(new User
-        {
-            Id = studentUserId,
-            FullName = "Студент",
-            Email = "s@t.ru",
-            PasswordHash = "hash",
-            Role = UserRole.Student,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                IsActive = true,
+            }
+        );
         _db.Students.Add(student);
 
         var test = new Test
@@ -473,35 +491,41 @@ public class TestingServiceTests : IDisposable
         };
         _db.Tests.Add(test);
 
-        _db.TestQuestions.Add(new TestQuestion
-        {
-            Id = Guid.NewGuid(),
-            Text = "Q1",
-            Type = QuestionType.SingleChoice,
-            CorrectAnswer = "A",
-            Points = 10,
-            OrderIndex = 1,
-            TestId = test.Id,
-        });
+        _db.TestQuestions.Add(
+            new TestQuestion
+            {
+                Id = Guid.NewGuid(),
+                Text = "Q1",
+                Type = QuestionType.SingleChoice,
+                CorrectAnswer = "A",
+                Points = 10,
+                OrderIndex = 1,
+                TestId = test.Id,
+            }
+        );
 
-        _db.TestAssignments.Add(new TestAssignment
-        {
-            Id = Guid.NewGuid(),
-            TestId = test.Id,
-            GroupId = groupId,
-            OpenDate = DateTime.UtcNow.AddDays(-1),
-            CloseDate = DateTime.UtcNow.AddDays(1),
-            MaxAttempts = 1,
-        });
+        _db.TestAssignments.Add(
+            new TestAssignment
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                GroupId = groupId,
+                OpenDate = DateTime.UtcNow.AddDays(-1),
+                CloseDate = DateTime.UtcNow.AddDays(1),
+                MaxAttempts = 1,
+            }
+        );
 
-        _db.TestAttempts.Add(new TestAttempt
-        {
-            Id = Guid.NewGuid(),
-            TestId = test.Id,
-            StudentId = student.Id,
-            StartedAt = DateTime.UtcNow.AddDays(-1),
-            Status = AttemptStatus.Completed,
-        });
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow.AddDays(-1),
+                Status = AttemptStatus.Completed,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.StartTestAsync(test.Id, studentUserId, default);
@@ -521,15 +545,17 @@ public class TestingServiceTests : IDisposable
             GroupId = Guid.NewGuid(),
             RecordBookNumber = "ЗК-001",
         };
-        _db.Users.Add(new User
-        {
-            Id = studentUserId,
-            FullName = "Студент",
-            Email = "s@t.ru",
-            PasswordHash = "hash",
-            Role = UserRole.Student,
-            IsActive = true,
-        });
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                IsActive = true,
+            }
+        );
         _db.Students.Add(student);
 
         var test = TestFixture.CreateFaker().Generate();
@@ -590,7 +616,17 @@ public class TestingServiceTests : IDisposable
             GroupId = Guid.NewGuid(),
             RecordBookNumber = "ЗК-001",
         };
-        _db.Users.Add(new User { Id = studentUserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true });
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                IsActive = true,
+            }
+        );
         _db.Students.Add(student);
 
         var test = TestFixture.CreateFaker().Generate();
@@ -610,9 +646,11 @@ public class TestingServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         var result = await _sut.SubmitAnswersAsync(
-            test.Id, attempt.Id,
+            test.Id,
+            attempt.Id,
             new SubmitAnswersRequest { Answers = new List<AnswerDto>() },
-            studentUserId, default
+            studentUserId,
+            default
         );
 
         result.IsSuccess.Should().BeFalse();
@@ -623,21 +661,39 @@ public class TestingServiceTests : IDisposable
     public async Task GetMyAttemptsAsync_ReturnsAttempts()
     {
         var studentUserId = Guid.NewGuid();
-        var student = new Student { Id = Guid.NewGuid(), UserId = studentUserId, GroupId = Guid.NewGuid(), RecordBookNumber = "ЗК-001" };
-        _db.Users.Add(new User { Id = studentUserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true });
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            GroupId = Guid.NewGuid(),
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                IsActive = true,
+            }
+        );
         _db.Students.Add(student);
 
         var test = TestFixture.CreateFaker().Generate();
         _db.Tests.Add(test);
 
-        _db.TestAttempts.Add(new TestAttempt
-        {
-            Id = Guid.NewGuid(),
-            TestId = test.Id,
-            StudentId = student.Id,
-            StartedAt = DateTime.UtcNow,
-            Status = AttemptStatus.Completed,
-        });
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow,
+                Status = AttemptStatus.Completed,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetMyAttemptsAsync(test.Id, studentUserId, default);
@@ -650,8 +706,24 @@ public class TestingServiceTests : IDisposable
     public async Task GetMyResultAsync_ReturnsResult()
     {
         var studentUserId = Guid.NewGuid();
-        var student = new Student { Id = Guid.NewGuid(), UserId = studentUserId, GroupId = Guid.NewGuid(), RecordBookNumber = "ЗК-001" };
-        _db.Users.Add(new User { Id = studentUserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true });
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            GroupId = Guid.NewGuid(),
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                IsActive = true,
+            }
+        );
         _db.Students.Add(student);
 
         var test = new Test
@@ -667,25 +739,44 @@ public class TestingServiceTests : IDisposable
         };
         _db.Tests.Add(test);
 
-        var question = new TestQuestion { Id = Guid.NewGuid(), Text = "Q1", Type = QuestionType.SingleChoice, CorrectAnswer = "A", Points = 10, OrderIndex = 1, TestId = test.Id };
-        _db.TestQuestions.Add(question);
-
-        _db.TestAttempts.Add(new TestAttempt
+        var question = new TestQuestion
         {
             Id = Guid.NewGuid(),
+            Text = "Q1",
+            Type = QuestionType.SingleChoice,
+            CorrectAnswer = "A",
+            Points = 10,
+            OrderIndex = 1,
             TestId = test.Id,
-            StudentId = student.Id,
-            StartedAt = DateTime.UtcNow.AddHours(-1),
-            CompletedAt = DateTime.UtcNow,
-            Status = AttemptStatus.Completed,
-            Score = 10,
-            MaxScore = 10,
-            Test = test,
-            Answers = new List<TestAnswer>
+        };
+        _db.TestQuestions.Add(question);
+
+        _db.TestAttempts.Add(
+            new TestAttempt
             {
-                new() { Id = Guid.NewGuid(), AttemptId = Guid.NewGuid(), QuestionId = question.Id, GivenAnswer = "A", IsCorrect = true, Question = question },
-            },
-        });
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow.AddHours(-1),
+                CompletedAt = DateTime.UtcNow,
+                Status = AttemptStatus.Completed,
+                Score = 10,
+                MaxScore = 10,
+                Test = test,
+                Answers = new List<TestAnswer>
+                {
+                    new()
+                    {
+                        Id = Guid.NewGuid(),
+                        AttemptId = Guid.NewGuid(),
+                        QuestionId = question.Id,
+                        GivenAnswer = "A",
+                        IsCorrect = true,
+                        Question = question,
+                    },
+                },
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetMyResultAsync(test.Id, studentUserId, default);
@@ -699,27 +790,58 @@ public class TestingServiceTests : IDisposable
     public async Task GetStatsAsync_ReturnsStats()
     {
         var adminId = Guid.NewGuid();
-        _db.Users.Add(new User { Id = adminId, FullName = "Admin", Email = "a@t.ru", PasswordHash = "hash", Role = UserRole.Admin, IsActive = true });
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                FullName = "Admin",
+                Email = "a@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+                IsActive = true,
+            }
+        );
 
         var test = TestFixture.CreateFaker().Generate();
         test.PassingScore = 50;
         _db.Tests.Add(test);
 
-        var student = new Student { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), GroupId = Guid.NewGuid(), RecordBookNumber = "ЗК-001" };
-        student.User = new User { Id = student.UserId, FullName = "Студент", Email = "s@t.ru", PasswordHash = "hash", Role = UserRole.Student, IsActive = true };
-        student.Group = new Group { Id = student.GroupId, Name = "ГР-11", Course = 1 };
-
-        _db.Students.Add(student);
-        _db.TestAttempts.Add(new TestAttempt
+        var student = new Student
         {
             Id = Guid.NewGuid(),
-            TestId = test.Id,
-            StudentId = student.Id,
-            Status = AttemptStatus.Completed,
-            Score = 80,
-            MaxScore = 100,
-            Student = student,
-        });
+            UserId = Guid.NewGuid(),
+            GroupId = Guid.NewGuid(),
+            RecordBookNumber = "ЗК-001",
+        };
+        student.User = new User
+        {
+            Id = student.UserId,
+            FullName = "Студент",
+            Email = "s@t.ru",
+            PasswordHash = "hash",
+            Role = UserRole.Student,
+            IsActive = true,
+        };
+        student.Group = new Group
+        {
+            Id = student.GroupId,
+            Name = "ГР-11",
+            Course = 1,
+        };
+
+        _db.Students.Add(student);
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                Status = AttemptStatus.Completed,
+                Score = 80,
+                MaxScore = 100,
+                Student = student,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetStatsAsync(test.Id, adminId, "Admin", default);

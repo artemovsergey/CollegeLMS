@@ -64,25 +64,54 @@ public class ExamControllerTests : BaseIntegrationTest
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
-        var group = new Group { Id = Guid.NewGuid(), Name = "ГР-11", Course = 1 };
-        var teacherUser = new User { Id = Guid.NewGuid(), FullName = "Учитель", Email = "t@t.ru", PasswordHash = "hash", Role = UserRole.Teacher, IsActive = true };
-        var teacher = new Teacher { Id = Guid.NewGuid(), UserId = teacherUser.Id, Department = "ИТ", Position = "П" };
-        var semester = new Semester { Id = Guid.NewGuid(), Name = "Семестр", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddMonths(6), Type = SemesterType.Autumn };
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        var teacherUser = new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = "Учитель",
+            Email = "t@t.ru",
+            PasswordHash = "hash",
+            Role = UserRole.Teacher,
+            IsActive = true,
+        };
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = teacherUser.Id,
+            Department = "ИТ",
+            Position = "П",
+        };
+        var semester = new Semester
+        {
+            Id = Guid.NewGuid(),
+            Name = "Семестр",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddMonths(6),
+            Type = SemesterType.Autumn,
+        };
         db.Users.Add(teacherUser);
         db.Groups.Add(group);
         db.Teachers.Add(teacher);
         db.Semesters.Add(semester);
         await db.SaveChangesAsync();
 
-        var response = await Client.PostAsJsonAsync("/api/exams", new CreateExamRequest
-        {
-            Subject = "Экзамен",
-            GroupId = group.Id,
-            ExamDate = DateTime.UtcNow.AddDays(30),
-            Type = "Exam",
-            TeacherId = teacher.Id,
-            SemesterId = semester.Id,
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/exams",
+            new CreateExamRequest
+            {
+                Subject = "Экзамен",
+                GroupId = group.Id,
+                ExamDate = DateTime.UtcNow.AddDays(30),
+                Type = "Exam",
+                TeacherId = teacher.Id,
+                SemesterId = semester.Id,
+            }
+        );
 
         if (response.StatusCode != HttpStatusCode.OK)
         {

@@ -62,14 +62,17 @@ public class SemesterControllerTests : BaseIntegrationTest
     {
         SetAuthHeader(GetAdminToken());
 
-        var response = await Client.PostAsJsonAsync("/api/semesters", new CreateSemesterRequest
-        {
-            Name = "Тестовый семестр",
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddMonths(6),
-            Type = "Autumn",
-            AcademicYear = "2025-2026",
-        });
+        var response = await Client.PostAsJsonAsync(
+            "/api/semesters",
+            new CreateSemesterRequest
+            {
+                Name = "Тестовый семестр",
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddMonths(6),
+                Type = "Autumn",
+                AcademicYear = "2025-2026",
+            }
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

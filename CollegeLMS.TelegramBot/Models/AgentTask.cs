@@ -33,4 +33,3 @@ public class AgentTask
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public PendingPermission? CurrentPermission { get; set; }
 }
-

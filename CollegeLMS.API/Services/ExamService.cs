@@ -12,11 +12,17 @@ namespace CollegeLMS.API.Services;
 public class ExamService(AppDbContext db) : IExamService
 {
     public async Task<Result<List<ExamResponse>>> GetAllAsync(
-        Guid? groupId, Guid? semesterId, string? type, CancellationToken ct)
+        Guid? groupId,
+        Guid? semesterId,
+        string? type,
+        CancellationToken ct
+    )
     {
-        var query = db.Exams.AsNoTracking()
+        var query = db
+            .Exams.AsNoTracking()
             .Include(e => e.Group)
-            .Include(e => e.Teacher).ThenInclude(t => t.User)
+            .Include(e => e.Teacher)
+                .ThenInclude(t => t.User)
             .Include(e => e.Semester)
             .AsQueryable();
 
@@ -33,9 +39,11 @@ public class ExamService(AppDbContext db) : IExamService
 
     public async Task<Result<ExamResponse>> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        var exam = await db.Exams.AsNoTracking()
+        var exam = await db
+            .Exams.AsNoTracking()
             .Include(e => e.Group)
-            .Include(e => e.Teacher).ThenInclude(t => t.User)
+            .Include(e => e.Teacher)
+                .ThenInclude(t => t.User)
             .Include(e => e.Semester)
             .FirstOrDefaultAsync(e => e.Id == id, ct);
         if (exam is null)
@@ -43,7 +51,10 @@ public class ExamService(AppDbContext db) : IExamService
         return Result<ExamResponse>.Ok(exam.ToDto());
     }
 
-    public async Task<Result<ExamResponse>> CreateAsync(CreateExamRequest request, CancellationToken ct)
+    public async Task<Result<ExamResponse>> CreateAsync(
+        CreateExamRequest request,
+        CancellationToken ct
+    )
     {
         if (!Enum.TryParse<ExamType>(request.Type, out var examType))
             return Result<ExamResponse>.Fail("Некорректный тип экзамена", 400);
@@ -72,7 +83,11 @@ public class ExamService(AppDbContext db) : IExamService
         return await GetByIdAsync(exam.Id, ct);
     }
 
-    public async Task<Result<ExamResponse>> UpdateAsync(Guid id, UpdateExamRequest request, CancellationToken ct)
+    public async Task<Result<ExamResponse>> UpdateAsync(
+        Guid id,
+        UpdateExamRequest request,
+        CancellationToken ct
+    )
     {
         var exam = await db.Exams.FindAsync([id], ct);
         if (exam is null)
@@ -107,7 +122,11 @@ public class ExamService(AppDbContext db) : IExamService
         return Result.Ok();
     }
 
-    public async Task<Result<RetakeResponse>> CreateRetakeAsync(Guid examId, CreateRetakeRequest request, CancellationToken ct)
+    public async Task<Result<RetakeResponse>> CreateRetakeAsync(
+        Guid examId,
+        CreateRetakeRequest request,
+        CancellationToken ct
+    )
     {
         var exam = await db.Exams.AnyAsync(e => e.Id == examId, ct);
         if (!exam)
@@ -128,14 +147,17 @@ public class ExamService(AppDbContext db) : IExamService
         db.Retakes.Add(retake);
         await db.SaveChangesAsync(ct);
 
-        retake = await db.Retakes.Include(r => r.Student)
-            .FirstAsync(r => r.Id == retake.Id, ct);
+        retake = await db.Retakes.Include(r => r.Student).FirstAsync(r => r.Id == retake.Id, ct);
         return Result<RetakeResponse>.Ok(retake.ToDto());
     }
 
-    public async Task<Result<List<RetakeResponse>>> GetRetakesAsync(Guid examId, CancellationToken ct)
+    public async Task<Result<List<RetakeResponse>>> GetRetakesAsync(
+        Guid examId,
+        CancellationToken ct
+    )
     {
-        var retakes = await db.Retakes.AsNoTracking()
+        var retakes = await db
+            .Retakes.AsNoTracking()
             .Include(r => r.Student)
             .Where(r => r.ExamId == examId)
             .OrderBy(r => r.RetakeDate)
@@ -144,9 +166,14 @@ public class ExamService(AppDbContext db) : IExamService
     }
 
     public async Task<Result<RetakeResponse>> UpdateRetakeStatusAsync(
-        Guid examId, Guid retakeId, UpdateRetakeStatusRequest request, CancellationToken ct)
+        Guid examId,
+        Guid retakeId,
+        UpdateRetakeStatusRequest request,
+        CancellationToken ct
+    )
     {
-        var retake = await db.Retakes.Include(r => r.Student)
+        var retake = await db
+            .Retakes.Include(r => r.Student)
             .FirstOrDefaultAsync(r => r.Id == retakeId && r.ExamId == examId, ct);
         if (retake is null)
             return Result<RetakeResponse>.Fail("Пересдача не найдена", 404);
@@ -163,7 +190,10 @@ public class ExamService(AppDbContext db) : IExamService
 
     public async Task<Result> DeleteRetakeAsync(Guid examId, Guid retakeId, CancellationToken ct)
     {
-        var retake = await db.Retakes.FirstOrDefaultAsync(r => r.Id == retakeId && r.ExamId == examId, ct);
+        var retake = await db.Retakes.FirstOrDefaultAsync(
+            r => r.Id == retakeId && r.ExamId == examId,
+            ct
+        );
         if (retake is null)
             return Result.Fail("Пересдача не найдена", 404);
 

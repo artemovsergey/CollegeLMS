@@ -7,13 +7,20 @@ public class CreateSemesterRequestValidator : AbstractValidator<CreateSemesterRe
 {
     public CreateSemesterRequestValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().WithMessage("Название семестра обязательно")
+        RuleFor(x => x.Name)
+            .NotEmpty()
+            .WithMessage("Название семестра обязательно")
             .MaximumLength(255);
         RuleFor(x => x.StartDate).NotEmpty().WithMessage("Дата начала обязательна");
-        RuleFor(x => x.EndDate).NotEmpty().WithMessage("Дата конца обязательна")
-            .GreaterThan(x => x.StartDate).WithMessage("Дата конца должна быть позже даты начала");
+        RuleFor(x => x.EndDate)
+            .NotEmpty()
+            .WithMessage("Дата конца обязательна")
+            .GreaterThan(x => x.StartDate)
+            .WithMessage("Дата конца должна быть позже даты начала");
         RuleFor(x => x.Type).NotEmpty().WithMessage("Тип семестра обязателен");
-        RuleFor(x => x.AcademicYear).NotEmpty().WithMessage("Учебный год обязателен")
+        RuleFor(x => x.AcademicYear)
+            .NotEmpty()
+            .WithMessage("Учебный год обязателен")
             .MaximumLength(50);
     }
 }
@@ -22,13 +29,20 @@ public class UpdateSemesterRequestValidator : AbstractValidator<UpdateSemesterRe
 {
     public UpdateSemesterRequestValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().WithMessage("Название семестра обязательно")
+        RuleFor(x => x.Name)
+            .NotEmpty()
+            .WithMessage("Название семестра обязательно")
             .MaximumLength(255);
         RuleFor(x => x.StartDate).NotEmpty().WithMessage("Дата начала обязательна");
-        RuleFor(x => x.EndDate).NotEmpty().WithMessage("Дата конца обязательна")
-            .GreaterThan(x => x.StartDate).WithMessage("Дата конца должна быть позже даты начала");
+        RuleFor(x => x.EndDate)
+            .NotEmpty()
+            .WithMessage("Дата конца обязательна")
+            .GreaterThan(x => x.StartDate)
+            .WithMessage("Дата конца должна быть позже даты начала");
         RuleFor(x => x.Type).NotEmpty().WithMessage("Тип семестра обязателен");
-        RuleFor(x => x.AcademicYear).NotEmpty().WithMessage("Учебный год обязателен")
+        RuleFor(x => x.AcademicYear)
+            .NotEmpty()
+            .WithMessage("Учебный год обязателен")
             .MaximumLength(50);
     }
 }
@@ -37,11 +51,17 @@ public class CreateSpecialtyRequestValidator : AbstractValidator<CreateSpecialty
 {
     public CreateSpecialtyRequestValidator()
     {
-        RuleFor(x => x.Code).NotEmpty().WithMessage("Код специальности обязателен")
+        RuleFor(x => x.Code)
+            .NotEmpty()
+            .WithMessage("Код специальности обязателен")
             .MaximumLength(50);
-        RuleFor(x => x.Name).NotEmpty().WithMessage("Название специальности обязательно")
+        RuleFor(x => x.Name)
+            .NotEmpty()
+            .WithMessage("Название специальности обязательно")
             .MaximumLength(255);
-        RuleFor(x => x.Department).NotEmpty().WithMessage("Отделение обязательно")
+        RuleFor(x => x.Department)
+            .NotEmpty()
+            .WithMessage("Отделение обязательно")
             .MaximumLength(255);
         RuleFor(x => x.Description).MaximumLength(4000);
     }
@@ -51,11 +71,17 @@ public class UpdateSpecialtyRequestValidator : AbstractValidator<UpdateSpecialty
 {
     public UpdateSpecialtyRequestValidator()
     {
-        RuleFor(x => x.Code).NotEmpty().WithMessage("Код специальности обязателен")
+        RuleFor(x => x.Code)
+            .NotEmpty()
+            .WithMessage("Код специальности обязателен")
             .MaximumLength(50);
-        RuleFor(x => x.Name).NotEmpty().WithMessage("Название специальности обязательно")
+        RuleFor(x => x.Name)
+            .NotEmpty()
+            .WithMessage("Название специальности обязательно")
             .MaximumLength(255);
-        RuleFor(x => x.Department).NotEmpty().WithMessage("Отделение обязательно")
+        RuleFor(x => x.Department)
+            .NotEmpty()
+            .WithMessage("Отделение обязательно")
             .MaximumLength(255);
         RuleFor(x => x.Description).MaximumLength(4000);
     }
@@ -87,7 +113,9 @@ public class CreateRetakeRequestValidator : AbstractValidator<CreateRetakeReques
     public CreateRetakeRequestValidator()
     {
         RuleFor(x => x.RetakeDate).NotEmpty().WithMessage("Дата пересдачи обязательна");
-        RuleFor(x => x.Reason).NotEmpty().WithMessage("Причина пересдачи обязательна")
+        RuleFor(x => x.Reason)
+            .NotEmpty()
+            .WithMessage("Причина пересдачи обязательна")
             .MaximumLength(1000);
     }
 }
@@ -96,7 +124,9 @@ public class TransferStudentRequestValidator : AbstractValidator<TransferStudent
 {
     public TransferStudentRequestValidator()
     {
-        RuleFor(x => x.Reason).NotEmpty().WithMessage("Причина перевода обязательна")
+        RuleFor(x => x.Reason)
+            .NotEmpty()
+            .WithMessage("Причина перевода обязательна")
             .MaximumLength(1000);
     }
 }

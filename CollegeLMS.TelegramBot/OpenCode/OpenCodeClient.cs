@@ -156,7 +156,10 @@ public class OpenCodeClient
         return await resp.Content.ReadFromJsonAsync<ProviderResponse>(JsonOpts, ct);
     }
 
-    public async Task<List<FileNode>?> ListFilesAsync(string path = "", CancellationToken ct = default)
+    public async Task<List<FileNode>?> ListFilesAsync(
+        string path = "",
+        CancellationToken ct = default
+    )
     {
         var url = string.IsNullOrEmpty(path) ? "/file" : $"/file?path={Uri.EscapeDataString(path)}";
         var resp = await _http.GetAsync(url, ct);
@@ -191,9 +194,7 @@ public record FileNode(
     public bool IsDirectory => Type == "directory";
 }
 
-public record FileContent(
-    [property: JsonPropertyName("content")] string? Content
-);
+public record FileContent([property: JsonPropertyName("content")] string? Content);
 
 // --- DTOs ---
 
@@ -242,4 +243,3 @@ public record ModelInfo(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string? Name
 );
-

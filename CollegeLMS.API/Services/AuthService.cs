@@ -36,7 +36,11 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         return Result<UserResponse>.Ok(user.ToDto());
     }
 
-    public async Task<Result> ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken ct)
+    public async Task<Result> ChangePasswordAsync(
+        Guid userId,
+        ChangePasswordRequest request,
+        CancellationToken ct
+    )
     {
         var user = await db.Users.FindAsync([userId], ct);
         if (user is null)

@@ -128,7 +128,11 @@ public class AuthServiceTests : IDisposable
 
         var result = await _sut.ChangePasswordAsync(
             user.Id,
-            new ChangePasswordRequest { OldPassword = "old-password", NewPassword = "new-password" },
+            new ChangePasswordRequest
+            {
+                OldPassword = "old-password",
+                NewPassword = "new-password",
+            },
             CancellationToken.None
         );
 
@@ -161,7 +165,11 @@ public class AuthServiceTests : IDisposable
 
         var result = await _sut.ChangePasswordAsync(
             user.Id,
-            new ChangePasswordRequest { OldPassword = "wrong-password", NewPassword = "new-password" },
+            new ChangePasswordRequest
+            {
+                OldPassword = "wrong-password",
+                NewPassword = "new-password",
+            },
             CancellationToken.None
         );
 

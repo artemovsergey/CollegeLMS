@@ -21,6 +21,9 @@ public class CourseGroupConfiguration : IEntityTypeConfiguration<CourseGroup>
             .WithMany()
             .HasForeignKey(x => x.GroupId)
             .OnDelete(DeleteBehavior.Restrict);
-        builder.HasIndex(x => new { x.CourseId, x.GroupId }).IsUnique().HasDatabaseName("ix_course_groups_course_group");
+        builder
+            .HasIndex(x => new { x.CourseId, x.GroupId })
+            .IsUnique()
+            .HasDatabaseName("ix_course_groups_course_group");
     }
 }

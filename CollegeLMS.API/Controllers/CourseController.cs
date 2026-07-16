@@ -139,7 +139,10 @@ public class CourseController(ICourseService service) : ControllerBase
     [SwaggerOperation(Summary = "Назначить группы курсу")]
     [SwaggerResponse(200, "Группы назначены", typeof(Result))]
     public async Task<ActionResult<Result>> AssignGroups(
-        Guid courseId, AssignGroupsRequest request, CancellationToken ct)
+        Guid courseId,
+        AssignGroupsRequest request,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();
@@ -153,7 +156,9 @@ public class CourseController(ICourseService service) : ControllerBase
     [SwaggerOperation(Summary = "Получить группы курса")]
     [SwaggerResponse(200, "Список групп получен", typeof(Result<List<CourseGroupResponse>>))]
     public async Task<ActionResult<Result<List<CourseGroupResponse>>>> GetGroups(
-        Guid courseId, CancellationToken ct)
+        Guid courseId,
+        CancellationToken ct
+    )
     {
         var result = await service.GetCourseGroupsAsync(courseId, ct);
         if (!result.IsSuccess)
@@ -165,7 +170,11 @@ public class CourseController(ICourseService service) : ControllerBase
     [Authorize(Roles = "Admin,Teacher")]
     [SwaggerOperation(Summary = "Отвязать группу от курса")]
     [SwaggerResponse(200, "Группа отвязана", typeof(Result))]
-    public async Task<ActionResult<Result>> RemoveGroup(Guid courseId, Guid groupId, CancellationToken ct)
+    public async Task<ActionResult<Result>> RemoveGroup(
+        Guid courseId,
+        Guid groupId,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();
@@ -187,7 +196,9 @@ public class MyCourseController(ICourseService service) : ControllerBase
     [SwaggerOperation(Summary = "Получить прогресс по курсу")]
     [SwaggerResponse(200, "Прогресс получен", typeof(Result<CourseProgressResponse>))]
     public async Task<ActionResult<Result<CourseProgressResponse>>> GetProgress(
-        Guid id, CancellationToken ct)
+        Guid id,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var result = await service.GetProgressAsync(id, userId, ct);

@@ -159,7 +159,11 @@ public class TestingController(ITestingService service) : ControllerBase
     [SwaggerOperation(Summary = "Удалить вопрос")]
     [SwaggerResponse(200, "Вопрос удалён", typeof(Result))]
     [SwaggerResponse(404, "Тест или вопрос не найден")]
-    public async Task<ActionResult<Result>> DeleteQuestion(Guid testId, Guid id, CancellationToken ct)
+    public async Task<ActionResult<Result>> DeleteQuestion(
+        Guid testId,
+        Guid id,
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var role = User.GetRole();
@@ -190,7 +194,11 @@ public class TestingController(ITestingService service) : ControllerBase
 
     [HttpGet("{testId:guid}/assignments")]
     [SwaggerOperation(Summary = "Получить список назначений теста")]
-    [SwaggerResponse(200, "Список назначений получен", typeof(Result<List<TestAssignmentResponse>>))]
+    [SwaggerResponse(
+        200,
+        "Список назначений получен",
+        typeof(Result<List<TestAssignmentResponse>>)
+    )]
     [SwaggerResponse(404, "Тест не найден")]
     public async Task<ActionResult<Result<List<TestAssignmentResponse>>>> GetAssignments(
         Guid testId,
@@ -320,7 +328,9 @@ public class TestingController(ITestingService service) : ControllerBase
     [HttpGet("~/api/my/test-results")]
     [SwaggerOperation(Summary = "Получить все результаты студента")]
     [SwaggerResponse(200, "Результаты получены", typeof(Result<List<AttemptResponse>>))]
-    public async Task<ActionResult<Result<List<AttemptResponse>>>> GetAllMyResults(CancellationToken ct)
+    public async Task<ActionResult<Result<List<AttemptResponse>>>> GetAllMyResults(
+        CancellationToken ct
+    )
     {
         var userId = User.GetUserId();
         var result = await service.GetAllMyResultsAsync(userId, ct);

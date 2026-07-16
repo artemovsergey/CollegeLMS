@@ -39,7 +39,10 @@ public class SemesterController(ISemesterService service) : ControllerBase
     [SwaggerOperation(Summary = "Создать семестр")]
     [SwaggerResponse(200, "Семестр создан", typeof(Result<SemesterResponse>))]
     [SwaggerResponse(400, "Ошибка валидации")]
-    public async Task<ActionResult<Result<SemesterResponse>>> Create(CreateSemesterRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<SemesterResponse>>> Create(
+        CreateSemesterRequest request,
+        CancellationToken ct
+    )
     {
         var result = await service.CreateAsync(request, ct);
         if (!result.IsSuccess)
@@ -52,7 +55,11 @@ public class SemesterController(ISemesterService service) : ControllerBase
     [SwaggerOperation(Summary = "Обновить семестр")]
     [SwaggerResponse(200, "Семестр обновлён", typeof(Result<SemesterResponse>))]
     [SwaggerResponse(404, "Семестр не найден")]
-    public async Task<ActionResult<Result<SemesterResponse>>> Update(Guid id, UpdateSemesterRequest request, CancellationToken ct)
+    public async Task<ActionResult<Result<SemesterResponse>>> Update(
+        Guid id,
+        UpdateSemesterRequest request,
+        CancellationToken ct
+    )
     {
         var result = await service.UpdateAsync(id, request, ct);
         if (!result.IsSuccess)
