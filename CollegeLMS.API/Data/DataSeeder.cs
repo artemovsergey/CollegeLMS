@@ -22,6 +22,7 @@ public static class DataSeeder
         await SeedScheduleEntriesAsync(db);
         await SeedNewsCategoriesAsync(db);
         await SeedNewsAsync(db);
+        await ImportWordPressDataAsync(db);
         await SeedAssignmentSubmissionsAsync(db);
         await SeedCourseMaterialsAsync(db);
         await SeedFeedbacksAsync(db);
@@ -3910,5 +3911,164 @@ public static class DataSeeder
 
         db.Feedbacks.AddRange(feedbacks);
         await db.SaveChangesAsync();
+    }
+
+    private static async Task ImportWordPressDataAsync(AppDbContext db)
+    {
+        var newsCount = await db.News.CountAsync();
+        if (newsCount >= 100)
+            return;
+
+        string[] jsonPaths =
+        [
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "import", "wp_data_full.json"),
+            "/import/wp_data_full.json",
+            Path.Combine(AppContext.BaseDirectory, "import", "wp_data_full.json"),
+        ];
+
+        string? jsonPath = null;
+        foreach (var p in jsonPaths)
+        {
+            if (File.Exists(p))
+            {
+                jsonPath = p;
+                break;
+            }
+        }
+
+        if (jsonPath == null)
+            return;
+
+        try
+        {
+            var jsonBytes = await File.ReadAllBytesAsync(jsonPath);
+            using var doc = System.Text.Json.JsonDocument.Parse(jsonBytes);
+            var root = doc.RootElement;
+
+            var admin = await db.Users.FirstOrDefaultAsync(u => u.Email == "admin@collegelms.ru");
+
+            var wpCategoryMap = new Dictionary<int, Guid>();
+
+            if (root.TryGetProperty("categories", out var categoriesEl))
+            {
+                foreach (var cat in categoriesEl.EnumerateArray())
+                {
+                    var wpId = cat.GetProperty("id").GetInt32();
+                    var name = cat.GetProperty("name").GetString() ?? "";
+                    var slug = cat.GetProperty("slug").GetString() ?? "";
+
+                    if (string.IsNullOrWhiteSpace(name))
+                        continue;
+
+                    var existing = await db.NewsCategories.FirstOrDefaultAsync(c => c.Slug == slug);
+                    if (existing != null)
+                    {
+                        wpCategoryMap[wpId] = existing.Id;
+                        continue;
+                    }
+
+                    var entity = new NewsCategory
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = name.Trim(),
+                        Slug = slug,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    };
+                    db.NewsCategories.Add(entity);
+                    wpCategoryMap[wpId] = entity.Id;
+                }
+                await db.SaveChangesAsync();
+            }
+
+            if (!root.TryGetProperty("posts", out var postsEl))
+                return;
+
+            var imported = 0;
+            foreach (var post in postsEl.EnumerateArray())
+            {
+                var slug = post.GetProperty("slug").GetString() ?? "";
+                if (await db.News.AnyAsync(n => n.Slug == slug))
+                    continue;
+
+                var title = post.GetProperty("title").GetProperty("rendered").GetString() ?? "";
+                var contentHtml =
+                    post.GetProperty("content").GetProperty("rendered").GetString() ?? "";
+                var dateStr = post.GetProperty("date").GetString() ?? "";
+                var status = post.GetProperty("status").GetString() ?? "";
+
+                if (string.IsNullOrWhiteSpace(title))
+                    continue;
+
+                DateTime publishedAt = DateTime.TryParse(dateStr, out var dt)
+                    ? dt
+                    : DateTime.UtcNow;
+
+                string? imageUrl = null;
+                if (
+                    post.TryGetProperty("_embedded", out var embedded)
+                    && embedded.TryGetProperty("wp:featuredmedia", out var media)
+                    && media.GetArrayLength() > 0
+                )
+                {
+                    var mediaObj = media[0];
+                    if (
+                        mediaObj.TryGetProperty("source_url", out var src)
+                        && src.ValueKind == System.Text.Json.JsonValueKind.String
+                    )
+                    {
+                        imageUrl = src.GetString();
+                    }
+                }
+
+                Guid? categoryId = null;
+                if (post.TryGetProperty("categories", out var catIds))
+                {
+                    foreach (var cid in catIds.EnumerateArray())
+                    {
+                        var wpId = cid.GetInt32();
+                        if (wpCategoryMap.TryGetValue(wpId, out var mappedId))
+                        {
+                            categoryId = mappedId;
+                            break;
+                        }
+                    }
+                }
+
+                db.News.Add(
+                    new News
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = title
+                            .Replace("&#8212;", "—")
+                            .Replace("&#8211;", "–")
+                            .Replace("&amp;", "&")
+                            .Replace("&laquo;", "«")
+                            .Replace("&raquo;", "»")
+                            .Trim(),
+                        Content = contentHtml,
+                        Slug = slug,
+                        ImageUrl = imageUrl,
+                        CategoryId = categoryId,
+                        IsPublished = status == "publish",
+                        PublishedAt = publishedAt,
+                        IsDeleted = false,
+                        CreatedById = admin?.Id ?? Guid.Empty,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    }
+                );
+                imported++;
+
+                if (imported % 100 == 0)
+                    await db.SaveChangesAsync();
+            }
+
+            await db.SaveChangesAsync();
+        }
+        catch
+        {
+            // silent — import is best-effort
+        }
     }
 }
