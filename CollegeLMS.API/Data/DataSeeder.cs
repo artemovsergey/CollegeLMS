@@ -1267,6 +1267,16 @@ public static class DataSeeder
                 Order = 4,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000030"),
+                CourseId = course14.Id,
+                Title = "Тестирование и отладка мобильных приложений",
+                Content = "JUnit, Espresso, отладчик Android Studio, логирование, профилирование производительности.",
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             }
         );
         await db.SaveChangesAsync();
@@ -2682,24 +2692,24 @@ public static class DataSeeder
 
     private static async Task LinkTestsToLecturesAsync(AppDbContext db)
     {
+        var tests = await db.Tests.ToListAsync();
+        var testByTitle = tests.ToDictionary(t => t.Title);
+
         var lecturesWithTests = await db.Lectures
             .Where(l => l.Title == "Entity Framework Core" || l.Title == "ASP.NET Core"
                 || l.Title == "Основы тестирования ПО" || l.Title == "Автотесты на xUnit"
-                || l.Title == "Selenium WebDriver" || l.Title == "Retrofit и сетевые запросы"
-                || l.Title == "Локальные данные: SQL и Room")
+                || l.Title == "Selenium WebDriver")
             .ToListAsync();
 
         foreach (var lecture in lecturesWithTests)
         {
             Test? test = lecture.Title switch
             {
-                "Entity Framework Core" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "EF Core и ASP.NET"),
-                "ASP.NET Core" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "EF Core и ASP.NET"),
-                "Основы тестирования ПО" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "Основы тестирования"),
-                "Автотесты на xUnit" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "xUnit и Moq"),
-                "Selenium WebDriver" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "Selenium и REST API"),
-                "Retrofit и сетевые запросы" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "ViewModel, Retrofit и Room"),
-                "Локальные данные: SQL и Room" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "ViewModel, Retrofit и Room"),
+                "Entity Framework Core" => testByTitle.GetValueOrDefault("EF Core и ASP.NET"),
+                "ASP.NET Core" => testByTitle.GetValueOrDefault("EF Core и ASP.NET"),
+                "Основы тестирования ПО" => testByTitle.GetValueOrDefault("Основы тестирования"),
+                "Автотесты на xUnit" => testByTitle.GetValueOrDefault("xUnit и Moq"),
+                "Selenium WebDriver" => testByTitle.GetValueOrDefault("Selenium и REST API"),
                 _ => null,
             };
 
