@@ -15,6 +15,10 @@ public static class DataSeeder
         await SeedCoursesAsync(db);
         await SeedLecturesAsync(db);
         await SeedAssignmentsAsync(db);
+        await SeedTestsAsync(db);
+        await SeedTestQuestionsAsync(db);
+        await SeedCourseGroupsAsync(db);
+        await LinkTestsToLecturesAsync(db);
         await SeedScheduleEntriesAsync(db);
         await SeedNewsCategoriesAsync(db);
         await SeedNewsAsync(db);
@@ -630,7 +634,7 @@ public static class DataSeeder
 
     private static async Task SeedCoursesAsync(AppDbContext db)
     {
-        if (await db.Courses.CountAsync() >= 10)
+        if (await db.Courses.CountAsync() >= 14)
             return;
 
         var allTeachers = await db.Teachers.Include(t => t.User).ToListAsync();
@@ -748,6 +752,54 @@ public static class DataSeeder
                 Description = "История России и всеобщая история",
                 TeacherId = teacherMap["novikov@collegelms.ru"].Id,
                 GroupId = groupMap["ИСП-12"].Id,
+                Status = CourseStatus.Active,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.Parse("c1000000-0000-0000-0000-00000000000b"),
+                Title = "Системное программирование",
+                Description =
+                    "МДК 01.04 — основы .NET и C#, ООП, многопоточность, обработка файлов, Entity Framework Core, ASP.NET Core, DI, JWT, REST API",
+                TeacherId = teacherMap["teacher@collegelms.ru"].Id,
+                GroupId = groupMap["ИСП-41"].Id,
+                Status = CourseStatus.Active,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.Parse("c1000000-0000-0000-0000-00000000000c"),
+                Title = "Разработка мобильных приложений",
+                Description =
+                    "МДК 01.03 — Kotlin, Jetpack Compose, навигация, ViewModel, Material Design, Retrofit, Room, корутины",
+                TeacherId = teacherMap["ivanova@collegelms.ru"].Id,
+                GroupId = groupMap["ИСП-31"].Id,
+                Status = CourseStatus.Active,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.Parse("c1000000-0000-0000-0000-00000000000d"),
+                Title = "Поддержка и тестирование программных модулей",
+                Description =
+                    "МДК 01.02 — ручное тестирование, xUnit, Moq, Selenium WebDriver, REST API тестирование, интеграционные тесты, CI/CD",
+                TeacherId = teacherMap["sidorov@collegelms.ru"].Id,
+                GroupId = groupMap["ИСП-31"].Id,
+                Status = CourseStatus.Active,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new()
+            {
+                Id = Guid.Parse("c1000000-0000-0000-0000-00000000000e"),
+                Title = "Мобильные приложения (ИБ)",
+                Description =
+                    "МДК 01.03 ИБ — Kotlin, Jetpack Compose, навигация, ViewModel, Material Design, Retrofit, SQL, Room для специальности ИБ",
+                TeacherId = teacherMap["smirnova@collegelms.ru"].Id,
+                GroupId = groupMap["ИСП-41"].Id,
                 Status = CourseStatus.Active,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -975,6 +1027,248 @@ public static class DataSeeder
                 UpdatedAt = DateTime.UtcNow,
             }
         );
+
+        // МДК 01.04 — Системное программирование
+        var course11 = await db.Courses.FirstAsync(c => c.Title == "Системное программирование");
+        var course12 = await db.Courses.FirstAsync(c => c.Title == "Разработка мобильных приложений");
+        var course13 = await db.Courses.FirstAsync(c => c.Title == "Поддержка и тестирование программных модулей");
+        var course14 = await db.Courses.FirstAsync(c => c.Title == "Мобильные приложения (ИБ)");
+
+        db.Lectures.AddRange(
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000019"),
+                CourseId = course11.Id,
+                Title = "Основы .NET и C#",
+                Content = "Платформа .NET, CLR, компиляция, типы данных, переменные, условия, циклы, массивы, LINQ.",
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000001a"),
+                CourseId = course11.Id,
+                Title = "Объектно-ориентированное программирование",
+                Content = "Классы, объекты, наследование, полиморфизм, инкапсуляция. Интерфейсы и абстрактные классы.",
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000001b"),
+                CourseId = course11.Id,
+                Title = "Многопоточность и асинхронность",
+                Content = "Task, async/await, Parallel.For, PLINQ, синхронизация потоков (lock, Monitor, Mutex).",
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000001c"),
+                CourseId = course11.Id,
+                Title = "Обработка файлов",
+                Content = "Работа с файлами, текстовые файлы, Word, Excel, PDF. Параллельная и асинхронная обработка данных.",
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000001d"),
+                CourseId = course11.Id,
+                Title = "Entity Framework Core",
+                Content = "ORM для C#, CodeFirst и DatabaseFirst, миграции, CRUD-операции, транзакции, паттерн Unit of Work.",
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000001e"),
+                CourseId = course11.Id,
+                Title = "ASP.NET Core",
+                Content = "Контроллеры, MinimalAPI, DI, маршрутизация, JWT аутентификация, ролевая авторизация, FluentValidation.",
+                Order = 6,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // МДК 01.03 — Разработка мобильных приложений
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000001f"),
+                CourseId = course12.Id,
+                Title = "Основы Kotlin",
+                Content = "Переменные, функции, условия, null-выражения, коллекции, классы и объекты, корутины.",
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000020"),
+                CourseId = course12.Id,
+                Title = "Jetpack Compose",
+                Content = "Основы композиции, Image, отладчик, списки, сетки, жизненный цикл активности.",
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000021"),
+                CourseId = course12.Id,
+                Title = "Состояния и навигация",
+                Content = "Состояние в Compose, навигация между экранами, адаптивная навигация.",
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000022"),
+                CourseId = course12.Id,
+                Title = "ViewModel и Material Design",
+                Content = "Архитектура MVVM, ViewModel, Material Design компоненты, анимации.",
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000023"),
+                CourseId = course12.Id,
+                Title = "Retrofit и сетевые запросы",
+                Content = "Retrofit, паттерн Repository, работа с REST API, загрузка изображений.",
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000024"),
+                CourseId = course12.Id,
+                Title = "Локальные данные: SQL и Room",
+                Content = "SQL основы, Datastore, Room Persistence Library, чтение и сохранение данных.",
+                Order = 6,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // МДК 01.02 — Тестирование модулей
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000025"),
+                CourseId = course13.Id,
+                Title = "Основы тестирования ПО",
+                Content = "Жизненный цикл ПО, методологии (Waterfall, Agile, Scrum), тест-планы, тест-кейсы, баг-репорты.",
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000026"),
+                CourseId = course13.Id,
+                Title = "Тест-дизайн и документирование",
+                Content = "Эквивалентное разделение, граничные значения, чек-листы, отчёты по тестированию.",
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000027"),
+                CourseId = course13.Id,
+                Title = "Автотесты на xUnit",
+                Content = "Фреймворк xUnit, атрибуты [Fact], [Theory], [InlineData], Assert, фикстуры, параметризованные тесты.",
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000028"),
+                CourseId = course13.Id,
+                Title = "Изоляция тестов и Moq",
+                Content = "Зачем нужны моки, библиотека Moq, создание mock-объектов, настройка поведения, Verify.",
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-000000000029"),
+                CourseId = course13.Id,
+                Title = "Selenium WebDriver",
+                Content = "Автоматизация веб-UI, локаторы, навигация, ожидания, паттерн Page Object Model.",
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000002a"),
+                CourseId = course13.Id,
+                Title = "REST API тестирование",
+                Content = "HTTP и REST, JSON, RestSharp, автотесты для GET/POST/PUT/DELETE, десериализация.",
+                Order = 6,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000002b"),
+                CourseId = course13.Id,
+                Title = "Интеграционное и нагрузочное тестирование",
+                Content = "TestContainers, интеграционные тесты, нагрузочное тестирование k6, CI/CD пайплайны.",
+                Order = 7,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // МДК 01.03 ИБ — Мобильные приложения ИБ
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000002c"),
+                CourseId = course14.Id,
+                Title = "Основы Kotlin",
+                Content = "Переменные и функции, условия, коллекции, классы и объекты, лямбда-функции, корутины.",
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000002d"),
+                CourseId = course14.Id,
+                Title = "Jetpack Compose и навигация",
+                Content = "Основы композиции, 상태, навигация между экранами, жизненный цикл.",
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000002e"),
+                CourseId = course14.Id,
+                Title = "ViewModel и Material Design",
+                Content = "Архитектура MVVM, Material Design компоненты, Retrofit, Repository паттерн.",
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Lecture
+            {
+                Id = Guid.Parse("d1000000-0000-0000-0000-00000000002f"),
+                CourseId = course14.Id,
+                Title = "Локальные данные: SQL и Room",
+                Content = "SQL, Datastore, Room Persistence Library, чтение и сохранение данных.",
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
         await db.SaveChangesAsync();
     }
 
@@ -1120,6 +1414,1300 @@ public static class DataSeeder
                 UpdatedAt = DateTime.UtcNow,
             }
         );
+
+        // МДК 01.04 — Системное программирование
+        var course11 = await db.Courses.FirstAsync(c => c.Title == "Системное программирование");
+        var course12 = await db.Courses.FirstAsync(c => c.Title == "Разработка мобильных приложений");
+        var course13 = await db.Courses.FirstAsync(c => c.Title == "Поддержка и тестирование программных модулей");
+        var course14 = await db.Courses.FirstAsync(c => c.Title == "Мобильные приложения (ИБ)");
+
+        db.Assignments.AddRange(
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000011"),
+                CourseId = course11.Id,
+                Title = "Компиляция и запуск .NET приложения",
+                Description = "Настройка среды разработки, компиляция и запуск первого .NET приложения.",
+                DueDate = DateTime.UtcNow.AddDays(7),
+                MaxScore = 10,
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000012"),
+                CourseId = course11.Id,
+                Title = "Работа с типами данных и LINQ",
+                Description = "Преобразования типов, работа со строками, коллекции, LINQ-запросы.",
+                DueDate = DateTime.UtcNow.AddDays(14),
+                MaxScore = 20,
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000013"),
+                CourseId = course11.Id,
+                Title = "Создание классов и интерфейсов",
+                Description = "Реализация наследования, виртуальных методов, интерфейсов и абстрактных классов.",
+                DueDate = DateTime.UtcNow.AddDays(21),
+                MaxScore = 25,
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000014"),
+                CourseId = course11.Id,
+                Title = "Многопоточность и Parallel",
+                Description = "Создание потоков, синхронизация, Parallel.For, PLINQ, разрешение гонки данных.",
+                DueDate = DateTime.UtcNow.AddDays(28),
+                MaxScore = 25,
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000015"),
+                CourseId = course11.Id,
+                Title = "CRUD с Entity Framework Core",
+                Description = "Реализация CRUD-операций, миграции, паттерн Repository и Unit of Work.",
+                DueDate = DateTime.UtcNow.AddDays(35),
+                MaxScore = 30,
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000016"),
+                CourseId = course11.Id,
+                Title = "REST API с JWT авторизацией",
+                Description = "ASP.NET Core контроллеры, JWT токены, ролевая авторизация, FluentValidation.",
+                DueDate = DateTime.UtcNow.AddDays(42),
+                MaxScore = 30,
+                Order = 6,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // МДК 01.03 — Разработка мобильных приложений
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000017"),
+                CourseId = course12.Id,
+                Title = "Основы Kotlin",
+                Description = "Переменные, функции, условия, циклы, коллекции, классы и объекты на Kotlin.",
+                DueDate = DateTime.UtcNow.AddDays(7),
+                MaxScore = 15,
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000018"),
+                CourseId = course12.Id,
+                Title = "Интерактивные приложения на Compose",
+                Description = "Dice Roller, обработка нажатий, списки с прокруткой, установка логотипа.",
+                DueDate = DateTime.UtcNow.AddDays(14),
+                MaxScore = 20,
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000019"),
+                CourseId = course12.Id,
+                Title = "Калькулятор чаевых и навигация",
+                Description = "Приложение с состоянием, навигация между экранами, адаптивный макет.",
+                DueDate = DateTime.UtcNow.AddDays(21),
+                MaxScore = 25,
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-00000000001a"),
+                CourseId = course12.Id,
+                Title = "Список героев на Material Design",
+                Description = "Применение Material Design компонентов, ViewModel, анимации.",
+                DueDate = DateTime.UtcNow.AddDays(28),
+                MaxScore = 25,
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-00000000001b"),
+                CourseId = course12.Id,
+                Title = "Загрузка данных из API",
+                Description = "Retrofit, Repository паттерн, загрузка и отображение изображений из интернета.",
+                DueDate = DateTime.UtcNow.AddDays(35),
+                MaxScore = 25,
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-00000000001c"),
+                CourseId = course12.Id,
+                Title = "Расписание автобусов на Room",
+                Description = "Разработка приложения с локальным хранилищем Room, чтение и обновление данных.",
+                DueDate = DateTime.UtcNow.AddDays(42),
+                MaxScore = 30,
+                Order = 6,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // МДК 01.02 — Тестирование модулей
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-00000000001d"),
+                CourseId = course13.Id,
+                Title = "Анализ требований и тест-кейсы",
+                Description = "Анализ требований к приложению, составление тест-кейсов и баг-репортов.",
+                DueDate = DateTime.UtcNow.AddDays(7),
+                MaxScore = 15,
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-00000000001e"),
+                CourseId = course13.Id,
+                Title = "Юнит-тесты на xUnit",
+                Description = "Написание параметризованных тестов, тестирование исключений, работа с фикстурами.",
+                DueDate = DateTime.UtcNow.AddDays(14),
+                MaxScore = 20,
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-00000000001f"),
+                CourseId = course13.Id,
+                Title = "Тесты с Moq и изоляцией",
+                Description = "Изоляция зависимостей с помощью Moq, настройка mock-объектов, проверка вызовов.",
+                DueDate = DateTime.UtcNow.AddDays(21),
+                MaxScore = 20,
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000020"),
+                CourseId = course13.Id,
+                Title = "UI-тесты на Selenium",
+                Description = "Автоматизация сценария входа, паттерн Page Object Model, кросс-браузерное тестирование.",
+                DueDate = DateTime.UtcNow.AddDays(28),
+                MaxScore = 25,
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000021"),
+                CourseId = course13.Id,
+                Title = "API-тесты на RestSharp",
+                Description = "Автотесты для GET/POST/PUT/DELETE запросов, десериализация JSON, анализ API через Postman.",
+                DueDate = DateTime.UtcNow.AddDays(35),
+                MaxScore = 25,
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000022"),
+                CourseId = course13.Id,
+                Title = "Интеграционные тесты и CI/CD",
+                Description = "TestContainers, Allure-отчёт, настройка GitHub Actions pipeline для тестов.",
+                DueDate = DateTime.UtcNow.AddDays(42),
+                MaxScore = 30,
+                Order = 6,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // МДК 01.03 ИБ — Мобильные приложения ИБ
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000023"),
+                CourseId = course14.Id,
+                Title = "Основы Kotlin и корутины",
+                Description = "Переменные, функции, коллекции, классы, лямбда-функции, корутины на Kotlin.",
+                DueDate = DateTime.UtcNow.AddDays(7),
+                MaxScore = 15,
+                Order = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000024"),
+                CourseId = course14.Id,
+                Title = "Интерактивные приложения на Compose",
+                Description = "Основы композиции, Dice Roller, обработка нажатий, списки с прокруткой.",
+                DueDate = DateTime.UtcNow.AddDays(14),
+                MaxScore = 20,
+                Order = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000025"),
+                CourseId = course14.Id,
+                Title = "Навигация и адаптивный макет",
+                Description = "Навигация между экранами, корутины в JC, создание адаптивного макета.",
+                DueDate = DateTime.UtcNow.AddDays(21),
+                MaxScore = 25,
+                Order = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000026"),
+                CourseId = course14.Id,
+                Title = "Список героев на Material Design",
+                Description = "ViewModel, Material Design компоненты, разработка приложения Список героев.",
+                DueDate = DateTime.UtcNow.AddDays(28),
+                MaxScore = 25,
+                Order = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000027"),
+                CourseId = course14.Id,
+                Title = "Загрузка данных из API",
+                Description = "Retrofit, Repository паттерн, загрузка и отображение изображений из интернета.",
+                DueDate = DateTime.UtcNow.AddDays(35),
+                MaxScore = 25,
+                Order = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Assignment
+            {
+                Id = Guid.Parse("e1000000-0000-0000-0000-000000000028"),
+                CourseId = course14.Id,
+                Title = "Расписание автобусов на Room",
+                Description = "SQL, Datastore, Room Persistence Library, приложение Расписание автобусов.",
+                DueDate = DateTime.UtcNow.AddDays(42),
+                MaxScore = 30,
+                Order = 6,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedTestsAsync(AppDbContext db)
+    {
+        if (await db.Tests.AnyAsync())
+            return;
+
+        var course11 = await db.Courses.FirstAsync(c => c.Title == "Системное программирование");
+        var course12 = await db.Courses.FirstAsync(c => c.Title == "Разработка мобильных приложений");
+        var course13 = await db.Courses.FirstAsync(c => c.Title == "Поддержка и тестирование программных модулей");
+        var course14 = await db.Courses.FirstAsync(c => c.Title == "Мобильные приложения (ИБ)");
+
+        db.Tests.AddRange(
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-000000000001"),
+                CourseId = course11.Id,
+                Title = "Основы C# и .NET",
+                Description = "Проверка знаний основ синтаксиса C#, типов данных, ООП",
+                TimeLimitMinutes = 30,
+                MaxAttempts = 3,
+                PassingScore = 60,
+                Type = TestType.SelfStudy,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-000000000002"),
+                CourseId = course11.Id,
+                Title = "Многопоточность и файлы",
+                Description = "Проверка знаний по многопоточности, async/await, обработке файлов",
+                TimeLimitMinutes = 25,
+                MaxAttempts = 3,
+                PassingScore = 60,
+                Type = TestType.SelfStudy,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-000000000003"),
+                CourseId = course11.Id,
+                Title = "EF Core и ASP.NET",
+                Description = "Проверка знаний по Entity Framework Core, ASP.NET Core, DI, JWT",
+                TimeLimitMinutes = 30,
+                MaxAttempts = 2,
+                PassingScore = 70,
+                Type = TestType.Control,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // МДК 01.03 — Мобильные приложения
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-000000000004"),
+                CourseId = course12.Id,
+                Title = "Основы Kotlin",
+                Description = "Проверка знаний синтаксиса Kotlin: переменные, функции, коллекции, классы",
+                TimeLimitMinutes = 25,
+                MaxAttempts = 3,
+                PassingScore = 60,
+                Type = TestType.SelfStudy,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-000000000005"),
+                CourseId = course12.Id,
+                Title = "Jetpack Compose и навигация",
+                Description = "Проверка знаний по Compose, состояниям, навигации, ViewModel",
+                TimeLimitMinutes = 30,
+                MaxAttempts = 3,
+                PassingScore = 60,
+                Type = TestType.SelfStudy,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // МДК 01.02 — Тестирование
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-000000000006"),
+                CourseId = course13.Id,
+                Title = "Основы тестирования",
+                Description = "Проверка знаний по тест-дизайну, тест-планам, баг-репортам",
+                TimeLimitMinutes = 20,
+                MaxAttempts = 3,
+                PassingScore = 60,
+                Type = TestType.SelfStudy,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-000000000007"),
+                CourseId = course13.Id,
+                Title = "xUnit и Moq",
+                Description = "Проверка знаний по юнит-тестированию, изоляции зависимостей",
+                TimeLimitMinutes = 25,
+                MaxAttempts = 3,
+                PassingScore = 60,
+                Type = TestType.SelfStudy,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-000000000008"),
+                CourseId = course13.Id,
+                Title = "Selenium и REST API",
+                Description = "Проверка знаний по UI-автоматизации и тестированию API",
+                TimeLimitMinutes = 30,
+                MaxAttempts = 2,
+                PassingScore = 70,
+                Type = TestType.Control,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // МДК 01.03 ИБ — Мобильные приложения ИБ
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-000000000009"),
+                CourseId = course14.Id,
+                Title = "Основы Kotlin и Compose",
+                Description = "Проверка знаний по Kotlin, Jetpack Compose, навигации",
+                TimeLimitMinutes = 25,
+                MaxAttempts = 3,
+                PassingScore = 60,
+                Type = TestType.SelfStudy,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new Test
+            {
+                Id = Guid.Parse("g1000000-0000-0000-0000-00000000000a"),
+                CourseId = course14.Id,
+                Title = "ViewModel, Retrofit и Room",
+                Description = "Проверка знаний по архитектуре MVVM, сетевым запросам и локальным данным",
+                TimeLimitMinutes = 30,
+                MaxAttempts = 2,
+                PassingScore = 70,
+                Type = TestType.Control,
+                AutoCheck = true,
+                ShuffleQuestions = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedTestQuestionsAsync(AppDbContext db)
+    {
+        if (await db.TestQuestions.AnyAsync())
+            return;
+
+        var test1 = await db.Tests.FirstAsync(t => t.Title == "Основы C# и .NET");
+        var test2 = await db.Tests.FirstAsync(t => t.Title == "Многопоточность и файлы");
+        var test3 = await db.Tests.FirstAsync(t => t.Title == "EF Core и ASP.NET");
+        var test4 = await db.Tests.FirstAsync(t => t.Title == "Основы Kotlin");
+        var test5 = await db.Tests.FirstAsync(t => t.Title == "Jetpack Compose и навигация");
+        var test6 = await db.Tests.FirstAsync(t => t.Title == "Основы тестирования");
+        var test7 = await db.Tests.FirstAsync(t => t.Title == "xUnit и Moq");
+        var test8 = await db.Tests.FirstAsync(t => t.Title == "Selenium и REST API");
+        var test9 = await db.Tests.FirstAsync(t => t.Title == "Основы Kotlin и Compose");
+        var test10 = await db.Tests.FirstAsync(t => t.Title == "ViewModel, Retrofit и Room");
+
+        db.TestQuestions.AddRange(
+            // Тест 1: Основы C# и .NET
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000001"),
+                TestId = test1.Id,
+                Text = "Какой тип данных используется для хранения десятичных чисел с высокой точностью в C#?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "float", "double", "decimal", "int" }),
+                CorrectAnswer = "decimal",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000002"),
+                TestId = test1.Id,
+                Text = "Какой модификатор доступа делает член доступным только внутри класса?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "public", "private", "protected", "internal" }),
+                CorrectAnswer = "private",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000003"),
+                TestId = test1.Id,
+                Text = "Что такое CLR в контексте .NET?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Язык программирования", "Среда выполнения", "Библиотека классов", "Текстовый редактор" }),
+                CorrectAnswer = "Среда выполнения",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000004"),
+                TestId = test1.Id,
+                Text = "Какой метод LINQ возвращает первый элемент коллекции или значение по умолчанию?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "First()", "FirstOrDefault()", "Single()", "Take(1)" }),
+                CorrectAnswer = "FirstOrDefault()",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000005"),
+                TestId = test1.Id,
+                Text = "Какие принципы ООП вы знаете? (выберите все правильные)",
+                Type = QuestionType.MultipleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Инкапсуляция", "Наследование", "Компиляция", "Полиморфизм" }),
+                CorrectAnswer = "Инкапсуляция,Наследование,Полиморфизм",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000006"),
+                TestId = test1.Id,
+                Text = "Что вернёт выражение 5 / 2 в C# при целочисленном делении?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "2.5", "2", "3", "2.0" }),
+                CorrectAnswer = "2",
+                Points = 10,
+                OrderIndex = 6,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000007"),
+                TestId = test1.Id,
+                Text = "Какой коллекции соответствует интерфейс IDictionary?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "List", "Dictionary", "Queue", "Stack" }),
+                CorrectAnswer = "Dictionary",
+                Points = 10,
+                OrderIndex = 7,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тест 2: Многопоточность и файлы
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000008"),
+                TestId = test2.Id,
+                Text = "Какой тип используется для запуска асинхронной операции в C#?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Thread", "Task", "Process", "Mutex" }),
+                CorrectAnswer = "Task",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000009"),
+                TestId = test2.Id,
+                Text = "Какой оператор используется для блокировки доступа к общему ресурсу?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "lock", "await", "using", "var" }),
+                CorrectAnswer = "lock",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000a"),
+                TestId = test2.Id,
+                Text = "Что делает метод Parallel.For?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Запускает итерации параллельно", "Создаёт новый поток", "Блокирует поток", "Очищает память" }),
+                CorrectAnswer = "Запускает итерации параллельно",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000b"),
+                TestId = test2.Id,
+                Text = "Какой класс используется для чтения текстовых файлов в .NET?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "StreamReader", "HttpClient", "MemoryStream", "BinaryWriter" }),
+                CorrectAnswer = "StreamReader",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000c"),
+                TestId = test2.Id,
+                Text = "Что такое гонка данных (race condition)?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Одновременный доступ к ресурсу без синхронизации", "Ошибка компиляции", "Переполнение стека", "Отсутствие подключения к БД" }),
+                CorrectAnswer = "Одновременный доступ к ресурсу без синхронизации",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тест 3: EF Core и ASP.NET
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000d"),
+                TestId = test3.Id,
+                Text = "Что такое Code First в Entity Framework?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Создание БД из моделей кода", "Работа с существующей БД", "Генерация отчётов", "Управление пакетами" }),
+                CorrectAnswer = "Создание БД из моделей кода",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000e"),
+                TestId = test3.Id,
+                Text = "Какой паттерн инверсии зависимостей используется в ASP.NET Core для внедрения сервисов?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Repository", "Dependency Injection", "Singleton", "Observer" }),
+                CorrectAnswer = "Dependency Injection",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000000f"),
+                TestId = test3.Id,
+                Text = "Что такое JWT?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Формат хранения данных", "Токен аутентификации", "Протокол передачи файлов", "База данных" }),
+                CorrectAnswer = "Токен аутентификации",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000010"),
+                TestId = test3.Id,
+                Text = "Какой метод EF Core выполняет миграцию?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "EnsureCreated", "Migrate", "SaveChanges", "FirstOrDefault" }),
+                CorrectAnswer = "Migrate",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000011"),
+                TestId = test3.Id,
+                Text = "Какой HTTP-метод используется для обновления данных?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "GET", "POST", "PUT", "DELETE" }),
+                CorrectAnswer = "PUT",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тест 4: Основы Kotlin
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000012"),
+                TestId = test4.Id,
+                Text = "Как объявляется переменная в Kotlin?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "var x = 5", "let x = 5", "dim x = 5", "define x = 5" }),
+                CorrectAnswer = "var x = 5",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000013"),
+                TestId = test4.Id,
+                Text = "Что такое корутины в Kotlin?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Потоки", "Легковесные фоновые операции", "Функции высшего порядка", "Коллекции" }),
+                CorrectAnswer = "Легковесные фоновые операции",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000014"),
+                TestId = test4.Id,
+                Text = "Какой коллекции соответствует аналог List в Kotlin?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Array", "ArrayList", "MutableList", "Vector" }),
+                CorrectAnswer = "MutableList",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000015"),
+                TestId = test4.Id,
+                Text = "Какой оператор нулевой безопасности в Kotlin?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "??", "?.", "!", "#" }),
+                CorrectAnswer = "?.",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000016"),
+                TestId = test4.Id,
+                Text = "Что такое data class в Kotlin?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Класс для хранения данных с переопределёнными методами", "Абстрактный класс", "Интерфейс", "Перечисление" }),
+                CorrectAnswer = "Класс для хранения данных с переопределёнными методами",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тест 5: Jetpack Compose и навигация
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000017"),
+                TestId = test5.Id,
+                Text = "Что такое Composable функция в Jetpack Compose?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Обычная функция", "Функция для описания UI", "Функция для работы с сетью", "Функция для БД" }),
+                CorrectAnswer = "Функция для описания UI",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000018"),
+                TestId = test5.Id,
+                Text = "Какой хук используется для хранения состояния в Compose?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "remember", "useState", "stateOf", "mutableStateOf" }),
+                CorrectAnswer = "remember",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000019"),
+                TestId = test5.Id,
+                Text = "Как работает навигация в Jetpack Compose?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Через Activity", "Через NavController и NavHost", "Через Intent", "Через Fragment" }),
+                CorrectAnswer = "Через NavController и NavHost",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001a"),
+                TestId = test5.Id,
+                Text = "Для чего используется ViewModel в архитектуре MVVM?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Для хранения UI-состояния", "Для работы с сетью", "Для отрисовки��", "Для навигации" }),
+                CorrectAnswer = "Для хранения UI-состояния",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001b"),
+                TestId = test5.Id,
+                Text = "Какой компонент отвечает за Material Design в Compose?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Scaffold", "Column", "Row", "Box" }),
+                CorrectAnswer = "Scaffold",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тест 6: Основы тестирования
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001c"),
+                TestId = test6.Id,
+                Text = "Что такое тест-кейс?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Документ с описанием теста", "Программный код", "Баг-репорт", "Отчёт о тестировании" }),
+                CorrectAnswer = "Документ с описанием теста",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001d"),
+                TestId = test6.Id,
+                Text = "Какая техника тест-дизайна основана на проверке граничных значений?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Эквивалентное разделение", "Граничные значения", "Парное тестирование", "Статический анализ" }),
+                CorrectAnswer = "Граничные значения",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001e"),
+                TestId = test6.Id,
+                Text = "Что такое баг-репорт?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Документальное описание найденного дефекта", "Автоматический тест", "Код программы", "Отчёт о покрытии" }),
+                CorrectAnswer = "Документальное описание найденного дефекта",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000001f"),
+                TestId = test6.Id,
+                Text = "Какие виды тестирования вы знаете? (выберите все правильные)",
+                Type = QuestionType.MultipleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Юнит-тестирование", "Интеграционное", "Ручное", "Компиляция" }),
+                CorrectAnswer = "Юнит-тестирование,Интеграционное,Ручное",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000020"),
+                TestId = test6.Id,
+                Text = "Что такое жизненный цикл ПО (SDLC)?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Процесс разработки от идеи до поддержки", "Только этап тестирования", "Процесс компиляции", "Управление версиями" }),
+                CorrectAnswer = "Процесс разработки от идеи до поддержки",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тест 7: xUnit и Moq
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000021"),
+                TestId = test7.Id,
+                Text = "Какой атрибут помечает тестовый метод в xUnit?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "[Test]", "[Fact]", "[TestMethod]", "[TestCase]" }),
+                CorrectAnswer = "[Fact]",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000022"),
+                TestId = test7.Id,
+                Text = "Какой атрибут используется для параметризованных тестов в xUnit?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "[Fact]", "[Theory]", "[InlineData]", "[MemberData]" }),
+                CorrectAnswer = "[Theory]",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000023"),
+                TestId = test7.Id,
+                Text = "Для чего используется библиотека Moq?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Для создания mock-объектов", "Для работы с БД", "Для UI-тестирования", "Для логирования" }),
+                CorrectAnswer = "Для создания mock-объектов",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000024"),
+                TestId = test7.Id,
+                Text = "Что проверяет метод Verify() в Moq?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Значение переменной", "Что метод был вызван", "Результат вычисления", "Подключение к сети" }),
+                CorrectAnswer = "Что метод был вызван",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000025"),
+                TestId = test7.Id,
+                Text = "Как проверяется исключение в xUnit?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Assert.Throws<T>()", "Assert.IsType<T>()", "Assert.Null()", "Assert.Contains()" }),
+                CorrectAnswer = "Assert.Throws<T>()",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тест 8: Selenium и REST API
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000026"),
+                TestId = test8.Id,
+                Text = "Что такое Page Object Model (POM) в Selenium?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Паттерн для структурирования UI-тестов", "Тип локатора", "Метод поиска элемента", "Фреймворк для API-тестов" }),
+                CorrectAnswer = "Паттерн для структурирования UI-тестов",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000027"),
+                TestId = test8.Id,
+                Text = "Какой локатор считается самым надёжным в Selenium?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "XPath", "ID", "CSS Selector", "Name" }),
+                CorrectAnswer = "ID",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000028"),
+                TestId = test8.Id,
+                Text = "Какой HTTP-метод используется для создания нового ресурса в REST API?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "GET", "POST", "PUT", "DELETE" }),
+                CorrectAnswer = "POST",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000029"),
+                TestId = test8.Id,
+                Text = "Что такое Implicit Wait в Selenium?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Глобальное ожидание появления элемента", "Ожидание конкретного условия", "Пауза между запросами", "Ожидание загрузки страницы" }),
+                CorrectAnswer = "Глобальное ожидание появления элемента",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002a"),
+                TestId = test8.Id,
+                Text = "Какой формат данных используется в REST API для обмена данными?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "XML", "JSON", "CSV", "HTML" }),
+                CorrectAnswer = "JSON",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тест 9: Основы Kotlin и Compose (ИБ)
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002b"),
+                TestId = test9.Id,
+                Text = "Чем отличается val от var в Kotlin?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "val — изменяемая, var — неизменяемая", "val — неизменяемая, var — изменяемая", "Ничем", "val — приватная, var — публичная" }),
+                CorrectAnswer = "val — неизменяемая, var — изменяемая",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002c"),
+                TestId = test9.Id,
+                Text = "Какой оператор используется для безопасного вызова nullable-типа в Kotlin?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "!!", "?.", "as", "is" }),
+                CorrectAnswer = "?.",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002d"),
+                TestId = test9.Id,
+                Text = "Что делает suspend-функция в Kotlin?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Приостанавливает выполнение корутины", "Останавливает поток", "Удаляет переменную", "Очищает память" }),
+                CorrectAnswer = "Приостанавливает выполнение корутины",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002e"),
+                TestId = test9.Id,
+                Text = "Какой аннотацией помечается Composable функция?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "@Composable", "@Override", "@Inject", "@Test" }),
+                CorrectAnswer = "@Composable",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-00000000002f"),
+                TestId = test9.Id,
+                Text = "Какое хранилище данных предоставляет Room в Android?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "SQLite на устройстве", "Firebase", "SharedPreferences", "XML-файлы" }),
+                CorrectAnswer = "SQLite на устройстве",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тест 10: ViewModel, Retrofit и Room (ИБ)
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000030"),
+                TestId = test10.Id,
+                Text = "Какой класс используется для HTTP-запросов через Retrofit?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "HttpURLConnection", "Retrofit (интерфейс)", "OkHttp", "Volley" }),
+                CorrectAnswer = "Retrofit (интерфейс)",
+                Points = 10,
+                OrderIndex = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000031"),
+                TestId = test10.Id,
+                Text = "Что такое Repository паттерн в архитектуре Android?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Абстракция над источниками данных", "UI-компонент", "Тип навигации", "Атрибут" }),
+                CorrectAnswer = "Абстракция над источниками данных",
+                Points = 10,
+                OrderIndex = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000032"),
+                TestId = test10.Id,
+                Text = "Для чего используется @Entity аннотация в Room?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Описывает таблицу БД", "Описывает сетевой запрос", "Описывает UI-компонент", "Описывает тест" }),
+                CorrectAnswer = "Описывает таблицу БД",
+                Points = 10,
+                OrderIndex = 3,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000033"),
+                TestId = test10.Id,
+                Text = "Что такое LiveData в ViewModel?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Observable-обёртка для данных", "База данных", "Фреймворк для тестов", "Интерфейс" }),
+                CorrectAnswer = "Observable-обёртка для данных",
+                Points = 10,
+                OrderIndex = 4,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new TestQuestion
+            {
+                Id = Guid.Parse("h1000000-0000-0000-0000-000000000034"),
+                TestId = test10.Id,
+                Text = "Какой компонент связывает UI с ViewModel в Compose?",
+                Type = QuestionType.SingleChoice,
+                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "remember / collectAsState", "Intent", "Fragment", "Adapter" }),
+                CorrectAnswer = "remember / collectAsState",
+                Points = 10,
+                OrderIndex = 5,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedCourseGroupsAsync(AppDbContext db)
+    {
+        if (await db.CourseGroups.AnyAsync())
+            return;
+
+        var course11 = await db.Courses.FirstAsync(c => c.Title == "Системное программирование");
+        var course12 = await db.Courses.FirstAsync(c => c.Title == "Разработка мобильных приложений");
+        var course13 = await db.Courses.FirstAsync(c => c.Title == "Поддержка и тестирование программных модулей");
+        var course14 = await db.Courses.FirstAsync(c => c.Title == "Мобильные приложения (ИБ)");
+
+        var group41 = await db.Groups.FirstAsync(g => g.Name == "ИСП-41");
+        var group42 = await db.Groups.FirstAsync(g => g.Name == "ИСП-42");
+        var group31 = await db.Groups.FirstAsync(g => g.Name == "ИСП-31");
+        var group32 = await db.Groups.FirstAsync(g => g.Name == "ИСП-32");
+
+        db.CourseGroups.AddRange(
+            // Системное программирование → ИСП-41, ИСП-42
+            new CourseGroup
+            {
+                Id = Guid.Parse("i1000000-0000-0000-0000-000000000001"),
+                CourseId = course11.Id,
+                GroupId = group41.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new CourseGroup
+            {
+                Id = Guid.Parse("i1000000-0000-0000-0000-000000000002"),
+                CourseId = course11.Id,
+                GroupId = group42.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Мобильные приложения ИП → ИСП-31, ИСП-32
+            new CourseGroup
+            {
+                Id = Guid.Parse("i1000000-0000-0000-0000-000000000003"),
+                CourseId = course12.Id,
+                GroupId = group31.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new CourseGroup
+            {
+                Id = Guid.Parse("i1000000-0000-0000-0000-000000000004"),
+                CourseId = course12.Id,
+                GroupId = group32.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Тестирование модулей → ИСП-31, ИСП-32
+            new CourseGroup
+            {
+                Id = Guid.Parse("i1000000-0000-0000-0000-000000000005"),
+                CourseId = course13.Id,
+                GroupId = group31.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new CourseGroup
+            {
+                Id = Guid.Parse("i1000000-0000-0000-0000-000000000006"),
+                CourseId = course13.Id,
+                GroupId = group32.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            // Мобильные приложения ИБ → ИСП-41, ИСП-42
+            new CourseGroup
+            {
+                Id = Guid.Parse("i1000000-0000-0000-0000-000000000007"),
+                CourseId = course14.Id,
+                GroupId = group41.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
+            new CourseGroup
+            {
+                Id = Guid.Parse("i1000000-0000-0000-0000-000000000008"),
+                CourseId = course14.Id,
+                GroupId = group42.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task LinkTestsToLecturesAsync(AppDbContext db)
+    {
+        var lecturesWithTests = await db.Lectures
+            .Where(l => l.Title == "Entity Framework Core" || l.Title == "ASP.NET Core"
+                || l.Title == "Основы тестирования ПО" || l.Title == "Автотесты на xUnit"
+                || l.Title == "Selenium WebDriver" || l.Title == "Retrofit и сетевые запросы"
+                || l.Title == "Локальные данные: SQL и Room")
+            .ToListAsync();
+
+        foreach (var lecture in lecturesWithTests)
+        {
+            Test? test = lecture.Title switch
+            {
+                "Entity Framework Core" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "EF Core и ASP.NET"),
+                "ASP.NET Core" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "EF Core и ASP.NET"),
+                "Основы тестирования ПО" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "Основы тестирования"),
+                "Автотесты на xUnit" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "xUnit и Moq"),
+                "Selenium WebDriver" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "Selenium и REST API"),
+                "Retrofit и сетевые запросы" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "ViewModel, Retrofit и Room"),
+                "Локальные данные: SQL и Room" => await db.Tests.FirstOrDefaultAsync(t => t.Title == "ViewModel, Retrofit и Room"),
+                _ => null,
+            };
+
+            if (test != null)
+            {
+                lecture.TestId = test.Id;
+            }
+        }
         await db.SaveChangesAsync();
     }
 
