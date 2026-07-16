@@ -1030,8 +1030,12 @@ public static class DataSeeder
 
         // МДК 01.04 — Системное программирование
         var course11 = await db.Courses.FirstAsync(c => c.Title == "Системное программирование");
-        var course12 = await db.Courses.FirstAsync(c => c.Title == "Разработка мобильных приложений");
-        var course13 = await db.Courses.FirstAsync(c => c.Title == "Поддержка и тестирование программных модулей");
+        var course12 = await db.Courses.FirstAsync(c =>
+            c.Title == "Разработка мобильных приложений"
+        );
+        var course13 = await db.Courses.FirstAsync(c =>
+            c.Title == "Поддержка и тестирование программных модулей"
+        );
         var course14 = await db.Courses.FirstAsync(c => c.Title == "Мобильные приложения (ИБ)");
 
         db.Lectures.AddRange(
@@ -1040,7 +1044,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000019"),
                 CourseId = course11.Id,
                 Title = "Основы .NET и C#",
-                Content = "Платформа .NET, CLR, компиляция, типы данных, переменные, условия, циклы, массивы, LINQ.",
+                Content =
+                    "Платформа .NET, CLR, компиляция, типы данных, переменные, условия, циклы, массивы, LINQ.",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1050,7 +1055,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000001a"),
                 CourseId = course11.Id,
                 Title = "Объектно-ориентированное программирование",
-                Content = "Классы, объекты, наследование, полиморфизм, инкапсуляция. Интерфейсы и абстрактные классы.",
+                Content =
+                    "Классы, объекты, наследование, полиморфизм, инкапсуляция. Интерфейсы и абстрактные классы.",
                 Order = 2,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1060,7 +1066,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000001b"),
                 CourseId = course11.Id,
                 Title = "Многопоточность и асинхронность",
-                Content = "Task, async/await, Parallel.For, PLINQ, синхронизация потоков (lock, Monitor, Mutex).",
+                Content =
+                    "Task, async/await, Parallel.For, PLINQ, синхронизация потоков (lock, Monitor, Mutex).",
                 Order = 3,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1070,7 +1077,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000001c"),
                 CourseId = course11.Id,
                 Title = "Обработка файлов",
-                Content = "Работа с файлами, текстовые файлы, Word, Excel, PDF. Параллельная и асинхронная обработка данных.",
+                Content =
+                    "Работа с файлами, текстовые файлы, Word, Excel, PDF. Параллельная и асинхронная обработка данных.",
                 Order = 4,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1080,7 +1088,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000001d"),
                 CourseId = course11.Id,
                 Title = "Entity Framework Core",
-                Content = "ORM для C#, CodeFirst и DatabaseFirst, миграции, CRUD-операции, транзакции, паттерн Unit of Work.",
+                Content =
+                    "ORM для C#, CodeFirst и DatabaseFirst, миграции, CRUD-операции, транзакции, паттерн Unit of Work.",
                 Order = 5,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1090,7 +1099,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000001e"),
                 CourseId = course11.Id,
                 Title = "ASP.NET Core",
-                Content = "Контроллеры, MinimalAPI, DI, маршрутизация, JWT аутентификация, ролевая авторизация, FluentValidation.",
+                Content =
+                    "Контроллеры, MinimalAPI, DI, маршрутизация, JWT аутентификация, ролевая авторизация, FluentValidation.",
                 Order = 6,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1101,7 +1111,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000001f"),
                 CourseId = course12.Id,
                 Title = "Основы Kotlin",
-                Content = "Переменные, функции, условия, null-выражения, коллекции, классы и объекты, корутины.",
+                Content =
+                    "Переменные, функции, условия, null-выражения, коллекции, классы и объекты, корутины.",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1111,7 +1122,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000020"),
                 CourseId = course12.Id,
                 Title = "Jetpack Compose",
-                Content = "Основы композиции, Image, отладчик, списки, сетки, жизненный цикл активности.",
+                Content =
+                    "Основы композиции, Image, отладчик, списки, сетки, жизненный цикл активности.",
                 Order = 2,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1151,7 +1163,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000024"),
                 CourseId = course12.Id,
                 Title = "Локальные данные: SQL и Room",
-                Content = "SQL основы, Datastore, Room Persistence Library, чтение и сохранение данных.",
+                Content =
+                    "SQL основы, Datastore, Room Persistence Library, чтение и сохранение данных.",
                 Order = 6,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1162,7 +1175,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000025"),
                 CourseId = course13.Id,
                 Title = "Основы тестирования ПО",
-                Content = "Жизненный цикл ПО, методологии (Waterfall, Agile, Scrum), тест-планы, тест-кейсы, баг-репорты.",
+                Content =
+                    "Жизненный цикл ПО, методологии (Waterfall, Agile, Scrum), тест-планы, тест-кейсы, баг-репорты.",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1172,7 +1186,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000026"),
                 CourseId = course13.Id,
                 Title = "Тест-дизайн и документирование",
-                Content = "Эквивалентное разделение, граничные значения, чек-листы, отчёты по тестированию.",
+                Content =
+                    "Эквивалентное разделение, граничные значения, чек-листы, отчёты по тестированию.",
                 Order = 2,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1182,7 +1197,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000027"),
                 CourseId = course13.Id,
                 Title = "Автотесты на xUnit",
-                Content = "Фреймворк xUnit, атрибуты [Fact], [Theory], [InlineData], Assert, фикстуры, параметризованные тесты.",
+                Content =
+                    "Фреймворк xUnit, атрибуты [Fact], [Theory], [InlineData], Assert, фикстуры, параметризованные тесты.",
                 Order = 3,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1192,7 +1208,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000028"),
                 CourseId = course13.Id,
                 Title = "Изоляция тестов и Moq",
-                Content = "Зачем нужны моки, библиотека Moq, создание mock-объектов, настройка поведения, Verify.",
+                Content =
+                    "Зачем нужны моки, библиотека Moq, создание mock-объектов, настройка поведения, Verify.",
                 Order = 4,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1202,7 +1219,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000029"),
                 CourseId = course13.Id,
                 Title = "Selenium WebDriver",
-                Content = "Автоматизация веб-UI, локаторы, навигация, ожидания, паттерн Page Object Model.",
+                Content =
+                    "Автоматизация веб-UI, локаторы, навигация, ожидания, паттерн Page Object Model.",
                 Order = 5,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1212,7 +1230,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000002a"),
                 CourseId = course13.Id,
                 Title = "REST API тестирование",
-                Content = "HTTP и REST, JSON, RestSharp, автотесты для GET/POST/PUT/DELETE, десериализация.",
+                Content =
+                    "HTTP и REST, JSON, RestSharp, автотесты для GET/POST/PUT/DELETE, десериализация.",
                 Order = 6,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1222,7 +1241,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000002b"),
                 CourseId = course13.Id,
                 Title = "Интеграционное и нагрузочное тестирование",
-                Content = "TestContainers, интеграционные тесты, нагрузочное тестирование k6, CI/CD пайплайны.",
+                Content =
+                    "TestContainers, интеграционные тесты, нагрузочное тестирование k6, CI/CD пайплайны.",
                 Order = 7,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1233,7 +1253,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000002c"),
                 CourseId = course14.Id,
                 Title = "Основы Kotlin",
-                Content = "Переменные и функции, условия, коллекции, классы и объекты, лямбда-функции, корутины.",
+                Content =
+                    "Переменные и функции, условия, коллекции, классы и объекты, лямбда-функции, корутины.",
                 Order = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1253,7 +1274,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-00000000002e"),
                 CourseId = course14.Id,
                 Title = "ViewModel и Material Design",
-                Content = "Архитектура MVVM, Material Design компоненты, Retrofit, Repository паттерн.",
+                Content =
+                    "Архитектура MVVM, Material Design компоненты, Retrofit, Repository паттерн.",
                 Order = 3,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1273,7 +1295,8 @@ public static class DataSeeder
                 Id = Guid.Parse("d1000000-0000-0000-0000-000000000030"),
                 CourseId = course14.Id,
                 Title = "Тестирование и отладка мобильных приложений",
-                Content = "JUnit, Espresso, отладчик Android Studio, логирование, профилирование производительности.",
+                Content =
+                    "JUnit, Espresso, отладчик Android Studio, логирование, профилирование производительности.",
                 Order = 5,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -1427,8 +1450,12 @@ public static class DataSeeder
 
         // МДК 01.04 — Системное программирование
         var course11 = await db.Courses.FirstAsync(c => c.Title == "Системное программирование");
-        var course12 = await db.Courses.FirstAsync(c => c.Title == "Разработка мобильных приложений");
-        var course13 = await db.Courses.FirstAsync(c => c.Title == "Поддержка и тестирование программных модулей");
+        var course12 = await db.Courses.FirstAsync(c =>
+            c.Title == "Разработка мобильных приложений"
+        );
+        var course13 = await db.Courses.FirstAsync(c =>
+            c.Title == "Поддержка и тестирование программных модулей"
+        );
         var course14 = await db.Courses.FirstAsync(c => c.Title == "Мобильные приложения (ИБ)");
 
         db.Assignments.AddRange(
@@ -1437,7 +1464,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000011"),
                 CourseId = course11.Id,
                 Title = "Компиляция и запуск .NET приложения",
-                Description = "Настройка среды разработки, компиляция и запуск первого .NET приложения.",
+                Description =
+                    "Настройка среды разработки, компиляция и запуск первого .NET приложения.",
                 DueDate = DateTime.UtcNow.AddDays(7),
                 MaxScore = 10,
                 Order = 1,
@@ -1461,7 +1489,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000013"),
                 CourseId = course11.Id,
                 Title = "Создание классов и интерфейсов",
-                Description = "Реализация наследования, виртуальных методов, интерфейсов и абстрактных классов.",
+                Description =
+                    "Реализация наследования, виртуальных методов, интерфейсов и абстрактных классов.",
                 DueDate = DateTime.UtcNow.AddDays(21),
                 MaxScore = 25,
                 Order = 3,
@@ -1473,7 +1502,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000014"),
                 CourseId = course11.Id,
                 Title = "Многопоточность и Parallel",
-                Description = "Создание потоков, синхронизация, Parallel.For, PLINQ, разрешение гонки данных.",
+                Description =
+                    "Создание потоков, синхронизация, Parallel.For, PLINQ, разрешение гонки данных.",
                 DueDate = DateTime.UtcNow.AddDays(28),
                 MaxScore = 25,
                 Order = 4,
@@ -1485,7 +1515,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000015"),
                 CourseId = course11.Id,
                 Title = "CRUD с Entity Framework Core",
-                Description = "Реализация CRUD-операций, миграции, паттерн Repository и Unit of Work.",
+                Description =
+                    "Реализация CRUD-операций, миграции, паттерн Repository и Unit of Work.",
                 DueDate = DateTime.UtcNow.AddDays(35),
                 MaxScore = 30,
                 Order = 5,
@@ -1497,7 +1528,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000016"),
                 CourseId = course11.Id,
                 Title = "REST API с JWT авторизацией",
-                Description = "ASP.NET Core контроллеры, JWT токены, ролевая авторизация, FluentValidation.",
+                Description =
+                    "ASP.NET Core контроллеры, JWT токены, ролевая авторизация, FluentValidation.",
                 DueDate = DateTime.UtcNow.AddDays(42),
                 MaxScore = 30,
                 Order = 6,
@@ -1510,7 +1542,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000017"),
                 CourseId = course12.Id,
                 Title = "Основы Kotlin",
-                Description = "Переменные, функции, условия, циклы, коллекции, классы и объекты на Kotlin.",
+                Description =
+                    "Переменные, функции, условия, циклы, коллекции, классы и объекты на Kotlin.",
                 DueDate = DateTime.UtcNow.AddDays(7),
                 MaxScore = 15,
                 Order = 1,
@@ -1522,7 +1555,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000018"),
                 CourseId = course12.Id,
                 Title = "Интерактивные приложения на Compose",
-                Description = "Dice Roller, обработка нажатий, списки с прокруткой, установка логотипа.",
+                Description =
+                    "Dice Roller, обработка нажатий, списки с прокруткой, установка логотипа.",
                 DueDate = DateTime.UtcNow.AddDays(14),
                 MaxScore = 20,
                 Order = 2,
@@ -1534,7 +1568,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000019"),
                 CourseId = course12.Id,
                 Title = "Калькулятор чаевых и навигация",
-                Description = "Приложение с состоянием, навигация между экранами, адаптивный макет.",
+                Description =
+                    "Приложение с состоянием, навигация между экранами, адаптивный макет.",
                 DueDate = DateTime.UtcNow.AddDays(21),
                 MaxScore = 25,
                 Order = 3,
@@ -1558,7 +1593,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-00000000001b"),
                 CourseId = course12.Id,
                 Title = "Загрузка данных из API",
-                Description = "Retrofit, Repository паттерн, загрузка и отображение изображений из интернета.",
+                Description =
+                    "Retrofit, Repository паттерн, загрузка и отображение изображений из интернета.",
                 DueDate = DateTime.UtcNow.AddDays(35),
                 MaxScore = 25,
                 Order = 5,
@@ -1570,7 +1606,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-00000000001c"),
                 CourseId = course12.Id,
                 Title = "Расписание автобусов на Room",
-                Description = "Разработка приложения с локальным хранилищем Room, чтение и обновление данных.",
+                Description =
+                    "Разработка приложения с локальным хранилищем Room, чтение и обновление данных.",
                 DueDate = DateTime.UtcNow.AddDays(42),
                 MaxScore = 30,
                 Order = 6,
@@ -1583,7 +1620,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-00000000001d"),
                 CourseId = course13.Id,
                 Title = "Анализ требований и тест-кейсы",
-                Description = "Анализ требований к приложению, составление тест-кейсов и баг-репортов.",
+                Description =
+                    "Анализ требований к приложению, составление тест-кейсов и баг-репортов.",
                 DueDate = DateTime.UtcNow.AddDays(7),
                 MaxScore = 15,
                 Order = 1,
@@ -1595,7 +1633,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-00000000001e"),
                 CourseId = course13.Id,
                 Title = "Юнит-тесты на xUnit",
-                Description = "Написание параметризованных тестов, тестирование исключений, работа с фикстурами.",
+                Description =
+                    "Написание параметризованных тестов, тестирование исключений, работа с фикстурами.",
                 DueDate = DateTime.UtcNow.AddDays(14),
                 MaxScore = 20,
                 Order = 2,
@@ -1607,7 +1646,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-00000000001f"),
                 CourseId = course13.Id,
                 Title = "Тесты с Moq и изоляцией",
-                Description = "Изоляция зависимостей с помощью Moq, настройка mock-объектов, проверка вызовов.",
+                Description =
+                    "Изоляция зависимостей с помощью Moq, настройка mock-объектов, проверка вызовов.",
                 DueDate = DateTime.UtcNow.AddDays(21),
                 MaxScore = 20,
                 Order = 3,
@@ -1619,7 +1659,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000020"),
                 CourseId = course13.Id,
                 Title = "UI-тесты на Selenium",
-                Description = "Автоматизация сценария входа, паттерн Page Object Model, кросс-браузерное тестирование.",
+                Description =
+                    "Автоматизация сценария входа, паттерн Page Object Model, кросс-браузерное тестирование.",
                 DueDate = DateTime.UtcNow.AddDays(28),
                 MaxScore = 25,
                 Order = 4,
@@ -1631,7 +1672,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000021"),
                 CourseId = course13.Id,
                 Title = "API-тесты на RestSharp",
-                Description = "Автотесты для GET/POST/PUT/DELETE запросов, десериализация JSON, анализ API через Postman.",
+                Description =
+                    "Автотесты для GET/POST/PUT/DELETE запросов, десериализация JSON, анализ API через Postman.",
                 DueDate = DateTime.UtcNow.AddDays(35),
                 MaxScore = 25,
                 Order = 5,
@@ -1643,7 +1685,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000022"),
                 CourseId = course13.Id,
                 Title = "Интеграционные тесты и CI/CD",
-                Description = "TestContainers, Allure-отчёт, настройка GitHub Actions pipeline для тестов.",
+                Description =
+                    "TestContainers, Allure-отчёт, настройка GitHub Actions pipeline для тестов.",
                 DueDate = DateTime.UtcNow.AddDays(42),
                 MaxScore = 30,
                 Order = 6,
@@ -1656,7 +1699,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000023"),
                 CourseId = course14.Id,
                 Title = "Основы Kotlin и корутины",
-                Description = "Переменные, функции, коллекции, классы, лямбда-функции, корутины на Kotlin.",
+                Description =
+                    "Переменные, функции, коллекции, классы, лямбда-функции, корутины на Kotlin.",
                 DueDate = DateTime.UtcNow.AddDays(7),
                 MaxScore = 15,
                 Order = 1,
@@ -1668,7 +1712,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000024"),
                 CourseId = course14.Id,
                 Title = "Интерактивные приложения на Compose",
-                Description = "Основы композиции, Dice Roller, обработка нажатий, списки с прокруткой.",
+                Description =
+                    "Основы композиции, Dice Roller, обработка нажатий, списки с прокруткой.",
                 DueDate = DateTime.UtcNow.AddDays(14),
                 MaxScore = 20,
                 Order = 2,
@@ -1680,7 +1725,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000025"),
                 CourseId = course14.Id,
                 Title = "Навигация и адаптивный макет",
-                Description = "Навигация между экранами, корутины в JC, создание адаптивного макета.",
+                Description =
+                    "Навигация между экранами, корутины в JC, создание адаптивного макета.",
                 DueDate = DateTime.UtcNow.AddDays(21),
                 MaxScore = 25,
                 Order = 3,
@@ -1692,7 +1738,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000026"),
                 CourseId = course14.Id,
                 Title = "Список героев на Material Design",
-                Description = "ViewModel, Material Design компоненты, разработка приложения Список героев.",
+                Description =
+                    "ViewModel, Material Design компоненты, разработка приложения Список героев.",
                 DueDate = DateTime.UtcNow.AddDays(28),
                 MaxScore = 25,
                 Order = 4,
@@ -1704,7 +1751,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000027"),
                 CourseId = course14.Id,
                 Title = "Загрузка данных из API",
-                Description = "Retrofit, Repository паттерн, загрузка и отображение изображений из интернета.",
+                Description =
+                    "Retrofit, Repository паттерн, загрузка и отображение изображений из интернета.",
                 DueDate = DateTime.UtcNow.AddDays(35),
                 MaxScore = 25,
                 Order = 5,
@@ -1716,7 +1764,8 @@ public static class DataSeeder
                 Id = Guid.Parse("e1000000-0000-0000-0000-000000000028"),
                 CourseId = course14.Id,
                 Title = "Расписание автобусов на Room",
-                Description = "SQL, Datastore, Room Persistence Library, приложение Расписание автобусов.",
+                Description =
+                    "SQL, Datastore, Room Persistence Library, приложение Расписание автобусов.",
                 DueDate = DateTime.UtcNow.AddDays(42),
                 MaxScore = 30,
                 Order = 6,
@@ -1733,8 +1782,12 @@ public static class DataSeeder
             return;
 
         var course11 = await db.Courses.FirstAsync(c => c.Title == "Системное программирование");
-        var course12 = await db.Courses.FirstAsync(c => c.Title == "Разработка мобильных приложений");
-        var course13 = await db.Courses.FirstAsync(c => c.Title == "Поддержка и тестирование программных модулей");
+        var course12 = await db.Courses.FirstAsync(c =>
+            c.Title == "Разработка мобильных приложений"
+        );
+        var course13 = await db.Courses.FirstAsync(c =>
+            c.Title == "Поддержка и тестирование программных модулей"
+        );
         var course14 = await db.Courses.FirstAsync(c => c.Title == "Мобильные приложения (ИБ)");
 
         db.Tests.AddRange(
@@ -1789,7 +1842,8 @@ public static class DataSeeder
                 Id = Guid.Parse("a1000000-0000-0000-0000-000000000004"),
                 CourseId = course12.Id,
                 Title = "Основы Kotlin",
-                Description = "Проверка знаний синтаксиса Kotlin: переменные, функции, коллекции, классы",
+                Description =
+                    "Проверка знаний синтаксиса Kotlin: переменные, функции, коллекции, классы",
                 TimeLimitMinutes = 25,
                 MaxAttempts = 3,
                 PassingScore = 60,
@@ -1881,7 +1935,8 @@ public static class DataSeeder
                 Id = Guid.Parse("a1000000-0000-0000-0000-00000000000a"),
                 CourseId = course14.Id,
                 Title = "ViewModel, Retrofit и Room",
-                Description = "Проверка знаний по архитектуре MVVM, сетевым запросам и локальным данным",
+                Description =
+                    "Проверка знаний по архитектуре MVVM, сетевым запросам и локальным данным",
                 TimeLimitMinutes = 30,
                 MaxAttempts = 2,
                 PassingScore = 70,
@@ -1917,9 +1972,12 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b1000000-0000-0000-0000-000000000001"),
                 TestId = test1.Id,
-                Text = "Какой тип данных используется для хранения десятичных чисел с высокой точностью в C#?",
+                Text =
+                    "Какой тип данных используется для хранения десятичных чисел с высокой точностью в C#?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "float", "double", "decimal", "int" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "float", "double", "decimal", "int" }
+                ),
                 CorrectAnswer = "decimal",
                 Points = 10,
                 OrderIndex = 1,
@@ -1932,7 +1990,9 @@ public static class DataSeeder
                 TestId = test1.Id,
                 Text = "Какой модификатор доступа делает член доступным только внутри класса?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "public", "private", "protected", "internal" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "public", "private", "protected", "internal" }
+                ),
                 CorrectAnswer = "private",
                 Points = 10,
                 OrderIndex = 2,
@@ -1945,7 +2005,15 @@ public static class DataSeeder
                 TestId = test1.Id,
                 Text = "Что такое CLR в контексте .NET?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Язык программирования", "Среда выполнения", "Библиотека классов", "Текстовый редактор" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Язык программирования",
+                        "Среда выполнения",
+                        "Библиотека классов",
+                        "Текстовый редактор",
+                    }
+                ),
                 CorrectAnswer = "Среда выполнения",
                 Points = 10,
                 OrderIndex = 3,
@@ -1956,9 +2024,12 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b1000000-0000-0000-0000-000000000004"),
                 TestId = test1.Id,
-                Text = "Какой метод LINQ возвращает первый элемент коллекции или значение по умолчанию?",
+                Text =
+                    "Какой метод LINQ возвращает первый элемент коллекции или значение по умолчанию?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "First()", "FirstOrDefault()", "Single()", "Take(1)" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "First()", "FirstOrDefault()", "Single()", "Take(1)" }
+                ),
                 CorrectAnswer = "FirstOrDefault()",
                 Points = 10,
                 OrderIndex = 4,
@@ -1971,7 +2042,9 @@ public static class DataSeeder
                 TestId = test1.Id,
                 Text = "Какие принципы ООП вы знаете? (выберите все правильные)",
                 Type = QuestionType.MultipleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Инкапсуляция", "Наследование", "Компиляция", "Полиморфизм" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "Инкапсуляция", "Наследование", "Компиляция", "Полиморфизм" }
+                ),
                 CorrectAnswer = "Инкапсуляция,Наследование,Полиморфизм",
                 Points = 10,
                 OrderIndex = 5,
@@ -1984,7 +2057,9 @@ public static class DataSeeder
                 TestId = test1.Id,
                 Text = "Что вернёт выражение 5 / 2 в C# при целочисленном делении?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "2.5", "2", "3", "2.0" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "2.5", "2", "3", "2.0" }
+                ),
                 CorrectAnswer = "2",
                 Points = 10,
                 OrderIndex = 6,
@@ -1997,7 +2072,9 @@ public static class DataSeeder
                 TestId = test1.Id,
                 Text = "Какой коллекции соответствует интерфейс IDictionary?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "List", "Dictionary", "Queue", "Stack" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "List", "Dictionary", "Queue", "Stack" }
+                ),
                 CorrectAnswer = "Dictionary",
                 Points = 10,
                 OrderIndex = 7,
@@ -2011,7 +2088,9 @@ public static class DataSeeder
                 TestId = test2.Id,
                 Text = "Какой тип используется для запуска асинхронной операции в C#?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Thread", "Task", "Process", "Mutex" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "Thread", "Task", "Process", "Mutex" }
+                ),
                 CorrectAnswer = "Task",
                 Points = 10,
                 OrderIndex = 1,
@@ -2024,7 +2103,9 @@ public static class DataSeeder
                 TestId = test2.Id,
                 Text = "Какой оператор используется для блокировки доступа к общему ресурсу?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "lock", "await", "using", "var" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "lock", "await", "using", "var" }
+                ),
                 CorrectAnswer = "lock",
                 Points = 10,
                 OrderIndex = 2,
@@ -2037,7 +2118,15 @@ public static class DataSeeder
                 TestId = test2.Id,
                 Text = "Что делает метод Parallel.For?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Запускает итерации параллельно", "Создаёт новый поток", "Блокирует поток", "Очищает память" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Запускает итерации параллельно",
+                        "Создаёт новый поток",
+                        "Блокирует поток",
+                        "Очищает память",
+                    }
+                ),
                 CorrectAnswer = "Запускает итерации параллельно",
                 Points = 10,
                 OrderIndex = 3,
@@ -2050,7 +2139,9 @@ public static class DataSeeder
                 TestId = test2.Id,
                 Text = "Какой класс используется для чтения текстовых файлов в .NET?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "StreamReader", "HttpClient", "MemoryStream", "BinaryWriter" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "StreamReader", "HttpClient", "MemoryStream", "BinaryWriter" }
+                ),
                 CorrectAnswer = "StreamReader",
                 Points = 10,
                 OrderIndex = 4,
@@ -2063,7 +2154,15 @@ public static class DataSeeder
                 TestId = test2.Id,
                 Text = "Что такое гонка данных (race condition)?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Одновременный доступ к ресурсу без синхронизации", "Ошибка компиляции", "Переполнение стека", "Отсутствие подключения к БД" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Одновременный доступ к ресурсу без синхронизации",
+                        "Ошибка компиляции",
+                        "Переполнение стека",
+                        "Отсутствие подключения к БД",
+                    }
+                ),
                 CorrectAnswer = "Одновременный доступ к ресурсу без синхронизации",
                 Points = 10,
                 OrderIndex = 5,
@@ -2077,7 +2176,15 @@ public static class DataSeeder
                 TestId = test3.Id,
                 Text = "Что такое Code First в Entity Framework?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Создание БД из моделей кода", "Работа с существующей БД", "Генерация отчётов", "Управление пакетами" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Создание БД из моделей кода",
+                        "Работа с существующей БД",
+                        "Генерация отчётов",
+                        "Управление пакетами",
+                    }
+                ),
                 CorrectAnswer = "Создание БД из моделей кода",
                 Points = 10,
                 OrderIndex = 1,
@@ -2088,9 +2195,12 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b1000000-0000-0000-0000-00000000000e"),
                 TestId = test3.Id,
-                Text = "Какой паттерн инверсии зависимостей используется в ASP.NET Core для внедрения сервисов?",
+                Text =
+                    "Какой паттерн инверсии зависимостей используется в ASP.NET Core для внедрения сервисов?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Repository", "Dependency Injection", "Singleton", "Observer" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "Repository", "Dependency Injection", "Singleton", "Observer" }
+                ),
                 CorrectAnswer = "Dependency Injection",
                 Points = 10,
                 OrderIndex = 2,
@@ -2103,7 +2213,15 @@ public static class DataSeeder
                 TestId = test3.Id,
                 Text = "Что такое JWT?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Формат хранения данных", "Токен аутентификации", "Протокол передачи файлов", "База данных" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Формат хранения данных",
+                        "Токен аутентификации",
+                        "Протокол передачи файлов",
+                        "База данных",
+                    }
+                ),
                 CorrectAnswer = "Токен аутентификации",
                 Points = 10,
                 OrderIndex = 3,
@@ -2116,7 +2234,9 @@ public static class DataSeeder
                 TestId = test3.Id,
                 Text = "Какой метод EF Core выполняет миграцию?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "EnsureCreated", "Migrate", "SaveChanges", "FirstOrDefault" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "EnsureCreated", "Migrate", "SaveChanges", "FirstOrDefault" }
+                ),
                 CorrectAnswer = "Migrate",
                 Points = 10,
                 OrderIndex = 4,
@@ -2129,7 +2249,9 @@ public static class DataSeeder
                 TestId = test3.Id,
                 Text = "Какой HTTP-метод используется для обновления данных?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "GET", "POST", "PUT", "DELETE" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "GET", "POST", "PUT", "DELETE" }
+                ),
                 CorrectAnswer = "PUT",
                 Points = 10,
                 OrderIndex = 5,
@@ -2143,7 +2265,9 @@ public static class DataSeeder
                 TestId = test4.Id,
                 Text = "Как объявляется переменная в Kotlin?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "var x = 5", "let x = 5", "dim x = 5", "define x = 5" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "var x = 5", "let x = 5", "dim x = 5", "define x = 5" }
+                ),
                 CorrectAnswer = "var x = 5",
                 Points = 10,
                 OrderIndex = 1,
@@ -2156,7 +2280,15 @@ public static class DataSeeder
                 TestId = test4.Id,
                 Text = "Что такое корутины в Kotlin?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Потоки", "Легковесные фоновые операции", "Функции высшего порядка", "Коллекции" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Потоки",
+                        "Легковесные фоновые операции",
+                        "Функции высшего порядка",
+                        "Коллекции",
+                    }
+                ),
                 CorrectAnswer = "Легковесные фоновые операции",
                 Points = 10,
                 OrderIndex = 2,
@@ -2169,7 +2301,9 @@ public static class DataSeeder
                 TestId = test4.Id,
                 Text = "Какой коллекции соответствует аналог List в Kotlin?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Array", "ArrayList", "MutableList", "Vector" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "Array", "ArrayList", "MutableList", "Vector" }
+                ),
                 CorrectAnswer = "MutableList",
                 Points = 10,
                 OrderIndex = 3,
@@ -2195,7 +2329,15 @@ public static class DataSeeder
                 TestId = test4.Id,
                 Text = "Что такое data class в Kotlin?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Класс для хранения данных с переопределёнными методами", "Абстрактный класс", "Интерфейс", "Перечисление" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Класс для хранения данных с переопределёнными методами",
+                        "Абстрактный класс",
+                        "Интерфейс",
+                        "Перечисление",
+                    }
+                ),
                 CorrectAnswer = "Класс для хранения данных с переопределёнными методами",
                 Points = 10,
                 OrderIndex = 5,
@@ -2209,7 +2351,15 @@ public static class DataSeeder
                 TestId = test5.Id,
                 Text = "Что такое Composable функция в Jetpack Compose?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Обычная функция", "Функция для описания UI", "Функция для работы с сетью", "Функция для БД" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Обычная функция",
+                        "Функция для описания UI",
+                        "Функция для работы с сетью",
+                        "Функция для БД",
+                    }
+                ),
                 CorrectAnswer = "Функция для описания UI",
                 Points = 10,
                 OrderIndex = 1,
@@ -2222,7 +2372,9 @@ public static class DataSeeder
                 TestId = test5.Id,
                 Text = "Какой хук используется для хранения состояния в Compose?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "remember", "useState", "stateOf", "mutableStateOf" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "remember", "useState", "stateOf", "mutableStateOf" }
+                ),
                 CorrectAnswer = "remember",
                 Points = 10,
                 OrderIndex = 2,
@@ -2235,7 +2387,15 @@ public static class DataSeeder
                 TestId = test5.Id,
                 Text = "Как работает навигация в Jetpack Compose?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Через Activity", "Через NavController и NavHost", "Через Intent", "Через Fragment" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Через Activity",
+                        "Через NavController и NavHost",
+                        "Через Intent",
+                        "Через Fragment",
+                    }
+                ),
                 CorrectAnswer = "Через NavController и NavHost",
                 Points = 10,
                 OrderIndex = 3,
@@ -2248,7 +2408,15 @@ public static class DataSeeder
                 TestId = test5.Id,
                 Text = "Для чего используется ViewModel в архитектуре MVVM?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Для хранения UI-состояния", "Для работы с сетью", "Для отрисовки��", "Для навигации" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Для хранения UI-состояния",
+                        "Для работы с сетью",
+                        "Для отрисовки��",
+                        "Для навигации",
+                    }
+                ),
                 CorrectAnswer = "Для хранения UI-состояния",
                 Points = 10,
                 OrderIndex = 4,
@@ -2261,7 +2429,9 @@ public static class DataSeeder
                 TestId = test5.Id,
                 Text = "Какой компонент отвечает за Material Design в Compose?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Scaffold", "Column", "Row", "Box" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "Scaffold", "Column", "Row", "Box" }
+                ),
                 CorrectAnswer = "Scaffold",
                 Points = 10,
                 OrderIndex = 5,
@@ -2275,7 +2445,15 @@ public static class DataSeeder
                 TestId = test6.Id,
                 Text = "Что такое тест-кейс?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Документ с описанием теста", "Программный код", "Баг-репорт", "Отчёт о тестировании" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Документ с описанием теста",
+                        "Программный код",
+                        "Баг-репорт",
+                        "Отчёт о тестировании",
+                    }
+                ),
                 CorrectAnswer = "Документ с описанием теста",
                 Points = 10,
                 OrderIndex = 1,
@@ -2288,7 +2466,15 @@ public static class DataSeeder
                 TestId = test6.Id,
                 Text = "Какая техника тест-дизайна основана на проверке граничных значений?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Эквивалентное разделение", "Граничные значения", "Парное тестирование", "Статический анализ" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Эквивалентное разделение",
+                        "Граничные значения",
+                        "Парное тестирование",
+                        "Статический анализ",
+                    }
+                ),
                 CorrectAnswer = "Граничные значения",
                 Points = 10,
                 OrderIndex = 2,
@@ -2301,7 +2487,15 @@ public static class DataSeeder
                 TestId = test6.Id,
                 Text = "Что такое баг-репорт?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Документальное описание найденного дефекта", "Автоматический тест", "Код программы", "Отчёт о покрытии" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Документальное описание найденного дефекта",
+                        "Автоматический тест",
+                        "Код программы",
+                        "Отчёт о покрытии",
+                    }
+                ),
                 CorrectAnswer = "Документальное описание найденного дефекта",
                 Points = 10,
                 OrderIndex = 3,
@@ -2314,7 +2508,9 @@ public static class DataSeeder
                 TestId = test6.Id,
                 Text = "Какие виды тестирования вы знаете? (выберите все правильные)",
                 Type = QuestionType.MultipleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Юнит-тестирование", "Интеграционное", "Ручное", "Компиляция" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "Юнит-тестирование", "Интеграционное", "Ручное", "Компиляция" }
+                ),
                 CorrectAnswer = "Юнит-тестирование,Интеграционное,Ручное",
                 Points = 10,
                 OrderIndex = 4,
@@ -2327,7 +2523,15 @@ public static class DataSeeder
                 TestId = test6.Id,
                 Text = "Что такое жизненный цикл ПО (SDLC)?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Процесс разработки от идеи до поддержки", "Только этап тестирования", "Процесс компиляции", "Управление версиями" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Процесс разработки от идеи до поддержки",
+                        "Только этап тестирования",
+                        "Процесс компиляции",
+                        "Управление версиями",
+                    }
+                ),
                 CorrectAnswer = "Процесс разработки от идеи до поддержки",
                 Points = 10,
                 OrderIndex = 5,
@@ -2341,7 +2545,9 @@ public static class DataSeeder
                 TestId = test7.Id,
                 Text = "Какой атрибут помечает тестовый метод в xUnit?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "[Test]", "[Fact]", "[TestMethod]", "[TestCase]" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "[Test]", "[Fact]", "[TestMethod]", "[TestCase]" }
+                ),
                 CorrectAnswer = "[Fact]",
                 Points = 10,
                 OrderIndex = 1,
@@ -2354,7 +2560,9 @@ public static class DataSeeder
                 TestId = test7.Id,
                 Text = "Какой атрибут используется для параметризованных тестов в xUnit?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "[Fact]", "[Theory]", "[InlineData]", "[MemberData]" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "[Fact]", "[Theory]", "[InlineData]", "[MemberData]" }
+                ),
                 CorrectAnswer = "[Theory]",
                 Points = 10,
                 OrderIndex = 2,
@@ -2367,7 +2575,15 @@ public static class DataSeeder
                 TestId = test7.Id,
                 Text = "Для чего используется библиотека Moq?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Для создания mock-объектов", "Для работы с БД", "Для UI-тестирования", "Для логирования" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Для создания mock-объектов",
+                        "Для работы с БД",
+                        "Для UI-тестирования",
+                        "Для логирования",
+                    }
+                ),
                 CorrectAnswer = "Для создания mock-объектов",
                 Points = 10,
                 OrderIndex = 3,
@@ -2380,7 +2596,15 @@ public static class DataSeeder
                 TestId = test7.Id,
                 Text = "Что проверяет метод Verify() в Moq?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Значение переменной", "Что метод был вызван", "Результат вычисления", "Подключение к сети" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Значение переменной",
+                        "Что метод был вызван",
+                        "Результат вычисления",
+                        "Подключение к сети",
+                    }
+                ),
                 CorrectAnswer = "Что метод был вызван",
                 Points = 10,
                 OrderIndex = 4,
@@ -2393,7 +2617,15 @@ public static class DataSeeder
                 TestId = test7.Id,
                 Text = "Как проверяется исключение в xUnit?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Assert.Throws<T>()", "Assert.IsType<T>()", "Assert.Null()", "Assert.Contains()" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Assert.Throws<T>()",
+                        "Assert.IsType<T>()",
+                        "Assert.Null()",
+                        "Assert.Contains()",
+                    }
+                ),
                 CorrectAnswer = "Assert.Throws<T>()",
                 Points = 10,
                 OrderIndex = 5,
@@ -2407,7 +2639,15 @@ public static class DataSeeder
                 TestId = test8.Id,
                 Text = "Что такое Page Object Model (POM) в Selenium?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Паттерн для структурирования UI-тестов", "Тип локатора", "Метод поиска элемента", "Фреймворк для API-тестов" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Паттерн для структурирования UI-тестов",
+                        "Тип локатора",
+                        "Метод поиска элемента",
+                        "Фреймворк для API-тестов",
+                    }
+                ),
                 CorrectAnswer = "Паттерн для структурирования UI-тестов",
                 Points = 10,
                 OrderIndex = 1,
@@ -2420,7 +2660,9 @@ public static class DataSeeder
                 TestId = test8.Id,
                 Text = "Какой локатор считается самым надёжным в Selenium?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "XPath", "ID", "CSS Selector", "Name" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "XPath", "ID", "CSS Selector", "Name" }
+                ),
                 CorrectAnswer = "ID",
                 Points = 10,
                 OrderIndex = 2,
@@ -2433,7 +2675,9 @@ public static class DataSeeder
                 TestId = test8.Id,
                 Text = "Какой HTTP-метод используется для создания нового ресурса в REST API?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "GET", "POST", "PUT", "DELETE" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "GET", "POST", "PUT", "DELETE" }
+                ),
                 CorrectAnswer = "POST",
                 Points = 10,
                 OrderIndex = 3,
@@ -2446,7 +2690,15 @@ public static class DataSeeder
                 TestId = test8.Id,
                 Text = "Что такое Implicit Wait в Selenium?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Глобальное ожидание появления элемента", "Ожидание конкретного условия", "Пауза между запросами", "Ожидание загрузки страницы" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Глобальное ожидание появления элемента",
+                        "Ожидание конкретного условия",
+                        "Пауза между запросами",
+                        "Ожидание загрузки страницы",
+                    }
+                ),
                 CorrectAnswer = "Глобальное ожидание появления элемента",
                 Points = 10,
                 OrderIndex = 4,
@@ -2459,7 +2711,9 @@ public static class DataSeeder
                 TestId = test8.Id,
                 Text = "Какой формат данных используется в REST API для обмена данными?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "XML", "JSON", "CSV", "HTML" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "XML", "JSON", "CSV", "HTML" }
+                ),
                 CorrectAnswer = "JSON",
                 Points = 10,
                 OrderIndex = 5,
@@ -2473,7 +2727,15 @@ public static class DataSeeder
                 TestId = test9.Id,
                 Text = "Чем отличается val от var в Kotlin?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "val — изменяемая, var — неизменяемая", "val — неизменяемая, var — изменяемая", "Ничем", "val — приватная, var — публичная" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "val — изменяемая, var — неизменяемая",
+                        "val — неизменяемая, var — изменяемая",
+                        "Ничем",
+                        "val — приватная, var — публичная",
+                    }
+                ),
                 CorrectAnswer = "val — неизменяемая, var — изменяемая",
                 Points = 10,
                 OrderIndex = 1,
@@ -2486,7 +2748,9 @@ public static class DataSeeder
                 TestId = test9.Id,
                 Text = "Какой оператор используется для безопасного вызова nullable-типа в Kotlin?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "!!", "?.", "as", "is" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "!!", "?.", "as", "is" }
+                ),
                 CorrectAnswer = "?.",
                 Points = 10,
                 OrderIndex = 2,
@@ -2499,7 +2763,15 @@ public static class DataSeeder
                 TestId = test9.Id,
                 Text = "Что делает suspend-функция в Kotlin?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Приостанавливает выполнение корутины", "Останавливает поток", "Удаляет переменную", "Очищает память" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Приостанавливает выполнение корутины",
+                        "Останавливает поток",
+                        "Удаляет переменную",
+                        "Очищает память",
+                    }
+                ),
                 CorrectAnswer = "Приостанавливает выполнение корутины",
                 Points = 10,
                 OrderIndex = 3,
@@ -2512,7 +2784,9 @@ public static class DataSeeder
                 TestId = test9.Id,
                 Text = "Какой аннотацией помечается Composable функция?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "@Composable", "@Override", "@Inject", "@Test" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "@Composable", "@Override", "@Inject", "@Test" }
+                ),
                 CorrectAnswer = "@Composable",
                 Points = 10,
                 OrderIndex = 4,
@@ -2525,7 +2799,9 @@ public static class DataSeeder
                 TestId = test9.Id,
                 Text = "Какое хранилище данных предоставляет Room в Android?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "SQLite на устройстве", "Firebase", "SharedPreferences", "XML-файлы" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "SQLite на устройстве", "Firebase", "SharedPreferences", "XML-файлы" }
+                ),
                 CorrectAnswer = "SQLite на устройстве",
                 Points = 10,
                 OrderIndex = 5,
@@ -2539,7 +2815,9 @@ public static class DataSeeder
                 TestId = test10.Id,
                 Text = "Какой класс используется для HTTP-запросов через Retrofit?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "HttpURLConnection", "Retrofit (интерфейс)", "OkHttp", "Volley" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "HttpURLConnection", "Retrofit (интерфейс)", "OkHttp", "Volley" }
+                ),
                 CorrectAnswer = "Retrofit (интерфейс)",
                 Points = 10,
                 OrderIndex = 1,
@@ -2552,7 +2830,15 @@ public static class DataSeeder
                 TestId = test10.Id,
                 Text = "Что такое Repository паттерн в архитектуре Android?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Абстракция над источниками данных", "UI-компонент", "Тип навигации", "Атрибут" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Абстракция над источниками данных",
+                        "UI-компонент",
+                        "Тип навигации",
+                        "Атрибут",
+                    }
+                ),
                 CorrectAnswer = "Абстракция над источниками данных",
                 Points = 10,
                 OrderIndex = 2,
@@ -2565,7 +2851,15 @@ public static class DataSeeder
                 TestId = test10.Id,
                 Text = "Для чего используется @Entity аннотация в Room?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Описывает таблицу БД", "Описывает сетевой запрос", "Описывает UI-компонент", "Описывает тест" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Описывает таблицу БД",
+                        "Описывает сетевой запрос",
+                        "Описывает UI-компонент",
+                        "Описывает тест",
+                    }
+                ),
                 CorrectAnswer = "Описывает таблицу БД",
                 Points = 10,
                 OrderIndex = 3,
@@ -2578,7 +2872,15 @@ public static class DataSeeder
                 TestId = test10.Id,
                 Text = "Что такое LiveData в ViewModel?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "Observable-обёртка для данных", "База данных", "Фреймворк для тестов", "Интерфейс" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[]
+                    {
+                        "Observable-обёртка для данных",
+                        "База данных",
+                        "Фреймворк для тестов",
+                        "Интерфейс",
+                    }
+                ),
                 CorrectAnswer = "Observable-обёртка для данных",
                 Points = 10,
                 OrderIndex = 4,
@@ -2591,7 +2893,9 @@ public static class DataSeeder
                 TestId = test10.Id,
                 Text = "Какой компонент связывает UI с ViewModel в Compose?",
                 Type = QuestionType.SingleChoice,
-                Options = System.Text.Json.JsonSerializer.Serialize(new[] { "remember / collectAsState", "Intent", "Fragment", "Adapter" }),
+                Options = System.Text.Json.JsonSerializer.Serialize(
+                    new[] { "remember / collectAsState", "Intent", "Fragment", "Adapter" }
+                ),
                 CorrectAnswer = "remember / collectAsState",
                 Points = 10,
                 OrderIndex = 5,
@@ -2608,8 +2912,12 @@ public static class DataSeeder
             return;
 
         var course11 = await db.Courses.FirstAsync(c => c.Title == "Системное программирование");
-        var course12 = await db.Courses.FirstAsync(c => c.Title == "Разработка мобильных приложений");
-        var course13 = await db.Courses.FirstAsync(c => c.Title == "Поддержка и тестирование программных модулей");
+        var course12 = await db.Courses.FirstAsync(c =>
+            c.Title == "Разработка мобильных приложений"
+        );
+        var course13 = await db.Courses.FirstAsync(c =>
+            c.Title == "Поддержка и тестирование программных модулей"
+        );
         var course14 = await db.Courses.FirstAsync(c => c.Title == "Мобильные приложения (ИБ)");
 
         var group41 = await db.Groups.FirstAsync(g => g.Name == "ИСП-41");
@@ -2695,10 +3003,14 @@ public static class DataSeeder
         var tests = await db.Tests.ToListAsync();
         var testByTitle = tests.ToDictionary(t => t.Title);
 
-        var lecturesWithTests = await db.Lectures
-            .Where(l => l.Title == "Entity Framework Core" || l.Title == "ASP.NET Core"
-                || l.Title == "Основы тестирования ПО" || l.Title == "Автотесты на xUnit"
-                || l.Title == "Selenium WebDriver")
+        var lecturesWithTests = await db
+            .Lectures.Where(l =>
+                l.Title == "Entity Framework Core"
+                || l.Title == "ASP.NET Core"
+                || l.Title == "Основы тестирования ПО"
+                || l.Title == "Автотесты на xUnit"
+                || l.Title == "Selenium WebDriver"
+            )
             .ToListAsync();
 
         foreach (var lecture in lecturesWithTests)

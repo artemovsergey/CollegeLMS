@@ -15,12 +15,14 @@ namespace CollegeLMS.Migrations
                 name: "test_id",
                 table: "lectures",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_lectures_test_id",
                 table: "lectures",
-                column: "test_id");
+                column: "test_id"
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "fk_lectures_tests_test_id",
@@ -28,23 +30,18 @@ namespace CollegeLMS.Migrations
                 column: "test_id",
                 principalTable: "tests",
                 principalColumn: "id",
-                onDelete: ReferentialAction.SetNull);
+                onDelete: ReferentialAction.SetNull
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "fk_lectures_tests_test_id",
-                table: "lectures");
+            migrationBuilder.DropForeignKey(name: "fk_lectures_tests_test_id", table: "lectures");
 
-            migrationBuilder.DropIndex(
-                name: "ix_lectures_test_id",
-                table: "lectures");
+            migrationBuilder.DropIndex(name: "ix_lectures_test_id", table: "lectures");
 
-            migrationBuilder.DropColumn(
-                name: "test_id",
-                table: "lectures");
+            migrationBuilder.DropColumn(name: "test_id", table: "lectures");
         }
     }
 }
