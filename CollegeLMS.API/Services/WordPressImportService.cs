@@ -99,13 +99,48 @@ public class WordPressImportService(
                 ct
             );
 
-            var postsJson = await httpClient.GetStringAsync(
-                "/wp-json/wp/v2/posts?per_page=100&_embed=1",
-                ct
-            );
+            // --- Fetch posts with pagination ---
+            var allPosts = new List<JsonElement>();
+            var page = 1;
+            const int perPage = 100;
 
+            while (true)
+            {
+                var url = $"/wp-json/wp/v2/posts?per_page={perPage}&page={page}&_embed=1";
+                var response = await httpClient.GetAsync(url, ct);
+                response.EnsureSuccessStatusCode();
+
+                var totalPagesHeader = response.Headers.Contains("X-WP-TotalPages")
+                    ? response.Headers.GetValues("X-WP-TotalPages").FirstOrDefault()
+                    : null;
+
+                var body = await response.Content.ReadAsStringAsync(ct);
+                using var doc = JsonDocument.Parse(body);
+
+                foreach (var item in doc.RootElement.EnumerateArray())
+                    allPosts.Add(item.Clone());
+
+                logger.LogInformation(
+                    "WP REST: page {Page} fetched, {Count} posts so far",
+                    page,
+                    allPosts.Count
+                );
+
+                if (int.TryParse(totalPagesHeader, out var totalPages) && page >= totalPages)
+                    break;
+
+                // If no header and empty page, stop
+                if (doc.RootElement.GetArrayLength() == 0)
+                    break;
+
+                page++;
+                await Task.Delay(200, ct); // rate limit
+            }
+
+            // Build combined JSON
+            var postsArray = string.Join(",", allPosts.Select(p => p.GetRawText()));
             using var combinedDoc = JsonDocument.Parse(
-                $"{{\"categories\":{categoriesJson},\"posts\":{postsJson}}}"
+                $"{{\"categories\":{categoriesJson},\"posts\":[{postsArray}]}}"
             );
 
             var progress = importId != null ? GetImportProgress(importId) : null;
