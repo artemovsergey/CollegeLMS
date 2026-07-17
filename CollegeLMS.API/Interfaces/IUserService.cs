@@ -17,7 +17,6 @@ public interface IUserService
         CancellationToken ct = default
     );
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
-    Task<Result<UserResponse>> ToggleActiveAsync(Guid id, CancellationToken ct = default);
     Task<Result<UserResponse>> ChangeRoleAsync(
         Guid id,
         ChangeRoleRequest request,

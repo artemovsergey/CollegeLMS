@@ -197,28 +197,4 @@ public class UserController(IUserService service) : ControllerBase
             return StatusCode(result.StatusCode, result);
         return Ok(result);
     }
-
-    [HttpPatch("{id:guid}/toggle-active")]
-    [Authorize(Roles = "Admin")]
-    [SwaggerOperation(Summary = "Заблокировать/разблокировать пользователя")]
-    [SwaggerResponse(200, "Статус изменён", typeof(Result<UserResponse>))]
-    [SwaggerResponse(401, "Не авторизован")]
-    [SwaggerResponse(403, "Доступ запрещён")]
-    [SwaggerResponse(404, "Пользователь не найден")]
-    [SwaggerResponse(500, "Ошибка сервера")]
-    [ProducesResponseType(typeof(Result<UserResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<UserResponse>>> ToggleActive(
-        Guid id,
-        CancellationToken ct
-    )
-    {
-        var result = await service.ToggleActiveAsync(id, ct);
-        if (!result.IsSuccess)
-            return StatusCode(result.StatusCode, result);
-        return Ok(result);
-    }
 }
