@@ -149,11 +149,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
-        <div className="flex h-14 items-center gap-3 border-b px-4">
-          <img src="/logo.svg" alt="ГБПОУ СКС" className="h-8 w-8 shrink-0 object-contain" />
+        <div className="flex h-20 items-center gap-3 border-b px-4">
+          <img src="/logo.svg" alt="Колледж связи" className="h-10 w-10 shrink-0 object-contain" />
           {!collapsed && (
-            <Link href="/admin" className="text-sm font-semibold whitespace-nowrap">
-              CollegeLMS
+            <Link href="/admin" className="text-sm font-semibold whitespace-nowrap text-primary">
+              Колледж связи
             </Link>
           )}
         </div>

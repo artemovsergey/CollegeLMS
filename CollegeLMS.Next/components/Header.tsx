@@ -34,23 +34,18 @@ export default function Header() {
     : ""
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-50 border-b border-border bg-background">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:h-24 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3 shrink-0">
           <img
             src="/logo.svg"
-            alt="ГБПОУ СКС"
+            alt="Колледж связи"
             className="object-contain"
-            style={{ maxHeight: "4.5rem" }}
+            style={{ maxHeight: "6rem" }}
           />
-          <div className="hidden flex-col sm:flex">
-            <span className="text-sm font-semibold leading-tight text-primary">
-              ГБПОУ СКС
-            </span>
-            <span className="text-xs text-muted-foreground hidden md:inline">
-              Ставропольский колледж связи
-            </span>
-          </div>
+          <span className="hidden sm:inline text-base font-semibold text-primary">
+            Колледж связи
+          </span>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-1">

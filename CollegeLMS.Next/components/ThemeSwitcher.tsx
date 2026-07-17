@@ -6,10 +6,11 @@ import { useThemePreset, type ThemePreset } from "@/lib/theme-preset"
 import { useTheme } from "next-themes"
 
 const SWATCHES: Record<ThemePreset, string[]> = {
-  "navy-blue": ["#1e3260", "#5f90d7"],
-  "navy-green": ["#1e3260", "#328a34"],
-  "navy-gold": ["#1e3260", "#aea69a"],
-  "blue-dark": ["#130f49", "#5f90d7"],
+  blue: ["#568edd", "#d5e3f7"],
+  indigo: ["#24386a", "#c9ceda"],
+  sapphire: ["#4d74b4", "#d3dded"],
+  plum: ["#b9b3e5", "#eeecf9"],
+  green: ["#2f8733", "#cbe1cc"],
 }
 
 export default function ThemeSwitcher() {

@@ -12,24 +12,6 @@ export interface Section {
   subsections: Subsection[]
 }
 
-const aboutSubsections: Subsection[] = [
-  { title: "Основные сведения", slug: "common", href: "/about/common", content: "" },
-  { title: "Структура и органы управления", slug: "struct", href: "/about/struct", content: "" },
-  { title: "Документы", slug: "document", href: "/about/document", content: "" },
-  { title: "Образование", slug: "education", href: "/about/education", content: "" },
-  { title: "Образовательные стандарты", slug: "edustandarts", href: "/about/edustandarts", content: "" },
-  { title: "Руководство", slug: "rucovodstvo", href: "/about/rucovodstvo", content: "" },
-  { title: "Педагогический состав", slug: "teachingstaff", href: "/about/teachingstaff", content: "" },
-  { title: "Материально-техническое обеспечение", slug: "objects", href: "/about/objects", content: "" },
-  { title: "Организация питания", slug: "meals", href: "/about/meals", content: "" },
-  { title: "Стипендии и меры поддержки", slug: "grants", href: "/about/grants", content: "" },
-  { title: "Платные образовательные услуги", slug: "paid_edu", href: "/about/paid_edu", content: "" },
-  { title: "Финансово-хозяйственная деятельность", slug: "budget", href: "/about/budget", content: "" },
-  { title: "Вакантные места", slug: "vacant", href: "/about/vacant", content: "" },
-  { title: "Международное сотрудничество", slug: "inter", href: "/about/inter", content: "" },
-  { title: "Свидетельство об аккредитации", slug: "svidetelstvo-ob-akkreditatsii", href: "/about/svidetelstvo-ob-akkreditatsii", content: "" },
-]
-
 export const siteNavigation: Section[] = [
   {
     title: "Колледж",
@@ -88,12 +70,6 @@ export const siteNavigation: Section[] = [
       { title: "Дистанционное обучение", slug: "distancionnoeobuch", href: "/student-life/distancionnoeobuch", content: "" },
       { title: "Трудоустройство", slug: "trudoustroystvo", href: "/student-life/trudoustroystvo", content: "" },
     ],
-  },
-  {
-    title: "Сведения об ОО",
-    slug: "about",
-    href: "/about",
-    subsections: aboutSubsections,
   },
 ]
 

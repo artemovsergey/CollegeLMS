@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
@@ -24,13 +25,18 @@ export default function AuthenticatedLayout({ children }: { children: ReactNode 
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b">
-        <div className="flex h-14 items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-              CL
-            </div>
-            <span className="text-sm font-semibold">CollegeLMS</span>
-          </div>
+        <div className="flex h-20 items-center justify-between px-6">
+          <Link href="/" className="flex items-center gap-3">
+            <img
+              src="/logo.svg"
+              alt="Колледж связи"
+              className="object-contain"
+              style={{ maxHeight: "4.5rem" }}
+            />
+            <span className="text-base font-semibold text-primary">
+              Колледж связи
+            </span>
+          </Link>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted-foreground sm:block">
               {user.login}

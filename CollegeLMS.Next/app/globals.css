@@ -44,43 +44,54 @@
   --sidebar-ring: oklch(0.60 0.13 257);
 }
 
-[data-theme="navy-green"] {
-  --accent: oklch(0.52 0.18 145);
-  --accent-foreground: oklch(0.98 0 0);
-  --ring: oklch(0.52 0.18 145);
-  --chart-1: oklch(0.52 0.18 145);
-  --sidebar-accent: oklch(0.52 0.18 145);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-ring: oklch(0.52 0.18 145);
-  --success: oklch(0.65 0.18 145);
+[data-theme="blue"] {
+  --accent: #568edd;
+  --accent-foreground: #ffffff;
+  --ring: #568edd;
+  --chart-1: #568edd;
+  --sidebar-accent: #568edd;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #568edd;
 }
 
-[data-theme="navy-gold"] {
-  --accent: oklch(0.65 0.04 60);
-  --accent-foreground: oklch(0.98 0 0);
-  --ring: oklch(0.65 0.04 60);
-  --chart-1: oklch(0.65 0.04 60);
-  --sidebar-accent: oklch(0.65 0.04 60);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-ring: oklch(0.65 0.04 60);
-  --success: oklch(0.55 0.18 145);
+[data-theme="indigo"] {
+  --accent: #24386a;
+  --accent-foreground: #ffffff;
+  --ring: #24386a;
+  --chart-1: #24386a;
+  --sidebar-accent: #24386a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #24386a;
 }
 
-[data-theme="blue-dark"] {
-  --college-navy: oklch(0.20 0.10 265);
-  --foreground: oklch(0.22 0.10 265);
-  --card-foreground: oklch(0.20 0.10 265);
-  --popover-foreground: oklch(0.20 0.10 265);
-  --primary: oklch(0.20 0.10 265);
-  --primary-foreground: oklch(0.98 0 0);
-  --accent: oklch(0.58 0.14 257);
-  --accent-foreground: oklch(0.98 0 0);
-  --ring: oklch(0.58 0.14 257);
-  --chart-1: oklch(0.58 0.14 257);
-  --sidebar-foreground: oklch(0.20 0.10 265);
-  --sidebar-primary: oklch(0.20 0.10 265);
-  --sidebar-accent: oklch(0.58 0.14 257);
-  --sidebar-ring: oklch(0.58 0.14 257);
+[data-theme="sapphire"] {
+  --accent: #4d74b4;
+  --accent-foreground: #ffffff;
+  --ring: #4d74b4;
+  --chart-1: #4d74b4;
+  --sidebar-accent: #4d74b4;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #4d74b4;
+}
+
+[data-theme="plum"] {
+  --accent: #b9b3e5;
+  --accent-foreground: #1a1a2e;
+  --ring: #b9b3e5;
+  --chart-1: #b9b3e5;
+  --sidebar-accent: #b9b3e5;
+  --sidebar-accent-foreground: #1a1a2e;
+  --sidebar-ring: #b9b3e5;
+}
+
+[data-theme="green"] {
+  --accent: #2f8733;
+  --accent-foreground: #ffffff;
+  --ring: #2f8733;
+  --chart-1: #2f8733;
+  --sidebar-accent: #2f8733;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #2f8733;
 }
 
 .dark {
@@ -117,34 +128,44 @@
   --sidebar-ring: oklch(0.55 0.13 257);
 }
 
-.dark[data-theme="navy-green"] {
-  --accent: oklch(0.55 0.18 145);
-  --accent-foreground: oklch(0.98 0 0);
-  --ring: oklch(0.55 0.18 145);
-  --sidebar-accent: oklch(0.55 0.18 145);
-  --sidebar-ring: oklch(0.55 0.18 145);
+.dark[data-theme="blue"] {
+  --accent: #7aa9ee;
+  --accent-foreground: #ffffff;
+  --ring: #7aa9ee;
+  --sidebar-accent: #7aa9ee;
+  --sidebar-ring: #7aa9ee;
 }
 
-.dark[data-theme="navy-gold"] {
-  --accent: oklch(0.70 0.04 60);
-  --accent-foreground: oklch(0.12 0 0);
-  --ring: oklch(0.70 0.04 60);
-  --sidebar-accent: oklch(0.70 0.04 60);
-  --sidebar-ring: oklch(0.70 0.04 60);
+.dark[data-theme="indigo"] {
+  --accent: #3a5088;
+  --accent-foreground: #ffffff;
+  --ring: #3a5088;
+  --sidebar-accent: #3a5088;
+  --sidebar-ring: #3a5088;
 }
 
-.dark[data-theme="blue-dark"] {
-  --background: oklch(0.10 0.02 260);
-  --foreground: oklch(0.88 0.01 260);
-  --card: oklch(0.13 0.015 260);
-  --card-foreground: oklch(0.88 0.01 260);
-  --popover: oklch(0.13 0.015 260);
-  --popover-foreground: oklch(0.88 0.01 260);
-  --primary: oklch(0.60 0.14 257);
-  --primary-foreground: oklch(0.10 0 0);
-  --sidebar: oklch(0.13 0.015 260);
-  --sidebar-primary: oklch(0.60 0.14 257);
-  --sidebar-primary-foreground: oklch(0.10 0 0);
+.dark[data-theme="sapphire"] {
+  --accent: #6a8cc8;
+  --accent-foreground: #ffffff;
+  --ring: #6a8cc8;
+  --sidebar-accent: #6a8cc8;
+  --sidebar-ring: #6a8cc8;
+}
+
+.dark[data-theme="plum"] {
+  --accent: #c8c3e8;
+  --accent-foreground: #1a1a2e;
+  --ring: #c8c3e8;
+  --sidebar-accent: #c8c3e8;
+  --sidebar-ring: #c8c3e8;
+}
+
+.dark[data-theme="green"] {
+  --accent: #4aaa4e;
+  --accent-foreground: #ffffff;
+  --ring: #4aaa4e;
+  --sidebar-accent: #4aaa4e;
+  --sidebar-ring: #4aaa4e;
 }
 
 @theme inline {
