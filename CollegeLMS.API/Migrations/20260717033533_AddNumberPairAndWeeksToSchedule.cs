@@ -22,6 +22,14 @@ namespace CollegeLMS.Migrations
                 name: "weeks",
                 table: "schedule_entries",
                 type: "integer[]",
+                nullable: true);
+
+            migrationBuilder.Sql("UPDATE schedule_entries SET weeks = ARRAY[1] WHERE weeks IS NULL");
+
+            migrationBuilder.AlterColumn<List<int>>(
+                name: "weeks",
+                table: "schedule_entries",
+                type: "integer[]",
                 nullable: false);
 
             migrationBuilder.CreateIndex(

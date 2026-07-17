@@ -500,6 +500,7 @@ public static class DataSeeder
         var groupNames = new[] { "ИСП-31", "ИСП-32", "ИСП-41", "ИСП-11" };
         var groups = await db.Groups.Where(g => groupNames.Contains(g.Name)).ToListAsync();
         var groupMap = groups.ToDictionary(g => g.Name);
+        var groupIds = groupNames.Select(n => groupMap[n].Id).ToList();
 
         var studentUsers = await db
             .Users.Where(u => u.Role == UserRole.Student)
@@ -512,6 +513,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000001"),
                 UserId = studentUsers[0].Id,
+                GroupId = groupIds[0],
                 RecordBookNumber = "ЗК-2024-001",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -520,6 +522,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000002"),
                 UserId = studentUsers[1].Id,
+                GroupId = groupIds[0],
                 RecordBookNumber = "ЗК-2024-002",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -528,6 +531,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000003"),
                 UserId = studentUsers[2].Id,
+                GroupId = groupIds[0],
                 RecordBookNumber = "ЗК-2024-003",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -536,6 +540,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000004"),
                 UserId = studentUsers[3].Id,
+                GroupId = groupIds[1],
                 RecordBookNumber = "ЗК-2024-004",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -544,6 +549,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000005"),
                 UserId = studentUsers[4].Id,
+                GroupId = groupIds[1],
                 RecordBookNumber = "ЗК-2024-005",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -552,6 +558,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000006"),
                 UserId = studentUsers[5].Id,
+                GroupId = groupIds[1],
                 RecordBookNumber = "ЗК-2024-006",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -560,6 +567,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000007"),
                 UserId = studentUsers[6].Id,
+                GroupId = groupIds[2],
                 RecordBookNumber = "ЗК-2024-007",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -568,6 +576,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000008"),
                 UserId = studentUsers[7].Id,
+                GroupId = groupIds[2],
                 RecordBookNumber = "ЗК-2024-008",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -576,6 +585,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000009"),
                 UserId = studentUsers[8].Id,
+                GroupId = groupIds[2],
                 RecordBookNumber = "ЗК-2023-001",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -584,6 +594,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000010"),
                 UserId = studentUsers[9].Id,
+                GroupId = groupIds[1],
                 RecordBookNumber = "ЗК-2023-002",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -592,6 +603,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000011"),
                 UserId = studentUsers[10].Id,
+                GroupId = groupIds[0],
                 RecordBookNumber = "ЗК-2023-003",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -600,6 +612,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000012"),
                 UserId = studentUsers[11].Id,
+                GroupId = groupIds[3],
                 RecordBookNumber = "ЗК-2023-004",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -611,6 +624,7 @@ public static class DataSeeder
             {
                 Id = Guid.Parse("b3000000-0000-0000-0000-000000000013"),
                 UserId = petrov.Id,
+                GroupId = groupIds[3],
                 RecordBookNumber = "ЗК-2025-001",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
