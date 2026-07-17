@@ -87,7 +87,6 @@ export default function Carousel() {
                     alt=""
                     className="h-full w-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 via-30% to-transparent to-50%" />
                 </>
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-lilac/80 via-primary/60 to-blue-900/80" />
