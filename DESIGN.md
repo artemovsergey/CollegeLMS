@@ -330,6 +330,33 @@ Cards, dialogs, and dropdowns sit on the surface without vertical lift. The card
 - **Don't** wrap everything in a card. The page background is the primary surface.
 - **Don't** use the Crest Purple for interactive elements — it's a heraldic identifier, not a call to action.
 
+## 8. Dashboard Components
+
+### CourseCard (`components/CourseCard.tsx`)
+Карточка курса для дашборда. Сетка: `grid gap-6 sm:grid-cols-2 lg:grid-cols-3`.
+
+```
+┌─────────────────────────┐
+│  Название курса          │
+│  ─────────────────────   │
+│  Прогресс: ██████░░ 60%  │
+│  3/5 заданий · 78% ср.   │
+│  [Перейти]               │
+└─────────────────────────┘
+```
+
+### ProgressBar (`components/ui/progress.tsx`)
+Индикатор прогресса на Tailwind CSS 4. Цвет заполнения — `bg-accent`. Используется внутри CourseCard и на странице курса.
+
+### Студенческий дашборд (`/my/dashboard`)
+- Только карточки курсов с прогрессом
+- Нет дедлайнов, нет оценок, нет счётчиков
+
+### Преподавательский дашборд (`/teacher/dashboard`)
+- Карточки курсов
+- Портфолио (повышения квалификации, грамоты, категории, сертификаты)
+- Нет сводки нагрузки, студентов, последних отправок
+
 
 # Color from Logo (actual SVG fills)
 
