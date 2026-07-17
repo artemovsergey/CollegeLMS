@@ -106,7 +106,7 @@ export default function CoursesPage() {
                 >
                   <TableCell className="font-medium">{c.title}</TableCell>
                   <TableCell>{c.teacherName}</TableCell>
-                  <TableCell>{c.groupName}</TableCell>
+                  <TableCell>{c.groupNames}</TableCell>
                   <TableCell>
                     <Badge variant={statusVariants[c.status] ?? "outline"}>
                       {statusLabels[c.status] ?? c.status}

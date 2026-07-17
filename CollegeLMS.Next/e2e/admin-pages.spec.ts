@@ -505,7 +505,7 @@ test.describe("Testing page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "c1", title: "Математика", description: "Курс математики", teacherId: "t1", teacherName: "Иван Петров", groupId: "g1", groupName: "Группа А", status: "Active", lectureCount: 10, assignmentCount: 5 }],
+          data: [{ id: "c1", title: "Математика", description: "Курс математики", teacherId: "t1", teacherName: "Иван Петров", groupNames: "Группа А", status: "Active", lectureCount: 10, assignmentCount: 5 }],
           errorMessage: null,
           statusCode: 200,
         }),

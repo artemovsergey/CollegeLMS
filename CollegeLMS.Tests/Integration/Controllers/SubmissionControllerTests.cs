@@ -70,10 +70,10 @@ public class SubmissionControllerTests : BaseIntegrationTest
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = Guid.NewGuid(),
-            GroupId = groupId,
             Status = CourseStatus.Active,
         };
         db.Courses.Add(course);
+        db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = groupId });
 
         var assignment = new Assignment
         {
@@ -121,7 +121,7 @@ public class SubmissionControllerTests : BaseIntegrationTest
         {
             Id = Guid.NewGuid(),
             UserId = teacherUser.Id,
-            Department = "CS",
+            CyclicalCommission = "CS",
             Position = "Professor",
         };
         db.Teachers.Add(teacher);
@@ -131,7 +131,6 @@ public class SubmissionControllerTests : BaseIntegrationTest
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = teacher.Id,
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Active,
         };
         db.Courses.Add(course);
@@ -167,7 +166,7 @@ public class SubmissionControllerTests : BaseIntegrationTest
         {
             Id = Guid.NewGuid(),
             UserId = teacherUser.Id,
-            Department = "CS",
+            CyclicalCommission = "CS",
             Position = "Professor",
         };
         db.Teachers.Add(teacher);
@@ -177,7 +176,6 @@ public class SubmissionControllerTests : BaseIntegrationTest
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = teacher.Id,
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Active,
         };
         db.Courses.Add(course);
@@ -206,7 +204,6 @@ public class SubmissionControllerTests : BaseIntegrationTest
         {
             Id = Guid.NewGuid(),
             UserId = submitterUser.Id,
-            GroupId = Guid.NewGuid(),
             RecordBookNumber = "RB-002",
         };
         db.Students.Add(submitterStudent);
@@ -247,7 +244,6 @@ public class SubmissionControllerTests : BaseIntegrationTest
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            GroupId = Guid.NewGuid(),
             RecordBookNumber = "RB-001",
         };
         db.Students.Add(student);

@@ -73,7 +73,7 @@ export default function SpecialtiesSection() {
           {specialties.map((s) => (
             <Link
               key={s.code}
-              href={`/education/specialties/${s.slug}`}
+              href="/education"
               className="group block rounded-lg border border-border bg-card p-6 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
             >
               <div className="mb-4 flex items-center gap-3">

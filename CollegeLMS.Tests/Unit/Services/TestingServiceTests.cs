@@ -89,7 +89,6 @@ public class TestingServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Курс",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Draft,
         };
         _db.Courses.Add(course);
@@ -123,7 +122,6 @@ public class TestingServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Курс",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Draft,
         };
         _db.Courses.Add(course);
@@ -153,7 +151,6 @@ public class TestingServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Курс",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Draft,
         };
         _db.Courses.Add(course);
@@ -305,8 +302,7 @@ public class TestingServiceTests : IDisposable
             test.Id,
             new AssignTestRequest
             {
-                GroupId = Guid.NewGuid(),
-                OpenDate = DateTime.UtcNow,
+                    OpenDate = DateTime.UtcNow,
                 CloseDate = DateTime.UtcNow.AddDays(30),
             },
             Guid.NewGuid(),
@@ -382,7 +378,6 @@ public class TestingServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Курс",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Draft,
         };
         _db.Courses.Add(course);
@@ -542,7 +537,6 @@ public class TestingServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = studentUserId,
-            GroupId = Guid.NewGuid(),
             RecordBookNumber = "ЗК-001",
         };
         _db.Users.Add(
@@ -613,7 +607,6 @@ public class TestingServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = studentUserId,
-            GroupId = Guid.NewGuid(),
             RecordBookNumber = "ЗК-001",
         };
         _db.Users.Add(
@@ -665,7 +658,6 @@ public class TestingServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = studentUserId,
-            GroupId = Guid.NewGuid(),
             RecordBookNumber = "ЗК-001",
         };
         _db.Users.Add(
@@ -710,7 +702,6 @@ public class TestingServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = studentUserId,
-            GroupId = Guid.NewGuid(),
             RecordBookNumber = "ЗК-001",
         };
         _db.Users.Add(
@@ -810,7 +801,6 @@ public class TestingServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             RecordBookNumber = "ЗК-001",
         };
         student.User = new User

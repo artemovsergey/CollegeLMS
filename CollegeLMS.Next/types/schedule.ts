@@ -9,8 +9,10 @@ export interface ScheduleResponse {
   subject: string
   room: string
   dayOfWeek: number
+  numberPair: number
   startTime: string
   endTime: string
+  weeks: number[]
   lessonType: LessonType
 }
 

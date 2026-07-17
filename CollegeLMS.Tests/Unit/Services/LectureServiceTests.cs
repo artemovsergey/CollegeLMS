@@ -31,7 +31,6 @@ public class LectureServiceTests : IDisposable
                 Id = courseId,
                 Title = "Test",
                 TeacherId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
                 Status = CourseStatus.Draft,
             }
         );
@@ -53,7 +52,6 @@ public class LectureServiceTests : IDisposable
                 Id = courseId,
                 Title = "Test",
                 TeacherId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
                 Status = CourseStatus.Draft,
             }
         );
@@ -79,7 +77,6 @@ public class LectureServiceTests : IDisposable
                 Id = courseId,
                 Title = "Test",
                 TeacherId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
                 Status = CourseStatus.Draft,
             }
         );
@@ -125,7 +122,6 @@ public class LectureServiceTests : IDisposable
                 Id = courseId,
                 Title = "Test",
                 TeacherId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
                 Status = CourseStatus.Draft,
             }
         );
@@ -166,7 +162,6 @@ public class LectureServiceTests : IDisposable
                 Id = courseId,
                 Title = "Test",
                 TeacherId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
                 Status = CourseStatus.Draft,
             }
         );
@@ -216,7 +211,6 @@ public class LectureServiceTests : IDisposable
                 Id = courseId,
                 Title = "Test",
                 TeacherId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
                 Status = CourseStatus.Draft,
             }
         );

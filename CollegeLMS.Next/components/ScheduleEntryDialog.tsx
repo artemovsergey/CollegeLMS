@@ -56,8 +56,10 @@ export default function ScheduleEntryDialog({
   const [subject, setSubject] = useState("")
   const [room, setRoom] = useState("")
   const [dayOfWeek, setDayOfWeek] = useState("")
+  const [numberPair, setNumberPair] = useState("1")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
+  const [weeksInput, setWeeksInput] = useState("")
   const [lessonType, setLessonType] = useState("")
   const [saving, setSaving] = useState(false)
 
@@ -69,8 +71,10 @@ export default function ScheduleEntryDialog({
         setSubject(entry.subject)
         setRoom(entry.room)
         setDayOfWeek(String(entry.dayOfWeek))
+        setNumberPair(String(entry.numberPair))
         setStartTime(entry.startTime.slice(0, 5))
         setEndTime(entry.endTime.slice(0, 5))
+        setWeeksInput(entry.weeks.join(", "))
         setLessonType(entry.lessonType)
       } else {
         setGroupId("")
@@ -78,12 +82,21 @@ export default function ScheduleEntryDialog({
         setSubject("")
         setRoom("")
         setDayOfWeek("")
+        setNumberPair("1")
         setStartTime("")
         setEndTime("")
+        setWeeksInput("")
         setLessonType("")
       }
     }
   }, [open, entry])
+
+  const parseWeeks = (input: string): number[] => {
+    return input
+      .split(/[,.\s]+/)
+      .map((s) => parseInt(s, 10))
+      .filter((n) => !isNaN(n) && n >= 1 && n <= 52)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -97,6 +110,18 @@ export default function ScheduleEntryDialog({
       return
     }
 
+    const np = parseInt(numberPair, 10)
+    if (isNaN(np) || np < 1 || np > 8) {
+      toast.error("Номер пары должен быть от 1 до 8")
+      return
+    }
+
+    const weeks = parseWeeks(weeksInput)
+    if (weeks.length === 0) {
+      toast.error("Укажите хотя бы одну неделю")
+      return
+    }
+
     setSaving(true)
     try {
       const base = {
@@ -105,8 +130,10 @@ export default function ScheduleEntryDialog({
         subject,
         room,
         dayOfWeek: Number(dayOfWeek),
+        numberPair: np,
         startTime: `${startTime}:00`,
         endTime: `${endTime}:00`,
+        weeks,
         lessonType,
       }
 
@@ -192,23 +219,38 @@ export default function ScheduleEntryDialog({
             <Input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="301" />
           </div>
 
+          <div className="grid gap-2">
+            <Label>День недели *</Label>
+            <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
+              <SelectTrigger>
+                <SelectValue placeholder="День" />
+              </SelectTrigger>
+              <SelectContent>
+                {DAYS.filter((d) => d.value >= 1 && d.value <= 6).map((d) => (
+                  <SelectItem key={d.value} value={String(d.value)}>
+                    {d.full}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>День недели *</Label>
-              <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
+              <Label>Номер пары *</Label>
+              <Select value={numberPair} onValueChange={setNumberPair}>
                 <SelectTrigger>
-                  <SelectValue placeholder="День" />
+                  <SelectValue placeholder="Пара" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DAYS.filter((d) => d.value >= 1 && d.value <= 6).map((d) => (
-                    <SelectItem key={d.value} value={String(d.value)}>
-                      {d.full}
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>
+                      {i + 1} пара
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
             <div className="grid gap-2">
               <Label>Тип занятия *</Label>
               <Select value={lessonType} onValueChange={setLessonType}>
@@ -235,6 +277,18 @@ export default function ScheduleEntryDialog({
               <Label>Конец *</Label>
               <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Недели *</Label>
+            <Input
+              value={weeksInput}
+              onChange={(e) => setWeeksInput(e.target.value)}
+              placeholder="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
+            />
+            <p className="text-xs text-muted-foreground">
+              Номера недель через запятую. Например: 1,3,5,7,9,11,13,15 — нечётные
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

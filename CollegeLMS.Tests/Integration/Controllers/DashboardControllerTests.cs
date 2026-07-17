@@ -58,7 +58,7 @@ public class DashboardControllerTests : BaseIntegrationTest
         {
             Id = Guid.NewGuid(),
             UserId = teacherUser.Id,
-            Department = "ИТ",
+            CyclicalCommission = "ИТ",
             Position = "Преподаватель",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -81,7 +81,6 @@ public class DashboardControllerTests : BaseIntegrationTest
             Title = "Тестовый курс",
             Description = "Описание",
             TeacherId = teacher.Id,
-            GroupId = group.Id,
             Status = CourseStatus.Active,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -95,7 +94,7 @@ public class DashboardControllerTests : BaseIntegrationTest
         var body = await DeserializeAsync<Result<TeacherDashboardResponse>>(response);
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
-        Assert.Equal(1, body.Data!.CoursesCount);
+        Assert.Single(body.Data!.Courses);
     }
 
     [Fact]
@@ -153,7 +152,7 @@ public class DashboardControllerTests : BaseIntegrationTest
         var body = await DeserializeAsync<Result<StudentDashboardResponse>>(response);
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
-        Assert.Equal(0, body.Data!.CoursesCount);
+        Assert.Empty(body.Data!.Courses);
     }
 
     [Fact]

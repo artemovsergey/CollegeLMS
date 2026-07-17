@@ -6,7 +6,7 @@ import {
   LESSON_TYPE_LABELS,
   LESSON_TYPE_STYLES,
 } from "@/types/schedule"
-import { Clock, MapPin, GraduationCap, Users, Calendar, Trash2 } from "lucide-react"
+import { Clock, MapPin, GraduationCap, Users, Calendar, Trash2, ListOrdered } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface ScheduleTableProps {
@@ -23,18 +23,39 @@ function formatTimeSlot(start: string, end: string) {
   return `${formatTime(start)} – ${formatTime(end)}`
 }
 
+function formatWeeks(weeks: number[]): string {
+  if (weeks.length === 0) return ""
+  if (weeks.length === 16 && weeks[0] === 1 && weeks[weeks.length - 1] === 16) return "все"
+  const ranges: string[] = []
+  let start = weeks[0]
+  let end = weeks[0]
+  for (let i = 1; i < weeks.length; i++) {
+    if (weeks[i] === end + 1) {
+      end = weeks[i]
+    } else {
+      ranges.push(start === end ? `${start}` : `${start}-${end}`)
+      start = weeks[i]
+      end = weeks[i]
+    }
+  }
+  ranges.push(start === end ? `${start}` : `${start}-${end}`)
+  return ranges.join(", ")
+}
+
 export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: ScheduleTableProps) {
   const weekDays = DAYS.filter(d => d.value >= 1 && d.value <= 5)
 
+  const sorted = [...entries].sort((a, b) => a.numberPair - b.numberPair)
+
   const timeSlots = [
     ...new Set(
-      entries.map(e => formatTimeSlot(e.startTime, e.endTime)),
+      sorted.map(e => `${e.numberPair} пара · ${formatTimeSlot(e.startTime, e.endTime)}`),
     ),
-  ].sort((a, b) => a.localeCompare(b))
+  ].sort()
 
   const cellMap = new Map<string, ScheduleResponse[]>()
-  for (const entry of entries) {
-    const slot = formatTimeSlot(entry.startTime, entry.endTime)
+  for (const entry of sorted) {
+    const slot = `${entry.numberPair} пара · ${formatTimeSlot(entry.startTime, entry.endTime)}`
     const key = `${entry.dayOfWeek}:${slot}`
     if (!cellMap.has(key)) cellMap.set(key, [])
     cellMap.get(key)!.push(entry)
@@ -105,6 +126,10 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
                             </span>
                           )}
                           <span className="flex items-center gap-1">
+                            <ListOrdered className="size-3 shrink-0" />
+                            №{entry.numberPair}
+                          </span>
+                          <span className="flex items-center gap-1">
                             <MapPin className="size-3 shrink-0" />
                             {entry.room}
                           </span>
@@ -112,6 +137,12 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
                             <Users className="size-3 shrink-0" />
                             {entry.groupName}
                           </span>
+                          {entry.weeks && entry.weeks.length > 0 && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="size-3 shrink-0" />
+                              нед. {formatWeeks(entry.weeks)}
+                            </span>
+                          )}
                         </div>
                         <span className="mt-1 inline-block rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                           {LESSON_TYPE_LABELS[entry.lessonType]}
@@ -143,7 +174,7 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
         {weekDays.map(day => {
           const dayEntries = entries
             .filter(e => e.dayOfWeek === day.value)
-            .sort((a, b) => a.startTime.localeCompare(b.startTime))
+            .sort((a, b) => a.numberPair - b.numberPair)
 
           if (dayEntries.length === 0) return null
 
@@ -160,6 +191,8 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
                     onClick={() => onEntryClick?.(entry)}
                   >
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <ListOrdered className="size-3" />
+                      №{entry.numberPair}
                       <Clock className="size-3" />
                       {formatTimeSlot(entry.startTime, entry.endTime)}
                       <span className="ml-auto rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium">
@@ -184,6 +217,12 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
                         <Users className="size-3" />
                         {entry.groupName}
                       </span>
+                      {entry.weeks && entry.weeks.length > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="size-3" />
+                          нед. {formatWeeks(entry.weeks)}
+                        </span>
+                      )}
                     </div>
                     {onDeleteClick && (
                       <Button

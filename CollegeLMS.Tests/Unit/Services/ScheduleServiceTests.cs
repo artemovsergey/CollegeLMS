@@ -130,7 +130,7 @@ public class ScheduleServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = Guid.NewGuid(),
-            Department = "CS",
+            CyclicalCommission = "CS",
             Position = "Professor",
         };
         _db.Teachers.Add(teacher);
@@ -143,8 +143,10 @@ public class ScheduleServiceTests : IDisposable
             Subject = "Математика",
             Room = "301",
             DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
             StartTime = new TimeSpan(9, 0, 0),
             EndTime = new TimeSpan(10, 30, 0),
+            Weeks = new() { 1 },
             LessonType = LessonType.Lecture.ToString(),
         };
 
@@ -164,8 +166,10 @@ public class ScheduleServiceTests : IDisposable
             Subject = "Математика",
             Room = "301",
             DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
             StartTime = new TimeSpan(9, 0, 0),
             EndTime = new TimeSpan(10, 30, 0),
+            Weeks = new() { 1 },
             LessonType = LessonType.Lecture.ToString(),
         };
 
@@ -194,8 +198,10 @@ public class ScheduleServiceTests : IDisposable
             Subject = "Математика",
             Room = "301",
             DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
             StartTime = new TimeSpan(9, 0, 0),
             EndTime = new TimeSpan(10, 30, 0),
+            Weeks = new() { 1 },
             LessonType = LessonType.Lecture.ToString(),
         };
 
@@ -237,8 +243,10 @@ public class ScheduleServiceTests : IDisposable
             Subject = "Математика",
             Room = "302",
             DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
             StartTime = new TimeSpan(9, 30, 0),
             EndTime = new TimeSpan(11, 0, 0),
+            Weeks = new() { 1 },
             LessonType = LessonType.Practice.ToString(),
         };
 
@@ -278,8 +286,10 @@ public class ScheduleServiceTests : IDisposable
             Subject = "Обновлённая тема",
             Room = "402",
             DayOfWeek = DayOfWeek.Tuesday,
+            NumberPair = 1,
             StartTime = new TimeSpan(10, 0, 0),
             EndTime = new TimeSpan(11, 30, 0),
+            Weeks = new() { 1 },
             LessonType = LessonType.Lab.ToString(),
         };
 
@@ -299,8 +309,10 @@ public class ScheduleServiceTests : IDisposable
             Subject = "Тема",
             Room = "301",
             DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
             StartTime = new TimeSpan(9, 0, 0),
             EndTime = new TimeSpan(10, 30, 0),
+            Weeks = new() { 1 },
             LessonType = LessonType.Lecture.ToString(),
         };
 

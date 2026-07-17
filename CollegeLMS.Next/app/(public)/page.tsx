@@ -57,7 +57,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <StatisticsSection />
       <SpecialtiesSection />
       <AdmissionSection />
       <EventsSection />
@@ -117,6 +116,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      <StatisticsSection />
       <PartnersSection />
       <LicensesSection />
       <MediaSection />

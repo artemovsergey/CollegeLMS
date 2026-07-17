@@ -274,32 +274,4 @@ public class UserControllerTests : BaseIntegrationTest
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    [Fact]
-    public async Task ToggleActive_TogglesActive_WhenAdmin()
-    {
-        SetAuthHeader(GetAdminToken());
-
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var user = UserFixture.CreateFaker().Generate();
-        user.IsActive = true;
-        db.Users.Add(user);
-        await db.SaveChangesAsync();
-
-        var response = await Client.PatchAsync($"/api/users/{user.Id}/toggle-active", null);
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await DeserializeAsync<Result<UserResponse>>(response);
-        Assert.NotNull(body);
-        Assert.True(body!.IsSuccess);
-        Assert.False(body.Data!.IsActive);
-    }
-
-    [Fact]
-    public async Task ToggleActive_ReturnsUnauthorized_WhenNoToken()
-    {
-        var response = await Client.PatchAsync($"/api/users/{Guid.NewGuid()}/toggle-active", null);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
 }

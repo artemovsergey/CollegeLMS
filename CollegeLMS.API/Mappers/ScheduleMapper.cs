@@ -17,8 +17,10 @@ public static class ScheduleMapper
             Subject = entry.Subject,
             Room = entry.Room,
             DayOfWeek = (int)entry.DayOfWeek,
+            NumberPair = entry.NumberPair,
             StartTime = entry.StartTime,
             EndTime = entry.EndTime,
+            Weeks = entry.Weeks,
             LessonType = entry.LessonType.ToString(),
         };
 
@@ -31,8 +33,10 @@ public static class ScheduleMapper
             Subject = request.Subject,
             Room = request.Room,
             DayOfWeek = request.DayOfWeek,
+            NumberPair = request.NumberPair,
             StartTime = request.StartTime,
             EndTime = request.EndTime,
+            Weeks = request.Weeks,
             LessonType = Enum.Parse<LessonType>(request.LessonType),
         };
 }

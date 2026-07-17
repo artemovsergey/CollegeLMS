@@ -47,7 +47,6 @@ public class AssignmentControllerTests : BaseIntegrationTest
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Draft,
         };
         db.Courses.Add(course);
@@ -78,7 +77,6 @@ public class AssignmentControllerTests : BaseIntegrationTest
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Draft,
         };
         db.Courses.Add(course);

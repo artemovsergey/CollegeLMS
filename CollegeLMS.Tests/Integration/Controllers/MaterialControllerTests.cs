@@ -47,7 +47,6 @@ public class MaterialControllerTests : BaseIntegrationTest
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Active,
         };
         db.Courses.Add(course);
@@ -93,7 +92,6 @@ public class MaterialControllerTests : BaseIntegrationTest
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Active,
         };
         db.Courses.Add(course);

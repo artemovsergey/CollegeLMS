@@ -12,7 +12,6 @@ public static class CourseFixture
             .RuleFor(c => c.Title, f => f.Lorem.Sentence(3))
             .RuleFor(c => c.Description, f => f.Lorem.Paragraph())
             .RuleFor(c => c.TeacherId, f => f.Random.Guid())
-            .RuleFor(c => c.GroupId, f => f.Random.Guid())
             .RuleFor(c => c.Status, f => f.PickRandom<CourseStatus>())
             .RuleFor(c => c.CreatedAt, f => f.Date.Past())
             .RuleFor(c => c.UpdatedAt, f => f.Date.Recent())
@@ -23,7 +22,7 @@ public static class CourseFixture
                     {
                         Id = c.TeacherId,
                         UserId = f.Random.Guid(),
-                        Department = f.Commerce.Department(),
+                        CyclicalCommission = f.Commerce.Department(),
                         Position = f.Name.JobTitle(),
                         CreatedAt = c.CreatedAt,
                         UpdatedAt = c.UpdatedAt,
@@ -36,14 +35,6 @@ public static class CourseFixture
                             Role = UserRole.Teacher,
                             IsActive = true,
                         },
-                    };
-                    c.Group = new Group
-                    {
-                        Id = c.GroupId,
-                        Name = $"ГР-{f.Random.Number(1, 99)}",
-                        Course = f.Random.Number(1, 4),
-                        CreatedAt = c.CreatedAt,
-                        UpdatedAt = c.UpdatedAt,
                     };
                 }
             );

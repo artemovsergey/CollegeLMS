@@ -23,7 +23,8 @@ public class CourseService(AppDbContext db) : ICourseService
             .Courses.AsNoTracking()
             .Include(c => c.Teacher)
                 .ThenInclude(t => t.User)
-            .Include(c => c.Group)
+            .Include(c => c.CourseGroups)
+                .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
             .AsQueryable();
@@ -44,7 +45,7 @@ public class CourseService(AppDbContext db) : ICourseService
             query = query.Where(c => c.TeacherId == teacherId.Value);
 
         if (groupId.HasValue)
-            query = query.Where(c => c.GroupId == groupId.Value);
+            query = query.Where(c => c.CourseGroups.Any(cg => cg.GroupId == groupId.Value));
 
         var courses = await query.OrderBy(c => c.Title).ToListAsync(ct);
 
@@ -57,7 +58,8 @@ public class CourseService(AppDbContext db) : ICourseService
             .Courses.AsNoTracking()
             .Include(c => c.Teacher)
                 .ThenInclude(t => t.User)
-            .Include(c => c.Group)
+            .Include(c => c.CourseGroups)
+                .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
@@ -94,17 +96,12 @@ public class CourseService(AppDbContext db) : ICourseService
             teacherId = request.TeacherId.Value;
         }
 
-        var groupExists = await db.Groups.AnyAsync(g => g.Id == request.GroupId, ct);
-        if (!groupExists)
-            return Result<CourseResponse>.Fail("Группа не найдена", 404);
-
         var course = new Course
         {
             Id = Guid.NewGuid(),
             Title = request.Title,
             Description = request.Description,
             TeacherId = teacherId,
-            GroupId = request.GroupId,
             Status = CourseStatus.Draft,
         };
         db.Courses.Add(course);
@@ -113,7 +110,8 @@ public class CourseService(AppDbContext db) : ICourseService
         course = await db
             .Courses.Include(c => c.Teacher)
                 .ThenInclude(t => t.User)
-            .Include(c => c.Group)
+            .Include(c => c.CourseGroups)
+                .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
             .FirstAsync(c => c.Id == course.Id, ct);
@@ -132,7 +130,8 @@ public class CourseService(AppDbContext db) : ICourseService
         var course = await db
             .Courses.Include(c => c.Teacher)
                 .ThenInclude(t => t.User)
-            .Include(c => c.Group)
+            .Include(c => c.CourseGroups)
+                .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
@@ -153,13 +152,8 @@ public class CourseService(AppDbContext db) : ICourseService
                 );
         }
 
-        var groupExists = await db.Groups.AnyAsync(g => g.Id == request.GroupId, ct);
-        if (!groupExists)
-            return Result<CourseResponse>.Fail("Группа не найдена", 404);
-
         course.Title = request.Title;
         course.Description = request.Description;
-        course.GroupId = request.GroupId;
         course.Status = Enum.Parse<CourseStatus>(request.Status);
         course.UpdatedAt = DateTime.UtcNow;
 
@@ -309,12 +303,10 @@ public class CourseService(AppDbContext db) : ICourseService
         if (student is null)
             return Result<CourseProgressResponse>.Fail("Студент не найден", 404);
 
-        var inGroup =
-            await db.CourseGroups.AnyAsync(
-                cg => cg.CourseId == courseId && cg.GroupId == student.GroupId,
-                ct
-            )
-            || course.GroupId == student.GroupId;
+        var inGroup = await db.CourseGroups.AnyAsync(
+            cg => cg.CourseId == courseId && cg.GroupId == student.GroupId,
+            ct
+        );
         if (!inGroup)
             return Result<CourseProgressResponse>.Fail("Вы не привязаны к этому курсу", 403);
 

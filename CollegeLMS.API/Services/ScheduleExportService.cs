@@ -49,7 +49,7 @@ public class ScheduleExportService(AppDbContext db)
         if (period == "day")
             query = query.Where(s => s.DayOfWeek == today.DayOfWeek);
 
-        query = query.OrderBy(s => s.DayOfWeek).ThenBy(s => s.StartTime);
+        query = query.OrderBy(s => s.DayOfWeek).ThenBy(s => s.NumberPair).ThenBy(s => s.StartTime);
         var entries = await query.ToListAsync(ct);
 
         if (entries.Count == 0)
@@ -72,49 +72,55 @@ public class ScheduleExportService(AppDbContext db)
 
                 page.Header().Text("Расписание занятий").SemiBold().FontSize(16).AlignCenter();
 
-                page.Content()
-                    .Table(table =>
-                    {
-                        table.ColumnsDefinition(c =>
+                    page.Content()
+                        .Table(table =>
                         {
-                            c.RelativeColumn(1);
-                            c.RelativeColumn(3);
-                            c.RelativeColumn(2);
-                            c.RelativeColumn(1);
-                            c.RelativeColumn(1);
-                            c.RelativeColumn(1);
-                            c.RelativeColumn(1);
-                            c.RelativeColumn(1);
-                        });
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.RelativeColumn(1);
+                                c.RelativeColumn(3);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(0.7f);
+                                c.RelativeColumn(0.5f);
+                                c.RelativeColumn(1);
+                                c.RelativeColumn(1);
+                                c.RelativeColumn(1);
+                                c.RelativeColumn(1);
+                                c.RelativeColumn(1.5f);
+                            });
 
-                        table.Header(h =>
-                        {
-                            h.Cell().Text("День").Bold();
-                            h.Cell().Text("Предмет").Bold();
-                            h.Cell().Text("Преподаватель").Bold();
-                            h.Cell().Text("Аудитория").Bold();
-                            h.Cell().Text("Начало").Bold();
-                            h.Cell().Text("Конец").Bold();
-                            h.Cell().Text("Группа").Bold();
-                            h.Cell().Text("Тип").Bold();
-                        });
+                            table.Header(h =>
+                            {
+                                h.Cell().Text("День").Bold();
+                                h.Cell().Text("Предмет").Bold();
+                                h.Cell().Text("Преподаватель").Bold();
+                                h.Cell().Text("Пара").Bold();
+                                h.Cell().Text("Ауд.").Bold();
+                                h.Cell().Text("Начало").Bold();
+                                h.Cell().Text("Конец").Bold();
+                                h.Cell().Text("Группа").Bold();
+                                h.Cell().Text("Тип").Bold();
+                                h.Cell().Text("Недели").Bold();
+                            });
 
-                        foreach (var e in entries)
-                        {
-                            table
-                                .Cell()
-                                .Text(
-                                    DaysMap.GetValueOrDefault(e.DayOfWeek, e.DayOfWeek.ToString())
-                                );
-                            table.Cell().Text(e.Subject);
-                            table.Cell().Text(e.Teacher?.User?.FullName ?? "");
-                            table.Cell().Text(e.Room);
-                            table.Cell().Text(e.StartTime.ToString(@"hh\:mm"));
-                            table.Cell().Text(e.EndTime.ToString(@"hh\:mm"));
-                            table.Cell().Text(e.Group?.Name ?? "");
-                            table.Cell().Text(e.LessonType.ToString());
-                        }
-                    });
+                            foreach (var e in entries)
+                            {
+                                table
+                                    .Cell()
+                                    .Text(
+                                        DaysMap.GetValueOrDefault(e.DayOfWeek, e.DayOfWeek.ToString())
+                                    );
+                                table.Cell().Text(e.Subject);
+                                table.Cell().Text(e.Teacher?.User?.FullName ?? "");
+                                table.Cell().Text(e.NumberPair.ToString());
+                                table.Cell().Text(e.Room);
+                                table.Cell().Text(e.StartTime.ToString(@"hh\:mm"));
+                                table.Cell().Text(e.EndTime.ToString(@"hh\:mm"));
+                                table.Cell().Text(e.Group?.Name ?? "");
+                                table.Cell().Text(e.LessonType.ToString());
+                                table.Cell().Text(string.Join(", ", e.Weeks));
+                            }
+                        });
 
                 page.Footer()
                     .AlignCenter()
@@ -145,13 +151,15 @@ public class ScheduleExportService(AppDbContext db)
         ws.Cell(1, 1).Value = "День";
         ws.Cell(1, 2).Value = "Предмет";
         ws.Cell(1, 3).Value = "Преподаватель";
-        ws.Cell(1, 4).Value = "Аудитория";
-        ws.Cell(1, 5).Value = "Начало";
-        ws.Cell(1, 6).Value = "Конец";
-        ws.Cell(1, 7).Value = "Группа";
-        ws.Cell(1, 8).Value = "Тип занятия";
+        ws.Cell(1, 4).Value = "Пара";
+        ws.Cell(1, 5).Value = "Аудитория";
+        ws.Cell(1, 6).Value = "Начало";
+        ws.Cell(1, 7).Value = "Конец";
+        ws.Cell(1, 8).Value = "Группа";
+        ws.Cell(1, 9).Value = "Тип занятия";
+        ws.Cell(1, 10).Value = "Недели";
 
-        var headerRange = ws.Range(1, 1, 1, 8);
+        var headerRange = ws.Range(1, 1, 1, 10);
         headerRange.Style.Font.Bold = true;
         headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
 
@@ -161,11 +169,13 @@ public class ScheduleExportService(AppDbContext db)
             ws.Cell(row, 1).Value = DaysMap.GetValueOrDefault(e.DayOfWeek, e.DayOfWeek.ToString());
             ws.Cell(row, 2).Value = e.Subject;
             ws.Cell(row, 3).Value = e.Teacher?.User?.FullName ?? "";
-            ws.Cell(row, 4).Value = e.Room;
-            ws.Cell(row, 5).Value = e.StartTime.ToString(@"hh\:mm");
-            ws.Cell(row, 6).Value = e.EndTime.ToString(@"hh\:mm");
-            ws.Cell(row, 7).Value = e.Group?.Name ?? "";
-            ws.Cell(row, 8).Value = e.LessonType.ToString();
+            ws.Cell(row, 4).Value = e.NumberPair;
+            ws.Cell(row, 5).Value = e.Room;
+            ws.Cell(row, 6).Value = e.StartTime.ToString(@"hh\:mm");
+            ws.Cell(row, 7).Value = e.EndTime.ToString(@"hh\:mm");
+            ws.Cell(row, 8).Value = e.Group?.Name ?? "";
+            ws.Cell(row, 9).Value = e.LessonType.ToString();
+            ws.Cell(row, 10).Value = string.Join(", ", e.Weeks);
             row++;
         }
 

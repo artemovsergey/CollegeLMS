@@ -73,7 +73,7 @@ public class TeacherServiceTests : IDisposable
             Email = "teacher@test.ru",
             Password = "test123",
             FullName = "Иван Иванов",
-            Department = "ИТ",
+            CyclicalCommission = "ИТ",
             Position = "Преподаватель",
         };
 
@@ -97,7 +97,7 @@ public class TeacherServiceTests : IDisposable
             Email = teacher.User.Email,
             Password = "test123",
             FullName = "Другой",
-            Department = "ИТ",
+            CyclicalCommission = "ИТ",
             Position = "Преподаватель",
         };
 
@@ -119,7 +119,7 @@ public class TeacherServiceTests : IDisposable
         {
             Email = "updated@test.ru",
             FullName = "Обновлённый",
-            Department = "Новая кафедра",
+            CyclicalCommission = "Новая кафедра",
             Position = "Старший преподаватель",
         };
 

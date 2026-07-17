@@ -2,7 +2,9 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth"
 import { ThemeProvider } from "next-themes"
+import { ThemePresetProvider } from "@/lib/theme-preset"
 import { Toaster } from "@/components/ui/sonner"
+import ThemeSwitcher from "@/components/ThemeSwitcher"
 import "@fontsource/golos-text"
 import "@fontsource/golos-text/500.css"
 import "@fontsource/golos-text/600.css"
@@ -35,10 +37,13 @@ export default function RootLayout({
           enableSystem={false}
           storageKey="theme"
         >
-          <AuthProvider>
-            {children}
-            <Toaster />
-          </AuthProvider>
+          <ThemePresetProvider>
+            <AuthProvider>
+              {children}
+              <ThemeSwitcher />
+              <Toaster />
+            </AuthProvider>
+          </ThemePresetProvider>
         </ThemeProvider>
       </body>
     </html>

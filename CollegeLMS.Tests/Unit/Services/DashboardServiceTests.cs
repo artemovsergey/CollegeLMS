@@ -36,7 +36,6 @@ public class DashboardServiceTests : IDisposable
         var group = DashboardFixture.CreateGroupFaker().Generate();
         var course = DashboardFixture.CreateCourseFaker().Generate();
         course.TeacherId = teacher.Id;
-        course.GroupId = group.Id;
         var assignment = DashboardFixture.CreateAssignmentFaker().Generate();
         assignment.CourseId = course.Id;
         var student = DashboardFixture.CreateStudentFaker().Generate();
@@ -51,6 +50,7 @@ public class DashboardServiceTests : IDisposable
         _db.Students.Add(student);
         _db.Groups.Add(group);
         _db.Courses.Add(course);
+        _db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = group.Id });
         _db.Assignments.Add(assignment);
         _db.AssignmentSubmissions.Add(submission);
         await _db.SaveChangesAsync();
@@ -58,9 +58,8 @@ public class DashboardServiceTests : IDisposable
         var result = await _sut.GetTeacherDashboardAsync(teacher.UserId, default);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.CoursesCount.Should().Be(1);
-        result.Data.Courses.Should().Contain(course.Title);
-        result.Data.RecentSubmissions.Should().HaveCount(1);
+        result.Data!.Courses.Should().HaveCount(1);
+        result.Data.Courses[0].Title.Should().Be(course.Title);
     }
 
     [Fact]
@@ -74,10 +73,7 @@ public class DashboardServiceTests : IDisposable
         var result = await _sut.GetTeacherDashboardAsync(teacher.UserId, default);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.CoursesCount.Should().Be(0);
-        result.Data.StudentsCount.Should().Be(0);
-        result.Data.RecentSubmissions.Should().BeEmpty();
-        result.Data.Courses.Should().BeEmpty();
+        result.Data!.Courses.Should().BeEmpty();
     }
 
     [Fact]
@@ -96,7 +92,6 @@ public class DashboardServiceTests : IDisposable
         var group = DashboardFixture.CreateGroupFaker().Generate();
         student.GroupId = group.Id;
         var course = DashboardFixture.CreateCourseFaker().Generate();
-        course.GroupId = group.Id;
         var teacher = DashboardFixture.CreateTeacherFaker().Generate();
         course.TeacherId = teacher.Id;
         var assignment = DashboardFixture.CreateAssignmentFaker().Generate();
@@ -112,6 +107,7 @@ public class DashboardServiceTests : IDisposable
         _db.Teachers.Add(teacher);
         _db.Groups.Add(group);
         _db.Courses.Add(course);
+        _db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = group.Id });
         _db.Assignments.Add(assignment);
         _db.AssignmentSubmissions.Add(submission);
         await _db.SaveChangesAsync();
@@ -119,19 +115,18 @@ public class DashboardServiceTests : IDisposable
         var result = await _sut.GetStudentDashboardAsync(student.UserId, default);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.CoursesCount.Should().Be(1);
-        result.Data.RecentGrades.Should().HaveCount(1);
-        result.Data.RecentGrades[0].Grade.Should().Be(85);
+        result.Data!.Courses.Should().HaveCount(1);
+        result.Data.Courses[0].CompletedItems.Should().Be(1);
+        result.Data.Courses[0].CompletionPercent.Should().Be(100.0);
     }
 
     [Fact]
-    public async Task GetStudentDashboard_ReturnsUpcomingDeadlines()
+    public async Task GetStudentDashboard_ReturnsEmptyCourses_WhenNoCourseGroup()
     {
         var student = DashboardFixture.CreateStudentFaker().Generate();
         var group = DashboardFixture.CreateGroupFaker().Generate();
         student.GroupId = group.Id;
         var course = DashboardFixture.CreateCourseFaker().Generate();
-        course.GroupId = group.Id;
         var teacher = DashboardFixture.CreateTeacherFaker().Generate();
         course.TeacherId = teacher.Id;
         var assignment = DashboardFixture.CreateAssignmentFaker().Generate();
@@ -150,7 +145,6 @@ public class DashboardServiceTests : IDisposable
         var result = await _sut.GetStudentDashboardAsync(student.UserId, default);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.UpcomingDeadlines.Should().HaveCount(1);
-        result.Data.UpcomingDeadlines[0].AssignmentTitle.Should().Be(assignment.Title);
+        result.Data!.Courses.Should().BeEmpty();
     }
 }

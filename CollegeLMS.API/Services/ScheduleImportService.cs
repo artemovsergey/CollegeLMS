@@ -108,12 +108,14 @@ public class ScheduleImportService(AppDbContext db)
     private static ScheduleEntry? TryParseRow(IXLRow row, int rowNum, ScheduleImportResult result)
     {
         var groupName = row.Cell(1).GetString().Trim();
+        var numberPairStr = row.Cell(2).GetString().Trim();
         var subject = row.Cell(3).GetString().Trim();
         var room = row.Cell(4).GetString().Trim();
         var dayStr = row.Cell(5).GetString().Trim();
         var startStr = row.Cell(6).GetString().Trim();
         var endStr = row.Cell(7).GetString().Trim();
         var lessonTypeStr = row.Cell(8).GetString().Trim();
+        var weeksStr = row.Cell(9).GetString().Trim();
 
         var errors = new List<string>();
 
@@ -138,6 +140,23 @@ public class ScheduleImportService(AppDbContext db)
         if (startTime >= endTime)
             errors.Add("Время начала должно быть меньше времени конца");
 
+        if (!int.TryParse(numberPairStr, out var numberPair) || numberPair < 1 || numberPair > 8)
+            errors.Add($"Некорректный номер пары: '{numberPairStr}' (должен быть от 1 до 8)");
+
+        var weeks = new List<int>();
+        if (!string.IsNullOrEmpty(weeksStr))
+        {
+            foreach (var part in weeksStr.Split(',', StringSplitOptions.TrimEntries))
+            {
+                if (int.TryParse(part, out var w) && w >= 1 && w <= 52)
+                    weeks.Add(w);
+                else
+                    errors.Add($"Некорректная неделя: '{part}'");
+            }
+        }
+        if (weeks.Count == 0)
+            errors.Add("Укажите хотя бы одну неделю");
+
         if (errors.Count > 0)
         {
             result.Errors.Add(
@@ -153,8 +172,10 @@ public class ScheduleImportService(AppDbContext db)
             Subject = subject,
             Room = room,
             DayOfWeek = dayOfWeek,
+            NumberPair = numberPair,
             StartTime = startTime,
             EndTime = endTime,
+            Weeks = weeks,
             LessonType = lessonType,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,

@@ -152,8 +152,10 @@ public class ScheduleControllerTests : BaseIntegrationTest
                 Subject = "Математика",
                 Room = "301",
                 DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
                 StartTime = new TimeSpan(9, 0, 0),
                 EndTime = new TimeSpan(10, 30, 0),
+                Weeks = new() { 1 },
                 LessonType = LessonType.Lecture.ToString(),
             }
         );
@@ -176,8 +178,10 @@ public class ScheduleControllerTests : BaseIntegrationTest
                 Subject = "Математика",
                 Room = "301",
                 DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
                 StartTime = new TimeSpan(9, 0, 0),
                 EndTime = new TimeSpan(10, 30, 0),
+                Weeks = new() { 1 },
                 LessonType = LessonType.Lecture.ToString(),
             }
         );
@@ -228,8 +232,10 @@ public class ScheduleControllerTests : BaseIntegrationTest
                 Subject = "Обновлено",
                 Room = "402",
                 DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 1,
                 StartTime = new TimeSpan(10, 0, 0),
                 EndTime = new TimeSpan(11, 30, 0),
+                Weeks = new() { 1 },
                 LessonType = LessonType.Lab.ToString(),
             }
         );

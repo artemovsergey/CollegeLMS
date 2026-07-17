@@ -4,12 +4,12 @@ import { useEffect, useState, useCallback } from "react"
 import type { Result, StudentDashboardResponse } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import CourseCard from "@/components/CourseCard"
 
 export default function StudentDashboardPage() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
 
   const [dashboard, setDashboard] = useState<StudentDashboardResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -43,27 +43,30 @@ export default function StudentDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-      <h2 className="text-xl font-semibold">Моя панель</h2>
+      {user && (
+        <h2 className="text-xl font-semibold">Здравствуйте, {user.fullName}</h2>
+      )}
 
       {error && <ErrorBanner message={error} />}
 
-      {dashboard && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Курсов
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{dashboard.coursesCount}</p>
-              </CardContent>
-            </Card>
-          </div>
-        </>
+      {dashboard && dashboard.courses.length === 0 && (
+        <p className="text-muted-foreground">У вас нет активных курсов</p>
+      )}
+
+      {dashboard && dashboard.courses.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {dashboard.courses.map(c => (
+            <CourseCard
+              key={c.id}
+              id={c.id}
+              title={c.title}
+              subtitle={c.teacherName}
+              href={`/my/courses/${c.id}`}
+              progress={{ percent: c.completionPercent, completed: c.completedItems, total: c.totalItems }}
+            />
+          ))}
+        </div>
       )}
     </div>
   )
 }
-

@@ -11,7 +11,7 @@ test.describe("Teacher dashboard", () => {
     })
   })
 
-  test("renders teacher dashboard", async ({ page }) => {
+  test("renders teacher dashboard with courses", async ({ page }) => {
     await page.route("**/api/teacher/dashboard**", (route) =>
       route.fulfill({
         status: 200,
@@ -19,11 +19,10 @@ test.describe("Teacher dashboard", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: {
-            coursesCount: 3, studentsCount: 25,
-            recentSubmissions: [
-              { id: "sub1", assignmentId: "a1", studentId: "s1", studentName: "Алексей", filePath: "work.pdf", comment: null, score: null, submittedAt: "2026-06-01T10:00:00Z" },
+            courses: [
+              { id: "c1", title: "Математика", groupNames: "ГР-01, ГР-02" },
+              { id: "c2", title: "Физика", groupNames: "ГР-03" },
             ],
-            courses: [{ id: "c1", title: "Математика" }, { id: "c2", title: "Физика" }],
           },
           errorMessage: null,
           statusCode: 200,
@@ -32,32 +31,10 @@ test.describe("Teacher dashboard", () => {
     )
 
     await page.goto("/teacher/dashboard", { waitUntil: "networkidle" })
-    await expect(page.getByRole("heading", { name: "Панель преподавателя" })).toBeVisible()
+    await expect(page.getByText("Здравствуйте, Преподаватель")).toBeVisible()
     await expect(page.getByText("Математика")).toBeVisible()
     await expect(page.getByText("Физика")).toBeVisible()
-  })
-
-  test("shows recent submissions table", async ({ page }) => {
-    await page.route("**/api/teacher/dashboard**", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          isSuccess: true,
-          data: {
-            coursesCount: 3, studentsCount: 25,
-            recentSubmissions: [{ id: "sub1", assignmentId: "a1", studentId: "s1", studentName: "Алексей", filePath: "work.pdf", comment: null, score: null, submittedAt: "2026-06-01T10:00:00Z" }],
-            courses: [{ id: "c1", title: "Математика" }],
-          },
-          errorMessage: null,
-          statusCode: 200,
-        }),
-      })
-    )
-
-    await page.goto("/teacher/dashboard", { waitUntil: "networkidle" })
-    await expect(page.getByText("Последние работы")).toBeVisible()
-    await expect(page.getByText("Алексей")).toBeVisible()
+    await expect(page.getByText("ГР-01, ГР-02")).toBeVisible()
   })
 })
 
@@ -79,14 +56,19 @@ test.describe("Student dashboard", () => {
     })
   })
 
-  test("renders student dashboard", async ({ page }) => {
+  test("renders student dashboard with courses and progress", async ({ page }) => {
     await page.route("**/api/my/dashboard**", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: { coursesCount: 2, recentGrades: [{ courseName: "Математика", score: 85 }], upcomingDeadlines: [{ assignmentTitle: "ДЗ 1", dueDate: "2026-12-31T23:59:59Z" }] },
+          data: {
+            courses: [
+              { id: "c1", title: "Математика", teacherName: "Иван Петров", completionPercent: 50, completedItems: 3, totalItems: 6 },
+              { id: "c2", title: "Физика", teacherName: "Мария Сидорова", completionPercent: 100, completedItems: 5, totalItems: 5 },
+            ],
+          },
           errorMessage: null,
           statusCode: 200,
         }),
@@ -94,9 +76,29 @@ test.describe("Student dashboard", () => {
     )
 
     await page.goto("/my/dashboard", { waitUntil: "networkidle" })
-    await expect(page.getByRole("heading", { name: "Моя панель" })).toBeVisible()
-    await expect(page.getByText("ДЗ 1")).toBeVisible()
-    await expect(page.getByText("85")).toBeVisible()
+    await expect(page.getByText("Здравствуйте, Студент")).toBeVisible()
+    await expect(page.getByText("Математика")).toBeVisible()
+    await expect(page.getByText("Физика")).toBeVisible()
+    await expect(page.getByText("3 из 6 выполнено")).toBeVisible()
+    await expect(page.getByText("5 из 5 выполнено")).toBeVisible()
+  })
+
+  test("shows empty state when no courses", async ({ page }) => {
+    await page.route("**/api/my/dashboard**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          isSuccess: true,
+          data: { courses: [] },
+          errorMessage: null,
+          statusCode: 200,
+        }),
+      })
+    )
+
+    await page.goto("/my/dashboard", { waitUntil: "networkidle" })
+    await expect(page.getByText("У вас нет активных курсов")).toBeVisible()
   })
 })
 

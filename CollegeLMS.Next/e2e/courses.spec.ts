@@ -19,8 +19,8 @@ test.describe("Courses page", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupId: "g1", groupName: "Группа А", status: "Active", lectureCount: 5, assignmentCount: 3 },
-            { id: "c2", title: "Физика", description: "Курс физики", teacherId: "u2", teacherName: "Преподаватель", groupId: "g2", groupName: "Группа Б", status: "Draft", lectureCount: 0, assignmentCount: 1 },
+            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 5, assignmentCount: 3 },
+            { id: "c2", title: "Физика", description: "Курс физики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа Б", status: "Draft", lectureCount: 0, assignmentCount: 1 },
           ],
           errorMessage: null,
           statusCode: 200,
@@ -42,7 +42,7 @@ test.describe("Courses page", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupId: "g1", groupName: "Группа А", status: "Active", lectureCount: 5, assignmentCount: 3 },
+            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 5, assignmentCount: 3 },
           ],
           errorMessage: null,
           statusCode: 200,
@@ -62,7 +62,7 @@ test.describe("Courses page", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupId: "g1", groupName: "Группа А", status: "Active", lectureCount: 5, assignmentCount: 3 },
+            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 5, assignmentCount: 3 },
           ],
           errorMessage: null,
           statusCode: 200,

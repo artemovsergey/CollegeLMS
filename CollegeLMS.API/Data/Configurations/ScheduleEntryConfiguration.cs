@@ -14,11 +14,16 @@ public class ScheduleEntryConfiguration : IEntityTypeConfiguration<ScheduleEntry
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Subject).HasMaxLength(200);
         builder.Property(x => x.Room).HasMaxLength(50);
+        builder.Property(x => x.NumberPair).IsRequired();
+        builder.Property(x => x.StartTime).HasColumnType("interval");
+        builder.Property(x => x.EndTime).HasColumnType("interval");
+        builder.Property(x => x.Weeks).HasColumnType("integer[]");
         builder.Property(x => x.LessonType).HasConversion<string>().HasMaxLength(50);
 
         builder.HasIndex(x => x.GroupId).HasDatabaseName("ix_schedule_entries_group_id");
         builder.HasIndex(x => x.TeacherId).HasDatabaseName("ix_schedule_entries_teacher_id");
         builder.HasIndex(x => x.Room).HasDatabaseName("ix_schedule_entries_room");
+        builder.HasIndex(x => x.NumberPair).HasDatabaseName("ix_schedule_entries_number_pair");
 
         builder
             .HasOne(x => x.Group)

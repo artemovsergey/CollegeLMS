@@ -13,8 +13,10 @@ public static class ScheduleResponseExample
             subject = "Основы программирования",
             room = "301",
             dayOfWeek = 1,
-            startTime = "10:00:00",
-            endTime = "11:30:00",
+            numberPair = 1,
+            startTime = "08:30:00",
+            endTime = "10:00:00",
+            weeks = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 },
             lessonType = "Lecture",
         };
 }

@@ -202,29 +202,4 @@ public class UserServiceTests : IDisposable
         result.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task ToggleActiveAsync_TogglesActive_WhenUserFound()
-    {
-        var user = UserFixture.CreateFaker().Generate();
-        user.IsActive = true;
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-
-        var result = await _sut.ToggleActiveAsync(user.Id, CancellationToken.None);
-
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.IsActive.Should().BeFalse();
-
-        var toggledBack = await _sut.ToggleActiveAsync(user.Id, CancellationToken.None);
-        toggledBack.Data!.IsActive.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ToggleActiveAsync_ReturnsFail_WhenNotFound()
-    {
-        var result = await _sut.ToggleActiveAsync(Guid.NewGuid(), CancellationToken.None);
-
-        result.IsSuccess.Should().BeFalse();
-        result.StatusCode.Should().Be(404);
-    }
 }

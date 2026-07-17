@@ -94,7 +94,7 @@ public class TeacherControllerTests : BaseIntegrationTest
                 Email = "newteacher@test.ru",
                 Password = "test123",
                 FullName = "Новый Преподаватель",
-                Department = "ИТ",
+                CyclicalCommission = "ИТ",
                 Position = "Преподаватель",
             }
         );

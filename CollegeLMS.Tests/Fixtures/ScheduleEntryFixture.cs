@@ -34,7 +34,7 @@ public static class ScheduleEntryFixture
                     {
                         Id = s.TeacherId!.Value,
                         UserId = f.Random.Guid(),
-                        Department = f.Commerce.Department(),
+                        CyclicalCommission = f.Commerce.Department(),
                         Position = f.Name.JobTitle(),
                         CreatedAt = s.CreatedAt,
                         UpdatedAt = s.UpdatedAt,

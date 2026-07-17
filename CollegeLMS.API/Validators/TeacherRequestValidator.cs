@@ -25,11 +25,11 @@ public class CreateTeacherRequestValidator : AbstractValidator<CreateTeacherRequ
             .MaximumLength(200)
             .WithMessage("ФИО не должно превышать 200 символов");
 
-        RuleFor(x => x.Department)
+        RuleFor(x => x.CyclicalCommission)
             .NotEmpty()
-            .WithMessage("Кафедра обязательна")
+            .WithMessage("Цикловая комиссия обязательна")
             .MaximumLength(200)
-            .WithMessage("Кафедра не должна превышать 200 символов");
+            .WithMessage("Цикловая комиссия не должна превышать 200 символов");
 
         RuleFor(x => x.Position)
             .NotEmpty()
@@ -55,11 +55,11 @@ public class UpdateTeacherRequestValidator : AbstractValidator<UpdateTeacherRequ
             .MaximumLength(200)
             .WithMessage("ФИО не должно превышать 200 символов");
 
-        RuleFor(x => x.Department)
+        RuleFor(x => x.CyclicalCommission)
             .NotEmpty()
-            .WithMessage("Кафедра обязательна")
+            .WithMessage("Цикловая комиссия обязательна")
             .MaximumLength(200)
-            .WithMessage("Кафедра не должна превышать 200 символов");
+            .WithMessage("Цикловая комиссия не должна превышать 200 символов");
 
         RuleFor(x => x.Position)
             .NotEmpty()

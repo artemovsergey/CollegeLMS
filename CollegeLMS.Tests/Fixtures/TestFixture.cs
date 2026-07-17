@@ -30,7 +30,6 @@ public static class TestFixture
                         Id = t.CourseId,
                         Title = f.Lorem.Sentence(2),
                         TeacherId = f.Random.Guid(),
-                        GroupId = f.Random.Guid(),
                         Status = CourseStatus.Draft,
                         CreatedAt = t.CreatedAt,
                         UpdatedAt = t.UpdatedAt,

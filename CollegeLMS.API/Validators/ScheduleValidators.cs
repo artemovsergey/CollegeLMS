@@ -22,9 +22,17 @@ public class CreateScheduleRequestValidator : AbstractValidator<CreateScheduleRe
 
         RuleFor(x => x.GroupId).NotEmpty().WithMessage("Группа обязательна");
 
+        RuleFor(x => x.NumberPair)
+            .InclusiveBetween(1, 8)
+            .WithMessage("Номер пары должен быть от 1 до 8");
+
         RuleFor(x => x.StartTime)
             .LessThan(x => x.EndTime)
             .WithMessage("Время начала должно быть меньше времени окончания");
+
+        RuleFor(x => x.Weeks)
+            .NotEmpty()
+            .WithMessage("Укажите хотя бы одну неделю");
 
         RuleFor(x => x.LessonType)
             .NotEmpty()
@@ -54,9 +62,17 @@ public class UpdateScheduleRequestValidator : AbstractValidator<UpdateScheduleRe
 
         RuleFor(x => x.GroupId).NotEmpty().WithMessage("Группа обязательна");
 
+        RuleFor(x => x.NumberPair)
+            .InclusiveBetween(1, 8)
+            .WithMessage("Номер пары должен быть от 1 до 8");
+
         RuleFor(x => x.StartTime)
             .LessThan(x => x.EndTime)
             .WithMessage("Время начала должно быть меньше времени окончания");
+
+        RuleFor(x => x.Weeks)
+            .NotEmpty()
+            .WithMessage("Укажите хотя бы одну неделю");
 
         RuleFor(x => x.LessonType)
             .NotEmpty()

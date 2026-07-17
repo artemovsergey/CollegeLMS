@@ -11,7 +11,7 @@ public static class TeacherMapper
             Id = teacher.Id,
             FullName = teacher.User.FullName,
             Email = teacher.User.Email,
-            Department = teacher.Department,
+            CyclicalCommission = teacher.CyclicalCommission,
             Position = teacher.Position,
         };
 }

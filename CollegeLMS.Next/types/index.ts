@@ -59,7 +59,7 @@ export interface TeacherResponse {
   id: string
   fullName: string
   email: string
-  department: string
+  cyclicalCommission: string
   position: string
 }
 
@@ -78,8 +78,7 @@ export interface CourseResponse {
   description: string
   teacherId: string
   teacherName: string
-  groupId: string
-  groupName: string
+  groupNames: string
   status: string
   lectureCount: number
   assignmentCount: number
@@ -88,7 +87,6 @@ export interface CourseResponse {
 export interface CreateCourseRequest {
   title: string
   description: string
-  groupId: string
 }
 
 export interface LectureResponse {
@@ -182,17 +180,27 @@ export interface MaterialResponse {
   createdAt: string
 }
 
-export interface TeacherDashboardResponse {
-  coursesCount: number
-  studentsCount: number
-  recentSubmissions: SubmissionResponse[]
-  courses: { id: string; title: string }[]
+export interface CourseWithProgressDto {
+  id: string
+  title: string
+  teacherName: string
+  completionPercent: number
+  completedItems: number
+  totalItems: number
 }
 
 export interface StudentDashboardResponse {
-  coursesCount: number
-  recentGrades: { courseName: string; score: number | null }[]
-  upcomingDeadlines: { assignmentTitle: string; dueDate: string | null }[]
+  courses: CourseWithProgressDto[]
+}
+
+export interface CourseBriefDto {
+  id: string
+  title: string
+  groupNames: string
+}
+
+export interface TeacherDashboardResponse {
+  courses: CourseBriefDto[]
 }
 
 export interface ImportResult {
@@ -463,4 +471,36 @@ export interface SearchResult {
   url: string
   snippet: string
   score: number
+}
+
+export interface TeacherProfileData {
+  cyclicalCommission: string
+  position: string
+}
+
+export interface StudentProfileData {
+  groupId: string
+  groupName: string
+  recordBookNumber: string
+}
+
+export interface ProfileResponse {
+  id: string
+  login: string
+  email: string
+  fullName: string
+  role: string
+  isActive: boolean
+  teacherData: TeacherProfileData | null
+  studentData: StudentProfileData | null
+}
+
+export interface UpdateProfileRequest {
+  fullName: string
+  email: string
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string
+  newPassword: string
 }

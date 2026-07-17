@@ -16,8 +16,6 @@ public class CreateCourseRequestValidator : AbstractValidator<CreateCourseReques
         RuleFor(x => x.Description)
             .MaximumLength(4000)
             .WithMessage("Описание не должно превышать 4000 символов");
-
-        RuleFor(x => x.GroupId).NotEmpty().WithMessage("Группа обязательна");
     }
 }
 
@@ -34,8 +32,6 @@ public class UpdateCourseRequestValidator : AbstractValidator<UpdateCourseReques
         RuleFor(x => x.Description)
             .MaximumLength(4000)
             .WithMessage("Описание не должно превышать 4000 символов");
-
-        RuleFor(x => x.GroupId).NotEmpty().WithMessage("Группа обязательна");
 
         RuleFor(x => x.Status)
             .NotEmpty()

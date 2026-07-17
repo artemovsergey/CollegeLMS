@@ -177,7 +177,7 @@ export default function TeachersPage() {
                 <TableRow key={t.id}>
                   <TableCell className="font-medium">{t.fullName}</TableCell>
                   <TableCell>{t.email}</TableCell>
-                  <TableCell>{t.department}</TableCell>
+                  <TableCell>{t.cyclicalCommission}</TableCell>
                   <TableCell>{t.position}</TableCell>
                 </TableRow>
               ))}

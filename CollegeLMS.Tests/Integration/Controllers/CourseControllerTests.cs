@@ -91,15 +91,8 @@ public class CourseControllerTests : BaseIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var teacher = TeacherFixture.CreateFaker().Generate();
-        var group = new Group
-        {
-            Id = Guid.NewGuid(),
-            Name = "ГР-21",
-            Course = 2,
-        };
         db.Users.Add(teacher.User);
         db.Teachers.Add(teacher);
-        db.Groups.Add(group);
         await db.SaveChangesAsync();
 
         var response = await Client.PostAsJsonAsync(
@@ -108,7 +101,6 @@ public class CourseControllerTests : BaseIntegrationTest
             {
                 Title = "Новый курс",
                 Description = "Описание курса",
-                GroupId = group.Id,
                 TeacherId = teacher.Id,
             }
         );
@@ -127,7 +119,7 @@ public class CourseControllerTests : BaseIntegrationTest
 
         var response = await Client.PostAsJsonAsync(
             "/api/courses",
-            new CreateCourseRequest { Title = "Курс", GroupId = Guid.NewGuid() }
+            new CreateCourseRequest { Title = "Курс" }
         );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);

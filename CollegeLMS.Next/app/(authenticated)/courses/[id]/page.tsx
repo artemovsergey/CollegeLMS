@@ -220,7 +220,7 @@ export default function CourseDetailPage() {
         <div className="flex flex-col gap-1">
           <h2 className="text-xl font-semibold">{course.title}</h2>
           <p className="text-sm text-muted-foreground">
-            {course.teacherName} &middot; {course.groupName}
+            {course.teacherName} &middot; {course.groupNames}
           </p>
           {course.description && (
             <p className="text-sm text-muted-foreground mt-1">{course.description}</p>

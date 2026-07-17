@@ -50,7 +50,7 @@ public class ScheduleService(
         if (period == "day")
             query = query.Where(s => s.DayOfWeek == today.DayOfWeek);
 
-        query = query.OrderBy(s => s.DayOfWeek).ThenBy(s => s.StartTime);
+        query = query.OrderBy(s => s.DayOfWeek).ThenBy(s => s.NumberPair).ThenBy(s => s.StartTime);
 
         var totalCount = await query.CountAsync(ct);
         var p = Math.Max(page ?? 1, 1);
@@ -87,11 +87,17 @@ public class ScheduleService(
         CancellationToken ct
     )
     {
+        if (request.NumberPair < 1 || request.NumberPair > 8)
+            return Result<ScheduleResponse>.Fail("Номер пары должен быть от 1 до 8", 400);
+
         if (request.StartTime >= request.EndTime)
             return Result<ScheduleResponse>.Fail(
                 "Время начала должно быть раньше времени окончания",
                 400
             );
+
+        if (request.Weeks.Count == 0)
+            return Result<ScheduleResponse>.Fail("Укажите хотя бы одну неделю", 400);
 
         var groupExists = await db.Groups.AnyAsync(g => g.Id == request.GroupId, ct);
         if (!groupExists)
@@ -113,6 +119,7 @@ public class ScheduleService(
             request.TeacherId,
             request.Room,
             request.DayOfWeek,
+            request.NumberPair,
             request.StartTime,
             request.EndTime,
             ct
@@ -140,11 +147,17 @@ public class ScheduleService(
         CancellationToken ct
     )
     {
+        if (request.NumberPair < 1 || request.NumberPair > 8)
+            return Result<ScheduleResponse>.Fail("Номер пары должен быть от 1 до 8", 400);
+
         if (request.StartTime >= request.EndTime)
             return Result<ScheduleResponse>.Fail(
                 "Время начала должно быть раньше времени окончания",
                 400
             );
+
+        if (request.Weeks.Count == 0)
+            return Result<ScheduleResponse>.Fail("Укажите хотя бы одну неделю", 400);
 
         var entry = await db.ScheduleEntries.FindAsync([id], ct);
         if (entry is null)
@@ -170,6 +183,7 @@ public class ScheduleService(
             request.TeacherId,
             request.Room,
             request.DayOfWeek,
+            request.NumberPair,
             request.StartTime,
             request.EndTime,
             ct
@@ -182,8 +196,10 @@ public class ScheduleService(
         entry.Subject = request.Subject;
         entry.Room = request.Room;
         entry.DayOfWeek = request.DayOfWeek;
+        entry.NumberPair = request.NumberPair;
         entry.StartTime = request.StartTime;
         entry.EndTime = request.EndTime;
+        entry.Weeks = request.Weeks;
         entry.LessonType = Enum.Parse<LessonType>(request.LessonType);
         entry.UpdatedAt = DateTime.UtcNow;
 
@@ -320,29 +336,31 @@ public class ScheduleService(
         Guid? teacherId,
         string room,
         DayOfWeek dayOfWeek,
+        int numberPair,
         TimeSpan startTime,
         TimeSpan endTime,
         CancellationToken ct
     )
     {
         var baseQuery = db.ScheduleEntries.Where(s =>
-            s.DayOfWeek == dayOfWeek && startTime < s.EndTime && endTime > s.StartTime
+            s.DayOfWeek == dayOfWeek && s.NumberPair == numberPair
+            && startTime < s.EndTime && endTime > s.StartTime
         );
 
         if (excludeId.HasValue)
             baseQuery = baseQuery.Where(s => s.Id != excludeId.Value);
 
         if (await baseQuery.AnyAsync(s => s.GroupId == groupId, ct))
-            return "У группы уже есть занятие в это время";
+            return "У группы уже есть занятие в эту пару";
 
         if (teacherId.HasValue)
         {
             if (await baseQuery.AnyAsync(s => s.TeacherId == teacherId.Value, ct))
-                return "У преподавателя уже есть занятие в это время";
+                return "У преподавателя уже есть занятие в эту пару";
         }
 
         if (await baseQuery.AnyAsync(s => s.Room == room, ct))
-            return "Аудитория уже занята в это время";
+            return "Аудитория уже занята в эту пару";
 
         return null;
     }

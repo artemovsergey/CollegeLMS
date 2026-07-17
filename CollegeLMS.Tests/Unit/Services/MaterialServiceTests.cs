@@ -37,7 +37,6 @@ public class MaterialServiceTests : IDisposable
                 Id = courseId,
                 Title = "Test",
                 TeacherId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
                 Status = CourseStatus.Active,
             }
         );
@@ -72,7 +71,6 @@ public class MaterialServiceTests : IDisposable
                 Id = courseId,
                 Title = "Test",
                 TeacherId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
                 Status = CourseStatus.Active,
             }
         );
@@ -107,7 +105,6 @@ public class MaterialServiceTests : IDisposable
                 Id = courseId,
                 Title = "Test",
                 TeacherId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
                 Status = CourseStatus.Active,
             }
         );
@@ -153,7 +150,6 @@ public class MaterialServiceTests : IDisposable
             Id = material.CourseId,
             Title = "Test",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Active,
         };
         _db.Courses.Add(course);

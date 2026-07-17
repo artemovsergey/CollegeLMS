@@ -60,10 +60,10 @@ public class SubmissionServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = Guid.NewGuid(),
-            GroupId = groupId,
             Status = CourseStatus.Active,
         };
         _db.Courses.Add(course);
+        _db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = groupId });
 
         var assignment = new Assignment
         {
@@ -119,7 +119,6 @@ public class SubmissionServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = Guid.NewGuid(),
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Active,
         };
         _db.Courses.Add(course);
@@ -197,10 +196,10 @@ public class SubmissionServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = Guid.NewGuid(),
-            GroupId = groupId,
             Status = CourseStatus.Active,
         };
         _db.Courses.Add(course);
+        _db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = groupId });
 
         var assignment = new Assignment
         {
@@ -251,7 +250,7 @@ public class SubmissionServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = teacherUser.Id,
-            Department = "CS",
+            CyclicalCommission = "CS",
             Position = "Professor",
         };
         _db.Teachers.Add(teacher);
@@ -261,7 +260,6 @@ public class SubmissionServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = teacher.Id,
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Active,
         };
         _db.Courses.Add(course);
@@ -336,7 +334,7 @@ public class SubmissionServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = teacherUser.Id,
-            Department = "CS",
+            CyclicalCommission = "CS",
             Position = "Professor",
         };
         _db.Teachers.Add(teacher);
@@ -346,7 +344,6 @@ public class SubmissionServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Test",
             TeacherId = teacher.Id,
-            GroupId = Guid.NewGuid(),
             Status = CourseStatus.Active,
         };
         _db.Courses.Add(course);

@@ -10,8 +10,10 @@ public class ScheduleResponse
     public string Subject { get; set; } = string.Empty;
     public string Room { get; set; } = string.Empty;
     public int DayOfWeek { get; set; }
+    public int NumberPair { get; set; }
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
+    public List<int> Weeks { get; set; } = new();
     public string LessonType { get; set; } = string.Empty;
 }
 
@@ -22,8 +24,10 @@ public class CreateScheduleRequest
     public string Subject { get; set; } = string.Empty;
     public string Room { get; set; } = string.Empty;
     public DayOfWeek DayOfWeek { get; set; }
+    public int NumberPair { get; set; }
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
+    public List<int> Weeks { get; set; } = new();
     public string LessonType { get; set; } = string.Empty;
 }
 
@@ -47,7 +51,9 @@ public class UpdateScheduleRequest
     public string Subject { get; set; } = string.Empty;
     public string Room { get; set; } = string.Empty;
     public DayOfWeek DayOfWeek { get; set; }
+    public int NumberPair { get; set; }
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
+    public List<int> Weeks { get; set; } = new();
     public string LessonType { get; set; } = string.Empty;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import type { Result, CourseResponse, CreateCourseRequest, GroupResponse } from "@/types"
+import type { Result, CourseResponse, CreateCourseRequest } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,44 +10,27 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import ErrorBanner from "@/components/ErrorBanner"
 import LoadingSpinner from "@/components/LoadingSpinner"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 export default function EditCoursePage() {
   const router = useRouter()
   const params = useParams()
   const courseId = params.id as string
 
-  const [groups, setGroups] = useState<GroupResponse[]>([])
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [groupId, setGroupId] = useState("")
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
-      const [courseRes, groupsRes] = await Promise.all([
-        api.get<Result<CourseResponse>>(`/api/courses/${courseId}`),
-        api.get<Result<GroupResponse[]>>("/api/groups"),
-      ])
+      const courseRes = await api.get<Result<CourseResponse>>(`/api/courses/${courseId}`)
       const courseBody = courseRes.data
-      const groupsBody = groupsRes.data
       if (courseBody.isSuccess && courseBody.data) {
         setTitle(courseBody.data.title)
         setDescription(courseBody.data.description)
-        setGroupId(courseBody.data.groupId)
       } else {
         setError(courseBody.errorMessage ?? "Ошибка загрузки")
-      }
-      if (groupsBody.isSuccess && groupsBody.data) {
-        setGroups(groupsBody.data)
       }
     } catch {
       setError("Ошибка загрузки данных")
@@ -65,7 +48,7 @@ export default function EditCoursePage() {
     setError(null)
     setSubmitting(true)
     try {
-      const body: CreateCourseRequest = { title, description, groupId }
+      const body: CreateCourseRequest = { title, description }
       const res = await api.put<Result<CourseResponse>>(`/api/courses/${courseId}`, body)
       if (res.data.isSuccess) {
         router.push(`/courses/${courseId}`)
@@ -96,17 +79,6 @@ export default function EditCoursePage() {
           <Label htmlFor="description">Описание</Label>
           <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} />
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="group">Группа</Label>
-          <Select value={groupId} onValueChange={setGroupId} required>
-            <SelectTrigger id="group"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {groups.map(g => (
-                <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         <div className="flex gap-2 justify-end pt-2">
           <Button type="button" variant="ghost" onClick={() => router.push(`/courses/${courseId}`)}>
             Отмена
@@ -119,4 +91,3 @@ export default function EditCoursePage() {
     </div>
   )
 }
-

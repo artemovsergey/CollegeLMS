@@ -18,7 +18,7 @@ test.describe("Course detail page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupId: "g1", groupName: "Группа А", status: "Active", lectureCount: 2, assignmentCount: 1 },
+          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 2, assignmentCount: 1 },
           errorMessage: null,
           statusCode: 200,
         }),
@@ -77,7 +77,7 @@ test.describe("Course detail page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupId: "g1", groupName: "Группа А", status: "Active", lectureCount: 2, assignmentCount: 1 },
+          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 2, assignmentCount: 1 },
           errorMessage: null,
           statusCode: 200,
         }),
@@ -135,7 +135,7 @@ test.describe("Course detail page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupId: "g1", groupName: "Группа А", status: "Active", lectureCount: 2, assignmentCount: 1 },
+          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 2, assignmentCount: 1 },
           errorMessage: null,
           statusCode: 200,
         }),

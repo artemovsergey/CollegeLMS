@@ -46,7 +46,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     }
 
     /// <summary>Получить профиль текущего пользователя.</summary>
-    /// <remarks>Возвращает данные авторизованного пользователя по JWT токену.</remarks>
+    /// <remarks>Возвращает данные авторизованного пользователя по JWT токену с роль-специфичными полями (цикловая комиссия для преподавателя, группа для студента).</remarks>
     /// <param name="ct">Токен отмены</param>
     /// <response code="200">Профиль получен</response>
     /// <response code="401">Пользователь не авторизован</response>
@@ -55,18 +55,55 @@ public class AuthController(IAuthService authService) : ControllerBase
     [HttpGet("profile")]
     [Authorize]
     [SwaggerOperation(Summary = "Получить профиль текущего пользователя")]
-    [SwaggerResponse(200, "Профиль получен", typeof(Result<UserResponse>))]
+    [SwaggerResponse(200, "Профиль получен", typeof(Result<ProfileResponse>))]
     [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(404, "Пользователь не найден")]
     [SwaggerResponse(500, "Ошибка сервера")]
-    [ProducesResponseType(typeof(Result<UserResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<ProfileResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<UserResponse>>> Profile(CancellationToken ct)
+    public async Task<ActionResult<Result<ProfileResponse>>> Profile(CancellationToken ct)
     {
         var userId = User.GetUserId();
         var result = await authService.GetProfileAsync(userId, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    /// <summary>Обновить профиль текущего пользователя.</summary>
+    /// <remarks>Позволяет изменить ФИО и email.</remarks>
+    /// <param name="request">Новые данные профиля</param>
+    /// <param name="ct">Токен отмены</param>
+    /// <response code="200">Профиль обновлён</response>
+    /// <response code="400">Ошибка валидации</response>
+    /// <response code="401">Не авторизован</response>
+    /// <response code="404">Пользователь не найден</response>
+    /// <response code="409">Email уже занят</response>
+    /// <response code="500">Внутренняя ошибка сервера</response>
+    [HttpPut("profile")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Обновить профиль текущего пользователя")]
+    [SwaggerResponse(200, "Профиль обновлён", typeof(Result<ProfileResponse>))]
+    [SwaggerResponse(400, "Ошибка валидации")]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(404, "Пользователь не найден")]
+    [SwaggerResponse(409, "Email уже занят")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<ProfileResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<ProfileResponse>>> UpdateProfile(
+        UpdateProfileRequest request,
+        CancellationToken ct
+    )
+    {
+        var userId = User.GetUserId();
+        var result = await authService.UpdateProfileAsync(userId, request, ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
         return Ok(result);

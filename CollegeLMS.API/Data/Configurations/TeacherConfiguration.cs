@@ -13,7 +13,7 @@ public class TeacherConfiguration : IEntityTypeConfiguration<Teacher>
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.UserId).ValueGeneratedNever();
         builder.HasIndex(x => x.UserId).IsUnique().HasDatabaseName("ix_teachers_user_id");
-        builder.Property(x => x.Department).HasMaxLength(200);
+        builder.Property(x => x.CyclicalCommission).HasMaxLength(200);
         builder.Property(x => x.Position).HasMaxLength(200);
         builder
             .HasOne(x => x.User)

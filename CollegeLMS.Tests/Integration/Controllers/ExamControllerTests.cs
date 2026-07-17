@@ -83,7 +83,7 @@ public class ExamControllerTests : BaseIntegrationTest
         {
             Id = Guid.NewGuid(),
             UserId = teacherUser.Id,
-            Department = "ИТ",
+            CyclicalCommission = "ИТ",
             Position = "П",
         };
         var semester = new Semester

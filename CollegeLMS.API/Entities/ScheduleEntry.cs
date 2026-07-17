@@ -10,8 +10,10 @@ public class ScheduleEntry : Entity
     public string Subject { get; set; } = string.Empty;
     public string Room { get; set; } = string.Empty;
     public DayOfWeek DayOfWeek { get; set; }
+    public int NumberPair { get; set; }
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
+    public List<int> Weeks { get; set; } = new();
     public LessonType LessonType { get; set; }
 
     [JsonIgnore]

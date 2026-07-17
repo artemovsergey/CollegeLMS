@@ -33,7 +33,11 @@ public class SubmissionService(AppDbContext db) : ISubmissionService
         if (student is null)
             return Result<SubmissionResponse>.Fail("Студент не найден", 404);
 
-        if (student.GroupId != assignment.Course.GroupId)
+        var enrolled = await db.CourseGroups.AnyAsync(
+            cg => cg.CourseId == assignment.CourseId && cg.GroupId == student.GroupId,
+            ct
+        );
+        if (!enrolled)
             return Result<SubmissionResponse>.Fail("Вы не зачислены на этот курс", 403);
 
         var existing = await db.AssignmentSubmissions.FirstOrDefaultAsync(

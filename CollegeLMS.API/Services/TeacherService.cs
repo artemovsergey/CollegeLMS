@@ -59,7 +59,7 @@ public class TeacherService(AppDbContext db) : ITeacherService
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            Department = request.Department,
+            CyclicalCommission = request.CyclicalCommission,
             Position = request.Position,
         };
         db.Teachers.Add(teacher);
@@ -93,7 +93,7 @@ public class TeacherService(AppDbContext db) : ITeacherService
         teacher.User.Email = request.Email;
         teacher.User.FullName = request.FullName;
         teacher.User.UpdatedAt = DateTime.UtcNow;
-        teacher.Department = request.Department;
+        teacher.CyclicalCommission = request.CyclicalCommission;
         teacher.Position = request.Position;
         teacher.UpdatedAt = DateTime.UtcNow;
 

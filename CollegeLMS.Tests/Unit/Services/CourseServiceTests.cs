@@ -56,7 +56,7 @@ public class CourseServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = teacherUserId,
-            Department = "ИТ",
+            CyclicalCommission = "ИТ",
             Position = "Преподаватель",
         };
         var otherTeacherId = Guid.NewGuid();
@@ -72,21 +72,11 @@ public class CourseServiceTests : IDisposable
             }
         );
         _db.Teachers.Add(teacher);
-        var groupId = Guid.NewGuid();
-        _db.Groups.Add(
-            new Group
-            {
-                Id = groupId,
-                Name = "ГР-21",
-                Course = 2,
-            }
-        );
         var ownCourse = new Course
         {
             Id = Guid.NewGuid(),
             Title = "Мой курс",
             TeacherId = teacher.Id,
-            GroupId = groupId,
             Status = CourseStatus.Draft,
         };
         var otherCourse = new Course
@@ -94,7 +84,6 @@ public class CourseServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = "Чужой курс",
             TeacherId = otherTeacherId,
-            GroupId = groupId,
             Status = CourseStatus.Draft,
         };
         _db.Courses.AddRange(ownCourse, otherCourse);
@@ -136,7 +125,7 @@ public class CourseServiceTests : IDisposable
         {
             Id = Guid.NewGuid(),
             UserId = teacherUserId,
-            Department = "ИТ",
+            CyclicalCommission = "ИТ",
             Position = "Преподаватель",
         };
         _db.Users.Add(
@@ -151,13 +140,6 @@ public class CourseServiceTests : IDisposable
             }
         );
         _db.Teachers.Add(teacher);
-        var group = new Group
-        {
-            Id = Guid.NewGuid(),
-            Name = "ГР-21",
-            Course = 2,
-        };
-        _db.Groups.Add(group);
         await _db.SaveChangesAsync();
 
         var result = await _sut.CreateAsync(
@@ -165,7 +147,6 @@ public class CourseServiceTests : IDisposable
             {
                 Title = "Новый курс",
                 Description = "Описание",
-                GroupId = group.Id,
             },
             teacherUserId,
             "Teacher",
@@ -192,7 +173,6 @@ public class CourseServiceTests : IDisposable
             {
                 Title = "Обновлённый курс",
                 Description = "Новое описание",
-                GroupId = course.GroupId,
                 Status = "Active",
             },
             adminId,
@@ -227,7 +207,6 @@ public class CourseServiceTests : IDisposable
         var adminId = Guid.NewGuid();
         AddAdminUser(adminId);
         var course = CourseFixture.CreateFaker().Generate();
-        course.GroupId = Guid.NewGuid();
         _db.Courses.Add(course);
         var group1 = new Group
         {
@@ -446,7 +425,6 @@ public class CourseServiceTests : IDisposable
     public async Task GetProgressAsync_ReturnsForbidden_WhenNotInCourse()
     {
         var course = CourseFixture.CreateFaker().Generate();
-        course.GroupId = Guid.NewGuid();
         _db.Courses.Add(course);
 
         var studentUserId = Guid.NewGuid();

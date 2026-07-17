@@ -26,14 +26,73 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         return Result<LoginResponse>.Ok(new LoginResponse { Token = token, User = user.ToDto() });
     }
 
-    public async Task<Result<UserResponse>> GetProfileAsync(Guid userId, CancellationToken ct)
+    public async Task<Result<ProfileResponse>> GetProfileAsync(Guid userId, CancellationToken ct)
     {
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
 
         if (user is null)
-            return Result<UserResponse>.Fail("Пользователь не найден", 404);
+            return Result<ProfileResponse>.Fail("Пользователь не найден", 404);
 
-        return Result<UserResponse>.Ok(user.ToDto());
+        object? roleData = null;
+
+        if (user.Role == Entities.Enums.UserRole.Teacher)
+        {
+            roleData = await db
+                .Teachers.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.UserId == userId, ct);
+        }
+        else if (user.Role == Entities.Enums.UserRole.Student)
+        {
+            roleData = await db
+                .Students.AsNoTracking()
+                .Include(s => s.Group)
+                .FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        }
+
+        return Result<ProfileResponse>.Ok(user.ToProfileDto(roleData));
+    }
+
+    public async Task<Result<ProfileResponse>> UpdateProfileAsync(
+        Guid userId,
+        UpdateProfileRequest request,
+        CancellationToken ct
+    )
+    {
+        var user = await db.Users.FindAsync([userId], ct);
+
+        if (user is null)
+            return Result<ProfileResponse>.Fail("Пользователь не найден", 404);
+
+        var emailExists = await db.Users.AnyAsync(
+            u => u.Email == request.Email && u.Id != userId,
+            ct
+        );
+        if (emailExists)
+            return Result<ProfileResponse>.Fail("Пользователь с таким email уже существует", 409);
+
+        user.FullName = request.FullName;
+        user.Email = request.Email;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+
+        object? roleData = null;
+
+        if (user.Role == Entities.Enums.UserRole.Teacher)
+        {
+            roleData = await db
+                .Teachers.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.UserId == userId, ct);
+        }
+        else if (user.Role == Entities.Enums.UserRole.Student)
+        {
+            roleData = await db
+                .Students.AsNoTracking()
+                .Include(s => s.Group)
+                .FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        }
+
+        return Result<ProfileResponse>.Ok(user.ToProfileDto(roleData));
     }
 
     public async Task<Result> ChangePasswordAsync(
