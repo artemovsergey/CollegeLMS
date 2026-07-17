@@ -38,7 +38,7 @@ public static class DbConstraints
                 DO $$
                 BEGIN
                     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_teachers_department_not_empty') THEN
-                        ALTER TABLE teachers ADD CONSTRAINT ck_teachers_department_not_empty CHECK (length(department) > 0);
+                        ALTER TABLE teachers ADD CONSTRAINT ck_teachers_department_not_empty CHECK (length(cyclical_commission) > 0);
                     END IF;
                     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_teachers_position_not_empty') THEN
                         ALTER TABLE teachers ADD CONSTRAINT ck_teachers_position_not_empty CHECK (length(position) > 0);
