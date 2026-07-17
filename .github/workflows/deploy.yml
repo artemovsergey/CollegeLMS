@@ -38,10 +38,8 @@ jobs:
             PREVIOUS_COMMIT=$(git rev-parse HEAD)
 
             echo "=== git pull ==="
-            git pull origin master || {
-              echo "Git pull failed. Aborting."
-              exit 1
-            }
+            git fetch origin master
+            git reset --hard origin/master
 
             echo "=== .env from secrets ==="
             {
