@@ -99,52 +99,72 @@ public class WordPressImportService(
                 ct
             );
 
-            // --- Fetch posts with pagination ---
-            var allPosts = new List<JsonElement>();
-            var page = 1;
-            const int perPage = 100;
+            // --- First request: get total pages ---
+            var firstUrl = $"/wp-json/wp/v2/posts?per_page=100&page=1&_embed=1";
+            var firstResponse = await httpClient.GetAsync(firstUrl, ct);
+            firstResponse.EnsureSuccessStatusCode();
 
-            while (true)
+            var totalPages = 1;
+            if (firstResponse.Headers.Contains("X-WP-TotalPages"))
             {
-                var url = $"/wp-json/wp/v2/posts?per_page={perPage}&page={page}&_embed=1";
-                var response = await httpClient.GetAsync(url, ct);
-                response.EnsureSuccessStatusCode();
-
-                var totalPagesHeader = response.Headers.Contains("X-WP-TotalPages")
-                    ? response.Headers.GetValues("X-WP-TotalPages").FirstOrDefault()
-                    : null;
-
-                var body = await response.Content.ReadAsStringAsync(ct);
-                using var doc = JsonDocument.Parse(body);
-
-                foreach (var item in doc.RootElement.EnumerateArray())
-                    allPosts.Add(item.Clone());
-
-                logger.LogInformation(
-                    "WP REST: page {Page} fetched, {Count} posts so far",
-                    page,
-                    allPosts.Count
-                );
-
-                if (int.TryParse(totalPagesHeader, out var totalPages) && page >= totalPages)
-                    break;
-
-                // If no header and empty page, stop
-                if (doc.RootElement.GetArrayLength() == 0)
-                    break;
-
-                page++;
-                await Task.Delay(200, ct); // rate limit
+                var tp = firstResponse.Headers.GetValues("X-WP-TotalPages").FirstOrDefault();
+                int.TryParse(tp, out totalPages);
             }
 
-            // Build combined JSON
-            var postsArray = string.Join(",", allPosts.Select(p => p.GetRawText()));
-            using var combinedDoc = JsonDocument.Parse(
-                $"{{\"categories\":{categoriesJson},\"posts\":[{postsArray}]}}"
-            );
+            var firstBody = await firstResponse.Content.ReadAsStringAsync(ct);
 
+            // --- Process page by page ---
             var progress = importId != null ? GetImportProgress(importId) : null;
-            return await ProcessImportAsync(combinedDoc.RootElement, ct, progress);
+            int totalCategoriesCreated = 0;
+            int totalPostsImported = 0;
+            int totalPostsSkipped = 0;
+            List<string> allErrors = [];
+
+            for (int page = 1; page <= totalPages; page++)
+            {
+                var body = page == 1 ? firstBody : "";
+                if (page > 1)
+                {
+                    var url = $"/wp-json/wp/v2/posts?per_page=100&page={page}&_embed=1";
+                    var resp = await httpClient.GetAsync(url, ct);
+                    resp.EnsureSuccessStatusCode();
+                    body = await resp.Content.ReadAsStringAsync(ct);
+                }
+
+                using var pageDoc = JsonDocument.Parse(
+                    $"{{\"categories\":{categoriesJson},\"posts\":{body}}}"
+                );
+
+                var pageResult = await ProcessImportAsync(pageDoc.RootElement, ct, progress);
+
+                if (pageResult.IsSuccess && pageResult.Data != null)
+                {
+                    totalCategoriesCreated += pageResult.Data.CategoriesCreated;
+                    totalPostsImported += pageResult.Data.PostsImported;
+                    totalPostsSkipped += pageResult.Data.PostsSkipped;
+                    allErrors.AddRange(pageResult.Data.Errors);
+                }
+
+                logger.LogInformation(
+                    "WP REST: page {Page}/{Total} done, imported={Imported}, skipped={Skipped}",
+                    page,
+                    totalPages,
+                    totalPostsImported,
+                    totalPostsSkipped
+                );
+
+                if (page < totalPages)
+                    await Task.Delay(200, ct);
+            }
+
+            return Result<ImportResult>.Ok(
+                new ImportResult(
+                    totalCategoriesCreated,
+                    totalPostsImported,
+                    totalPostsSkipped,
+                    allErrors
+                )
+            );
         }
         catch (HttpRequestException ex)
         {
