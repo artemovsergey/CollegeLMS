@@ -7,8 +7,14 @@ import ThemeToggle from "./ThemeToggle"
 import AccessibilityToggle from "./AccessibilityToggle"
 import { siteNavigation } from "@/data/site-content"
 import { useAuth } from "@/lib/auth"
+import { useDesign } from "@/lib/design-provider"
+import HeaderTPU from "./HeaderTPU"
 
 export default function Header() {
+  const { design } = useDesign()
+
+  if (design === "tpu") return <HeaderTPU />
+
   const [mobileOpen, setMobileOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)

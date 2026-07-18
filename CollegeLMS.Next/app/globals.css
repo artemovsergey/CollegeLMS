@@ -168,6 +168,48 @@
   --sidebar-ring: #4aaa4e;
 }
 
+[data-design="tpu"] {
+  --font-sans: "Golos Text", "PT Root UI", ui-sans-serif, system-ui, sans-serif;
+  --color-tpu-bg: #ffffff;
+  --color-tpu-bg-muted: #f7f7f9;
+  --color-tpu-text-primary: #1a1a2e;
+  --color-tpu-text-secondary: #6b7280;
+  --color-tpu-accent: #0066cc;
+  --color-tpu-accent-hover: #0052a3;
+  --color-tpu-accent-light: #e8f0fe;
+  --color-tpu-border: #e5e7eb;
+  --color-tpu-card-bg: #ffffff;
+  --color-tpu-header-bg: rgba(255, 255, 255, 0.97);
+  --color-tpu-footer-bg: #1a1a2e;
+  --color-tpu-footer-text: #9ca3af;
+  --section-padding-y: 5rem;
+  --header-tpu-height: 80px;
+  --shadow-tpu-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-tpu-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+  --shadow-tpu-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+[data-design="tpu"] .header-tpu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  transition: all 0.3s ease;
+  height: var(--header-tpu-height);
+}
+
+[data-design="tpu"] .header-tpu.transparent {
+  background: transparent;
+}
+
+[data-design="tpu"] .header-tpu.scrolled {
+  background: var(--color-tpu-header-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--color-tpu-border);
+}
+
 @theme inline {
   --color-college-navy: var(--college-navy);
   --color-background: var(--background);
