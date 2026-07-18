@@ -51,6 +51,10 @@ export function DesignProvider({ children }: { children: React.ReactNode }) {
 
 export function useDesign() {
   const ctx = useContext(DesignContext)
-  if (!ctx) return { design: "default" as DesignPreset, setDesign: () => {}, allDesigns: [{ value: "default" as DesignPreset, label: "Стандартный" }] }
+  if (!ctx) return {
+    design: (typeof document !== "undefined" ? (document.documentElement.getAttribute("data-design") as DesignPreset) || "default" : "default") as DesignPreset,
+    setDesign: (d: DesignPreset) => { document.documentElement.setAttribute("data-design", d); localStorage.setItem("design-preset", d) },
+    allDesigns: DESIGN_PRESETS.map((v) => ({ value: v, label: DESIGN_LABELS[v] }))
+  }
   return ctx
 }
