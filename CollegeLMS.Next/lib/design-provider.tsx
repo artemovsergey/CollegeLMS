@@ -51,6 +51,6 @@ export function DesignProvider({ children }: { children: React.ReactNode }) {
 
 export function useDesign() {
   const ctx = useContext(DesignContext)
-  if (!ctx) throw new Error("useDesign must be used within DesignProvider")
+  if (!ctx) return { design: "default" as DesignPreset, setDesign: () => {}, allDesigns: [{ value: "default" as DesignPreset, label: "Стандартный" }] }
   return ctx
 }
