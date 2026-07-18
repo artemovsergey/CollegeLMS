@@ -72,7 +72,7 @@ export default function AdmissionSectionTPU() {
 
         <div className="mt-10 text-center">
           <Link
-            href="/admission"
+            href="/admissions"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-tpu-accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--color-tpu-accent-hover)] transition-colors"
           >
             Подробнее о поступлении →

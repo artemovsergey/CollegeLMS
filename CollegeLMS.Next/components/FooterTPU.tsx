@@ -47,11 +47,8 @@ export default function FooterTPU() {
             © {new Date().getFullYear()} Ставропольский колледж связи. Все права защищены.
           </p>
           <div className="flex gap-4 text-xs text-gray-500">
-            <Link href="/sveden" className="hover:text-white transition-colors">
+            <Link href="/about" className="hover:text-white transition-colors">
               Сведения об образовательной организации
-            </Link>
-            <Link href="/privacy" className="hover:text-white transition-colors">
-              Политика конфиденциальности
             </Link>
           </div>
         </div>
