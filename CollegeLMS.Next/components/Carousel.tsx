@@ -2,12 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react"
 import useEmblaCarousel from "embla-carousel-react"
+import Link from "next/link"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
-import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useDesign } from "@/lib/design-provider"
+import CarouselTPU from "./CarouselTPU"
 
 export default function Carousel() {
+  const { design } = useDesign()
+  if (design === "tpu") return <CarouselTPU />
+  
   const [slides, setSlides] = useState<NewsResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

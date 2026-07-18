@@ -2,15 +2,13 @@
 
 import { redirect } from "next/navigation"
 import { notFound } from "next/navigation"
-import Breadcrumbs from "@/components/Breadcrumbs"
 import BreadcrumbsTPU from "@/components/BreadcrumbsTPU"
 import ContentRenderer from "@/components/ContentRenderer"
 import DocsSidebar from "@/components/DocsSidebar"
 import { getSectionBySlug } from "@/data/site-content"
 import pageContents from "@/data/page-contents.json"
-import { useDesign } from "@/lib/design-provider"
 
-interface SectionPageProps {
+interface SectionPageTPUProps {
   sectionSlug: string
   slug?: string[]
 }
@@ -24,8 +22,7 @@ function getContent(slug: string): string {
   return ""
 }
 
-export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
-  const { design } = useDesign()
+export default function SectionPageTPU({ sectionSlug, slug }: SectionPageTPUProps) {
   const section = getSectionBySlug(sectionSlug)
 
   if (!section) {
@@ -48,21 +45,11 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
     return null
   }
 
-  const rawContent = subSlug === "trudoustroystvo"
-    ? (pageContents as Record<string, { content: string }>)["trudoustroystvo"]?.content || ""
-    : getContent(subSlug) || subsection.content
-
-  const Bc = design === "tpu" ? BreadcrumbsTPU : Breadcrumbs
-
-  const titleClass = design === "tpu"
-    ? "text-[var(--color-tpu-text-primary)]"
-    : "text-primary"
-  const boxClass = design === "tpu"
-    ? "rounded-xl border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] p-8 text-center"
-    : "rounded-lg border border-border bg-card p-8 text-center"
-  const emptyClass = design === "tpu"
-    ? "text-[var(--color-tpu-text-secondary)]"
-    : "text-muted-foreground"
+  const rawContent =
+    subSlug === "trudoustroystvo"
+      ? (pageContents as Record<string, { content: string }>)["trudoustroystvo"]
+          ?.content || ""
+      : getContent(subSlug) || subsection.content
 
   return (
     <div className="mx-auto flex max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -73,18 +60,20 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
         currentSlug={subSlug}
       />
       <div className="min-w-0 flex-1 pl-0 md:pl-8">
-        <Bc
+        <BreadcrumbsTPU
           items={[
             { label: section.title, href: section.href },
             { label: subsection.title },
           ]}
         />
-        <h1 className={`mb-6 text-2xl font-bold ${titleClass}`}>{subsection.title}</h1>
+        <h1 className="mb-6 text-2xl font-bold text-[var(--color-tpu-text-primary)]">
+          {subsection.title}
+        </h1>
         {rawContent ? (
           <ContentRenderer content={rawContent} />
         ) : (
-          <div className={boxClass}>
-            <p className={emptyClass}>Нет данных</p>
+          <div className="rounded-xl border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] p-8 text-center">
+            <p className="text-[var(--color-tpu-text-secondary)]">Нет данных</p>
           </div>
         )}
       </div>

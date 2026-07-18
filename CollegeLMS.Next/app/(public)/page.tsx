@@ -16,8 +16,13 @@ import MediaSection from "@/components/MediaSection"
 import GraduateStoriesSection from "@/components/GraduateStoriesSection"
 import FeedbackForm from "@/components/FeedbackForm"
 import FAQSection from "@/components/FAQSection"
+import { useDesign } from "@/lib/design-provider"
+import HomeTPU from "@/components/HomeTPU"
 
 export default function HomePage() {
+  const { design } = useDesign()
+  if (design === "tpu") return <HomeTPU />
+
   const [news, setNews] = useState<NewsResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
