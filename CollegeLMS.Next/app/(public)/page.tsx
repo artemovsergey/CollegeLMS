@@ -90,12 +90,12 @@ export default function HomePage() {
           ) : news.length === 0 && !error ? (
             <p className="text-center text-muted-foreground">Новостей пока нет</p>
           ) : (
-            <div className="grid gap-0 border border-border rounded-lg overflow-hidden sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {news.map((item) => (
                 <Link
                   key={item.id}
                   href={`/news/${item.id}`}
-                  className="block bg-card p-5 transition-colors hover:bg-muted border-b border-r border-border"
+                  className="block bg-card p-5 rounded-lg border border-border transition-colors hover:bg-muted"
                 >
                   {item.imageUrl && (
                     // eslint-disable-next-line @next/next/no-img-element

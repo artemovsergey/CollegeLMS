@@ -77,8 +77,8 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
             >
               <Menu size={20} />
             </button>
-            <Link href="/" className="flex items-center gap-2 ml-2">
-              <img src="/logo.svg" alt="" className="object-contain h-auto w-auto dark:brightness-0 dark:invert" style={{ maxHeight: "40px" }} />
+            <Link href="/lms" className="flex items-center gap-2 ml-2">
+              <img src="/logo.svg" alt="" className="object-contain h-auto w-auto" style={{ maxHeight: "40px" }} />
               <div className="flex flex-col leading-tight">
                 <span className="text-xs font-semibold text-fg leading-tight">Ставропольский колледж связи</span>
                 <span className="text-[10px] text-muted-fg leading-tight">имени В.А. Петрова</span>
@@ -168,7 +168,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                   className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-fg hover:bg-muted hover:text-fg transition-colors"
                 >
                   <User size={16} />
-                  Личный кабинет
+                  Профиль
                 </Link>
                 <button
                   onClick={() => { setShowChangePassword(true) }}

@@ -90,7 +90,7 @@ export default function Carousel() {
                   <img
                     src={item.imageUrl}
                     alt=""
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover rounded-lg"
                   />
                 </>
               ) : (

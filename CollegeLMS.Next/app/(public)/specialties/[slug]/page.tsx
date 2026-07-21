@@ -99,28 +99,6 @@ export default function SpecialtyDetailPage({ params }: { params: { slug: string
           <p className="text-sm text-muted-foreground">{spec.duration}</p>
         </div>
 
-        {/* CTA */}
-        <div className="rounded-xl bg-accent/5 border border-accent/20 p-8 text-center">
-          <h2 className="mb-2 text-xl font-semibold text-fg">Готовы начать обучение?</h2>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Подайте заявление на поступление или получите консультацию приёмной комиссии
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/admissions"
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground transition-all hover:bg-accent/90 hover:shadow-md"
-            >
-              Подать заявление
-              <ArrowLeft size={16} className="rotate-180" />
-            </Link>
-            <Link
-              href="/contacts"
-              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium text-fg transition-all hover:bg-muted"
-            >
-              Связаться с нами
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   )

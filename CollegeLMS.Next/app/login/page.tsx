@@ -32,15 +32,7 @@ export default function LoginPage() {
       const body = res.data
       if (body.isSuccess && body.data) {
         login(body.data.token, body.data.user)
-        if (body.data.user.role === "Admin") {
-          router.push("/admin")
-        } else if (body.data.user.role === "Teacher") {
-          router.push("/teacher/dashboard")
-        } else if (body.data.user.role === "Dispatcher") {
-          router.push("/schedule")
-        } else {
-          router.push("/my/dashboard")
-        }
+        router.push("/lms")
       } else {
         setError(body.errorMessage ?? "Ошибка входа")
       }
@@ -59,7 +51,7 @@ export default function LoginPage() {
             <img
               src="/logo.svg"
               alt="Колледж связи"
-              className="h-auto dark:brightness-0 dark:invert"
+              className="h-auto"
               style={{ maxHeight: "4rem" }}
             />
           </Link>

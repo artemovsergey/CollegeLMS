@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import { ChevronDown } from "lucide-react"
 
 const infoLinks = [
   { title: "Расписание занятий", href: "/schedule" },
@@ -59,42 +57,8 @@ const footerColumns = [
 ]
 
 export default function Footer() {
-  const [accordionOpen, setAccordionOpen] = useState(false)
-
   return (
     <footer className="bg-accent text-accent-foreground/80">
-      <div className="border-b border-accent-foreground/10">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <button
-            onClick={() => setAccordionOpen(!accordionOpen)}
-            className="flex w-full items-center justify-between py-4 text-sm font-medium text-accent-foreground/80 hover:text-accent-foreground transition-colors"
-          >
-            Полезная информация
-            <ChevronDown
-              size={18}
-              className={`transition-transform ${accordionOpen ? "rotate-180" : ""}`}
-            />
-          </button>
-          <div
-            className={`overflow-hidden transition-all duration-300 ${
-              accordionOpen ? "max-h-[2000px] pb-6" : "max-h-0"
-            }`}
-          >
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-1.5">
-              {infoLinks.map((link) => (
-                <Link
-                  key={link.title}
-                  href={link.href}
-                  className="text-sm text-accent-foreground/60 hover:text-accent-foreground transition-colors py-0.5"
-                >
-                  {link.title}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="mx-auto max-w-7xl px-4 lg:px-8 py-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -102,7 +66,7 @@ export default function Footer() {
               <img
                 src="/logo.svg"
                 alt="Ставропольский колледж связи"
-                className="object-contain h-auto w-auto dark:brightness-0 dark:invert"
+                className="object-contain h-auto w-auto"
                 style={{ maxHeight: "80px" }}
               />
             </Link>

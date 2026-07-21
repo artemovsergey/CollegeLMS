@@ -69,102 +69,107 @@ export default function Header() {
     : "?"
 
   return (
-    <header className="sticky top-0 z-50 bg-bg">
-      <div className="flex">
-        {/* Logo column — full height, spans both rows */}
-        <Link href="/" className="flex shrink-0 items-center border-b border-r border-border px-4 lg:px-6" style={{ maxWidth: "220px" }}>
-          <img
-            src="/logo.svg"
-            alt="Ставропольский колледж связи"
-            className="object-contain h-auto w-auto dark:brightness-0 dark:invert"
-            style={{ maxHeight: "110px" }}
-          />
-        </Link>
-
-        {/* Right side: two rows stacked */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          {/* Row 1: Top bar */}
-          <div className={`border-b border-border bg-muted/50 transition-transform duration-300 ${scrolled ? "-translate-y-full" : ""}`}>
-            <div className="flex h-9 items-center justify-between px-4">
-              <div className="flex items-center gap-2">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center h-7 w-7 rounded text-muted-fg hover:text-accent transition-colors"
-                    aria-label={link.label}
+    <header className="sticky top-0 z-50 bg-accent">
+      <div className="flex flex-col">
+        {/* Row 1: Top bar — hides on scroll */}
+        <div className={`border-b border-white/10 transition-transform duration-300 ${scrolled ? "-translate-y-full" : ""}`}>
+          <div className="flex h-9 items-center justify-between px-4 lg:px-6">
+            <div className="flex items-center gap-2">
+              {socialLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center h-7 w-7 rounded text-white/60 hover:text-white transition-colors"
+                  aria-label={link.label}
+                >
+                  <SocialIcon icon={link.icon} className="h-4 w-4" />
+                </a>
+              ))}
+              <span className="mx-1 text-white/20">|</span>
+              <Link href="/schedule" className="text-xs text-white/70 hover:text-white transition-colors">Расписание</Link>
+              <span className="mx-1 text-white/20">|</span>
+              <Link href="/contacts" className="text-xs text-white/70 hover:text-white transition-colors">Контакты</Link>
+              <span className="mx-1 text-white/20">|</span>
+              <Link href="/news" className="text-xs text-white/70 hover:text-white transition-colors">Новости</Link>
+              <span className="mx-1 text-white/20">|</span>
+              <Link href="/events" className="text-xs text-white/70 hover:text-white transition-colors">Мероприятия</Link>
+            </div>
+            <div className="flex items-center gap-2" ref={profileRef}>
+              {user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setProfileOpen(!profileOpen)}
+                    className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors"
                   >
-                    <SocialIcon icon={link.icon} className="h-4 w-4" />
-                  </a>
-                ))}
-              </div>
-              <div className="flex items-center gap-2" ref={profileRef}>
-                {user ? (
-                  <div className="relative">
-                    <button
-                      onClick={() => setProfileOpen(!profileOpen)}
-                      className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-muted-fg hover:text-accent hover:bg-muted transition-colors"
-                    >
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-[10px] font-bold text-accent">
-                        {initials}
-                      </span>
-                      <span className="max-w-[100px] truncate">{user.fullName}</span>
-                    </button>
-                    {profileOpen && (
-                      <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-card shadow-lg p-1">
-                        <Link href="/my/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
-                          <User size={16} /> Личный кабинет
-                        </Link>
-                        <hr className="my-1 border-border" />
-                        <button
-                          onClick={() => { logout() }}
-                          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors"
-                        >
-                          <LogOut size={16} /> Выйти
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Link href="/login" className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent-hover">Войти</Link>
-                )}
-                <span className="mx-1 text-muted-fg/30">|</span>
-                <Link href="/schedule" className="text-xs text-muted-fg hover:text-accent transition-colors">Расписание</Link>
-                <span className="mx-1 text-muted-fg/30">|</span>
-                <Link href="/contacts" className="text-xs text-muted-fg hover:text-accent transition-colors">Контакты</Link>
-              </div>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold text-white">
+                      {initials}
+                    </span>
+                    <span className="max-w-[100px] truncate">{user.fullName}</span>
+                  </button>
+                  {profileOpen && (
+                    <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-card shadow-lg p-1">
+                      <Link href="/lms" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
+                        <User size={16} /> Личный кабинет
+                      </Link>
+                      <Link href="/my/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
+                        <User size={16} /> Профиль
+                      </Link>
+                      <hr className="my-1 border-border" />
+                      <button
+                        onClick={() => { logout() }}
+                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors"
+                      >
+                        <LogOut size={16} /> Выйти
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link href="/login" className="rounded-md bg-white px-3 py-1 text-xs font-medium text-accent transition-colors hover:bg-white/90">Войти</Link>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Row 2: Navigation */}
-          <div className="flex flex-1 items-center justify-between border-b border-border px-4">
-            <nav className="hidden lg:flex items-center gap-1">
-              {siteNavigation.map((section) => (
-                <Link key={section.slug} href={section.href} className="px-3 py-2 text-sm font-medium text-muted-fg hover:text-accent transition-colors rounded-md">
-                  {section.title}
-                </Link>
-              ))}
-            </nav>
+        {/* Row 2: Logo + Navigation */}
+        <div className="flex items-center justify-between border-b border-white/10 px-4 lg:px-6">
+          <Link href="/" className="flex shrink-0 items-center py-2">
+            <img
+              src="/logo.svg"
+              alt="Ставропольский колледж связи"
+              className="object-contain h-auto w-auto"
+              style={{ maxHeight: "110px", maxWidth: "220px" }}
+            />
+          </Link>
 
-            <div className="flex items-center gap-2 ml-auto">
-              <Link href="/search" className="hidden md:flex items-center justify-center h-9 w-9 rounded-md text-muted-fg hover:text-accent hover:bg-muted transition-colors" aria-label="Поиск"><Search size={18} /></Link>
+          <nav className="hidden lg:flex items-center gap-1">
+            {siteNavigation.map((section) => (
+              <Link key={section.slug} href={section.href} className="px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors rounded-md">
+                {section.title}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <Link href="/search" className="hidden md:flex items-center justify-center h-9 w-9 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-label="Поиск"><Search size={18} /></Link>
+            <div className="[&_button]:!text-white/80 [&_button]:hover:!text-white [&_button]:hover:!bg-white/10">
               <AccessibilityToggle />
               <ThemeToggle />
-              <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden ml-2 rounded-md p-2 text-muted-fg hover:bg-muted" aria-label="Меню">
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
             </div>
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden ml-2 rounded-md p-2 text-white/80 hover:bg-white/10" aria-label="Меню">
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden border-b border-border bg-bg px-4 pb-4 pt-2">
+        <div className="lg:hidden border-b border-white/10 bg-accent px-4 pb-4 pt-2">
           <nav className="flex flex-col gap-1">
             {siteNavigation.map((section) => (
-              <Link key={section.slug} href={section.href} className="block px-3 py-2 text-sm font-medium text-fg rounded-md hover:bg-muted" onClick={() => setMobileOpen(false)}>
+              <Link key={section.slug} href={section.href} className="block px-3 py-2 text-sm font-medium text-white/80 rounded-md hover:bg-white/10" onClick={() => setMobileOpen(false)}>
                 {section.title}
               </Link>
             ))}

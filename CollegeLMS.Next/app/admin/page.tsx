@@ -287,7 +287,7 @@ export default function UsersPage() {
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="ghost" size="sm" onClick={() => startEdit(u)}>
-                              Ред.
+                              <Pencil size={16} />
                             </Button>
                           </DialogTrigger>
             <DialogContent className="bg-card">

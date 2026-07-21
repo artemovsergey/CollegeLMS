@@ -39,7 +39,7 @@ export default function ContactsPage() {
           <div className="overflow-hidden rounded-lg border border-border">
             <iframe
               title="Карта"
-              src="https://yandex.ru/map-widget/v1/?ll=41.932150%2C45.051070&z=16&pt=41.932150%2C45.051070%2Cpm2dol&l=map"
+              src="https://yandex.ru/map-widget/v1/?ll=45.0450%2C41.9808&z=16&pt=45.0450%2C41.9808%2Cpm2dol&l=map"
               width="100%"
               height="400"
               style={{ border: 0 }}
