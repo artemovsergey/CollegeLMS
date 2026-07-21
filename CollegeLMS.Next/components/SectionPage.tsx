@@ -55,13 +55,13 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
   const Bc = design === "tpu" ? BreadcrumbsTPU : Breadcrumbs
 
   const titleClass = design === "tpu"
-    ? "text-[var(--color-tpu-text-primary)]"
+    ? "text-tpu-text"
     : "text-primary"
   const boxClass = design === "tpu"
-    ? "rounded-xl border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] p-8 text-center"
+    ? "rounded-lg border border-tpu-border bg-white p-8 text-center"
     : "rounded-lg border border-border bg-card p-8 text-center"
   const emptyClass = design === "tpu"
-    ? "text-[var(--color-tpu-text-secondary)]"
+    ? "text-tpu-text-muted"
     : "text-muted-foreground"
 
   return (

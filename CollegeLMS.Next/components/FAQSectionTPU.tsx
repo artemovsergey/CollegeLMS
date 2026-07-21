@@ -38,36 +38,31 @@ export default function FAQSectionTPU() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <section className="bg-[var(--color-tpu-bg-muted)] py-[var(--section-padding-y)]">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-12 text-center">
-          <h2 className="mb-3 text-3xl font-bold text-[var(--color-tpu-text-primary)]">
-            Часто задаваемые вопросы
-          </h2>
-          <p className="text-[var(--color-tpu-text-secondary)] max-w-2xl mx-auto">
-            Ответы на самые популярные вопросы о поступлении и обучении
-          </p>
-        </div>
+    <div className="app-section">
+      <div className="mx-auto max-w-3xl px-4 lg:px-8">
+        <h2 className="app-section__title">Часто задаваемые вопросы</h2>
+        <p className="app-section__subtitle">Ответы на самые популярные вопросы о поступлении и обучении</p>
+
         <div className="space-y-3">
           {faqs.map((faq, i) => (
             <div
               key={i}
-              className="overflow-hidden rounded-xl border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)]"
+              className="overflow-hidden rounded-lg border border-tpu-border bg-white"
             >
               <button
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                className="flex w-full items-center justify-between px-6 py-5 text-left text-sm font-medium text-[var(--color-tpu-text-primary)] transition-colors hover:bg-[var(--color-tpu-bg-muted)]"
+                className="flex w-full items-center justify-between px-6 py-5 text-left text-sm font-medium text-tpu-text transition-colors hover:bg-tpu-gray-50"
               >
                 <span>{faq.q}</span>
                 <ChevronDown
                   size={16}
-                  className={`shrink-0 text-[var(--color-tpu-text-secondary)] transition-transform duration-200 ${
+                  className={`shrink-0 text-tpu-text-muted transition-transform duration-200 ${
                     openIndex === i ? "rotate-180" : ""
                   }`}
                 />
               </button>
               {openIndex === i && (
-                <div className="border-t border-[var(--color-tpu-border)] px-6 py-5 text-sm leading-relaxed text-[var(--color-tpu-text-secondary)]">
+                <div className="border-t border-tpu-border px-6 py-5 text-sm leading-relaxed text-tpu-text-muted">
                   {faq.a}
                 </div>
               )}
@@ -75,6 +70,6 @@ export default function FAQSectionTPU() {
           ))}
         </div>
       </div>
-    </section>
+    </div>
   )
 }

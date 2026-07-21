@@ -90,30 +90,22 @@ export default function HomePage() {
           ) : news.length === 0 && !error ? (
             <p className="text-center text-muted-foreground">Новостей пока нет</p>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-0 border border-border rounded-lg overflow-hidden sm:grid-cols-2 lg:grid-cols-3">
               {news.map((item) => (
                 <Link
                   key={item.id}
                   href={`/news/${item.id}`}
-                  className="group rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
+                  className="block bg-card p-5 transition-colors hover:bg-muted border-b border-r border-border"
                 >
                   {item.imageUrl && (
-                    <div className="mb-3 overflow-hidden rounded-md">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={item.imageUrl}
-                        alt=""
-                        className="h-40 w-full object-cover transition-transform duration-200 group-hover:scale-105"
-                      />
-                    </div>
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.imageUrl} alt="" className="w-full h-40 object-cover mb-3 rounded-md" />
                   )}
-                  <p className="mb-1 text-xs text-muted-foreground">
-                    {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
-                    {item.categoryName && ` · ${item.categoryName}`}
-                  </p>
-                  <h3 className="text-sm font-semibold text-primary line-clamp-2">
-                    {item.title}
-                  </h3>
+                  {item.categoryName && (
+                    <span className="inline-block text-xs font-medium text-white bg-accent px-2 py-0.5 rounded-sm mb-2">{item.categoryName}</span>
+                  )}
+                  <p className="text-xs text-muted-fg mb-1">{new Date(item.publishedAt).toLocaleDateString("ru-RU")}</p>
+                  <h3 className="text-sm font-semibold text-fg line-clamp-2">{item.title}</h3>
                 </Link>
               ))}
             </div>

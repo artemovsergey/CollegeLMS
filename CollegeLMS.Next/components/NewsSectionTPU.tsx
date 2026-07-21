@@ -27,91 +27,63 @@ export default function NewsSectionTPU() {
   }, [])
 
   return (
-    <section className="bg-[var(--color-tpu-bg-muted)] py-[var(--section-padding-y)]">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-12 flex items-end justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-[var(--color-tpu-text-primary)]">
-              Последние новости
-            </h2>
-            <p className="text-[var(--color-tpu-text-secondary)] mt-2">
-              События и достижения колледжа
-            </p>
-          </div>
-          <Link
-            href="/news"
-            className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-[var(--color-tpu-accent)] hover:text-[var(--color-tpu-accent-hover)] transition-colors"
-          >
-            Все новости →
-          </Link>
-        </div>
+    <div className="app-section">
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <h2 className="app-section__title">Новости</h2>
+        <p className="app-section__subtitle">События и достижения колледжа</p>
 
         {error && (
-          <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">{error}</div>
+          <div className="mb-6 rounded bg-red-50 p-4 text-sm text-red-600">{error}</div>
         )}
 
         {loading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="animate-pulse rounded-xl border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] overflow-hidden">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="animate-pulse rounded-lg border border-tpu-border bg-white overflow-hidden">
                 <div className="h-48 bg-gray-200" />
                 <div className="p-5 space-y-3">
                   <div className="h-3 w-24 rounded bg-gray-200" />
                   <div className="h-4 w-3/4 rounded bg-gray-200" />
-                  <div className="h-3 w-full rounded bg-gray-200" />
                 </div>
               </div>
             ))}
           </div>
         ) : news.length === 0 && !error ? (
-          <p className="text-center text-[var(--color-tpu-text-secondary)]">
-            Новостей пока нет
-          </p>
+          <p className="text-center text-tpu-text-muted">Новостей пока нет</p>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="news-grid-tpu">
             {news.slice(0, 3).map((item) => (
-              <Link
-                key={item.id}
-                href={`/news/${item.id}`}
-                className="group rounded-xl border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] overflow-hidden transition-all duration-200 hover:shadow-[var(--shadow-tpu-md)]"
-              >
+              <Link key={item.id} href={`/news/${item.id}`} className="news-card-tpu">
                 {item.imageUrl && (
-                  <div className="overflow-hidden">
-                    <img
-                      src={item.imageUrl}
-                      alt=""
-                      className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  </div>
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    className="news-card-tpu__image"
+                  />
                 )}
-                <div className="p-5">
-                  <p className="mb-2 text-xs text-[var(--color-tpu-text-secondary)]">
-                    {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
-                    {item.categoryName && ` · ${item.categoryName}`}
-                  </p>
-                  <h3 className="mb-2 text-sm font-semibold text-[var(--color-tpu-text-primary)] line-clamp-2">
-                    {item.title}
-                  </h3>
-                  {item.content && (
-                    <p className="text-xs text-[var(--color-tpu-text-secondary)] line-clamp-2">
-                      {item.content.replace(/<[^>]*>/g, "").slice(0, 120)}
-                    </p>
+                <div className="news-card-tpu__body">
+                  {item.categoryName && (
+                    <span className="news-card-tpu__tag">{item.categoryName}</span>
                   )}
+                  <div className="news-card-tpu__date">
+                    {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
+                  </div>
+                  <div className="news-card-tpu__title line-clamp-2">{item.title}</div>
                 </div>
               </Link>
             ))}
           </div>
         )}
 
-        <div className="mt-8 text-center sm:hidden">
+        <div className="mt-8 text-center">
           <Link
             href="/news"
-            className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-tpu-accent)] hover:text-[var(--color-tpu-accent-hover)] transition-colors"
+            className="btn-tpu-accent"
           >
-            Все новости →
+            Все новости
           </Link>
         </div>
       </div>
-    </section>
+    </div>
   )
 }

@@ -41,7 +41,7 @@ export default function FeedbackFormTPU() {
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-5">
       <div>
-        <label htmlFor="tpu-feedback-name" className="mb-1.5 block text-sm font-medium text-[var(--color-tpu-text-primary)]">
+        <label htmlFor="tpu-feedback-name" className="mb-1.5 block text-sm font-medium text-tpu-text">
           Имя
         </label>
         <input
@@ -50,12 +50,12 @@ export default function FeedbackFormTPU() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Ваше имя"
-          className="w-full rounded-lg border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] px-4 py-2.5 text-sm text-[var(--color-tpu-text-primary)] placeholder:text-[var(--color-tpu-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-tpu-accent)]/30 focus:border-[var(--color-tpu-accent)] transition-colors"
+          className="w-full rounded-lg border border-tpu-border bg-white px-4 py-2.5 text-sm text-tpu-text placeholder:text-tpu-text-muted focus:outline-none focus:ring-2 focus:ring-tpu-blue/30 focus:border-tpu-blue transition-colors"
         />
       </div>
 
       <div>
-        <label htmlFor="tpu-feedback-email" className="mb-1.5 block text-sm font-medium text-[var(--color-tpu-text-primary)]">
+        <label htmlFor="tpu-feedback-email" className="mb-1.5 block text-sm font-medium text-tpu-text">
           Email
         </label>
         <input
@@ -65,12 +65,12 @@ export default function FeedbackFormTPU() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.ru"
-          className="w-full rounded-lg border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] px-4 py-2.5 text-sm text-[var(--color-tpu-text-primary)] placeholder:text-[var(--color-tpu-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-tpu-accent)]/30 focus:border-[var(--color-tpu-accent)] transition-colors"
+          className="w-full rounded-lg border border-tpu-border bg-white px-4 py-2.5 text-sm text-tpu-text placeholder:text-tpu-text-muted focus:outline-none focus:ring-2 focus:ring-tpu-blue/30 focus:border-tpu-blue transition-colors"
         />
       </div>
 
       <div>
-        <label htmlFor="tpu-feedback-message" className="mb-1.5 block text-sm font-medium text-[var(--color-tpu-text-primary)]">
+        <label htmlFor="tpu-feedback-message" className="mb-1.5 block text-sm font-medium text-tpu-text">
           Сообщение
         </label>
         <textarea
@@ -80,7 +80,7 @@ export default function FeedbackFormTPU() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Напишите ваш вопрос или предложение..."
-          className="w-full rounded-lg border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] px-4 py-2.5 text-sm text-[var(--color-tpu-text-primary)] placeholder:text-[var(--color-tpu-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-tpu-accent)]/30 focus:border-[var(--color-tpu-accent)] transition-colors resize-y"
+          className="w-full rounded-lg border border-tpu-border bg-white px-4 py-2.5 text-sm text-tpu-text placeholder:text-tpu-text-muted focus:outline-none focus:ring-2 focus:ring-tpu-blue/30 focus:border-tpu-blue transition-colors resize-y"
         />
       </div>
 
@@ -97,7 +97,7 @@ export default function FeedbackFormTPU() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-[var(--color-tpu-accent)] px-6 py-3 text-sm font-medium text-white hover:bg-[var(--color-tpu-accent-hover)] transition-colors disabled:opacity-50"
+        className="btn-tpu-accent w-full justify-center"
       >
         {submitting ? "Отправка..." : "Отправить"}
       </button>

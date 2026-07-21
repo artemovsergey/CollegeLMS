@@ -5,10 +5,10 @@ import { ThemeProvider } from "next-themes"
 import { ThemePresetProvider } from "@/lib/theme-preset"
 import { Toaster } from "@/components/ui/sonner"
 import ThemeSwitcher from "@/components/ThemeSwitcher"
-import "@fontsource/golos-text"
-import "@fontsource/golos-text/500.css"
-import "@fontsource/golos-text/600.css"
-import "@fontsource/golos-text/700.css"
+import "@fontsource/inter"
+import "@fontsource/inter/500.css"
+import "@fontsource/inter/600.css"
+import "@fontsource/inter/700.css"
 
 export const metadata: Metadata = {
   title: {

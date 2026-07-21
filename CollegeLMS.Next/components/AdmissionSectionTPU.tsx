@@ -38,31 +38,23 @@ const items = [
 
 export default function AdmissionSectionTPU() {
   return (
-    <section className="bg-[var(--color-tpu-bg-muted)] py-[var(--section-padding-y)]">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-12 text-center">
-          <h2 className="mb-3 text-3xl font-bold text-[var(--color-tpu-text-primary)]">
-            Приёмная кампания 2026
-          </h2>
-          <p className="text-[var(--color-tpu-text-secondary)] max-w-2xl mx-auto">
-            Информация для абитуриентов и их родителей
-          </p>
-        </div>
+    <div className="app-section app-section--alt">
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <h2 className="app-section__title">Приёмная кампания 2026</h2>
+        <p className="app-section__subtitle">Информация для абитуриентов и их родителей</p>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
             <div
               key={item.title}
-              className="flex gap-4 rounded-xl border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] p-5 hover:shadow-[var(--shadow-tpu-sm)] transition-shadow"
+              className="flex gap-4 rounded-lg border border-tpu-border bg-white p-5 transition-shadow hover:shadow-sm"
             >
-              <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-tpu-accent-light)] text-[var(--color-tpu-accent)]">
+              <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-tpu-blue-light text-tpu-blue">
                 <item.icon size={20} />
               </span>
               <div>
-                <h3 className="mb-1 text-sm font-semibold text-[var(--color-tpu-text-primary)]">
-                  {item.title}
-                </h3>
-                <p className="whitespace-pre-line text-xs leading-relaxed text-[var(--color-tpu-text-secondary)]">
+                <h3 className="mb-1 text-sm font-semibold text-tpu-text">{item.title}</h3>
+                <p className="whitespace-pre-line text-xs leading-relaxed text-tpu-text-muted">
                   {item.description}
                 </p>
               </div>
@@ -71,14 +63,11 @@ export default function AdmissionSectionTPU() {
         </div>
 
         <div className="mt-10 text-center">
-          <Link
-            href="/admissions"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-tpu-accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--color-tpu-accent-hover)] transition-colors"
-          >
-            Подробнее о поступлении →
+          <Link href="/admissions" className="btn-tpu-accent">
+            Подробнее о поступлении
           </Link>
         </div>
       </div>
-    </section>
+    </div>
   )
 }

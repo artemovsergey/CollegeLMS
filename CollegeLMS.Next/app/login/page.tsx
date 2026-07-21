@@ -6,27 +6,12 @@ import { useRouter } from "next/navigation"
 import type { Result, LoginResponse } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { UserRoundCog, UserRoundPen, UserRound, UserCog } from "lucide-react"
 
 const QUICK_LOGINS = [
-  { role: "Admin", login: "admin", password: "admin", label: "Администратор", icon: UserRoundCog },
-  { role: "Teacher", login: "teacher", password: "teacher", label: "Преподаватель", icon: UserRoundPen },
-  { role: "Student", login: "student", password: "student", label: "Студент", icon: UserRound },
-  { role: "Dispatcher", login: "dispatcher", password: "dispatcher", label: "Диспетчер", icon: UserCog },
+  { role: "Admin", login: "admin", password: "admin", label: "Администратор" },
+  { role: "Teacher", login: "teacher", password: "teacher", label: "Преподаватель" },
+  { role: "Student", login: "student", password: "student", label: "Студент" },
+  { role: "Dispatcher", login: "dispatcher", password: "dispatcher", label: "Диспетчер" },
 ]
 
 export default function LoginPage() {
@@ -67,87 +52,96 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-8">
-      <Link href="/" className="mb-8">
-        <img
-          src="/logo.svg"
-          alt="Колледж связи"
-          className="h-auto"
-          style={{ maxHeight: "8rem" }}
-        />
-      </Link>
+    <div className="flex min-h-screen items-center justify-center p-4 bg-muted">
+      <div className="w-full max-w-sm bg-card rounded-lg border border-border p-8">
+        <div className="flex flex-col items-center gap-3 mb-8">
+          <Link href="/">
+            <img
+              src="/logo.svg"
+              alt="Колледж связи"
+              className="h-auto"
+              style={{ maxHeight: "4rem" }}
+            />
+          </Link>
+          <h1 className="text-xl font-semibold text-fg">Вход в систему</h1>
+        </div>
 
-      <Card className="w-full max-w-sm">
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {error && (
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
 
-            <div className="flex flex-col gap-2">
-              <Label>Быстрый вход</Label>
-              <Select
-                onValueChange={(val) => {
-                  const account = QUICK_LOGINS.find(a => a.role === val)
-                  if (account) {
-                    setLoginInput(account.login)
-                    setPassword(account.password)
-                  }
-                }}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="login" className="text-sm text-fg">
+              Логин
+            </label>
+            <input
+              id="login"
+              type="text"
+              required
+              value={loginInput}
+              onChange={e => setLoginInput(e.target.value)}
+              placeholder="admin"
+              autoComplete="username"
+              className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="text-sm text-fg">
+                Пароль
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-accent hover:text-accent-hover"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите роль..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {QUICK_LOGINS.map(a => {
-                    const Icon = a.icon
-                    return (
-                      <SelectItem key={a.role} value={a.role}>
-                        <span className="flex items-center gap-2">
-                          <Icon className="size-4 text-muted-foreground" />
-                          {a.label}
-                        </span>
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
+                Забыли пароль?
+              </Link>
             </div>
+            <input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••"
+              autoComplete="current-password"
+              className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted-fg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+            />
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="login">Логин</Label>
-                <Input
-                  id="login"
-                  type="text"
-                  required
-                  value={loginInput}
-                  onChange={e => setLoginInput(e.target.value)}
-                  placeholder="admin"
-                  autoComplete="username"
-                />
-            </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {submitting ? "Вход..." : "Войти"}
+          </button>
+        </form>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Пароль</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••"
-                autoComplete="current-password"
-              />
-            </div>
-
-            <Button type="submit" disabled={submitting} className="w-full">
-              {submitting ? "Вход..." : "Войти"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="mt-6 pt-6 border-t border-border">
+          <p className="text-xs text-muted-fg mb-2">Быстрый вход (разработка)</p>
+          <select
+            onChange={(e) => {
+              const account = QUICK_LOGINS.find(a => a.role === e.target.value)
+              if (account) {
+                setLoginInput(account.login)
+                setPassword(account.password)
+              }
+            }}
+            defaultValue=""
+            className="w-full rounded-md border border-border bg-bg px-3 py-1.5 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+          >
+            <option value="" disabled>Выберите роль...</option>
+            {QUICK_LOGINS.map(a => (
+              <option key={a.role} value={a.role}>{a.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
     </div>
   )
 }

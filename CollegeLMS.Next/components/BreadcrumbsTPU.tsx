@@ -17,7 +17,7 @@ export default function BreadcrumbsTPU({ items }: BreadcrumbsTPUProps) {
         <li>
           <Link
             href="/"
-            className="text-[var(--color-tpu-text-secondary)] hover:text-[var(--color-tpu-accent)] transition-colors"
+            className="text-tpu-text-secondary hover:text-tpu-blue transition-colors"
           >
             Главная
           </Link>
@@ -26,17 +26,17 @@ export default function BreadcrumbsTPU({ items }: BreadcrumbsTPUProps) {
           <li key={index} className="flex items-center gap-1.5">
             <ChevronRight
               size={14}
-              className="text-[var(--color-tpu-text-secondary)]"
+              className="text-tpu-text-muted"
             />
             {item.href ? (
               <Link
                 href={item.href}
-                className="text-[var(--color-tpu-text-secondary)] hover:text-[var(--color-tpu-accent)] transition-colors"
+                className="text-tpu-text-secondary hover:text-tpu-blue transition-colors"
               >
                 {item.label}
               </Link>
             ) : (
-              <span className="text-[var(--color-tpu-text-primary)] font-medium">
+              <span className="text-tpu-text font-medium">
                 {item.label}
               </span>
             )}

@@ -65,46 +65,40 @@ const specialties: Specialty[] = [
 
 export default function SpecialtiesSectionTPU() {
   return (
-    <section className="py-[var(--section-padding-y)]">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-12 text-center">
-          <h2 className="mb-3 text-3xl font-bold text-[var(--color-tpu-text-primary)]">
-            Специальности
-          </h2>
-          <p className="text-[var(--color-tpu-text-secondary)] max-w-2xl mx-auto">
-            Мы готовим востребованных специалистов по 6 направлениям в сфере IT, связи и энергетики
-          </p>
-        </div>
+    <div className="app-section">
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <h2 className="app-section__title">Специальности</h2>
+        <p className="app-section__subtitle">
+          Мы готовим востребованных специалистов по 6 направлениям в сфере IT, связи и энергетики
+        </p>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {specialties.map((s) => (
             <Link
               key={s.code}
               href="/education"
-              className="group rounded-xl border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] p-6 transition-all duration-200 hover:shadow-[var(--shadow-tpu-md)] hover:border-[var(--color-tpu-accent)]/30"
+              className="group rounded-lg border border-tpu-border bg-white p-6 transition-all hover:shadow-md hover:border-tpu-blue/30"
             >
               <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--color-tpu-accent-light)] text-[var(--color-tpu-accent)]">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-tpu-blue-light text-tpu-blue">
                   {s.icon}
                 </span>
                 <div>
-                  <p className="text-xs text-[var(--color-tpu-text-secondary)]">{s.code}</p>
-                  <h3 className="text-sm font-semibold text-[var(--color-tpu-text-primary)] leading-tight">
+                  <p className="text-xs text-tpu-text-muted">{s.code}</p>
+                  <h3 className="text-sm font-semibold text-tpu-text leading-tight">
                     {s.title}
                   </h3>
                 </div>
               </div>
               <div className="mb-3 space-y-1">
-                <p className="text-xs font-medium text-[var(--color-tpu-text-secondary)]">
-                  Квалификация:
-                </p>
-                <ul className="list-inside list-disc text-xs text-[var(--color-tpu-text-secondary)]">
+                <p className="text-xs font-medium text-tpu-text-secondary">Квалификация:</p>
+                <ul className="list-inside list-disc text-xs text-tpu-text-muted">
                   {s.qualifications.map((q) => (
                     <li key={q}>{q}</li>
                   ))}
                 </ul>
               </div>
-              <p className="text-xs text-[var(--color-tpu-text-secondary)]">
+              <p className="text-xs text-tpu-text-muted">
                 <span className="font-medium">Срок обучения:</span> {s.duration}
               </p>
             </Link>
@@ -112,14 +106,11 @@ export default function SpecialtiesSectionTPU() {
         </div>
 
         <div className="mt-10 text-center">
-          <Link
-            href="/education"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-tpu-accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--color-tpu-accent-hover)] transition-colors"
-          >
-            Все специальности →
+          <Link href="/education" className="btn-tpu-accent">
+            Все специальности
           </Link>
         </div>
       </div>
-    </section>
+    </div>
   )
 }

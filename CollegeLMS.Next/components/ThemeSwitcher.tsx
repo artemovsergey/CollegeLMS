@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Palette, X } from "lucide-react"
 import { useThemePreset, type ThemePreset } from "@/lib/theme-preset"
 import { useTheme } from "next-themes"
-import { useDesign } from "@/lib/design-provider"
 
 const SWATCHES: Record<ThemePreset, string[]> = {
   blue: ["#568edd", "#d5e3f7"],
@@ -14,10 +13,17 @@ const SWATCHES: Record<ThemePreset, string[]> = {
   green: ["#2f8733", "#cbe1cc"],
 }
 
+const PRESETS = [
+  { value: "blue" as ThemePreset, label: "Синий", description: "Классический" },
+  { value: "indigo" as ThemePreset, label: "Индиго", description: "Деловой" },
+  { value: "sapphire" as ThemePreset, label: "Сапфир", description: "Спокойный" },
+  { value: "plum" as ThemePreset, label: "Сливовый", description: "Мягкий" },
+  { value: "green" as ThemePreset, label: "Зелёный", description: "Свежий" },
+]
+
 export default function ThemeSwitcher() {
   const [open, setOpen] = useState(false)
-  const { preset, setPreset, allPresets } = useThemePreset()
-  const { design, setDesign, allDesigns } = useDesign()
+  const { preset, setPreset } = useThemePreset()
   const { theme, setTheme } = useTheme()
 
   return (
@@ -33,56 +39,36 @@ export default function ThemeSwitcher() {
       {open && (
         <div className="fixed bottom-20 right-6 z-50 w-56 rounded-xl border border-border bg-card p-4 shadow-2xl">
           <p className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Дизайн сайта
+            Цветовая схема
           </p>
           <div className="mb-3 flex flex-col gap-1.5">
-            {allDesigns.map((d) => (
+            {PRESETS.map((p) => (
               <button
-                key={d.value}
-                onClick={() => setDesign(d.value)}
+                key={p.value}
+                onClick={() => setPreset(p.value)}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                  design === d.value
+                  preset === p.value
                     ? "bg-accent/10 ring-1 ring-accent"
                     : "hover:bg-muted"
                 }`}
               >
-                <span className="font-medium text-foreground">{d.label}</span>
+                <span className="flex shrink-0 gap-0.5">
+                  {SWATCHES[p.value].map((color, i) => (
+                    <span
+                      key={i}
+                      className="block h-5 w-4 rounded-sm"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </span>
+                <span className="flex flex-col">
+                  <span className="font-medium text-foreground">{p.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {p.description}
+                  </span>
+                </span>
               </button>
             ))}
-          </div>
-          <div className="border-t border-border pt-3">
-            <p className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Цветовая схема
-            </p>
-            <div className="mb-3 flex flex-col gap-1.5">
-              {allPresets.map((p) => (
-                <button
-                  key={p.value}
-                  onClick={() => setPreset(p.value)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                    preset === p.value
-                      ? "bg-accent/10 ring-1 ring-accent"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  <span className="flex shrink-0 gap-0.5">
-                    {SWATCHES[p.value].map((color, i) => (
-                      <span
-                        key={i}
-                        className="block h-5 w-4 rounded-sm"
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </span>
-                  <span className="flex flex-col">
-                    <span className="font-medium text-foreground">{p.label}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {p.description}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
           </div>
           <div className="border-t border-border pt-3">
             <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">

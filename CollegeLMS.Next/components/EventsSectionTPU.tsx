@@ -26,55 +26,53 @@ const events = [
 
 export default function EventsSectionTPU() {
   return (
-    <section className="py-[var(--section-padding-y)]">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-12 flex items-end justify-between">
+    <div className="app-section">
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <div className="flex items-end justify-between mb-10">
           <div>
-            <h2 className="text-3xl font-bold text-[var(--color-tpu-text-primary)]">
-              Календарь событий
-            </h2>
-            <p className="text-[var(--color-tpu-text-secondary)] mt-2">
-              Важные даты и мероприятия
-            </p>
+            <h2 className="app-section__title mb-0">Календарь событий</h2>
+            <p className="app-section__subtitle mb-0">Важные даты и мероприятия</p>
           </div>
           <Link
             href="/events"
-            className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-[var(--color-tpu-accent)] hover:text-[var(--color-tpu-accent-hover)] transition-colors"
+            className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-tpu-blue hover:text-tpu-blue-hover transition-colors"
           >
             Все события →
           </Link>
         </div>
+
         <div className="grid gap-4 md:grid-cols-3">
           {events.map((event) => (
             <div
               key={event.title}
-              className="rounded-xl border border-[var(--color-tpu-border)] bg-[var(--color-tpu-card-bg)] p-6 transition-all duration-200 hover:shadow-[var(--shadow-tpu-md)]"
+              className="rounded-lg border border-tpu-border bg-white p-6 transition-all hover:shadow-md"
             >
-              <div className="mb-3 inline-block rounded-lg bg-[var(--color-tpu-accent-light)] px-3 py-1.5 text-xs font-semibold text-[var(--color-tpu-accent)]">
+              <div className="mb-3 inline-block rounded bg-tpu-blue-light px-3 py-1.5 text-xs font-semibold text-tpu-blue">
                 {event.date}
               </div>
-              <h3 className="mb-2 text-base font-semibold text-[var(--color-tpu-text-primary)]">
+              <h3 className="mb-2 text-base font-semibold text-tpu-text">
                 {event.title}
               </h3>
-              <p className="mb-4 text-sm leading-relaxed text-[var(--color-tpu-text-secondary)]">
+              <p className="mb-4 text-sm leading-relaxed text-tpu-text-muted">
                 {event.description}
               </p>
-              <div className="flex items-center gap-1.5 text-xs text-[var(--color-tpu-text-secondary)]">
+              <div className="flex items-center gap-1.5 text-xs text-tpu-text-muted">
                 <MapPin size={14} />
                 {event.location}
               </div>
             </div>
           ))}
         </div>
+
         <div className="mt-6 text-center sm:hidden">
           <Link
             href="/events"
-            className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-tpu-accent)] hover:text-[var(--color-tpu-accent-hover)] transition-colors"
+            className="inline-flex items-center gap-1 text-sm font-medium text-tpu-blue hover:text-tpu-blue-hover transition-colors"
           >
             Все события →
           </Link>
         </div>
       </div>
-    </section>
+    </div>
   )
 }

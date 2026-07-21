@@ -111,13 +111,24 @@ public class WordPressImportService(
                 int.TryParse(tp, out totalPages);
             }
 
+            var totalPosts = 0;
+            if (firstResponse.Headers.Contains("X-WP-Total"))
+            {
+                var tp = firstResponse.Headers.GetValues("X-WP-Total").FirstOrDefault();
+                int.TryParse(tp, out totalPosts);
+            }
+
             var firstBody = await firstResponse.Content.ReadAsStringAsync(ct);
 
             // --- Process page by page ---
             var progress = importId != null ? GetImportProgress(importId) : null;
+            if (progress != null)
+                progress.Total = totalPosts > 0 ? totalPosts : totalPages * 100;
+
             int totalCategoriesCreated = 0;
             int totalPostsImported = 0;
             int totalPostsSkipped = 0;
+            int totalErrors = 0;
             List<string> allErrors = [];
 
             for (int page = 1; page <= totalPages; page++)
@@ -135,7 +146,7 @@ public class WordPressImportService(
                     $"{{\"categories\":{categoriesJson},\"posts\":{body}}}"
                 );
 
-                var pageResult = await ProcessImportAsync(pageDoc.RootElement, ct, progress);
+                var pageResult = await ProcessImportAsync(pageDoc.RootElement, ct, null);
 
                 if (pageResult.IsSuccess && pageResult.Data != null)
                 {
@@ -143,6 +154,13 @@ public class WordPressImportService(
                     totalPostsImported += pageResult.Data.PostsImported;
                     totalPostsSkipped += pageResult.Data.PostsSkipped;
                     allErrors.AddRange(pageResult.Data.Errors);
+                    totalErrors += pageResult.Data.Errors.Count;
+                }
+
+                if (progress != null)
+                {
+                    progress.Processed = totalPostsImported + totalPostsSkipped;
+                    progress.Errors = totalErrors;
                 }
 
                 logger.LogInformation(

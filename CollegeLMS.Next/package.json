@@ -10,7 +10,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@fontsource/golos-text": "^5.2.8",
+    "@fontsource/inter": "^5.3.0",
     "@radix-ui/react-dialog": "^1.1.18",
     "@radix-ui/react-dropdown-menu": "^2.1.19",
     "@radix-ui/react-label": "^2.1.11",
