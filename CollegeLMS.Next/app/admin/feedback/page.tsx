@@ -15,6 +15,14 @@ import {
 import { Badge } from "@/components/ui/badge"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { Eye, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 export default function AdminFeedbackPage() {
   const { user } = useAuth()
@@ -22,6 +30,11 @@ export default function AdminFeedbackPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [selectedMessage, setSelectedMessage] = useState<FeedbackListItemDto | null>(null)
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+  const totalPages = Math.ceil(items.length / pageSize)
+  const paginatedItems = items.slice((page - 1) * pageSize, page * pageSize)
 
   useEffect(() => {
     const fetch = async () => {
@@ -43,6 +56,8 @@ export default function AdminFeedbackPage() {
     }
     fetch()
   }, [])
+
+  useEffect(() => { setPage(1) }, [items.length])
 
   if (loading) return <LoadingSpinner className="py-20" />
   if (error) return <ErrorBanner message={error} className="m-6" />
@@ -67,10 +82,11 @@ export default function AdminFeedbackPage() {
               <TableHead>Имя</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Сообщение</TableHead>
+            <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map(item => (
+            {paginatedItems.map(item => (
               <TableRow
                 key={item.id}
                 className="cursor-pointer"
@@ -96,11 +112,47 @@ export default function AdminFeedbackPage() {
                     {item.message}
                   </p>
                 </TableCell>
+                <TableCell>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedMessage(item) }} aria-label="Просмотреть">
+                    <Eye size={16} />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+            <ChevronLeft size={16} />
+          </Button>
+          <span className="text-sm text-muted-foreground px-2">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+            <ChevronRight size={16} />
+          </Button>
+        </div>
+      )}
+
+      <Dialog open={!!selectedMessage} onOpenChange={(o) => !o && setSelectedMessage(null)}>
+        <DialogContent className="bg-card max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Сообщение от {selectedMessage?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium text-fg">Email:</span> {selectedMessage?.email}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium text-fg">Дата:</span> {selectedMessage && new Date(selectedMessage.createdAt).toLocaleString("ru")}
+            </div>
+            <div className="mt-2 rounded-lg bg-muted/30 p-4 text-sm leading-relaxed text-fg whitespace-pre-wrap">
+              {selectedMessage?.message}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

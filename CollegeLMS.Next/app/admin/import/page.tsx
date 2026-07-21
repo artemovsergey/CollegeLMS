@@ -17,14 +17,13 @@ export default function AdminImportPage() {
   const [error, setError] = useState<string | null>(null)
   const [polling, setPolling] = useState(false)
 
-  const startImport = async (type: "json" | "rest") => {
+  const startImport = async () => {
     setError(null)
     setProgress(null)
     setLoading(true)
 
     try {
-      const url = type === "json" ? "/api/import/wordpress" : "/api/import/wordpress/rest"
-      const res = await api.post<Result<string>>(url)
+      const res = await api.post<Result<string>>("/api/import/wordpress/rest")
       const body = res.data
 
       if (!body.isSuccess || !body.data) {
@@ -84,17 +83,10 @@ export default function AdminImportPage() {
 
       <div className="flex gap-4">
         <Button
-          onClick={() => startImport("json")}
+          onClick={startImport}
           disabled={loading || polling || !isAdmin}
         >
-          {loading ? "Запуск..." : "Импорт из JSON"}
-        </Button>
-        <Button
-          onClick={() => startImport("rest")}
-          disabled={loading || polling || !isAdmin}
-          variant="outline"
-        >
-          {loading ? "Запуск..." : "Импорт с WordPress (live)"}
+          {loading ? "Запуск..." : "Импортировать"}
         </Button>
       </div>
 

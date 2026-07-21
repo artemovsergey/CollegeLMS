@@ -63,7 +63,7 @@ export default function LoginPage() {
               style={{ maxHeight: "4rem" }}
             />
           </Link>
-          <h1 className="text-xl font-semibold text-fg">Вход в систему</h1>
+          <h1 className="text-xl font-semibold text-fg">Личный кабинет</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -90,17 +90,9 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="password" className="text-sm text-fg">
-                Пароль
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-xs text-accent hover:text-accent-hover"
-              >
-                Забыли пароль?
-              </Link>
-            </div>
+            <label htmlFor="password" className="text-sm text-fg">
+              Пароль
+            </label>
             <input
               id="password"
               type="password"

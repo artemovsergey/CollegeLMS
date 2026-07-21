@@ -102,8 +102,8 @@ export default function Footer() {
               <img
                 src="/logo.svg"
                 alt="Ставропольский колледж связи"
-                className="object-contain brightness-0 invert opacity-80"
-                style={{ height: "44px" }}
+                className="object-contain opacity-90 dark:brightness-0 dark:invert dark:opacity-80"
+                style={{ height: "56px" }}
               />
             </Link>
             <p className="text-sm leading-relaxed text-[#999]">

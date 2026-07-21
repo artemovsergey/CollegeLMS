@@ -229,7 +229,7 @@ function SearchResults() {
                   </span>
                   <h3 className="text-sm font-semibold text-primary">{item.title}</h3>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">{item.snippet}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2">{item.snippet?.replace(/<[^>]*>/g, '')}</p>
               </Link>
             ))}
           </div>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Pencil, Ban, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +64,10 @@ export default function UsersPage() {
   const [formSubmitting, setFormSubmitting] = useState(false)
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const pageSize = 20
+  const totalPages = Math.ceil(users.length / pageSize)
+  const paginatedUsers = users.slice((page - 1) * pageSize, page * pageSize)
 
   const isAdmin = user?.role === "Admin"
 
@@ -87,6 +92,8 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
+
+  useEffect(() => { setPage(1) }, [users.length])
 
   const resetForm = () => {
     setFormLogin("")
@@ -181,7 +188,7 @@ export default function UsersPage() {
             <DialogTrigger asChild>
               <Button size="sm">+ Создать</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-card">
               <DialogHeader>
                 <DialogTitle>Создать пользователя</DialogTitle>
               </DialogHeader>
@@ -246,7 +253,7 @@ export default function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map(u => (
+              {paginatedUsers.map(u => (
                 <TableRow key={u.id} className={!u.isActive ? "opacity-50" : ""}>
                   <TableCell className="font-medium">{u.login}</TableCell>
                   <TableCell>{u.email}</TableCell>
@@ -283,7 +290,7 @@ export default function UsersPage() {
                               Ред.
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+            <DialogContent className="bg-card">
                             <DialogHeader>
                               <DialogTitle>Редактировать пользователя</DialogTitle>
                             </DialogHeader>
@@ -322,8 +329,8 @@ export default function UsersPage() {
                           </DialogContent>
                         </Dialog>
                         {u.isActive && (
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(u.id)} className="text-destructive hover:text-destructive">
-                            Деакт.
+                          <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(u.id)} className="text-destructive hover:text-destructive" aria-label="Деактивировать">
+                            <Ban size={16} />
                           </Button>
                         )}
                       </div>
@@ -333,6 +340,18 @@ export default function UsersPage() {
               ))}
             </TableBody>
           </Table>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+            <ChevronLeft size={16} />
+          </Button>
+          <span className="text-sm text-muted-foreground px-2">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+            <ChevronRight size={16} />
+          </Button>
         </div>
       )}
 

@@ -98,20 +98,16 @@ export default function Carousel() {
               )}
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-              {item.categoryName && (
-                <span className="absolute left-4 top-4 rounded bg-lilac px-3 py-1 text-sm font-medium text-lilac-foreground">
-                  {item.categoryName}
-                </span>
-              )}
+
 
               <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
                 <p className="mb-2 text-sm text-white/80">
                   {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
                 </p>
-                <h2 className="mb-2 text-xl font-bold text-white sm:text-2xl md:text-3xl line-clamp-2">
+                <h2 className="mb-2 text-xl font-bold text-white sm:text-2xl md:text-3xl line-clamp-2 [text-shadow:_0_2px_4px_rgb(0_0_0_/_50%)]">
                   {item.title}
                 </h2>
-                <p className="max-w-2xl text-sm text-white/70 line-clamp-2">
+                <p className="max-w-2xl text-sm text-white/70 line-clamp-2 [text-shadow:_0_1px_3px_rgb(0_0_0_/_50%)]">
                   {item.content.replace(/<[^>]*>/g, '').slice(0, 100)}
                   {item.content.length > 100 ? "..." : ""}
                 </p>

@@ -4,11 +4,17 @@ import { useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth"
-import { Menu, X, LogOut, User } from "lucide-react"
+import { Menu, X, LogOut, User, Lock, type LucideIcon } from "lucide-react"
 import { roleLabels, roleVariants } from "@/lib/constants"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import api from "@/lib/api"
+import type { Result } from "@/types"
 
-type MenuItem = { href: string; label: string }
+type MenuItem = { href: string; label: string; icon?: LucideIcon }
 type MenuSection = { label: string; items: MenuItem[] }
 
 interface AuthenticatedShellProps {
@@ -19,10 +25,40 @@ interface AuthenticatedShellProps {
 export default function AuthenticatedShell({ children, menuSections }: AuthenticatedShellProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [cpOldPassword, setCpOldPassword] = useState("")
+  const [cpNewPassword, setCpNewPassword] = useState("")
+  const [cpError, setCpError] = useState<string | null>(null)
+  const [cpSubmitting, setCpSubmitting] = useState(false)
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/")
+  const isActive = (href: string) => pathname === href || (href !== "/admin" && pathname.startsWith(href + "/"))
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setCpError(null)
+    setCpSubmitting(true)
+    try {
+      const res = await api.post<Result<null>>("/api/auth/change-password", {
+        oldPassword: cpOldPassword,
+        newPassword: cpNewPassword,
+      })
+      if (res.data.isSuccess) {
+        setShowChangePassword(false)
+        setCpOldPassword("")
+        setCpNewPassword("")
+        const { toast } = await import("sonner")
+        toast.success("Пароль изменён")
+      } else {
+        setCpError(res.data.errorMessage ?? "Ошибка смены пароля")
+      }
+    } catch {
+      setCpError("Ошибка смены пароля")
+    } finally {
+      setCpSubmitting(false)
+    }
+  }
 
   const initials = user
     ? user.fullName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
@@ -89,6 +125,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                             : "text-muted-fg hover:bg-muted hover:text-fg"
                         }`}
                       >
+                        {item.icon && <item.icon size={16} className="shrink-0" />}
                         <span>{item.label}</span>
                       </Link>
                     ))}
@@ -96,15 +133,6 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                 </div>
               ))}
             </nav>
-            <div className="border-t border-border p-3">
-              <button
-                onClick={() => { logout() }}
-                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-fg hover:bg-muted hover:text-fg transition-colors"
-              >
-                <LogOut size={16} />
-                Выйти
-              </button>
-            </div>
           </aside>
         </div>
       )}
@@ -143,6 +171,14 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                   Личный кабинет
                 </Link>
                 <button
+                  onClick={() => { setShowChangePassword(true) }}
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-fg hover:bg-muted hover:text-fg transition-colors"
+                >
+                  <Lock size={16} />
+                  Сменить пароль
+                </button>
+                <hr className="border-border" />
+                <button
                   onClick={() => { logout() }}
                   className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-fg hover:bg-muted hover:text-fg transition-colors"
                 >
@@ -154,6 +190,28 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
           </aside>
         </div>
       )}
+
+      {/* Change Password Dialog */}
+      <Dialog open={showChangePassword} onOpenChange={setShowChangePassword}>
+        <DialogContent className="bg-card">
+          <DialogHeader><DialogTitle>Сменить пароль</DialogTitle></DialogHeader>
+          <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
+            {cpError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{cpError}</p>}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="cp-old">Текущий пароль</Label>
+              <Input id="cp-old" type="password" required value={cpOldPassword} onChange={e => setCpOldPassword(e.target.value)} className="bg-muted" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="cp-new">Новый пароль</Label>
+              <Input id="cp-new" type="password" required value={cpNewPassword} onChange={e => setCpNewPassword(e.target.value)} className="bg-muted" />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button type="button" variant="ghost" onClick={() => setShowChangePassword(false)}>Отмена</Button>
+              <Button type="submit" disabled={cpSubmitting}>{cpSubmitting ? "Сохранение..." : "Сохранить"}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Main content */}
       <main className="flex-1">{children}</main>

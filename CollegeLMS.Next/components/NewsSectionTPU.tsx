@@ -53,7 +53,7 @@ export default function NewsSectionTPU() {
         ) : (
           <div className="news-grid-tpu">
             {news.slice(0, 3).map((item) => (
-              <Link key={item.id} href={`/news/${item.id}`} className="news-card-tpu">
+              <Link key={item.id} href={`/news/${item.id}`} className="news-card-tpu group">
                 {item.imageUrl && (
                   <img
                     src={item.imageUrl}
@@ -68,7 +68,7 @@ export default function NewsSectionTPU() {
                   <div className="news-card-tpu__date">
                     {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
                   </div>
-                  <div className="news-card-tpu__title line-clamp-2">{item.title}</div>
+                  <div className="news-card-tpu__title line-clamp-2 group-hover:text-accent transition-colors">{item.title}</div>
                 </div>
               </Link>
             ))}

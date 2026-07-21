@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes"
 import { ThemePresetProvider } from "@/lib/theme-preset"
 import { Toaster } from "@/components/ui/sonner"
 import ThemeSwitcher from "@/components/ThemeSwitcher"
+import AnimatedLogoLoader from "@/components/AnimatedLogoLoader"
 import "@fontsource/inter"
 import "@fontsource/inter/500.css"
 import "@fontsource/inter/600.css"
@@ -39,7 +40,9 @@ export default function RootLayout({
         >
           <ThemePresetProvider>
             <AuthProvider>
-              {children}
+              <AnimatedLogoLoader minDuration={1500}>
+                {children}
+              </AnimatedLogoLoader>
               <ThemeSwitcher />
               <Toaster />
             </AuthProvider>
