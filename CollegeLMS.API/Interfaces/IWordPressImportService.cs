@@ -13,6 +13,8 @@ public interface IWordPressImportService
 
     string StartImport(Func<CancellationToken, Task> importAction);
 
+    void StopImport(string importId);
+
     ImportProgressDto? GetImportProgress(string importId);
 
     Task<Result<ImportResult>> ImportFromRestApiAsync(

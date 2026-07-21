@@ -74,6 +74,27 @@ public class ImportController(
         return Ok(Result<string>.Ok(importId));
     }
 
+    [HttpPost("wordpress/stop/{importId}")]
+    [Authorize(Roles = "Admin")]
+    [SwaggerOperation(Summary = "Остановить импорт")]
+    [SwaggerResponse(200, "Импорт остановлен", typeof(Result<bool>))]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён")]
+    [SwaggerResponse(404, "Импорт не найден")]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public ActionResult<Result<bool>> StopImport(string importId)
+    {
+        var progress = importService.GetImportProgress(importId);
+        if (progress == null)
+            return NotFound(Result<bool>.Fail("Импорт не найден", 404));
+
+        importService.StopImport(importId);
+        return Ok(Result<bool>.Ok(true));
+    }
+
     [HttpGet("wordpress/status/{importId}")]
     [Authorize(Roles = "Admin")]
     [SwaggerOperation(Summary = "Получить статус импорта")]

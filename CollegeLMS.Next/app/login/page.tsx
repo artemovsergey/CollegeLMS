@@ -59,7 +59,7 @@ export default function LoginPage() {
             <img
               src="/logo.svg"
               alt="Колледж связи"
-              className="h-auto"
+              className="h-auto dark:brightness-0 dark:invert"
               style={{ maxHeight: "4rem" }}
             />
           </Link>

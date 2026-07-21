@@ -18,21 +18,21 @@ function SocialIcon({ icon, className }: { icon: string; className?: string }) {
   if (icon === "vk") {
     return (
       <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M15.684 0H8.316C3.732 0 0 3.732 0 8.316v7.368C0 20.268 3.732 24 8.316 24h7.368C20.268 24 24 20.268 24 15.684V8.316C24 3.732 20.268 0 15.684 0zm3.528 16.632h-1.476c-.6 0-.792-.468-1.872-1.548-.948-.9-1.356-1.044-1.596-1.044-.336 0-.432.132-.432.516v1.368c0 .36-.12.576-1.08.576-1.584 0-3.336-.972-4.572-2.784-1.188-1.596-1.488-2.616-1.488-2.844 0-.132.06-.252.228-.252h1.476c.348 0 .468.156.6.528.672 1.848 1.788 3.456 2.244 3.456.18 0 .252-.072.252-.468v-1.824c-.06-1.008-.588-1.092-.588-1.452 0-.18.144-.336.348-.336h2.352c.288 0 .384.156.384.504v2.712c0 .288.132.384.216.384.18 0 .324-.096.648-.42.84-.936 1.452-2.388 1.452-2.388.084-.168.204-.288.396-.288h1.476c.42 0 .516.216.42.516-.18.864-1.956 3.084-1.956 3.084-.156.252-.204.384 0 .648.144.216.636.636.96 1.02.588.708 1.056 1.308 1.176 1.728.12.408-.084.612-.48.612z"/>
+        <path fillRule="evenodd" clipRule="evenodd" d="M12.612 18C6.177 18 2.506 13.588 2.353 6.248h3.224c.106 5.388 2.482 7.67 4.364 8.14v-8.14h3.035v4.647c1.86-.2 3.812-2.318 4.47-4.647h3.036c-.506 2.87-2.623 4.988-4.13 5.858 1.506.706 3.918 2.553 4.836 5.894h-3.341c-.718-2.235-2.506-3.964-4.87-4.2V18h-.365z"/>
       </svg>
     )
   }
   if (icon === "tg") {
     return (
       <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.127.087.497.008 1-.001 0-1.564 6.692-2.238 8.996-.273.944-.546 1.233-.858 1.264-.716.07-1.377-.474-2.076-.93-.484-.317-1-.651-1.552-.674-.49-.02-.942.162-1.463.347-.453.16-.943.36-1.422.222a1.065 1.065 0 01-.563-.41c-.604-.863-.895-1.864-1.233-2.8l-.03-.087c-.338-.936-.865-1.745-1.244-2.612-.148-.336-.415-.657-.4-1.003.01-.314.268-.587.751-.81.961-.444 2.342-.936 3.738-1.182a823.42 823.42 0 015.638-1.355c1.134-.276 1.637-.488 1.857-.506z"/>
+        <path d="M20.665 3.717l-17.73 6.837c-1.21.486-1.203 1.16-.222 1.462l4.552 1.42L17.797 6.79c.498-.303.953-.14.579.192l-8.533 7.7h-.002l.002.002-.314 4.692c.46 0 .663-.211.921-.46l2.211-2.15 4.599 3.397c.848.467 1.457.227 1.668-.785L21.947 5.15c.309-1.24-.473-1.8-1.282-1.434z"/>
       </svg>
     )
   }
   if (icon === "yt") {
     return (
       <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+        <path d="M21.593 7.203a2.506 2.506 0 00-1.762-1.766C18.265 5.007 12 5 12 5s-6.264-.007-7.831.404a2.56 2.56 0 00-1.766 1.778c-.413 1.566-.417 4.814-.417 4.814s-.004 3.264.406 4.814c.23.857.905 1.534 1.763 1.765 1.582.43 7.83.437 7.83.437s6.265.007 7.831-.403a2.515 2.515 0 001.767-1.763c.414-1.565.417-4.812.417-4.812s.02-3.265-.407-4.831zM9.996 15.005l.005-6 5.207 3.005-5.212 2.995z"/>
       </svg>
     )
   }
@@ -42,6 +42,7 @@ function SocialIcon({ icon, className }: { icon: string; className?: string }) {
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const { user, logout } = useAuth()
   const profileRef = useRef<HTMLDivElement>(null)
 
@@ -55,91 +56,106 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 0)
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
   const initials = user
     ? user.fullName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
     : "?"
 
   return (
     <header className="sticky top-0 z-50 bg-bg">
-      {/* Row 1: Top bar */}
-      <div className="border-b border-border bg-muted/50">
-        <div className="mx-auto flex h-9 max-w-7xl items-center justify-between px-4 lg:px-8">
-          <div className="flex items-center gap-2">
-            {socialLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center h-7 w-7 rounded text-muted-fg hover:text-accent transition-colors"
-                aria-label={link.label}
-              >
-                <SocialIcon icon={link.icon} className="h-4 w-4" />
-              </a>
-            ))}
-          </div>
-          <div className="flex items-center gap-2" ref={profileRef}>
-            {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-muted-fg hover:text-accent hover:bg-muted transition-colors"
-                >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-[10px] font-bold text-accent">
-                    {initials}
-                  </span>
-                  <span className="max-w-[100px] truncate">{user.fullName}</span>
-                </button>
-                {profileOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-card shadow-lg p-1">
-                    <Link href="/my/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
-                      <User size={16} /> Личный кабинет
-                    </Link>
-                    <hr className="my-1 border-border" />
-                    <button
-                      onClick={() => { logout() }}
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors"
-                    >
-                      <LogOut size={16} /> Выйти
-                    </button>
-                  </div>
-                )}
+      <div className="flex">
+        {/* Logo column — full height, spans both rows */}
+        <Link href="/" className="flex shrink-0 items-center border-b border-r border-border px-4 lg:px-6" style={{ maxWidth: "220px" }}>
+          <img
+            src="/logo.svg"
+            alt="Ставропольский колледж связи"
+            className="object-contain h-auto w-auto dark:brightness-0 dark:invert"
+            style={{ maxHeight: "110px" }}
+          />
+        </Link>
+
+        {/* Right side: two rows stacked */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Row 1: Top bar */}
+          <div className={`border-b border-border bg-muted/50 transition-transform duration-300 ${scrolled ? "-translate-y-full" : ""}`}>
+            <div className="flex h-9 items-center justify-between px-4">
+              <div className="flex items-center gap-2">
+                {socialLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center h-7 w-7 rounded text-muted-fg hover:text-accent transition-colors"
+                    aria-label={link.label}
+                  >
+                    <SocialIcon icon={link.icon} className="h-4 w-4" />
+                  </a>
+                ))}
               </div>
-            ) : (
-              <Link href="/login" className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent-hover">Войти</Link>
-            )}
-            <span className="mx-1 text-muted-fg/30">|</span>
-            <Link href="/schedule" className="text-xs text-muted-fg hover:text-accent transition-colors">Расписание</Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 2: Main header */}
-      <div className="border-b border-border bg-bg">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 lg:px-8">
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <img src="/logo.svg" alt="Ставропольский колледж связи" className="object-contain" style={{ height: "56px" }} />
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-semibold text-fg">Ставропольский колледж связи</span>
-              <span className="text-[11px] text-muted-fg">имени Героя Советского Союза В.А. Петрова</span>
+              <div className="flex items-center gap-2" ref={profileRef}>
+                {user ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setProfileOpen(!profileOpen)}
+                      className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-muted-fg hover:text-accent hover:bg-muted transition-colors"
+                    >
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20 text-[10px] font-bold text-accent">
+                        {initials}
+                      </span>
+                      <span className="max-w-[100px] truncate">{user.fullName}</span>
+                    </button>
+                    {profileOpen && (
+                      <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-card shadow-lg p-1">
+                        <Link href="/my/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
+                          <User size={16} /> Личный кабинет
+                        </Link>
+                        <hr className="my-1 border-border" />
+                        <button
+                          onClick={() => { logout() }}
+                          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors"
+                        >
+                          <LogOut size={16} /> Выйти
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link href="/login" className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent-hover">Войти</Link>
+                )}
+                <span className="mx-1 text-muted-fg/30">|</span>
+                <Link href="/schedule" className="text-xs text-muted-fg hover:text-accent transition-colors">Расписание</Link>
+                <span className="mx-1 text-muted-fg/30">|</span>
+                <Link href="/contacts" className="text-xs text-muted-fg hover:text-accent transition-colors">Контакты</Link>
+              </div>
             </div>
-          </Link>
+          </div>
 
-          <nav className="hidden lg:flex items-center gap-1">
-            {siteNavigation.map((section) => (
-              <Link key={section.slug} href={section.href} className="px-3 py-2 text-sm font-medium text-muted-fg hover:text-accent transition-colors rounded-md">
-                {section.title}
-              </Link>
-            ))}
-          </nav>
+          {/* Row 2: Navigation */}
+          <div className="flex flex-1 items-center justify-between border-b border-border px-4">
+            <nav className="hidden lg:flex items-center gap-1">
+              {siteNavigation.map((section) => (
+                <Link key={section.slug} href={section.href} className="px-3 py-2 text-sm font-medium text-muted-fg hover:text-accent transition-colors rounded-md">
+                  {section.title}
+                </Link>
+              ))}
+            </nav>
 
-          <div className="flex items-center gap-2">
-            <Link href="/search" className="hidden md:flex items-center justify-center h-9 w-9 rounded-md text-muted-fg hover:text-accent hover:bg-muted transition-colors" aria-label="Поиск"><Search size={18} /></Link>
-            <AccessibilityToggle />
-            <ThemeToggle />
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden ml-2 rounded-md p-2 text-muted-fg hover:bg-muted" aria-label="Меню">
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            <div className="flex items-center gap-2 ml-auto">
+              <Link href="/search" className="hidden md:flex items-center justify-center h-9 w-9 rounded-md text-muted-fg hover:text-accent hover:bg-muted transition-colors" aria-label="Поиск"><Search size={18} /></Link>
+              <AccessibilityToggle />
+              <ThemeToggle />
+              <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden ml-2 rounded-md p-2 text-muted-fg hover:bg-muted" aria-label="Меню">
+                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
           </div>
         </div>
       </div>

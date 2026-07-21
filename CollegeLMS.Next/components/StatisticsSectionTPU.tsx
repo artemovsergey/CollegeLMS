@@ -11,7 +11,7 @@ const statsData = [
 
 export default function StatisticsSectionTPU() {
   return (
-    <div className="app-section app-section--alt">
+    <div className="app-section app-section--alt border-b border-tpu-border">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <h2 className="app-section__title">Ставропольский колледж связи сегодня</h2>
         <p className="app-section__subtitle">

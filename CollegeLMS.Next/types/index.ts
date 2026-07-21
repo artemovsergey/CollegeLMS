@@ -457,7 +457,7 @@ export interface CourseProgressResponse {
 
 export interface ImportProgressDto {
   importId: string
-  status: "running" | "completed" | "failed"
+  status: "running" | "completed" | "failed" | "cancelled"
   total: number
   processed: number
   errors: number

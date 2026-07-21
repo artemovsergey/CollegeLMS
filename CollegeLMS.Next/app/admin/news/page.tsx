@@ -50,6 +50,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
+import { Pencil, Trash2, Upload, Square, ExternalLink } from "lucide-react"
+import type { ImportProgressDto } from "@/types"
 
 const PAGE_SIZE = 20
 
@@ -75,6 +77,71 @@ export default function AdminNewsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [uploading, setUploading] = useState(false)
+
+  // Import state
+  const [importId, setImportId] = useState<string | null>(null)
+  const [importProgress, setImportProgress] = useState<ImportProgressDto | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [polling, setPolling] = useState(false)
+
+  const startImport = async () => {
+    setImportProgress(null)
+    setImporting(true)
+    try {
+      const res = await api.post<Result<string>>("/api/import/wordpress/rest")
+      const body = res.data
+      if (!body.isSuccess || !body.data) {
+        toast.error(body.errorMessage ?? "Ошибка запуска импорта")
+        setImporting(false)
+        return
+      }
+      setImportId(body.data)
+      setImporting(false)
+      setPolling(true)
+      pollStatus(body.data)
+    } catch {
+      toast.error("Ошибка запуска импорта")
+      setImporting(false)
+    }
+  }
+
+  const stopImport = async () => {
+    if (!importId) return
+    try {
+      await api.post(`/api/import/wordpress/stop/${importId}`)
+      toast("Импорт остановлен")
+      setPolling(false)
+    } catch {
+      toast.error("Ошибка остановки импорта")
+    }
+  }
+
+  const pollStatus = (id: string) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get<Result<ImportProgressDto>>(`/api/import/wordpress/status/${id}`)
+        const body = res.data
+        if (body.isSuccess && body.data) {
+          setImportProgress(body.data)
+          if (body.data.status === "completed" || body.data.status === "failed" || body.data.status === "cancelled") {
+            clearInterval(interval)
+            setPolling(false)
+            setImportId(null)
+            if (body.data.status === "completed") {
+              toast.success("Импорт завершён")
+              fetchNews()
+            }
+          }
+        } else {
+          clearInterval(interval)
+          setPolling(false)
+        }
+      } catch {
+        clearInterval(interval)
+        setPolling(false)
+      }
+    }, 2000)
+  }
 
   const fetchNews = useCallback(async () => {
     setLoading(true)
@@ -315,26 +382,82 @@ export default function AdminNewsPage() {
     <div className="flex flex-col gap-6 p-6 mx-auto max-w-6xl">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Новости</h2>
-        {canManage && (
-          <Dialog
-            open={showCreate}
-            onOpenChange={open => {
-              if (open) resetForm()
-              setShowCreate(open)
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button size="sm">+ Создать</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Создать новость</DialogTitle>
-              </DialogHeader>
-              {formDialog}
-            </DialogContent>
-          </Dialog>
-        )}
+        <div className="flex items-center gap-2">
+          {canManage && (
+            <>
+              <Dialog
+                open={showCreate}
+                onOpenChange={open => {
+                  if (open) resetForm()
+                  setShowCreate(open)
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button size="sm">+ Создать</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Создать новость</DialogTitle>
+                  </DialogHeader>
+                  {formDialog}
+                </DialogContent>
+              </Dialog>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={startImport}
+                disabled={importing || polling}
+              >
+                <Upload size={16} className="mr-1" />
+                {importing ? "Запуск..." : "Импорт"}
+              </Button>
+              {polling && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive border-destructive hover:bg-destructive/10"
+                  onClick={stopImport}
+                >
+                  <Square size={16} className="mr-1" />
+                  Остановить
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
+
+      {importProgress && (
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">
+              Импорт: {importProgress.status === "running" ? "Выполняется..." : importProgress.status === "completed" ? "Завершён" : importProgress.status === "cancelled" ? "Остановлен" : "Ошибка"}
+            </span>
+            {importProgress.status === "running" && (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-primary" />
+            )}
+          </div>
+          {importProgress.total > 0 && (
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Обработано: {importProgress.processed} из {importProgress.total}</span>
+                <span>{Math.round((importProgress.processed / importProgress.total) * 100)}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${Math.round((importProgress.processed / importProgress.total) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+          {importProgress.result && (
+            <div className="mt-2 text-sm text-muted-foreground">
+              Импортировано: {importProgress.result.postsImported}, пропущено: {importProgress.result.postsSkipped}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
@@ -362,7 +485,12 @@ export default function AdminNewsPage() {
               <TableBody>
                 {news.map(item => (
                   <TableRow key={item.id}>
-                    <TableCell className="max-w-xs truncate font-medium">{item.title}</TableCell>
+                    <TableCell className="max-w-xs truncate font-medium">
+                      <a href={`/news/${item.id}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-accent transition-colors">
+                        {item.title}
+                        <ExternalLink size={12} className="shrink-0 text-muted-fg" />
+                      </a>
+                    </TableCell>
                     <TableCell>
                       {item.categoryName ? (
                         <Badge variant="outline">{item.categoryName}</Badge>
@@ -391,8 +519,8 @@ export default function AdminNewsPage() {
                         <div className="flex gap-2">
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" onClick={() => fillForm(item)}>
-                                Ред.
+                              <Button variant="ghost" size="sm" onClick={() => fillForm(item)} aria-label="Редактировать">
+                                <Pencil size={16} />
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl">
@@ -407,8 +535,9 @@ export default function AdminNewsPage() {
                             size="sm"
                             className="text-destructive hover:text-destructive"
                             onClick={() => setDeleteId(item.id)}
+                            aria-label="Удалить"
                           >
-                            Удал.
+                            <Trash2 size={16} />
                           </Button>
                         </div>
                       </TableCell>

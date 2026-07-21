@@ -78,7 +78,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
               <Menu size={20} />
             </button>
             <Link href="/" className="flex items-center gap-2 ml-2">
-              <img src="/logo.svg" alt="" className="object-contain" style={{ height: "28px" }} />
+              <img src="/logo.svg" alt="" className="object-contain h-auto w-auto dark:brightness-0 dark:invert" style={{ maxHeight: "40px" }} />
               <div className="flex flex-col leading-tight">
                 <span className="text-xs font-semibold text-fg leading-tight">Ставропольский колледж связи</span>
                 <span className="text-[10px] text-muted-fg leading-tight">имени В.А. Петрова</span>

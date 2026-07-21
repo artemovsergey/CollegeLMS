@@ -6,6 +6,7 @@ import { ThemePresetProvider } from "@/lib/theme-preset"
 import { Toaster } from "@/components/ui/sonner"
 import ThemeSwitcher from "@/components/ThemeSwitcher"
 import AnimatedLogoLoader from "@/components/AnimatedLogoLoader"
+import CookieConsent from "@/components/CookieConsent"
 import "@fontsource/inter"
 import "@fontsource/inter/500.css"
 import "@fontsource/inter/600.css"
@@ -44,6 +45,7 @@ export default function RootLayout({
                 {children}
               </AnimatedLogoLoader>
               <ThemeSwitcher />
+              <CookieConsent />
               <Toaster />
             </AuthProvider>
           </ThemePresetProvider>

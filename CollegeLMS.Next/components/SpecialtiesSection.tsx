@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Laptop, Radio, Cpu, Zap } from "lucide-react"
+import { Laptop, Radio, Cpu, Zap, ArrowRight } from "lucide-react"
 
 interface Specialty {
   code: string
@@ -65,47 +65,81 @@ const specialties: Specialty[] = [
 
 export default function SpecialtiesSection() {
   return (
-    <section className="bg-muted py-16">
+    <section className="py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Специальности</h2>
+        <div className="mb-12 text-center">
+          <h2 className="mb-3 text-3xl font-bold text-fg">Специальности</h2>
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
+            Выберите свою будущую профессию среди востребованных направлений подготовки
+          </p>
+        </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {specialties.map((s) => (
             <Link
               key={s.code}
-              href="/education"
-              className="group block rounded-lg border border-border bg-card p-6 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
+              href={`/specialties/${s.slug}`}
+              className="group relative flex flex-col rounded-xl border border-border bg-card transition-all duration-200 hover:shadow-lg hover:border-accent/30 hover:-translate-y-0.5 overflow-hidden"
             >
-              <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-accent/10 group-hover:text-accent transition-colors">
-                  {s.icon}
-                </span>
-                <div>
-                  <p className="text-xs text-muted-foreground">{s.code}</p>
-                  <h3 className="text-sm font-semibold text-primary leading-tight group-hover:text-accent transition-colors">{s.title}</h3>
+              {/* Top accent bar */}
+              <div className="h-1 w-full bg-gradient-to-r from-accent to-accent/60" />
+
+              <div className="flex flex-1 flex-col p-6">
+                {/* Badge + Icon row */}
+                <div className="mb-4 flex items-start justify-between">
+                  <span className="inline-flex items-center rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
+                    СПО
+                  </span>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent transition-colors">
+                    {s.icon}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h3 className="mb-3 text-base font-semibold text-fg leading-snug group-hover:text-accent transition-colors">
+                  {s.title}
+                </h3>
+
+                {/* Duration */}
+                <div className="mb-3">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                    <span className="font-medium">{s.duration}</span>
+                  </span>
+                </div>
+
+                {/* Qualifications */}
+                <div className="mb-4 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Квалификация:</p>
+                  <ul className="space-y-0.5">
+                    {s.qualifications.map((q) => (
+                      <li key={q} className="flex items-start gap-1.5 text-xs text-fg">
+                        <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                        {q}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Spacer */}
+                <div className="mt-auto" />
+
+                {/* Button */}
+                <div className="flex items-center gap-1 text-sm font-medium text-accent opacity-0 group-hover:opacity-100 transition-opacity">
+                  Подробнее
+                  <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                 </div>
               </div>
-              <div className="mb-3 space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">Квалификация:</p>
-                <ul className="list-inside list-disc text-xs text-muted-foreground">
-                  {s.qualifications.map((q) => (
-                    <li key={q}>{q}</li>
-                  ))}
-                </ul>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                <span className="font-medium">Срок обучения:</span> {s.duration}
-              </p>
             </Link>
           ))}
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-12 text-center">
           <Link
-            href="/education"
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
+            href="/specialties"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-3.5 text-sm font-medium text-accent-foreground transition-all hover:bg-accent/90 hover:shadow-md"
           >
-            Все специальности →
+            Все специальности
+            <ArrowRight size={16} />
           </Link>
         </div>
       </div>

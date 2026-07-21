@@ -62,12 +62,12 @@ export default function Footer() {
   const [accordionOpen, setAccordionOpen] = useState(false)
 
   return (
-    <footer className="bg-black text-[#999]">
-      <div className="border-b border-white/10">
+    <footer className="bg-accent text-accent-foreground/80">
+      <div className="border-b border-accent-foreground/10">
         <div className="mx-auto max-w-7xl px-4 lg:px-8">
           <button
             onClick={() => setAccordionOpen(!accordionOpen)}
-            className="flex w-full items-center justify-between py-4 text-sm font-medium text-white/80 hover:text-white transition-colors"
+            className="flex w-full items-center justify-between py-4 text-sm font-medium text-accent-foreground/80 hover:text-accent-foreground transition-colors"
           >
             Полезная информация
             <ChevronDown
@@ -85,7 +85,7 @@ export default function Footer() {
                 <Link
                   key={link.title}
                   href={link.href}
-                  className="text-sm text-[#999] hover:text-white transition-colors py-0.5"
+                  className="text-sm text-accent-foreground/60 hover:text-accent-foreground transition-colors py-0.5"
                 >
                   {link.title}
                 </Link>
@@ -102,11 +102,11 @@ export default function Footer() {
               <img
                 src="/logo.svg"
                 alt="Ставропольский колледж связи"
-                className="object-contain opacity-90 dark:brightness-0 dark:invert dark:opacity-80"
-                style={{ height: "56px" }}
+                className="object-contain h-auto w-auto dark:brightness-0 dark:invert"
+                style={{ maxHeight: "80px" }}
               />
             </Link>
-            <p className="text-sm leading-relaxed text-[#999]">
+            <p className="text-sm leading-relaxed text-accent-foreground/60">
               ГБПОУ «Ставропольский колледж связи<br />
               имени Героя Советского Союза В.А. Петрова»
             </p>
@@ -114,13 +114,13 @@ export default function Footer() {
 
           {footerColumns.map((col) => (
             <div key={col.title}>
-              <h3 className="mb-4 text-sm font-semibold text-white">{col.title}</h3>
+              <h3 className="mb-4 text-sm font-semibold text-accent-foreground">{col.title}</h3>
               <ul className="space-y-2">
                 {col.items.map((item) => (
                   <li key={item.label}>
                     <Link
                       href={item.href}
-                      className="text-sm text-[#999] hover:text-white transition-colors"
+                      className="text-sm text-accent-foreground/60 hover:text-accent-foreground transition-colors"
                     >
                       {item.label}
                     </Link>
@@ -131,16 +131,16 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-8 border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-[#666]">
+        <div className="mt-8 border-t border-accent-foreground/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-accent-foreground/50">
             © {new Date().getFullYear()} ГБПОУ «Ставропольский колледж связи
             имени Героя Советского Союза В.А. Петрова». Все права защищены.
           </p>
-          <div className="flex gap-4 text-xs text-[#666]">
-            <Link href="/sveden" className="hover:text-white transition-colors">
+          <div className="flex gap-4 text-xs text-accent-foreground/50">
+            <Link href="/sveden" className="hover:text-accent-foreground transition-colors">
               Сведения об образовательной организации
             </Link>
-            <Link href="/privacy" className="hover:text-white transition-colors">
+            <Link href="/privacy" className="hover:text-accent-foreground transition-colors">
               Политика конфиденциальности
             </Link>
           </div>

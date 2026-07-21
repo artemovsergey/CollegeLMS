@@ -12,7 +12,7 @@ export default function ContentRenderer({
 
   return (
     <div
-      className={`docs-content ${className} [&_img]:mt-4 [&_img:first-child]:mt-0 [&_img]:rounded-md [&_img]:w-full`}
+      className={`docs-content ${className} [&_img]:mt-4 [&_img:first-child]:mt-0 [&_img:not(:first-child)]:mt-6 [&_img]:rounded-md [&_img]:w-full`}
       dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   )

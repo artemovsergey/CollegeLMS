@@ -16,6 +16,7 @@ public class WordPressImportService(
 ) : IWordPressImportService
 {
     private static readonly ConcurrentDictionary<string, ImportProgressDto> _imports = new();
+    private static readonly ConcurrentDictionary<string, CancellationTokenSource> _importCts = new();
 
     private static readonly TimeSpan CleanupAge = TimeSpan.FromMinutes(30);
 
@@ -27,6 +28,10 @@ public class WordPressImportService(
         var progress = new ImportProgressDto { ImportId = importId, Status = "running" };
         _imports[importId] = progress;
 
+        var cts = new CancellationTokenSource();
+        _importCts[importId] = cts;
+        var token = cts.Token;
+
         _ = Task.Run(async () =>
         {
             try
@@ -34,9 +39,14 @@ public class WordPressImportService(
                 var progressRef = _imports[importId];
                 progressRef.Status = "running";
 
-                await importAction(CancellationToken.None);
+                await importAction(token);
 
-                progressRef.Status = "completed";
+                progressRef.Status = token.IsCancellationRequested ? "cancelled" : "completed";
+            }
+            catch (OperationCanceledException)
+            {
+                if (_imports.TryGetValue(importId, out var p))
+                    p.Status = "cancelled";
             }
             catch (Exception ex)
             {
@@ -47,9 +57,22 @@ public class WordPressImportService(
                     p.ErrorMessages.Add(ex.Message);
                 }
             }
-        });
+            finally
+            {
+                _importCts.TryRemove(importId, out _);
+            }
+        }, token);
 
         return importId;
+    }
+
+    public void StopImport(string importId)
+    {
+        if (_importCts.TryRemove(importId, out var cts))
+        {
+            cts.Cancel();
+            cts.Dispose();
+        }
     }
 
     public ImportProgressDto? GetImportProgress(string importId)

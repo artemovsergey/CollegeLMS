@@ -14,7 +14,6 @@ const menuSections = [
       { href: "/admin", label: "Пользователи", icon: Users },
       { href: "/admin/news", label: "Новости", icon: Newspaper },
       { href: "/admin/feedback", label: "Обратная связь", icon: MessageSquare },
-      { href: "/admin/import", label: "Импорт", icon: Upload },
     ],
   },
   {
