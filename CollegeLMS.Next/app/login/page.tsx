@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Result, LoginResponse } from "@/types"
 import api from "@/lib/api"
+import Image from "next/image"
 import { useAuth } from "@/lib/auth"
 
 const QUICK_LOGINS = [
@@ -48,11 +49,15 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-card rounded-lg border border-border p-8">
         <div className="flex flex-col items-center gap-3 mb-8">
           <Link href="/">
-            <img
+            <Image
               src="/logo.svg"
               alt="Колледж связи"
+              width={0}
+              height={0}
+              sizes="100vw"
               className="h-auto"
-              style={{ maxHeight: "4rem" }}
+              style={{ maxHeight: "4rem", width: 'auto', height: '100%' }}
+              unoptimized
             />
           </Link>
           <h1 className="text-xl font-semibold text-fg">Личный кабинет</h1>

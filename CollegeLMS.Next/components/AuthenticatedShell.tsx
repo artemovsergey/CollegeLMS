@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import Image from "next/image"
 import { useAuth } from "@/lib/auth"
 import { Menu, X, LogOut, User, Lock, type LucideIcon } from "lucide-react"
 import { roleLabels, roleVariants } from "@/lib/constants"
@@ -78,7 +79,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
               <Menu size={20} />
             </button>
             <Link href="/lms" className="flex items-center gap-2 ml-2">
-              <img src="/logo.svg" alt="" className="object-contain h-auto w-auto" style={{ maxHeight: "40px" }} />
+              <Image src="/logo.svg" alt="" width={0} height={0} sizes="100vw" className="object-contain h-auto w-auto" style={{ maxHeight: "40px", width: 'auto', height: '100%' }} unoptimized />
               <div className="flex flex-col leading-tight">
                 <span className="text-xs font-semibold text-fg leading-tight">Ставропольский колледж связи</span>
                 <span className="text-[10px] text-muted-fg leading-tight">имени В.А. Петрова</span>

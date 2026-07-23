@@ -19,10 +19,7 @@ import FAQSection from "@/components/FAQSection"
 import { useDesign } from "@/lib/design-provider"
 import HomeTPU from "@/components/HomeTPU"
 
-export default function HomePage() {
-  const { design } = useDesign()
-  if (design === "tpu") return <HomeTPU />
-
+function HomePageContent() {
   const [news, setNews] = useState<NewsResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -132,4 +129,10 @@ export default function HomePage() {
       <FAQSection />
     </div>
   )
+}
+
+export default function HomePage() {
+  const { design } = useDesign()
+  if (design === "tpu") return <HomeTPU />
+  return <HomePageContent />
 }

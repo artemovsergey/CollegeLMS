@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Save, Lock, ArrowLeft } from "lucide-react"
-import Link from "next/link"
 
 export default function ProfilePage() {
   const { user, token, isLoading: authLoading } = useAuth()
@@ -131,13 +130,13 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      <Link
-        href="/"
-        className="mb-6 flex items-center gap-1 text-sm text-muted-foreground hover:text-accent"
+      <button
+        onClick={() => router.back()}
+        className="mb-6 flex items-center gap-1 text-sm text-muted-foreground hover:text-accent cursor-pointer"
       >
         <ArrowLeft size={16} />
-        На главную
-      </Link>
+        Назад
+      </button>
 
       <h1 className="mb-6 text-2xl font-semibold text-primary">Мой профиль</h1>
 

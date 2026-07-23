@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { Menu, X, Search, User, LogOut } from "lucide-react"
+import Image from "next/image"
 import ThemeToggle from "./ThemeToggle"
 import AccessibilityToggle from "./AccessibilityToggle"
 import { siteNavigation } from "@/data/site-content"
@@ -11,7 +12,7 @@ import { useAuth } from "@/lib/auth"
 const socialLinks = [
   { href: "https://vk.com/stvcc_stav", label: "ВКонтакте", icon: "vk" },
   { href: "https://t.me/stvcc", label: "Telegram", icon: "tg" },
-  { href: "https://youtube.com/@stvcc", label: "YouTube", icon: "yt" },
+  { href: "https://max.ru/stvcc", label: "Max", icon: "max" },
 ]
 
 function SocialIcon({ icon, className }: { icon: string; className?: string }) {
@@ -29,10 +30,10 @@ function SocialIcon({ icon, className }: { icon: string; className?: string }) {
       </svg>
     )
   }
-  if (icon === "yt") {
+  if (icon === "max") {
     return (
-      <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M21.593 7.203a2.506 2.506 0 00-1.762-1.766C18.265 5.007 12 5 12 5s-6.264-.007-7.831.404a2.56 2.56 0 00-1.766 1.778c-.413 1.566-.417 4.814-.417 4.814s-.004 3.264.406 4.814c.23.857.905 1.534 1.763 1.765 1.582.43 7.83.437 7.83.437s6.265.007 7.831-.403a2.515 2.515 0 001.767-1.763c.414-1.565.417-4.812.417-4.812s.02-3.265-.407-4.831zM9.996 15.005l.005-6 5.207 3.005-5.212 2.995z"/>
+      <svg viewBox="0 0 1000 1000" fill="currentColor" className={className}>
+        <path fillRule="evenodd" clipRule="evenodd" d="M508.211 878.328c-75.007 0-109.864-10.95-170.453-54.75-38.325 49.275-159.686 87.783-164.979 21.9 0-49.456-10.95-91.248-23.36-136.873-14.782-56.21-31.572-118.807-31.572-209.508 0-216.626 177.754-379.597 388.357-379.597 210.785 0 375.947 171.001 375.947 381.604.707 207.346-166.595 376.118-373.94 377.224m3.103-571.585c-102.564-5.292-182.499 65.7-200.201 177.024-14.6 92.162 11.315 204.398 33.397 210.238 10.585 2.555 37.23-18.98 53.837-35.587a189.8 189.8 0 0 0 92.71 33.032c106.273 5.112 197.08-75.794 204.215-181.95 4.154-106.382-77.67-196.486-183.958-202.574Z"/>
       </svg>
     )
   }
@@ -72,8 +73,8 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-accent">
       <div className="flex flex-col">
         {/* Row 1: Top bar — hides on scroll */}
-        <div className={`border-b border-white/10 transition-transform duration-300 ${scrolled ? "-translate-y-full" : ""}`}>
-          <div className="flex h-9 items-center justify-between px-4 lg:px-6">
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${scrolled ? "max-h-0 opacity-0 py-0 border-transparent" : "max-h-12 opacity-100"}`}>
+          <div className="flex h-10 items-center justify-between px-4 lg:px-6">
             <div className="flex items-center gap-2">
               {socialLinks.map((link) => (
                 <a
@@ -135,12 +136,16 @@ export default function Header() {
 
         {/* Row 2: Logo + Navigation */}
         <div className="flex items-center justify-between border-b border-white/10 px-4 lg:px-6">
-          <Link href="/" className="flex shrink-0 items-center py-2">
-            <img
+          <Link href="/" className="flex shrink-0 items-center py-1.5">
+            <Image
               src="/logo.svg"
               alt="Ставропольский колледж связи"
+              width={0}
+              height={0}
+              sizes="100vw"
               className="object-contain h-auto w-auto"
-              style={{ maxHeight: "110px", maxWidth: "220px" }}
+              style={{ maxHeight: "60px", maxWidth: "200px", width: 'auto', height: '100%' }}
+              unoptimized
             />
           </Link>
 

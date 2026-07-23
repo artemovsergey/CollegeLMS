@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
@@ -55,10 +56,14 @@ export default function NewsSectionTPU() {
             {news.slice(0, 3).map((item) => (
               <Link key={item.id} href={`/news/${item.id}`} className="news-card-tpu group">
                 {item.imageUrl && (
-                  <img
+                  <Image
                     src={item.imageUrl}
                     alt=""
+                    width={0}
+                    height={0}
+                    sizes="100vw"
                     className="news-card-tpu__image"
+                    style={{ width: '100%', height: 'auto' }}
                   />
                 )}
                 <div className="news-card-tpu__body">

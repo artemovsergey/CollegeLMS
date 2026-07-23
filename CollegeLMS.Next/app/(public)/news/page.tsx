@@ -5,6 +5,7 @@ import Link from "next/link"
 import type { Result, NewsResponse, NewsCategoryResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import Pagination from "@/components/ui/pagination"
 
 const ITEMS_PER_PAGE = 12
@@ -152,10 +153,14 @@ export default function NewsListPage() {
               >
                 {item.imageUrl && (
                   <div className="mb-3 overflow-hidden rounded-md">
-                    <img
+                    <Image
                       src={item.imageUrl}
                       alt=""
+                      width={0}
+                      height={0}
+                      sizes="100vw"
                       className="h-40 w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      style={{ width: '100%', height: 'auto' }}
                     />
                   </div>
                 )}

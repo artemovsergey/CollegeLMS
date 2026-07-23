@@ -9,10 +9,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useDesign } from "@/lib/design-provider"
 import CarouselTPU from "./CarouselTPU"
 
-export default function Carousel() {
-  const { design } = useDesign()
-  if (design === "tpu") return <CarouselTPU />
-  
+function CarouselDefault() {
   const [slides, setSlides] = useState<NewsResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -156,4 +153,10 @@ export default function Carousel() {
     </section>
     </div>
   )
+}
+
+export default function Carousel() {
+  const { design } = useDesign()
+  if (design === "tpu") return <CarouselTPU />
+  return <CarouselDefault />
 }

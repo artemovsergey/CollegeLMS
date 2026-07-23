@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState, useEffect, type ReactNode } from "react"
 
 interface AnimatedLogoLoaderProps {
@@ -23,10 +24,15 @@ export default function AnimatedLogoLoader({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg">
       <div className="animate-logo-pulse">
-        <img
+        <Image
           src="/logo.svg"
           alt="Загрузка..."
+          width={0}
+          height={0}
+          sizes="100vw"
           className="h-40 w-auto object-contain"
+          style={{ width: 'auto', height: '100%' }}
+          unoptimized
         />
       </div>
     </div>

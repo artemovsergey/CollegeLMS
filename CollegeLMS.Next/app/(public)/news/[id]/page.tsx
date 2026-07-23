@@ -7,6 +7,7 @@ import type { Result, NewsResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import ContentRenderer from "@/components/ContentRenderer"
+import Image from "next/image"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
 
 const normalizeUrl = (url: string) =>
@@ -145,10 +146,14 @@ export default function NewsDetailPage() {
           onClick={() => { setGalleryIndex(0); setGalleryOpen(true) }}
           className="mb-2 w-full overflow-hidden rounded-lg text-left"
         >
-          <img
+          <Image
             src={allImages[0]}
             alt=""
+            width={0}
+            height={0}
+            sizes="100vw"
             className="w-full object-cover"
+            style={{ width: '100%', height: 'auto' }}
           />
         </button>
       )}
@@ -198,12 +203,16 @@ export default function NewsDetailPage() {
             </button>
           )}
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={allImages[galleryIndex]}
             alt=""
+            width={0}
+            height={0}
+            sizes="100vw"
             className="max-h-[90vh] max-w-[90vw] object-contain"
+            style={{ width: 'auto', height: 'auto' }}
             onClick={e => e.stopPropagation()}
+            unoptimized
           />
 
           {galleryIndex < allImages.length - 1 && (

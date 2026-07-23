@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 
 const infoLinks = [
@@ -58,19 +59,23 @@ const footerColumns = [
 
 export default function Footer() {
   return (
-    <footer className="bg-accent text-accent-foreground/80">
+    <footer className="bg-white border-t border-border">
       <div className="mx-auto max-w-7xl px-4 lg:px-8 py-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Link href="/" className="inline-block mb-4">
-              <img
+              <Image
                 src="/logo.svg"
                 alt="Ставропольский колледж связи"
+                width={0}
+                height={0}
+                sizes="100vw"
                 className="object-contain h-auto w-auto"
-                style={{ maxHeight: "80px" }}
+                style={{ maxHeight: "80px", width: 'auto', height: '100%' }}
+                unoptimized
               />
             </Link>
-            <p className="text-sm leading-relaxed text-accent-foreground/60">
+            <p className="text-sm leading-relaxed text-muted-fg">
               ГБПОУ «Ставропольский колледж связи<br />
               имени Героя Советского Союза В.А. Петрова»
             </p>
@@ -78,13 +83,13 @@ export default function Footer() {
 
           {footerColumns.map((col) => (
             <div key={col.title}>
-              <h3 className="mb-4 text-sm font-semibold text-accent-foreground">{col.title}</h3>
+              <h3 className="mb-4 text-sm font-semibold text-fg">{col.title}</h3>
               <ul className="space-y-2">
                 {col.items.map((item) => (
                   <li key={item.label}>
                     <Link
                       href={item.href}
-                      className="text-sm text-accent-foreground/60 hover:text-accent-foreground transition-colors"
+                      className="text-sm text-muted-fg hover:text-fg transition-colors"
                     >
                       {item.label}
                     </Link>
@@ -95,16 +100,16 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-8 border-t border-accent-foreground/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-accent-foreground/50">
+        <div className="mt-8 border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-muted-fg/60">
             © {new Date().getFullYear()} ГБПОУ «Ставропольский колледж связи
             имени Героя Советского Союза В.А. Петрова». Все права защищены.
           </p>
-          <div className="flex gap-4 text-xs text-accent-foreground/50">
-            <Link href="/sveden" className="hover:text-accent-foreground transition-colors">
+          <div className="flex gap-4 text-xs text-muted-fg/60">
+            <Link href="/sveden" className="hover:text-fg transition-colors">
               Сведения об образовательной организации
             </Link>
-            <Link href="/privacy" className="hover:text-accent-foreground transition-colors">
+            <Link href="/privacy" className="hover:text-fg transition-colors">
               Политика конфиденциальности
             </Link>
           </div>

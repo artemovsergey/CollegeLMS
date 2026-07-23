@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import useEmblaCarousel from "embla-carousel-react"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowRight } from "lucide-react"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
@@ -50,10 +51,15 @@ export default function CarouselTPU() {
   return (
     <div className="first-screen-tpu" style={{ marginTop: "calc(var(--header-h, 114px) * -1)" }}>
       <div className="first-screen-tpu__bg">
-        <img
+        <Image
           src="/placeholder.svg?height=1080&width=1920"
           alt=""
+          width={0}
+          height={0}
+          sizes="100vw"
           className="h-full w-full object-cover"
+          style={{ width: '100%', height: '100%' }}
+          unoptimized
         />
       </div>
       <div className="first-screen-tpu__overlay" />
