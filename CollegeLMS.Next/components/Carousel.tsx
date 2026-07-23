@@ -97,13 +97,14 @@ function CarouselDefault() {
 
               <div className="absolute inset-0 bg-gradient-to-r from-[#568EDD] via-[#568EDD]/70 to-transparent pointer-events-none" />
 
-              <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10">
+              <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)]">
                 <Image
                   src="/logo.svg"
                   alt="Ставропольский колледж связи"
-                  width={100}
-                  height={66}
-                  className="opacity-90 brightness-0 invert"
+                  width={120}
+                  height={80}
+                  className="w-auto h-auto"
+                  style={{ maxWidth: "120px", maxHeight: "80px" }}
                   unoptimized
                 />
               </div>

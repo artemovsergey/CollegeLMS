@@ -75,7 +75,7 @@ export default function Footer() {
                 unoptimized
               />
             </Link>
-            <p className="text-xs leading-relaxed text-[#5b6a90]">
+            <p className="text-xs leading-relaxed text-[#4a5a7a]">
               ГБПОУ «Ставропольский колледж связи<br />
               имени Героя Советского Союза В.А. Петрова»
             </p>
@@ -89,7 +89,7 @@ export default function Footer() {
                   <li key={item.label}>
                     <Link
                       href={item.href}
-                      className="text-sm text-[#5b6a90] hover:text-[#24386a] hover:underline transition-all duration-200"
+                      className="text-sm text-[#4a5a7a] hover:text-[#24386a] hover:underline transition-all duration-200"
                     >
                       {item.label}
                     </Link>
@@ -101,15 +101,15 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 border-t border-[#c9ceda] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-[#929cb5]">
+          <p className="text-xs text-[#7a8aa5]">
             © {new Date().getFullYear()} ГБПОУ «Ставропольский колледж связи
             имени Героя Советского Союза В.А. Петрова». Все права защищены.
           </p>
-          <div className="flex gap-4 text-xs text-[#929cb5]">
-            <Link href="/sveden" className="hover:text-[#5b6a90] transition-colors">
+          <div className="flex gap-4 text-xs text-[#7a8aa5]">
+            <Link href="/sveden" className="hover:text-[#4a5a7a] transition-colors">
               Сведения об образовательной организации
             </Link>
-            <Link href="/privacy" className="hover:text-[#5b6a90] transition-colors">
+            <Link href="/privacy" className="hover:text-[#4a5a7a] transition-colors">
               Политика конфиденциальности
             </Link>
           </div>

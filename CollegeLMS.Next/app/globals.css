@@ -5,17 +5,17 @@
 
 :root {
   --bg: #ffffff;
-  --fg: #1a1a2e;
+  --fg: #111827;
   --accent: #24386a;
   --accent-hover: #1c2c54;
-  --accent-light: #5b6a90;
-  --accent-lighter: #929cb5;
-  --muted: #f5f6f8;
-  --muted-fg: #5b6a90;
+  --accent-light: #4a5a7a;
+  --accent-lighter: #7a8aa5;
+  --muted: #eef0f4;
+  --muted-fg: #4a5a7a;
   --border: #c9ceda;
   --card: #ffffff;
   --popover: #ffffff;
-  --popover-foreground: #1a1a2e;
+  --popover-foreground: #111827;
   --radius: 0.5rem;
 }
 

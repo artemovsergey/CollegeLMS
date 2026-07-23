@@ -72,8 +72,8 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-accent">
       <div className="flex flex-col">
         {/* Row 1: Top bar — hides on scroll */}
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${scrolled ? "max-h-0 opacity-0 py-0 border-transparent" : "max-h-12 opacity-100"}`}>
-          <div className="flex h-10 items-center justify-between px-4 lg:px-6">
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${scrolled ? "max-h-0 opacity-0 py-0 border-transparent" : "max-h-14 opacity-100"}`}>
+          <div className="flex h-12 items-center justify-between px-4 lg:px-6">
             <div className="flex items-center gap-2">
               {socialLinks.map((link) => (
                 <a
@@ -135,9 +135,9 @@ export default function Header() {
 
         {/* Row 2: Logo text + Navigation */}
         <div className="flex items-center justify-between border-b border-white/10 px-4 lg:px-6">
-          <Link href="/" className="flex shrink-0 items-center py-2 leading-tight">
-            <span className="text-lg font-bold text-white">Ставропольский колледж связи</span>
-            <span className="ml-3 hidden text-xs text-white/60 sm:inline">имени Героя Советского Союза В.А. Петрова</span>
+          <Link href="/" className="flex shrink-0 flex-col py-3 leading-tight">
+            <span className="text-base sm:text-lg font-bold text-white">Ставропольский колледж связи</span>
+            <span className="text-[10px] sm:text-xs text-white/60">имени Героя Советского Союза В.А. Петрова</span>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">

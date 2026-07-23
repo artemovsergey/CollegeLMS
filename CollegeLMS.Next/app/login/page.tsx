@@ -46,19 +46,19 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      <div className="hidden lg:flex flex-col items-center justify-center bg-[#24386a] p-12">
+      <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-[#24386a] to-[#3B7DD8] p-12">
         <div className="max-w-md">
           <Image
             src="/logo.svg"
             alt="Ставропольский колледж связи"
             width={300}
             height={200}
-            className="w-full h-auto brightness-0 invert opacity-90"
+            className="w-full h-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
             unoptimized
           />
           <h2 className="mt-8 text-center text-xl font-semibold text-white/90">
-            ГБПОУ «Ставропольский колледж связи<br />
-            имени Героя Советского Союза В.А. Петрова»
+            ГБПОУ — Ставропольский колледж связи<br />
+            имени Героя Советского Союза В.А. Петрова
           </h2>
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function LoginPage() {
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="login" className="text-sm text-[#1a1a2e]">
+              <label htmlFor="login" className="text-sm text-[#111827]">
                 Логин
               </label>
               <input
@@ -101,12 +101,12 @@ export default function LoginPage() {
                 onChange={e => setLoginInput(e.target.value)}
                 placeholder="admin"
                 autoComplete="username"
-                className="w-full rounded-md border border-[#c9ceda] bg-white px-3 py-2 text-sm text-[#1a1a2e] placeholder:text-[#929cb5] focus:outline-none focus:ring-2 focus:ring-[#24386a]/30 focus:border-[#24386a]"
+                className="w-full rounded-md border border-[#c9ceda] bg-white px-3 py-2 text-sm text-[#111827] placeholder:text-[#7a8aa5] focus:outline-none focus:ring-2 focus:ring-[#24386a]/30 focus:border-[#24386a]"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="password" className="text-sm text-[#1a1a2e]">
+              <label htmlFor="password" className="text-sm text-[#111827]">
                 Пароль
               </label>
               <input
@@ -117,7 +117,7 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••"
                 autoComplete="current-password"
-                className="w-full rounded-md border border-[#c9ceda] bg-white px-3 py-2 text-sm text-[#1a1a2e] placeholder:text-[#929cb5] focus:outline-none focus:ring-2 focus:ring-[#24386a]/30 focus:border-[#24386a]"
+                className="w-full rounded-md border border-[#c9ceda] bg-white px-3 py-2 text-sm text-[#111827] placeholder:text-[#7a8aa5] focus:outline-none focus:ring-2 focus:ring-[#24386a]/30 focus:border-[#24386a]"
               />
             </div>
 
@@ -131,7 +131,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 pt-6 border-t border-[#c9ceda]">
-            <p className="text-xs text-[#929cb5] mb-2">Быстрый вход (разработка)</p>
+            <p className="text-xs text-[#7a8aa5] mb-2">Быстрый вход (разработка)</p>
             <select
               onChange={(e) => {
                 const account = QUICK_LOGINS.find(a => a.role === e.target.value)
@@ -141,7 +141,7 @@ export default function LoginPage() {
                 }
               }}
               defaultValue=""
-              className="w-full rounded-md border border-[#c9ceda] bg-white px-3 py-1.5 text-xs text-[#1a1a2e] focus:outline-none focus:ring-2 focus:ring-[#24386a]/30 focus:border-[#24386a]"
+              className="w-full rounded-md border border-[#c9ceda] bg-white px-3 py-1.5 text-xs text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#24386a]/30 focus:border-[#24386a]"
             >
               <option value="" disabled>Выберите роль...</option>
               {QUICK_LOGINS.map(a => (
