@@ -23,6 +23,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: DB_PASSWORD,TELEGRAM_BOT_TOKEN,TELEGRAM_ALLOWED_USER_ID,JWT_KEY
+          command_timeout: 30m
           script: |
             set -e
             cd /home/user1/CollegeLMS
@@ -30,8 +31,7 @@ jobs:
             echo "=== Free disk space (before cleanup) ==="
             df -h /
 
-            echo "=== Clean Docker cache before anything ==="
-            docker builder prune -af
+            echo "=== Free up unused images (keep build cache) ==="
             docker image prune -f
 
             echo "=== Store current commit for rollback ==="
