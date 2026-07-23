@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { Menu, X, Search, User, LogOut } from "lucide-react"
-import Image from "next/image"
 import ThemeToggle from "./ThemeToggle"
 import AccessibilityToggle from "./AccessibilityToggle"
 import { siteNavigation } from "@/data/site-content"
@@ -134,19 +133,11 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Row 2: Logo + Navigation */}
+        {/* Row 2: Logo text + Navigation */}
         <div className="flex items-center justify-between border-b border-white/10 px-4 lg:px-6">
-          <Link href="/" className="flex shrink-0 items-center py-1.5">
-            <Image
-              src="/logo.svg"
-              alt="Ставропольский колледж связи"
-              width={0}
-              height={0}
-              sizes="100vw"
-              className="object-contain h-auto w-auto"
-              style={{ maxHeight: "60px", maxWidth: "200px", width: 'auto', height: '100%' }}
-              unoptimized
-            />
+          <Link href="/" className="flex shrink-0 items-center py-2 leading-tight">
+            <span className="text-lg font-bold text-white">Ставропольский колледж связи</span>
+            <span className="ml-3 hidden text-xs text-white/60 sm:inline">имени Героя Советского Союза В.А. Петрова</span>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">

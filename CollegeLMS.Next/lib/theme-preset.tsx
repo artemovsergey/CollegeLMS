@@ -22,7 +22,7 @@ const THEME_DESCRIPTIONS: Record<ThemePreset, string> = {
   green: "Свежий",
 }
 
-const DEFAULT_PRESET: ThemePreset = "sapphire"
+const DEFAULT_PRESET: ThemePreset = "indigo"
 
 const ThemePresetContext = createContext<{
   preset: ThemePreset

@@ -5,66 +5,68 @@
 
 :root {
   --bg: #ffffff;
-  --fg: #000000;
-  --accent: #568edd;
-  --accent-hover: #4080cc;
-  --accent-light: #d5e3f7;
-  --accent-lighter: #eaf1fb;
-  --muted: #f5f5f5;
-  --muted-fg: #666666;
-  --border: #e5e5e5;
+  --fg: #1a1a2e;
+  --accent: #24386a;
+  --accent-hover: #1c2c54;
+  --accent-light: #5b6a90;
+  --accent-lighter: #929cb5;
+  --muted: #f5f6f8;
+  --muted-fg: #5b6a90;
+  --border: #c9ceda;
   --card: #ffffff;
   --popover: #ffffff;
-  --popover-foreground: #000000;
+  --popover-foreground: #1a1a2e;
   --radius: 0.5rem;
 }
 
 .dark {
-  --bg: #000000;
-  --fg: #ffffff;
-  --muted: #1a1a1a;
-  --muted-fg: #999999;
-  --border: #333333;
-  --card: #111111;
-  --popover: #222222;
-  --popover-foreground: #ffffff;
-  --accent-light: #1a2a3a;
-  --accent-lighter: #0d1a2a;
-}
-
-[data-theme="blue"] {
+  --bg: #111827;
+  --fg: #f3f4f6;
+  --muted: #1f2937;
+  --muted-fg: #929cb5;
+  --border: #374151;
+  --card: #1f2937;
+  --popover: #1f2937;
+  --popover-foreground: #f3f4f6;
   --accent: #568edd;
-  --accent-hover: #4080cc;
-  --accent-light: #abc7ee;
-  --accent-lighter: #d5e3f7;
+  --accent-hover: #6b9de0;
+  --accent-light: #5b6a90;
+  --accent-lighter: #374151;
 }
 
 [data-theme="indigo"] {
   --accent: #24386a;
   --accent-hover: #1c2c54;
-  --accent-light: #929cb5;
-  --accent-lighter: #c9ceda;
+  --accent-light: #5b6a90;
+  --accent-lighter: #929cb5;
+}
+
+[data-theme="blue"] {
+  --accent: #1e4d8c;
+  --accent-hover: #163d73;
+  --accent-light: #5b7db5;
+  --accent-lighter: #93adcc;
 }
 
 [data-theme="sapphire"] {
-  --accent: #4d74b4;
-  --accent-hover: #3d5d93;
-  --accent-light: #a6bada;
-  --accent-lighter: #d3dded;
+  --accent: #3b5998;
+  --accent-hover: #2e477a;
+  --accent-light: #6a84b8;
+  --accent-lighter: #9db2d4;
 }
 
 [data-theme="plum"] {
-  --accent: #b9b3e5;
-  --accent-hover: #9f97da;
-  --accent-light: #dcd9f2;
-  --accent-lighter: #eeecf9;
+  --accent: #4a4e6b;
+  --accent-hover: #3a3e56;
+  --accent-light: #727792;
+  --accent-lighter: #a2a6b9;
 }
 
 [data-theme="green"] {
-  --accent: #2f8733;
-  --accent-hover: #256f29;
-  --accent-light: #97c399;
-  --accent-lighter: #cbe1cc;
+  --accent: #2d5a4a;
+  --accent-hover: #23483b;
+  --accent-light: #5a7d70;
+  --accent-lighter: #8ea69b;
 }
 
 @theme inline {

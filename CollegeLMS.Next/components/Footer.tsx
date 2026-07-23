@@ -61,9 +61,9 @@ export default function Footer() {
   return (
     <footer className="bg-white border-t border-border">
       <div className="mx-auto max-w-7xl px-4 lg:px-8 py-12">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           <div>
-            <Link href="/" className="inline-block mb-4">
+            <Link href="/" className="inline-block mb-3">
               <Image
                 src="/logo.svg"
                 alt="Ставропольский колледж связи"
@@ -71,11 +71,11 @@ export default function Footer() {
                 height={0}
                 sizes="100vw"
                 className="object-contain h-auto w-auto"
-                style={{ maxHeight: "80px", width: 'auto', height: '100%' }}
+                style={{ maxHeight: "60px", width: 'auto', height: '100%' }}
                 unoptimized
               />
             </Link>
-            <p className="text-sm leading-relaxed text-muted-fg">
+            <p className="text-xs leading-relaxed text-[#5b6a90]">
               ГБПОУ «Ставропольский колледж связи<br />
               имени Героя Советского Союза В.А. Петрова»
             </p>
@@ -83,13 +83,13 @@ export default function Footer() {
 
           {footerColumns.map((col) => (
             <div key={col.title}>
-              <h3 className="mb-4 text-sm font-semibold text-fg">{col.title}</h3>
-              <ul className="space-y-2">
+              <h3 className="mb-3 text-sm font-semibold text-[#24386a]">{col.title}</h3>
+              <ul className="space-y-1.5">
                 {col.items.map((item) => (
                   <li key={item.label}>
                     <Link
                       href={item.href}
-                      className="text-sm text-muted-fg hover:text-fg transition-colors"
+                      className="text-sm text-[#5b6a90] hover:text-[#24386a] hover:underline transition-all duration-200"
                     >
                       {item.label}
                     </Link>
@@ -100,16 +100,16 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-8 border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-fg/60">
+        <div className="mt-8 border-t border-[#c9ceda] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-[#929cb5]">
             © {new Date().getFullYear()} ГБПОУ «Ставропольский колледж связи
             имени Героя Советского Союза В.А. Петрова». Все права защищены.
           </p>
-          <div className="flex gap-4 text-xs text-muted-fg/60">
-            <Link href="/sveden" className="hover:text-fg transition-colors">
+          <div className="flex gap-4 text-xs text-[#929cb5]">
+            <Link href="/sveden" className="hover:text-[#5b6a90] transition-colors">
               Сведения об образовательной организации
             </Link>
-            <Link href="/privacy" className="hover:text-fg transition-colors">
+            <Link href="/privacy" className="hover:text-[#5b6a90] transition-colors">
               Политика конфиденциальности
             </Link>
           </div>

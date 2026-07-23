@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import useEmblaCarousel from "embla-carousel-react"
 import Link from "next/link"
+import Image from "next/image"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -94,8 +95,18 @@ function CarouselDefault() {
                 <div className="absolute inset-0 bg-gradient-to-br from-lilac/80 via-primary/60 to-blue-900/80" />
               )}
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#568EDD] via-[#568EDD]/70 to-transparent pointer-events-none" />
 
+              <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10">
+                <Image
+                  src="/logo.svg"
+                  alt="Ставропольский колледж связи"
+                  width={100}
+                  height={66}
+                  className="opacity-90 brightness-0 invert"
+                  unoptimized
+                />
+              </div>
 
               <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
                 <p className="mb-2 text-sm text-white/80">

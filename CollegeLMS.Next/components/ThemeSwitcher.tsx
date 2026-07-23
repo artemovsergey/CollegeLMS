@@ -6,16 +6,16 @@ import { useThemePreset, type ThemePreset } from "@/lib/theme-preset"
 import { useTheme } from "next-themes"
 
 const SWATCHES: Record<ThemePreset, string[]> = {
-  blue: ["#568edd", "#d5e3f7"],
-  indigo: ["#24386a", "#c9ceda"],
-  sapphire: ["#4d74b4", "#d3dded"],
-  plum: ["#b9b3e5", "#eeecf9"],
-  green: ["#2f8733", "#cbe1cc"],
+  indigo: ["#24386a", "#929cb5"],
+  blue: ["#1e4d8c", "#93adcc"],
+  sapphire: ["#3b5998", "#9db2d4"],
+  plum: ["#4a4e6b", "#a2a6b9"],
+  green: ["#2d5a4a", "#8ea69b"],
 }
 
 const PRESETS = [
+  { value: "indigo" as ThemePreset, label: "Индиго", description: "Основной" },
   { value: "blue" as ThemePreset, label: "Синий", description: "Классический" },
-  { value: "indigo" as ThemePreset, label: "Индиго", description: "Деловой" },
   { value: "sapphire" as ThemePreset, label: "Сапфир", description: "Спокойный" },
   { value: "plum" as ThemePreset, label: "Сливовый", description: "Мягкий" },
   { value: "green" as ThemePreset, label: "Зелёный", description: "Свежий" },
