@@ -134,13 +134,13 @@ export default function Header() {
         </div>
 
         {/* Row 2: Logo text + Navigation */}
-        <div className="flex items-center justify-between border-b border-white/10 px-4 lg:px-6">
+        <div className="grid grid-cols-3 items-center border-b border-white/10 px-4 lg:px-6">
           <Link href="/" className="flex shrink-0 flex-col py-3 leading-tight">
             <span className="text-base sm:text-lg font-bold text-white">Ставропольский колледж связи</span>
             <span className="text-[10px] sm:text-xs text-white/60">имени Героя Советского Союза В.А. Петрова</span>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center justify-center gap-1">
             {siteNavigation.map((section) => (
               <Link key={section.slug} href={section.href} className="px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors rounded-md">
                 {section.title}
@@ -148,7 +148,7 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center justify-end gap-2">
             <Link href="/search" className="hidden md:flex items-center justify-center h-9 w-9 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-label="Поиск"><Search size={18} /></Link>
             <div className="[&_button]:!text-white/80 [&_button]:hover:!text-white [&_button]:hover:!bg-white/10">
               <AccessibilityToggle />

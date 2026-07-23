@@ -95,7 +95,7 @@ function CarouselDefault() {
                 <div className="absolute inset-0 bg-gradient-to-br from-lilac/80 via-primary/60 to-blue-900/80" />
               )}
 
-              <div className="absolute inset-0 bg-gradient-to-r from-[#568EDD] via-[#568EDD]/70 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#568EDD] via-[#568EDD]/70 45% via-[#568EDD]/15 70% to-transparent pointer-events-none" />
 
               <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)]">
                 <Image

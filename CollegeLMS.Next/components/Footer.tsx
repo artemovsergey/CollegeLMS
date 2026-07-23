@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 
 const infoLinks = [
@@ -64,16 +63,7 @@ export default function Footer() {
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           <div>
             <Link href="/" className="inline-block mb-3">
-              <Image
-                src="/logo.svg"
-                alt="Ставропольский колледж связи"
-                width={0}
-                height={0}
-                sizes="100vw"
-                className="object-contain h-auto w-auto"
-                style={{ maxHeight: "60px", width: 'auto', height: '100%' }}
-                unoptimized
-              />
+              <span className="text-base font-bold text-[#24386a]">Ставропольский колледж связи</span>
             </Link>
             <p className="text-xs leading-relaxed text-[#4a5a7a]">
               ГБПОУ «Ставропольский колледж связи<br />

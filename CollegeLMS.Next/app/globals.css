@@ -8,14 +8,25 @@
   --fg: #111827;
   --accent: #24386a;
   --accent-hover: #1c2c54;
+  --accent-foreground: #ffffff;
   --accent-light: #4a5a7a;
   --accent-lighter: #7a8aa5;
   --muted: #eef0f4;
   --muted-fg: #4a5a7a;
+  --muted-foreground: #4a5a7a;
   --border: #c9ceda;
+  --input: #c9ceda;
   --card: #ffffff;
+  --card-foreground: #111827;
   --popover: #ffffff;
   --popover-foreground: #111827;
+  --primary: #24386a;
+  --primary-foreground: #ffffff;
+  --secondary: #5b6a90;
+  --secondary-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --ring: #24386a;
   --radius: 0.5rem;
 }
 
@@ -24,14 +35,25 @@
   --fg: #f3f4f6;
   --muted: #1f2937;
   --muted-fg: #929cb5;
+  --muted-foreground: #929cb5;
   --border: #374151;
+  --input: #374151;
   --card: #1f2937;
+  --card-foreground: #f3f4f6;
   --popover: #1f2937;
   --popover-foreground: #f3f4f6;
   --accent: #568edd;
   --accent-hover: #6b9de0;
+  --accent-foreground: #ffffff;
   --accent-light: #5b6a90;
   --accent-lighter: #374151;
+  --primary: #568edd;
+  --primary-foreground: #ffffff;
+  --secondary: #5b6a90;
+  --secondary-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --ring: #568edd;
 }
 
 [data-theme="indigo"] {
@@ -72,7 +94,18 @@
 @theme inline {
   --color-bg: var(--bg);
   --color-fg: var(--fg);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-accent-hover: var(--accent-hover);
   --color-accent-light: var(--accent-light);
   --color-accent-lighter: var(--accent-lighter);
