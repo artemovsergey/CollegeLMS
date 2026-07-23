@@ -12,6 +12,7 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+ENV NUGET_HTTP_TIMEOUT=300
 COPY . ./
 WORKDIR "/src/CollegeLMS.API"
 RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \

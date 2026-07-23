@@ -12,6 +12,8 @@ CMD ["npm", "run", "dev"]
 
 FROM base AS deps
 WORKDIR /app
+RUN npm config set fetch-timeout 600000 && \
+    npm config set fetch-retries 5
 COPY package.json package-lock.json* ./
 RUN --mount=type=cache,id=npm,sharing=locked,target=/root/.npm \
     npm ci
