@@ -6,7 +6,6 @@ import api from "@/lib/api"
 import CarouselTPU from "./CarouselTPU"
 import SpecialtiesSectionTPU from "./SpecialtiesSectionTPU"
 import AdmissionSectionTPU from "./AdmissionSectionTPU"
-import EventsSectionTPU from "./EventsSectionTPU"
 import NewsSectionTPU from "./NewsSectionTPU"
 import StatisticsSectionTPU from "./StatisticsSectionTPU"
 import PartnersSectionTPU from "./PartnersSectionTPU"
@@ -52,7 +51,6 @@ export default function HomeTPU() {
 
       <SpecialtiesSectionTPU />
       <AdmissionSectionTPU />
-      <EventsSectionTPU />
       <NewsSectionTPU />
       <StatisticsSectionTPU />
       <PartnersSectionTPU />

@@ -93,8 +93,7 @@ export default function Header() {
               <Link href="/contacts" className="text-xs text-white/70 hover:text-white transition-colors">Контакты</Link>
               <span className="mx-1 text-white/20">|</span>
               <Link href="/news" className="text-xs text-white/70 hover:text-white transition-colors">Новости</Link>
-              <span className="mx-1 text-white/20">|</span>
-              <Link href="/events" className="text-xs text-white/70 hover:text-white transition-colors">Мероприятия</Link>
+
             </div>
             <div className="flex items-center gap-2" ref={profileRef}>
               {user ? (

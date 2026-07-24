@@ -9,7 +9,6 @@ import Carousel from "@/components/Carousel"
 import StatisticsSection from "@/components/StatisticsSection"
 import SpecialtiesSection from "@/components/SpecialtiesSection"
 import AdmissionSection from "@/components/AdmissionSection"
-import EventsSection from "@/components/EventsSection"
 import PartnersSection from "@/components/PartnersSection"
 import LicensesSection from "@/components/LicensesSection"
 import MediaSection from "@/components/MediaSection"
@@ -61,7 +60,6 @@ function HomePageContent() {
 
       <SpecialtiesSection />
       <AdmissionSection />
-      <EventsSection />
 
       <section className="bg-muted py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
