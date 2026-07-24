@@ -101,10 +101,11 @@ function CarouselDefault() {
                 <Image
                   src="/logo.svg"
                   alt="Ставропольский колледж связи"
-                  width={120}
-                  height={80}
-                  className="w-auto h-auto"
-                  style={{ maxWidth: "120px", maxHeight: "80px" }}
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  className="object-contain h-auto"
+                  style={{ width: "auto", height: "100%", maxHeight: "100px" }}
                   unoptimized
                 />
               </div>
