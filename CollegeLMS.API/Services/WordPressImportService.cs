@@ -81,6 +81,11 @@ public class WordPressImportService(
         return progress;
     }
 
+    public ImportProgressDto? GetActiveImport()
+    {
+        return _imports.Values.FirstOrDefault(p => p.Status == "running");
+    }
+
     public async Task<Result<ImportResult>> ImportFromJsonAsync(
         string jsonPath,
         CancellationToken ct,

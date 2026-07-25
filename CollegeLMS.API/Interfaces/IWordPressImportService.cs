@@ -16,6 +16,7 @@ public interface IWordPressImportService
     void StopImport(string importId);
 
     ImportProgressDto? GetImportProgress(string importId);
+    ImportProgressDto? GetActiveImport();
 
     Task<Result<ImportResult>> ImportFromRestApiAsync(
         string baseUrl,

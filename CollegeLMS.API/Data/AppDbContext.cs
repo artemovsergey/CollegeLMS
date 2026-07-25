@@ -36,6 +36,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<StipendList> StipendLists => Set<StipendList>();
     public DbSet<StipendListItem> StipendListItems => Set<StipendListItem>();
     public DbSet<TransferRecord> TransferRecords => Set<TransferRecord>();
+    public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

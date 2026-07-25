@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { Result, ImportProgressDto } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
@@ -16,6 +16,27 @@ export default function AdminImportPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [polling, setPolling] = useState(false)
+
+  useEffect(() => {
+    const storedId = localStorage.getItem("importId")
+    if (storedId) {
+      setPolling(true)
+      pollStatus(storedId)
+      return
+    }
+    api
+      .get<Result<ImportProgressDto>>("/api/import/wordpress/active")
+      .then((res) => {
+        const body = res.data
+        if (body.isSuccess && body.data) {
+          setProgress(body.data)
+          setPolling(true)
+          localStorage.setItem("importId", body.data.importId)
+          pollStatus(body.data.importId)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const startImport = async () => {
     setError(null)
@@ -33,6 +54,7 @@ export default function AdminImportPage() {
       }
 
       const importId = body.data
+      localStorage.setItem("importId", importId)
       setLoading(false)
       setPolling(true)
       pollStatus(importId)
@@ -55,6 +77,9 @@ export default function AdminImportPage() {
           if (body.data.status === "completed" || body.data.status === "failed") {
             clearInterval(interval)
             setPolling(false)
+            if (body.data.status === "completed") {
+              localStorage.removeItem("importId")
+            }
           }
         } else {
           clearInterval(interval)

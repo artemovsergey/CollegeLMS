@@ -95,6 +95,22 @@ public class ImportController(
         return Ok(Result<bool>.Ok(true));
     }
 
+    [HttpGet("wordpress/active")]
+    [Authorize(Roles = "Admin")]
+    [SwaggerOperation(Summary = "Получить активный импорт")]
+    [SwaggerResponse(200, "Активный импорт", typeof(Result<ImportProgressDto>))]
+    [SwaggerResponse(404, "Нет активного импорта")]
+    [ProducesResponseType(typeof(Result<ImportProgressDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public ActionResult<Result<ImportProgressDto>> GetActiveImport()
+    {
+        var progress = importService.GetActiveImport();
+        if (progress == null)
+            return NotFound(Result<ImportProgressDto>.Fail("Нет активного импорта", 404));
+
+        return Ok(Result<ImportProgressDto>.Ok(progress));
+    }
+
     [HttpGet("wordpress/status/{importId}")]
     [Authorize(Roles = "Admin")]
     [SwaggerOperation(Summary = "Получить статус импорта")]
