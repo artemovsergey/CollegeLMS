@@ -5,6 +5,7 @@
 
 :root {
   --bg: #ffffff;
+  --background: #ffffff;
   --fg: #111827;
   --accent: #24386a;
   --accent-hover: #1c2c54;
@@ -32,6 +33,7 @@
 
 .dark {
   --bg: #111827;
+  --background: #111827;
   --fg: #f3f4f6;
   --muted: #1f2937;
   --muted-fg: #929cb5;
@@ -93,6 +95,7 @@
 
 @theme inline {
   --color-bg: var(--bg);
+  --color-background: var(--background);
   --color-fg: var(--fg);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);

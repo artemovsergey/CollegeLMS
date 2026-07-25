@@ -95,37 +95,8 @@ export default function Header() {
               <Link href="/news" className="text-xs text-white/70 hover:text-white transition-colors">Новости</Link>
 
             </div>
-            <div className="flex items-center gap-2" ref={profileRef}>
-              {user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setProfileOpen(!profileOpen)}
-                    className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                  >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold text-white">
-                      {initials}
-                    </span>
-                    <span className="max-w-[100px] truncate">{user.fullName}</span>
-                  </button>
-                  {profileOpen && (
-                    <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-card shadow-lg p-1">
-                      <Link href="/lms" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
-                        <User size={16} /> Личный кабинет
-                      </Link>
-                      <Link href="/my/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
-                        <User size={16} /> Профиль
-                      </Link>
-                      <hr className="my-1 border-border" />
-                      <button
-                        onClick={() => { logout() }}
-                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors"
-                      >
-                        <LogOut size={16} /> Выйти
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
+            <div className="flex items-center gap-2">
+              {!user && (
                 <Link href="/login" className="rounded-md bg-white px-3 py-1 text-xs font-medium text-accent transition-colors hover:bg-white/90">Войти</Link>
               )}
             </div>
@@ -153,6 +124,38 @@ export default function Header() {
               <AccessibilityToggle />
               <ThemeToggle />
             </div>
+
+            {user && (
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold text-white">
+                    {initials}
+                  </span>
+                  <span className="max-w-[100px] truncate hidden sm:inline">{user.fullName}</span>
+                </button>
+                {profileOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-card shadow-lg p-1">
+                    <Link href="/lms" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
+                      <User size={16} /> Личный кабинет
+                    </Link>
+                    <Link href="/my/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
+                      <User size={16} /> Профиль
+                    </Link>
+                    <hr className="my-1 border-border" />
+                    <button
+                      onClick={() => { logout() }}
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors"
+                    >
+                      <LogOut size={16} /> Выйти
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden ml-2 rounded-md p-2 text-white/80 hover:bg-white/10" aria-label="Меню">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
