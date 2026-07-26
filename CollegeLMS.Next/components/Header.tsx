@@ -2,11 +2,10 @@
 
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, Search, User, LogOut } from "lucide-react"
+import { Menu, X, Search } from "lucide-react"
 import ThemeToggle from "./ThemeToggle"
 import AccessibilityToggle from "./AccessibilityToggle"
 import { siteNavigation } from "@/data/site-content"
-import { useAuth } from "@/lib/auth"
 
 const socialLinks = [
   { href: "https://vk.com/stvcc_stav", label: "ВКонтакте", icon: "vk" },
@@ -41,20 +40,7 @@ function SocialIcon({ icon, className }: { icon: string; className?: string }) {
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const { user, logout } = useAuth()
-  const profileRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setProfileOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
 
   useEffect(() => {
     function onScroll() {
@@ -63,10 +49,6 @@ export default function Header() {
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
-
-  const initials = user
-    ? user.fullName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
-    : "?"
 
   return (
     <header className="sticky top-0 z-50 bg-accent">
@@ -93,12 +75,14 @@ export default function Header() {
               <Link href="/contacts" className="text-xs text-white/70 hover:text-white transition-colors">Контакты</Link>
               <span className="mx-1 text-white/20">|</span>
               <Link href="/news" className="text-xs text-white/70 hover:text-white transition-colors">Новости</Link>
-
+              <span className="mx-1 text-white/20">|</span>
+              <Link href="/admissions" className="text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors">Приёмная кампания 2026</Link>
             </div>
-            <div className="flex items-center gap-2">
-              {!user && (
-                <Link href="/login" className="rounded-md bg-white px-3 py-1 text-xs font-medium text-accent transition-colors hover:bg-white/90">Войти</Link>
-              )}
+            <div className="flex items-center gap-1">
+              <div className="flex items-center [&_button]:text-white/80 [&_button]:hover:text-white [&_button]:hover:bg-white/10 [&_button]:rounded-md [&_button]:p-1.5">
+                <AccessibilityToggle />
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </div>
@@ -120,41 +104,6 @@ export default function Header() {
 
           <div className="flex items-center justify-end gap-2">
             <Link href="/search" className="hidden md:flex items-center justify-center h-9 w-9 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-label="Поиск"><Search size={18} /></Link>
-            <div className="[&_button]:!text-white/80 [&_button]:hover:!text-white [&_button]:hover:!bg-white/10">
-              <AccessibilityToggle />
-              <ThemeToggle />
-            </div>
-
-            {user && (
-              <div className="relative" ref={profileRef}>
-                <button
-                  onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold text-white">
-                    {initials}
-                  </span>
-                  <span className="max-w-[100px] truncate hidden sm:inline">{user.fullName}</span>
-                </button>
-                {profileOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-card shadow-lg p-1">
-                    <Link href="/lms" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
-                      <User size={16} /> Личный кабинет
-                    </Link>
-                    <Link href="/my/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors">
-                      <User size={16} /> Профиль
-                    </Link>
-                    <hr className="my-1 border-border" />
-                    <button
-                      onClick={() => { logout() }}
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-fg hover:bg-muted hover:text-fg transition-colors"
-                    >
-                      <LogOut size={16} /> Выйти
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
 
             <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden ml-2 rounded-md p-2 text-white/80 hover:bg-white/10" aria-label="Меню">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}

@@ -151,6 +151,7 @@
   }
   body {
     @apply bg-bg text-fg;
+    font-size: 17px;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
@@ -189,6 +190,11 @@
 }
 
 .accessibility-mode [class*="text-"] {
+  color: #000000 !important;
+}
+
+.accessibility-mode button:has([class*="lucide"]) {
+  background-color: rgba(0,0,0,0.08) !important;
   color: #000000 !important;
 }
 

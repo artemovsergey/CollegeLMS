@@ -1,23 +1,33 @@
-import { Play, Calendar, Clock, Tv } from "lucide-react"
-import Link from "next/link"
+"use client"
+
+import { useState } from "react"
+import { Play, Calendar, Clock, Tv, X } from "lucide-react"
+
+const VIDEO_ID = "1b0e5af3e47d34c76be2a3dd66c77fd5"
+const THUMB_URL = "https://pic.rtbcdn.ru/video/2026-01-15/83/dc/83dc9b637234582645635b585150d170.jpg"
 
 export default function MediaSection() {
+  const [open, setOpen] = useState(false)
+
   return (
     <section className="py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Колледж в СМИ</h2>
 
         <div className="mx-auto max-w-2xl">
-          <Link
-            href="https://rutube.ru/video/1b0e5af3e47d34c76be2a3dd66c77fd5/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex gap-5 rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
+          <button
+            onClick={() => setOpen(true)}
+            className="group flex w-full gap-5 rounded-lg border border-border bg-card p-5 text-left transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
           >
-            <div className="relative flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/10">
-              <Tv size={36} className="text-primary/40" />
-              <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-primary">
+            <div className="relative flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={THUMB_URL}
+                alt="Превью видео"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-primary shadow-sm transition-transform group-hover:scale-110">
                   <Play size={20} className="ml-0.5" />
                 </span>
               </span>
@@ -42,9 +52,39 @@ export default function MediaSection() {
                 </span>
               </div>
             </div>
-          </Link>
+          </button>
         </div>
       </div>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-3xl overflow-hidden rounded-lg bg-black shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+              aria-label="Закрыть"
+            >
+              <X size={18} />
+            </button>
+            <div className="aspect-video w-full">
+              <iframe
+                src={`https://rutube.ru/play/embed/${VIDEO_ID}`}
+                width="100%"
+                height="100%"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                className="block"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
