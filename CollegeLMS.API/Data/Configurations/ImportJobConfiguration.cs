@@ -14,5 +14,6 @@ public class ImportJobConfiguration : IEntityTypeConfiguration<ImportJob>
         builder.Property(e => e.Status).HasMaxLength(20).IsRequired();
         builder.Property(e => e.ErrorMessagesJson).HasColumnName("error_messages_json");
         builder.Property(e => e.CompletedAt).HasColumnType("timestamp with time zone");
+        builder.Ignore(e => e.ErrorMessages);
     }
 }
