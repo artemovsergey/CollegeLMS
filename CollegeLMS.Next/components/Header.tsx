@@ -79,6 +79,7 @@ export default function Header() {
               <Link href="/admissions" className="text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors">Приёмная кампания 2026</Link>
             </div>
             <div className="flex items-center gap-1">
+              <Link href="/search" className="flex items-center justify-center h-8 w-8 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-label="Поиск"><Search size={16} /></Link>
               <div className="flex items-center [&_button]:text-white/80 [&_button]:hover:text-white [&_button]:hover:bg-white/10 [&_button]:rounded-md [&_button]:p-1.5">
                 <AccessibilityToggle />
                 <ThemeToggle />
@@ -103,9 +104,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2">
-            <Link href="/search" className="hidden md:flex items-center justify-center h-9 w-9 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-label="Поиск"><Search size={18} /></Link>
-
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden ml-2 rounded-md p-2 text-white/80 hover:bg-white/10" aria-label="Меню">
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden rounded-md p-2 text-white/80 hover:bg-white/10" aria-label="Меню">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
@@ -114,7 +113,7 @@ export default function Header() {
 
       {mobileOpen && (
         <div className="lg:hidden border-b border-white/10 bg-accent px-4 pb-4 pt-2">
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-col gap-1 items-end">
             {siteNavigation.map((section) => (
               <Link key={section.slug} href={section.href} className="block px-3 py-2 text-sm font-medium text-white/80 rounded-md hover:bg-white/10" onClick={() => setMobileOpen(false)}>
                 {section.title}
