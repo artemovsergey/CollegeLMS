@@ -80,7 +80,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <h1 className="mb-8 text-2xl font-semibold text-[#24386a] text-center">Личный кабинет</h1>
+          <h1 className="mb-8 text-2xl font-semibold text-primary text-center">Личный кабинет</h1>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {error && (
@@ -90,7 +90,7 @@ export default function LoginPage() {
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="login" className="text-sm text-[#111827]">
+              <label htmlFor="login" className="text-sm text-fg">
                 Логин
               </label>
               <input
@@ -101,12 +101,12 @@ export default function LoginPage() {
                 onChange={e => setLoginInput(e.target.value)}
                 placeholder="admin"
                 autoComplete="username"
-                className="w-full rounded-md border border-[#c9ceda] bg-white px-3 py-2 text-sm text-[#111827] placeholder:text-[#7a8aa5] focus:outline-none focus:ring-2 focus:ring-[#24386a]/30 focus:border-[#24386a]"
+                className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-fg placeholder:text-accent-lighter focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="password" className="text-sm text-[#111827]">
+              <label htmlFor="password" className="text-sm text-fg">
                 Пароль
               </label>
               <input
@@ -117,21 +117,21 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••"
                 autoComplete="current-password"
-                className="w-full rounded-md border border-[#c9ceda] bg-white px-3 py-2 text-sm text-[#111827] placeholder:text-[#7a8aa5] focus:outline-none focus:ring-2 focus:ring-[#24386a]/30 focus:border-[#24386a]"
+                className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-fg placeholder:text-accent-lighter focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-md bg-[#24386a] px-4 py-2 text-sm font-medium text-white hover:bg-[#1c2c54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {submitting ? "Вход..." : "Войти"}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-[#c9ceda]">
-            <p className="text-xs text-[#7a8aa5] mb-2">Быстрый вход (разработка)</p>
+          <div className="mt-6 pt-6 border-t border-border">
+            <p className="text-xs text-accent-lighter mb-2">Быстрый вход (разработка)</p>
             <select
               onChange={(e) => {
                 const account = QUICK_LOGINS.find(a => a.role === e.target.value)
@@ -141,7 +141,7 @@ export default function LoginPage() {
                 }
               }}
               defaultValue=""
-              className="w-full rounded-md border border-[#c9ceda] bg-white px-3 py-1.5 text-xs text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#24386a]/30 focus:border-[#24386a]"
+              className="w-full rounded-md border border-input bg-white px-3 py-1.5 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             >
               <option value="" disabled>Выберите роль...</option>
               {QUICK_LOGINS.map(a => (

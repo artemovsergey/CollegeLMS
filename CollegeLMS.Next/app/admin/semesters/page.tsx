@@ -40,8 +40,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import { toast } from "sonner"
 
 const typeLabels: Record<string, string> = {
@@ -240,7 +240,7 @@ export default function SemestersPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={6} cols={5} />
       ) : semesters.length === 0 ? (
         <p className="text-muted-foreground">Нет семестров</p>
       ) : (

@@ -12,6 +12,7 @@ import type {
 } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -329,12 +330,14 @@ export default function AdminNewsPage() {
           )}
         </div>
         {formImageUrl && (
-          <div className="relative mt-1 overflow-hidden rounded-md">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div className="relative mt-1 overflow-hidden rounded-md" style={{ height: "128px" }}>
+            <Image
               src={formImageUrl}
               alt="Превью"
-              className="h-32 w-full object-cover"
+              fill
+              className="object-cover"
+              sizes="100vw"
+              unoptimized
             />
           </div>
         )}

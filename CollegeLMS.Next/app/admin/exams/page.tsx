@@ -52,8 +52,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import { toast } from "sonner"
 
 const typeLabels: Record<string, string> = {
@@ -451,7 +451,7 @@ export default function ExamsPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={6} cols={6} />
       ) : exams.length === 0 ? (
         <p className="text-muted-foreground">Нет экзаменов</p>
       ) : (
@@ -613,7 +613,7 @@ export default function ExamsPage() {
             </form>
           )}
           {retakesLoading ? (
-            <LoadingSpinner className="py-8" />
+            <SkeletonTable rows={4} cols={5} />
           ) : retakes.length === 0 ? (
             <p className="text-muted-foreground py-4 text-center">Нет пересдач</p>
           ) : (

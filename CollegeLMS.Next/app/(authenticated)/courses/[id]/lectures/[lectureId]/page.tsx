@@ -6,7 +6,7 @@ import type { Result, LectureResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import ErrorBanner from "@/components/ErrorBanner"
-import LoadingSpinner from "@/components/LoadingSpinner"
+import { SkeletonDetail } from "@/components/SkeletonCardGrid"
 
 export default function LectureViewPage() {
   const router = useRouter()
@@ -38,7 +38,7 @@ export default function LectureViewPage() {
     fetchLecture()
   }, [fetchLecture])
 
-  if (loading) return <LoadingSpinner className="py-16" />
+  if (loading) return <SkeletonDetail />
 
   if (error) {
     return (

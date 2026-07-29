@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import ErrorBanner from "@/components/ErrorBanner"
 import EmptyState from "@/components/EmptyState"
 import { ArrowLeft } from "lucide-react"
@@ -776,7 +777,7 @@ export default function AdminTestingPage() {
             {questionsError && <ErrorBanner message={questionsError} />}
 
             {questionsLoading ? (
-              <LoadingSpinner className="py-12" />
+              <SkeletonTable rows={5} cols={4} />
             ) : questions.length === 0 ? (
               <EmptyState message="Нет вопросов" />
             ) : (
@@ -870,7 +871,7 @@ export default function AdminTestingPage() {
             {assignmentsError && <ErrorBanner message={assignmentsError} />}
 
             {assignmentsLoading ? (
-              <LoadingSpinner className="py-12" />
+              <SkeletonTable rows={5} cols={4} />
             ) : assignments.length === 0 ? (
               <EmptyState message="Нет назначений" />
             ) : (
@@ -994,7 +995,7 @@ export default function AdminTestingPage() {
       {testsError && <ErrorBanner message={testsError} />}
 
       {testsLoading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={6} cols={6} />
       ) : tests.length === 0 ? (
         <EmptyState message="Нет тестов" />
       ) : (

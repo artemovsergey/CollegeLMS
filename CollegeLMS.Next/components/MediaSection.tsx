@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Play, Calendar, Clock, Tv, X } from "lucide-react"
+import Image from "next/image"
 
 const VIDEO_ID = "1b0e5af3e47d34c76be2a3dd66c77fd5"
 const THUMB_URL = "https://pic.rtbcdn.ru/video/2026-01-15/83/dc/83dc9b637234582645635b585150d170.jpg"
@@ -20,11 +21,13 @@ export default function MediaSection() {
             className="group flex w-full gap-5 rounded-lg border border-border bg-card p-5 text-left transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
           >
             <div className="relative flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={THUMB_URL}
                 alt="Превью видео"
-                className="absolute inset-0 h-full w-full object-cover"
+                fill
+                className="object-cover"
+                sizes="160px"
+                unoptimized
               />
               <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-primary shadow-sm transition-transform group-hover:scale-110">

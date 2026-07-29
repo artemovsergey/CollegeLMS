@@ -5,8 +5,8 @@ import type { Result, StudentResponse, GroupResponse, TransferRecordResponse } f
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { roleLabels, roleVariants } from "@/lib/constants"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -364,7 +364,7 @@ export default function StudentsPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={8} cols={5} />
       ) : filteredStudents.length === 0 ? (
         <p className="text-muted-foreground">Нет студентов</p>
       ) : (
@@ -441,7 +441,7 @@ export default function StudentsPage() {
             <DialogTitle>История переводов — {historyStudentName}</DialogTitle>
           </DialogHeader>
           {historyLoading ? (
-            <LoadingSpinner className="py-8" />
+            <div className="flex justify-center py-8"><div className="h-6 w-6 animate-pulse rounded-full bg-muted-foreground/20" /></div>
           ) : historyError ? (
             <ErrorBanner message={historyError} />
           ) : historyRecords.length === 0 ? (

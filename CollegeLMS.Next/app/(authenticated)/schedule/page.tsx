@@ -28,6 +28,7 @@ import ScheduleEntryDialog from "@/components/ScheduleEntryDialog"
 import ScheduleImportDialog from "@/components/ScheduleImportDialog"
 import { CAN_MANAGE_ROLES } from "@/lib/constants"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { Skeleton } from "@/components/ui/skeleton"
 import ErrorBanner from "@/components/ErrorBanner"
 import { CalendarDays, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -202,7 +203,10 @@ export default function SchedulePage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-3"><Skeleton className="h-9 flex-1" /><Skeleton className="h-9 w-32" /></div>
+          <div className="rounded-lg border bg-card"><Skeleton className="h-64 w-full" /></div>
+        </div>
       ) : (
         <ScheduleTable
           entries={entries}

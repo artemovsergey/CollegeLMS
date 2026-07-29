@@ -13,8 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 
 export default function MyCoursesPage() {
   const { token } = useAuth()
@@ -56,7 +56,7 @@ export default function MyCoursesPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={6} cols={4} />
       ) : courses.length === 0 ? (
         <p className="text-muted-foreground">Вы не записаны ни на один курс</p>
       ) : (

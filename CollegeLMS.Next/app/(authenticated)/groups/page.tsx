@@ -5,8 +5,8 @@ import type { Result, GroupResponse, CreateGroupRequest } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { roleLabels, roleVariants } from "@/lib/constants"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -162,7 +162,7 @@ export default function GroupsPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={6} cols={4} />
       ) : groups.length === 0 ? (
         <p className="text-muted-foreground">Нет групп</p>
       ) : (

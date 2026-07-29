@@ -5,6 +5,7 @@ import Link from "next/link"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import Carousel from "@/components/Carousel"
 import StatisticsSection from "@/components/StatisticsSection"
 import SpecialtiesSection from "@/components/SpecialtiesSection"
@@ -92,9 +93,8 @@ function HomePageContent() {
                   href={`/news/${item.id}`}
                   className="block bg-card p-5 rounded-lg border border-border transition-colors hover:bg-muted"
                 >
-                  {item.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.imageUrl} alt="" className="w-full h-40 object-cover mb-3 rounded-md" />
+                    {item.imageUrl && (
+                    <Image src={item.imageUrl} alt="" width={400} height={160} className="w-full h-40 object-cover mb-3 rounded-md" unoptimized />
                   )}
                   {item.categoryName && (
                     <span className="inline-block text-xs font-medium text-white bg-accent px-2 py-0.5 rounded-sm mb-2">{item.categoryName}</span>

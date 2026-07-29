@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { roleLabels, roleVariants } from "@/lib/constants"
 import ErrorBanner from "@/components/ErrorBanner"
-import LoadingSpinner from "@/components/LoadingSpinner"
+import { SkeletonDetail } from "@/components/SkeletonCardGrid"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import {
@@ -202,7 +202,7 @@ export default function CourseDetailPage() {
     }
   }
 
-  if (loading) return <LoadingSpinner className="py-16" />
+  if (loading) return <SkeletonDetail />
   if (error) {
     return (
       <div className="flex flex-col gap-4 p-6 max-w-5xl mx-auto">

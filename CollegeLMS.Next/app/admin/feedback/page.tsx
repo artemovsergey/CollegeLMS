@@ -13,8 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import { Eye, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   Dialog,
@@ -59,7 +59,7 @@ export default function AdminFeedbackPage() {
 
   useEffect(() => { setPage(1) }, [items.length])
 
-  if (loading) return <LoadingSpinner className="py-20" />
+  if (loading) return <SkeletonTable rows={6} cols={5} />
   if (error) return <ErrorBanner message={error} className="m-6" />
 
   return (

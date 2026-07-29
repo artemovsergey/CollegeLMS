@@ -4,9 +4,10 @@ import { useEffect, useState, useCallback } from "react"
 import type { Result, TeacherDashboardResponse } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
 import CourseCard from "@/components/CourseCard"
+import { SkeletonCardGrid } from "@/components/SkeletonCardGrid"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function TeacherDashboardPage() {
   const { token, user } = useAuth()
@@ -39,7 +40,12 @@ export default function TeacherDashboardPage() {
     }
   }, [token, fetchDashboard])
 
-  if (loading) return <LoadingSpinner className="py-16" />
+  if (loading) return (
+    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
+      <div className="mb-2"><Skeleton className="h-6 w-64" /></div>
+      <SkeletonCardGrid count={6} columns={3} />
+    </div>
+  )
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">

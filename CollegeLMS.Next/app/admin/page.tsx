@@ -42,8 +42,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { roleLabels, roleVariants } from "@/lib/constants"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 
 export default function UsersPage() {
   const { user } = useAuth()
@@ -236,7 +236,7 @@ export default function UsersPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={8} cols={5} />
       ) : users.length === 0 ? (
         <p className="text-muted-foreground">Нет пользователей</p>
       ) : (

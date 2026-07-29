@@ -45,8 +45,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import EmptyState from "@/components/EmptyState"
 import { toast } from "sonner"
 
@@ -238,7 +238,7 @@ export default function StipendsPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={6} cols={6} />
       ) : stipends.length === 0 ? (
         <EmptyState message="Стипендии не найдены" />
       ) : (
@@ -276,7 +276,7 @@ export default function StipendsPage() {
                               <DialogTitle>{s.title} — детали</DialogTitle>
                             </DialogHeader>
                             {detailsLoading ? (
-                              <LoadingSpinner className="py-8" />
+                              <SkeletonTable rows={4} cols={4} />
                             ) : details.length === 0 ? (
                               <EmptyState message="Нет данных" />
                             ) : (

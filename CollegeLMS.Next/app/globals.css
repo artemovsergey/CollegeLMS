@@ -145,13 +145,22 @@
   to { opacity: 0; transform: scale(0.95); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-bg text-fg;
-    font-size: 17px;
+    font-size: 16px;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
@@ -327,10 +336,12 @@
 }
 
 .docs-content blockquote {
-  border-left: 4px solid hsl(var(--accent));
-  padding-left: 1rem;
+  background: hsl(var(--muted));
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
   margin: 1rem 0;
   color: hsl(var(--muted-fg));
+  font-style: italic;
 }
 
 .docs-content img {

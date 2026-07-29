@@ -33,8 +33,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import EmptyState from "@/components/EmptyState"
 import { toast } from "sonner"
 
@@ -232,7 +232,7 @@ export default function SpecialtiesPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={6} cols={4} />
       ) : specialties.length === 0 ? (
         <EmptyState message="Специальности не найдены" />
       ) : (

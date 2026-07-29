@@ -5,8 +5,8 @@ import type { Result, TeacherResponse } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { roleLabels, roleVariants } from "@/lib/constants"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -158,7 +158,7 @@ export default function TeachersPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={8} cols={5} />
       ) : teachers.length === 0 ? (
         <p className="text-muted-foreground">Нет преподавателей</p>
       ) : (

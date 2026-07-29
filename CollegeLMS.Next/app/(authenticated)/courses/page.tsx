@@ -16,8 +16,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { roleLabels, roleVariants } from "@/lib/constants"
-import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { SkeletonTable } from "@/components/SkeletonCardGrid"
 
 const statusLabels: Record<string, string> = {
   Active: "Активен",
@@ -81,7 +81,7 @@ export default function CoursesPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner className="py-16" />
+        <SkeletonTable rows={6} cols={6} />
       ) : courses.length === 0 ? (
         <p className="text-muted-foreground">Нет курсов</p>
       ) : (

@@ -83,14 +83,13 @@ function CarouselDefault() {
                 className="relative min-w-0 flex-[0_0_100%] h-[400px] md:h-[550px]"
               >
               {item.imageUrl ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.imageUrl}
-                    alt=""
-                    className="h-full w-full object-cover rounded-lg"
-                  />
-                </>
+                <Image
+                  src={item.imageUrl}
+                  alt=""
+                  fill
+                  className="object-cover rounded-lg"
+                  sizes="100vw"
+                />
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-lilac/80 via-primary/60 to-blue-900/80" />
               )}
