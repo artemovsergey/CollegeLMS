@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description:
     "ГБПОУ «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»",
   icons: {
-    icon: "/favicon.svg",
+    icon: "/favicon.ico",
     apple: "/logo.png",
   },
 }
