@@ -30,14 +30,12 @@ RUN --mount=type=cache,id=next,sharing=locked,target=/app/.next/cache \
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV NEXT_SHARP_PATH=/app/node_modules/sharp
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 RUN mkdir .next && chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-RUN npm install sharp
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

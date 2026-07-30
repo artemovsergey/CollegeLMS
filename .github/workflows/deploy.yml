@@ -68,24 +68,17 @@ jobs:
             echo "=== Build & start all services ==="
             docker compose --profile telegram-bot up --build -d --force-recreate
 
-            echo "=== Health check (retry up to 60s) ==="
-            API_HEALTH="000"
-            for i in $(seq 1 12); do
-              sleep 5
-              API_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5026/healthz || echo "000")
-              if [ "$API_HEALTH" = "200" ]; then
-                echo "API health check PASSED (attempt $i)"
-                break
-              fi
-              echo "API health check attempt $i: HTTP $API_HEALTH"
-            done
+            echo "=== Health check ==="
+            sleep 10
+            API_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5026/healthz || echo "000")
             if [ "$API_HEALTH" != "200" ]; then
-              echo "API health check FAILED after 12 attempts. Starting rollback..."
+              echo "API health check FAILED (HTTP $API_HEALTH). Starting rollback..."
               git reset --hard "$PREVIOUS_COMMIT"
               docker compose --profile telegram-bot up --build -d --force-recreate
               echo "Rollback complete."
               exit 1
             fi
+            echo "API health check PASSED"
 
             curl -s http://localhost:5030/health || echo "Warning: Telegram bot not responding"
 
