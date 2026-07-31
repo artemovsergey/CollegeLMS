@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense, type FormEvent } fr
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search as SearchIcon } from "lucide-react"
-import type { Result, PagedResponse, SearchResult } from "@/types"
+import type { Result, PagedResponse, NewsResponse, SearchResult } from "@/types"
 import api from "@/lib/api"
 
 function SearchResults() {
@@ -24,6 +24,23 @@ function SearchResults() {
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
   const pageSize = 20
+
+  const [recentNews, setRecentNews] = useState<NewsResponse[]>([])
+
+  useEffect(() => {
+    if (query) return
+    api
+      .get<Result<PagedResponse<NewsResponse>>>("/api/news", {
+        params: { page: 1, pageSize: 3 },
+      })
+      .then(res => {
+        const body = res.data
+        if (body.isSuccess && body.data) {
+          setRecentNews(body.data.items)
+        }
+      })
+      .catch(() => setRecentNews([]))
+  }, [query])
 
   const fetchResults = useCallback(
     async (q: string, p: number) => {
@@ -265,12 +282,44 @@ function SearchResults() {
       )}
 
       {!query && (
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
-          <SearchIcon className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-          <p className="text-muted-foreground">
-            Введите поисковый запрос для поиска по новостям и страницам сайта
-          </p>
-        </div>
+        <section className="mt-6">
+          <h2 className="mb-4 text-lg font-semibold text-fg">Последние новости</h2>
+          {recentNews.length === 0 ? (
+            <div className="rounded-lg border border-border bg-card p-8 text-center">
+              <p className="text-muted-foreground">Новостей пока нет</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {recentNews.map(n => (
+                <Link
+                  key={n.id}
+                  href={`/news/${n.id}`}
+                  className="group overflow-hidden rounded-lg border border-border bg-card transition-shadow hover:shadow-lg"
+                >
+                  {n.imageUrl && (
+                    <div className="relative h-40 w-full overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={n.imageUrl}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <p className="mb-1 text-xs text-muted-foreground">
+                      {new Date(n.publishedAt).toLocaleDateString("ru-RU")}
+                      {n.categoryName && ` · ${n.categoryName}`}
+                    </p>
+                    <p className="line-clamp-2 text-sm font-medium text-fg group-hover:text-primary">
+                      {n.title}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
       )}
     </div>
   )
