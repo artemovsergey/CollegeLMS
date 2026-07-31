@@ -71,15 +71,6 @@ export const siteNavigation: Section[] = [
       { title: "Трудоустройство", slug: "trudoustroystvo", href: "/student-life/trudoustroystvo", content: "" },
     ],
   },
-  {
-    title: "Сотруднику",
-    slug: "employee",
-    href: "/employee",
-    subsections: [
-      { title: "Личный кабинет", slug: "dashboard", href: "/lms", content: "" },
-      { title: "Расписание", slug: "schedule", href: "/schedule", content: "" },
-    ],
-  },
 ]
 
 export function getSectionBySlug(slug: string): Section | undefined {

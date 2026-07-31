@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, Search } from "lucide-react"
+import { Menu, X, Search, LogIn } from "lucide-react"
 import ThemeToggle from "./ThemeToggle"
 import AccessibilityToggle from "./AccessibilityToggle"
 import { siteNavigation } from "@/data/site-content"
@@ -74,8 +74,6 @@ export default function Header() {
               <span className="mx-1 text-white/20">|</span>
               <Link href="/contacts" className="text-xs text-white/70 hover:text-white transition-colors">Контакты</Link>
               <span className="mx-1 text-white/20">|</span>
-              <Link href="/news" className="text-xs text-white/70 hover:text-white transition-colors">Новости</Link>
-              <span className="mx-1 text-white/20">|</span>
               <Link href="/admissions" className="text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors">Приёмная кампания 2026</Link>
             </div>
             <div className="flex items-center gap-1">
@@ -89,7 +87,7 @@ export default function Header() {
         </div>
 
         {/* Row 2: Logo text + Navigation */}
-        <div className="grid grid-cols-3 items-center border-b border-white/10 px-4 lg:px-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 items-center border-b border-white/10 px-4 lg:px-6">
           <Link href="/" className="flex shrink-0 flex-col py-3 leading-tight">
             <span className="text-base sm:text-lg font-bold text-white">Ставропольский колледж связи</span>
             <span className="text-[10px] sm:text-xs text-white/60">имени Героя Советского Союза В.А. Петрова</span>
@@ -104,6 +102,14 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center justify-end gap-2">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-white/20 px-3 py-1.5 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <LogIn size={16} />
+              <span className="hidden sm:inline">Войти</span>
+              <span className="sm:hidden sr-only">Войти</span>
+            </Link>
             <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden rounded-md p-2 text-white/80 hover:bg-white/10" aria-label="Меню">
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>

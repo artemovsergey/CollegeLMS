@@ -7,7 +7,6 @@ const infoLinks = [
   { title: "Новости", href: "/news" },
   { title: "Специальности", href: "/specialties" },
   { title: "Контакты", href: "/contacts" },
-  { title: "Сотрудники", href: "/employee" },
   { title: "Партнёры", href: "/partners" },
 ]
 
