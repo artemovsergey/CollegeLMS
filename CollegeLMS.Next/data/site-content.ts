@@ -71,6 +71,15 @@ export const siteNavigation: Section[] = [
       { title: "Трудоустройство", slug: "trudoustroystvo", href: "/student-life/trudoustroystvo", content: "" },
     ],
   },
+  {
+    title: "Достижения",
+    slug: "achievements",
+    href: "/achievements",
+    subsections: [
+      { title: "Профессионалы", slug: "professionaly", href: "/achievements/professionaly", content: "" },
+      { title: "Мастер года", slug: "master-year", href: "/achievements/master-year", content: "" },
+    ],
+  },
 ]
 
 export function getSectionBySlug(slug: string): Section | undefined {
