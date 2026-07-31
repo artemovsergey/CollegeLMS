@@ -2,15 +2,12 @@
 
 import Link from "next/link"
 
-const infoLinks = [
-  { title: "Расписание занятий", href: "/schedule" },
-  { title: "Новости", href: "/news" },
-  { title: "Специальности", href: "/specialties" },
-  { title: "Контакты", href: "/contacts" },
-  { title: "Партнёры", href: "/partners" },
-]
+interface FooterLink {
+  label: string
+  href?: string
+}
 
-const footerColumns = [
+const footerColumns: { title: string; items: FooterLink[] }[] = [
   {
     title: "Приёмная комиссия",
     items: [
@@ -22,26 +19,22 @@ const footerColumns = [
   {
     title: "Реквизиты",
     items: [
-      { label: "ИНН 2634092525", href: "#" },
-      { label: "КПП 263401001", href: "#" },
-      { label: "ОГРН 1132651000403", href: "#" },
+      { label: "ИНН 2634092525" },
+      { label: "КПП 263401001" },
+      { label: "ОГРН 1132651000403" },
     ],
   },
   {
     title: "Образование",
     items: [
       { label: "Специальности", href: "/specialties" },
-      { label: "Профессии", href: "/professions" },
-      { label: "Доп. образование", href: "/additional-education" },
+      { label: "Курсы", href: "/education/kursyi" },
+      { label: "Целевое обучение", href: "/education/tselevoe-obuchenie" },
     ],
   },
   {
     title: "Документы",
-    items: [
-      { label: "Устав", href: "/documents/charter" },
-      { label: "Лицензия", href: "/documents/license" },
-      { label: "Аккредитация", href: "/documents/accreditation" },
-    ],
+    items: [{ label: "Сведения об ОО", href: "/about" }],
   },
 ]
 
@@ -51,13 +44,11 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 lg:px-8 py-12">
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           <div>
-            <Link href="/" className="inline-block mb-3">
-              <span className="text-base font-bold text-primary">Ставропольский колледж связи</span>
-            </Link>
-            <p className="text-xs leading-relaxed text-muted-fg">
-              ГБПОУ «Ставропольский колледж связи<br />
+            <span className="inline-block mb-3 text-base font-bold text-primary">
+              ГБПОУ «Ставропольский колледж связи
+              <br />
               имени Героя Советского Союза В.А. Петрова»
-            </p>
+            </span>
           </div>
 
           {footerColumns.map((col) => (
@@ -66,12 +57,16 @@ export default function Footer() {
               <ul className="space-y-1.5">
                 {col.items.map((item) => (
                   <li key={item.label}>
-                    <Link
-                      href={item.href}
-                      className="text-sm text-muted-fg hover:text-primary hover:underline transition-all duration-200"
-                    >
-                      {item.label}
-                    </Link>
+                    {item.href ? (
+                      <Link
+                        href={item.href}
+                        className="text-sm text-muted-fg hover:text-primary hover:underline transition-all duration-200"
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span className="text-sm text-muted-fg">{item.label}</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -85,11 +80,8 @@ export default function Footer() {
             имени Героя Советского Союза В.А. Петрова». Все права защищены.
           </p>
           <div className="flex gap-4 text-xs text-accent-lighter">
-            <Link href="/sveden" className="hover:text-muted-fg transition-colors">
+            <Link href="/about" className="hover:text-muted-fg transition-colors">
               Сведения об образовательной организации
-            </Link>
-            <Link href="/privacy" className="hover:text-muted-fg transition-colors">
-              Политика конфиденциальности
             </Link>
           </div>
         </div>
