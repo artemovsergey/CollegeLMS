@@ -33,7 +33,13 @@ export default function LoginPage() {
       const body = res.data
       if (body.isSuccess && body.data) {
         login(body.data.token, body.data.user)
-        router.push("/lms")
+        const homeByRole: Record<string, string> = {
+          Admin: "/admin",
+          Teacher: "/teacher/dashboard",
+          Student: "/my/dashboard",
+          Dispatcher: "/schedule",
+        }
+        router.push(homeByRole[body.data.user.role] ?? "/lms")
       } else {
         setError(body.errorMessage ?? "Ошибка входа")
       }
