@@ -369,3 +369,29 @@
   cursor: pointer;
   color: hsl(var(--fg));
 }
+
+.docs-content .gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.docs-content .gallery-item {
+  margin: 0;
+  text-align: center;
+}
+
+.docs-content .gallery-item img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  margin: 0;
+  border: 1px solid hsl(var(--border));
+}
+
+.docs-content .gallery-caption {
+  margin-top: 0.375rem;
+  font-size: 0.8125rem;
+  color: hsl(var(--muted-fg));
+}
