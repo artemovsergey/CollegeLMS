@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, Search, LogIn } from "lucide-react"
+import { Menu, X, Search, ChevronDown, User, LogIn } from "lucide-react"
 import ThemeToggle from "./ThemeToggle"
 import AccessibilityToggle from "./AccessibilityToggle"
 import { siteNavigation } from "@/data/site-content"
@@ -10,7 +10,7 @@ import { siteNavigation } from "@/data/site-content"
 const socialLinks = [
   { href: "https://vk.com/stvcc_stav", label: "ВКонтакте", icon: "vk" },
   { href: "https://t.me/stvcc", label: "Telegram", icon: "tg" },
-  { href: "https://max.ru/stvcc", label: "Max", icon: "max" },
+  { href: "https://max.ru/id2634028465_gos", label: "Max", icon: "max" },
 ]
 
 function SocialIcon({ icon, className }: { icon: string; className?: string }) {
@@ -41,6 +41,9 @@ function SocialIcon({ icon, className }: { icon: string; className?: string }) {
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [openMobileSection, setOpenMobileSection] = useState<string | null>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     function onScroll() {
@@ -49,6 +52,31 @@ export default function Header() {
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenMenu(null)
+    }
+    function onClickOutside(e: MouseEvent) {
+      if ((e.target as HTMLElement).closest("[data-nav-item]")) return
+      setOpenMenu(null)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    window.addEventListener("click", onClickOutside)
+    return () => {
+      window.removeEventListener("keydown", onKeyDown)
+      window.removeEventListener("click", onClickOutside)
+    }
+  }, [])
+
+  const openMenuDelayed = (slug: string) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    setOpenMenu(slug)
+  }
+  const closeMenuDelayed = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    closeTimer.current = setTimeout(() => setOpenMenu(null), 120)
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-accent">
@@ -93,12 +121,62 @@ export default function Header() {
             <span className="text-[10px] sm:text-xs text-white/60">имени Героя Советского Союза В.А. Петрова</span>
           </Link>
 
-          <nav className="hidden lg:flex items-center justify-center gap-1">
-            {siteNavigation.map((section) => (
-              <Link key={section.slug} href={section.href} className="px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors rounded-md">
-                {section.title}
-              </Link>
-            ))}
+          <nav className="hidden lg:flex items-center justify-center gap-0.5" aria-label="Главное меню">
+            {siteNavigation.map((section) => {
+              const hasSubs = section.subsections.length > 0
+              const isOpen = openMenu === section.slug
+              return (
+                <div
+                  key={section.slug}
+                  data-nav-item
+                  className="relative"
+                  onMouseEnter={() => hasSubs && openMenuDelayed(section.slug)}
+                  onMouseLeave={() => hasSubs && closeMenuDelayed()}
+                >
+                  <Link
+                    href={section.href}
+                    onFocus={() => hasSubs && openMenuDelayed(section.slug)}
+                    onBlur={() => hasSubs && closeMenuDelayed()}
+                    aria-expanded={hasSubs ? isOpen : undefined}
+                    aria-haspopup={hasSubs ? "true" : undefined}
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors rounded-md"
+                  >
+                    {section.title}
+                    {hasSubs && (
+                      <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                    )}
+                  </Link>
+
+                  {hasSubs && (
+                    <div
+                      className={`absolute left-1/2 top-full z-50 w-64 -translate-x-1/2 pt-2 transition-all duration-150 ease-out ${
+                        isOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
+                      }`}
+                    >
+                      <div className="overflow-hidden rounded-lg border border-border bg-white shadow-xl">
+                        {section.subsections.map((sub) => (
+                          <Link
+                            key={sub.slug}
+                            href={sub.href}
+                            className="block border-b border-border/50 px-4 py-2.5 text-sm text-fg transition-colors last:border-b-0 hover:bg-muted hover:text-primary"
+                          >
+                            {sub.title}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            <Link
+              href="/login"
+              className="ml-2 flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-white hover:text-accent"
+            >
+              <User size={16} />
+              Войти
+            </Link>
           </nav>
 
           <div className="flex items-center justify-end gap-2">
@@ -119,12 +197,58 @@ export default function Header() {
 
       {mobileOpen && (
         <div className="lg:hidden border-b border-white/10 bg-accent px-4 pb-4 pt-2">
-          <nav className="flex flex-col gap-1 items-end">
-            {siteNavigation.map((section) => (
-              <Link key={section.slug} href={section.href} className="block px-3 py-2 text-sm font-medium text-white/80 rounded-md hover:bg-white/10" onClick={() => setMobileOpen(false)}>
-                {section.title}
-              </Link>
-            ))}
+          <nav className="flex flex-col gap-1">
+            {siteNavigation.map((section) => {
+              const hasSubs = section.subsections.length > 0
+              const isOpen = openMobileSection === section.slug
+              return (
+                <div key={section.slug}>
+                  <div className="flex items-center justify-between gap-2">
+                    <Link
+                      href={section.href}
+                      className="block flex-1 px-3 py-2 text-sm font-medium text-white/80 rounded-md hover:bg-white/10"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {section.title}
+                    </Link>
+                    {hasSubs && (
+                      <button
+                        onClick={() => setOpenMobileSection(isOpen ? null : section.slug)}
+                        className="rounded-md p-2 text-white/80 hover:bg-white/10"
+                        aria-label={`Показать подпункты раздела ${section.title}`}
+                      >
+                        <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                      </button>
+                    )}
+                  </div>
+                  {hasSubs && (
+                    <div className={`overflow-hidden transition-all duration-200 ease-out ${isOpen ? "max-h-96" : "max-h-0"}`}>
+                      <div className="ml-4 border-l border-white/20 pl-3">
+                        {section.subsections.map((sub) => (
+                          <Link
+                            key={sub.slug}
+                            href={sub.href}
+                            onClick={() => setMobileOpen(false)}
+                            className="block px-3 py-1.5 text-sm text-white/70 rounded-md hover:bg-white/10 hover:text-white"
+                          >
+                            {sub.title}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            <Link
+              href="/login"
+              onClick={() => setMobileOpen(false)}
+              className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-accent"
+            >
+              <User size={16} />
+              Войти
+            </Link>
           </nav>
         </div>
       )}
