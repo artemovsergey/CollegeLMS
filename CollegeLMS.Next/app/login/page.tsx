@@ -54,14 +54,16 @@ export default function LoginPage() {
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
       <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-[#24386a] to-[#3B7DD8] p-12">
         <div className="max-w-md">
-          <Image
-            src="/logo.svg"
-            alt="Ставропольский колледж связи"
-            width={300}
-            height={200}
-            className="w-full h-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
-            unoptimized
-          />
+          <Link href="/">
+            <Image
+              src="/logo.svg"
+              alt="Ставропольский колледж связи"
+              width={300}
+              height={200}
+              className="w-full h-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+              unoptimized
+            />
+          </Link>
           <h2 className="mt-8 text-center text-xl font-semibold text-white/90">
             ГБПОУ — Ставропольский колледж связи<br />
             имени Героя Советского Союза В.А. Петрова
@@ -86,7 +88,27 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <h1 className="mb-8 text-2xl font-semibold text-primary text-center">Личный кабинет</h1>
+          <h1 className="mb-4 text-2xl font-semibold text-primary text-center">Личный кабинет</h1>
+
+          <div className="mb-6 rounded-md border border-border bg-muted/50 p-3">
+            <p className="mb-1.5 text-xs text-accent-lighter">Быстрый вход (разработка)</p>
+            <select
+              onChange={(e) => {
+                const account = QUICK_LOGINS.find(a => a.role === e.target.value)
+                if (account) {
+                  setLoginInput(account.login)
+                  setPassword(account.password)
+                }
+              }}
+              defaultValue=""
+              className="w-full rounded-md border border-input bg-white px-3 py-1.5 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            >
+              <option value="" disabled>Выберите роль...</option>
+              {QUICK_LOGINS.map(a => (
+                <option key={a.role} value={a.role}>{a.label}</option>
+              ))}
+            </select>
+          </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {error && (
@@ -135,26 +157,6 @@ export default function LoginPage() {
               {submitting ? "Вход..." : "Войти"}
             </button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-xs text-accent-lighter mb-2">Быстрый вход (разработка)</p>
-            <select
-              onChange={(e) => {
-                const account = QUICK_LOGINS.find(a => a.role === e.target.value)
-                if (account) {
-                  setLoginInput(account.login)
-                  setPassword(account.password)
-                }
-              }}
-              defaultValue=""
-              className="w-full rounded-md border border-input bg-white px-3 py-1.5 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            >
-              <option value="" disabled>Выберите роль...</option>
-              {QUICK_LOGINS.map(a => (
-                <option key={a.role} value={a.role}>{a.label}</option>
-              ))}
-            </select>
-          </div>
         </div>
       </div>
     </div>
