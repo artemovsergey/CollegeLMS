@@ -55,7 +55,11 @@ export default function Header() {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpenMenu(null)
+      if (e.key === "Escape") {
+        setOpenMenu(null)
+        setMobileOpen(false)
+        setOpenMobileSection(null)
+      }
     }
     function onClickOutside(e: MouseEvent) {
       if ((e.target as HTMLElement).closest("[data-nav-item]")) return
@@ -132,11 +136,16 @@ export default function Header() {
                   className="relative"
                   onMouseEnter={() => hasSubs && openMenuDelayed(section.slug)}
                   onMouseLeave={() => hasSubs && closeMenuDelayed()}
+                  onFocus={(e) => {
+                    if (hasSubs && (e.target as HTMLElement).closest("[data-nav-item]")) openMenuDelayed(section.slug)
+                  }}
+                  onBlur={(e) => {
+                    const next = e.relatedTarget as HTMLElement | null
+                    if (hasSubs && !(next && e.currentTarget.contains(next))) closeMenuDelayed()
+                  }}
                 >
                   <Link
                     href={section.href}
-                    onFocus={() => hasSubs && openMenuDelayed(section.slug)}
-                    onBlur={() => hasSubs && closeMenuDelayed()}
                     aria-expanded={hasSubs ? isOpen : undefined}
                     aria-haspopup={hasSubs ? "true" : undefined}
                     className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors rounded-md"
@@ -188,7 +197,12 @@ export default function Header() {
               <span className="hidden sm:inline">Войти</span>
               <span className="sm:hidden sr-only">Войти</span>
             </Link>
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden rounded-md p-2 text-white/80 hover:bg-white/10" aria-label="Меню">
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="lg:hidden rounded-md p-2 text-white/80 hover:bg-white/10"
+              aria-label={mobileOpen ? "Закрыть меню" : "Меню"}
+              aria-expanded={mobileOpen}
+            >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
@@ -207,7 +221,10 @@ export default function Header() {
                     <Link
                       href={section.href}
                       className="block flex-1 px-3 py-2 text-sm font-medium text-white/80 rounded-md hover:bg-white/10"
-                      onClick={() => setMobileOpen(false)}
+                      onClick={() => {
+                        setMobileOpen(false)
+                        setOpenMobileSection(null)
+                      }}
                     >
                       {section.title}
                     </Link>
@@ -216,6 +233,7 @@ export default function Header() {
                         onClick={() => setOpenMobileSection(isOpen ? null : section.slug)}
                         className="rounded-md p-2 text-white/80 hover:bg-white/10"
                         aria-label={`Показать подпункты раздела ${section.title}`}
+                        aria-expanded={isOpen}
                       >
                         <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                       </button>
@@ -228,7 +246,10 @@ export default function Header() {
                           <Link
                             key={sub.slug}
                             href={sub.href}
-                            onClick={() => setMobileOpen(false)}
+                            onClick={() => {
+                              setMobileOpen(false)
+                              setOpenMobileSection(null)
+                            }}
                             className="block px-3 py-1.5 text-sm text-white/70 rounded-md hover:bg-white/10 hover:text-white"
                           >
                             {sub.title}
@@ -243,7 +264,10 @@ export default function Header() {
 
             <Link
               href="/login"
-              onClick={() => setMobileOpen(false)}
+              onClick={() => {
+                setMobileOpen(false)
+                setOpenMobileSection(null)
+              }}
               className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-accent"
             >
               <User size={16} />
