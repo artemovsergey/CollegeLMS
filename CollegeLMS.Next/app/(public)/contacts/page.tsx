@@ -24,7 +24,7 @@ export default function ContactsPage() {
         <h1 className="mb-8 text-3xl font-bold text-fg">Контакты</h1>
 
         <div className="grid gap-8 lg:grid-cols-2">
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col justify-between gap-6">
             {contacts.map((item) => (
               <div key={item.label} className="flex items-start gap-4">
                 <item.icon size={24} className="shrink-0 mt-0.5 text-accent" />
@@ -36,16 +36,14 @@ export default function ContactsPage() {
             ))}
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="h-full min-h-[400px] overflow-hidden rounded-lg border border-border">
             <iframe
               title="Карта"
               src="https://www.google.com/maps?q=%D0%93%D0%91%D0%9F%D0%9E%D0%A3+%D0%A1%D1%82%D0%B0%D0%B2%D1%80%D0%BE%D0%BF%D0%BE%D0%BB%D1%8C%D1%81%D0%BA%D0%B8%D0%B9+%D0%BA%D0%BE%D0%BB%D0%BB%D0%B5%D0%B4%D0%B6+%D1%81%D0%B2%D1%8F%D0%B7%D0%B8+%D0%B8%D0%BC%D0%B5%D0%BD%D0%B8+%D0%9F%D0%B5%D1%82%D1%80%D0%BE%D0%B2%D0%B0&z=15&output=embed"
-              width="100%"
-              height="400"
-              style={{ border: 0 }}
+              className="block h-full w-full"
+              style={{ border: 0, minHeight: "400px" }}
               allowFullScreen
               loading="lazy"
-              className="block"
             />
           </div>
         </div>
