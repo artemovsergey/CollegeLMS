@@ -39,6 +39,15 @@ export default function NewsDetailPage() {
     return Array.from(urlSet)
   }, [news])
 
+  const excerpt = useMemo(() => {
+    if (!news) return ""
+    const text = news.content
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+    return text.length > 200 ? `${text.slice(0, 200)}…` : text
+  }, [news])
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!galleryOpen) return
@@ -141,35 +150,51 @@ export default function NewsDetailPage() {
         <Link href="/news">← Все новости</Link>
       </Button>
 
-      {allImages.length > 0 && (
-        <button
-          onClick={() => { setGalleryIndex(0); setGalleryOpen(true) }}
-          className="mb-2 w-full overflow-hidden rounded-lg text-left"
-        >
-          <Image
-            src={allImages[0]}
-            alt=""
-            width={0}
-            height={0}
-            sizes="100vw"
-            className="w-full object-cover"
-            style={{ width: '100%', height: 'auto' }}
-          />
-        </button>
+      {allImages.length > 0 ? (
+        <div className="mb-8 grid grid-cols-1 overflow-hidden rounded-xl border border-border shadow-sm lg:grid-cols-3">
+          <div className="flex flex-col justify-center gap-3 bg-primary p-6 text-primary-foreground lg:p-8">
+            <p className="text-sm text-primary-foreground/80">
+              {new Date(news.publishedAt).toLocaleDateString("ru-RU", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+              {news.categoryName && ` · ${news.categoryName}`}
+            </p>
+            <h1 className="text-xl font-bold leading-tight sm:text-2xl">{news.title}</h1>
+            {excerpt && <p className="line-clamp-3 text-sm text-primary-foreground/90">{excerpt}</p>}
+          </div>
+          <button
+            onClick={() => { setGalleryIndex(0); setGalleryOpen(true) }}
+            className="group lg:col-span-2 lg:min-h-[320px] overflow-hidden rounded-r-xl text-left"
+            aria-label="Открыть фотографию"
+          >
+            <Image
+              src={allImages[0]}
+              alt=""
+              width={0}
+              height={0}
+              sizes="(min-width: 1024px) 66vw, 100vw"
+              className="h-full max-h-[420px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              style={{ width: "100%", height: "100%", maxHeight: "420px" }}
+            />
+          </button>
+        </div>
+      ) : (
+        <div className="mb-8 rounded-xl bg-primary p-6 lg:p-8">
+          <p className="mb-2 text-sm text-primary-foreground/80">
+            {new Date(news.publishedAt).toLocaleDateString("ru-RU", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+            {news.categoryName && ` · ${news.categoryName}`}
+          </p>
+          <h1 className="text-2xl font-bold leading-tight text-primary-foreground sm:text-3xl">
+            {news.title}
+          </h1>
+        </div>
       )}
-
-      <p className="mb-2 text-sm text-muted-foreground">
-        {new Date(news.publishedAt).toLocaleDateString("ru-RU", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })}
-        {news.categoryName && ` · ${news.categoryName}`}
-      </p>
-
-      <h1 className="mb-6 text-2xl font-bold leading-tight text-primary sm:text-3xl">
-        {news.title}
-      </h1>
 
       <div ref={contentRef} className="[&_img]:cursor-pointer">
         <ContentRenderer content={news.content} />
