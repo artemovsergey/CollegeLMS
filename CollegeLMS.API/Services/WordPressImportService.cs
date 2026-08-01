@@ -381,7 +381,6 @@ public class WordPressImportService(
                         Slug = slug,
                         ImageUrl = imageUrl,
                         CategoryId = categoryId,
-                        IsPublished = status == "publish",
                         PublishedAt = publishedAt,
                         IsDeleted = false,
                         CreatedById = adminUser?.Id ?? Guid.Empty,

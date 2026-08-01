@@ -113,17 +113,18 @@ public class NewsServiceTests : IDisposable
         {
             Title = "Тестовая новость",
             Content = "<p>Содержание</p>",
-            IsPublished = true,
         };
 
         var result = await _sut.CreateAsync(request, _adminId, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Title.Should().Be("Тестовая новость");
+        result.Data.PublishedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(10));
 
         var saved = await _db.News.FirstAsync();
         saved.Title.Should().Be("Тестовая новость");
         saved.CreatedById.Should().Be(_adminId);
+        saved.PublishedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(10));
     }
 
     [Fact]
@@ -138,14 +139,13 @@ public class NewsServiceTests : IDisposable
         {
             Title = "Обновлённый заголовок",
             Content = "<p>Обновлённое содержание</p>",
-            IsPublished = false,
         };
 
         var result = await _sut.UpdateAsync(news.Id, request, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Title.Should().Be("Обновлённый заголовок");
-        result.Data.IsPublished.Should().BeFalse();
+        result.Data.PublishedAt.Should().Be(news.PublishedAt);
     }
 
     [Fact]

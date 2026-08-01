@@ -108,7 +108,6 @@ public class SearchService(AppDbContext db) : ISearchService
             .News.AsNoTracking()
             .Where(n =>
                 !n.IsDeleted
-                && n.IsPublished
                 && (n.Title.ToLower().Contains(term) || n.Content.ToLower().Contains(term))
             )
             .Select(n => new SearchResponse

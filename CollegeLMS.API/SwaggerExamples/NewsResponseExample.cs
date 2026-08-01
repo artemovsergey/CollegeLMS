@@ -11,7 +11,6 @@ public static class NewsResponseExample
             imageUrl = "https://example.com/images/event.jpg",
             categoryId = Guid.NewGuid(),
             categoryName = "Мероприятия",
-            isPublished = true,
             publishedAt = DateTime.UtcNow,
             createdAt = DateTime.UtcNow,
             createdByName = "Иванов Иван Иванович",

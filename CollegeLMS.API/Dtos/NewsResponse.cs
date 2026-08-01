@@ -9,7 +9,6 @@ public class NewsResponse
     public string? ImageUrl { get; set; }
     public Guid? CategoryId { get; set; }
     public string? CategoryName { get; set; }
-    public bool IsPublished { get; set; }
     public DateTime PublishedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public string CreatedByName { get; set; } = string.Empty;

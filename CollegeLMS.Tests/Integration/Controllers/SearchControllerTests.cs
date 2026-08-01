@@ -39,7 +39,6 @@ public class SearchControllerTests : BaseIntegrationTest
                     Id = Guid.NewGuid(),
                     Title = title,
                     Content = $"Содержание: {title}",
-                    IsPublished = true,
                     IsDeleted = false,
                     CreatedById = adminId,
                     PublishedAt = DateTime.UtcNow,

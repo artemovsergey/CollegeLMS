@@ -10,7 +10,6 @@ public class News : Entity
     public string? ImageUrl { get; set; }
     public Guid? CategoryId { get; set; }
     public NewsCategory? Category { get; set; }
-    public bool IsPublished { get; set; }
     public DateTime PublishedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; }
     public Guid CreatedById { get; set; }

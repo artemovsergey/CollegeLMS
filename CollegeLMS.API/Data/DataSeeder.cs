@@ -5988,7 +5988,6 @@ public static class DataSeeder
                     + "Торжественная линейка состоится 1 сентября в 10:00 в актовом зале. Расписание занятий "
                     + "будет опубликовано на сайте до 28 августа.",
                 ImageUrl = "https://picsum.photos/seed/college-year/1200/600",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-10),
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow.AddDays(-10),
@@ -6004,7 +6003,6 @@ public static class DataSeeder
                     + "В программе: презентация специальностей, экскурсия по колледжу, мастер-классы. "
                     + "Ждём вас 15 октября в 11:00 в главном корпусе.",
                 ImageUrl = "https://picsum.photos/seed/open-day/1200/600",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-5),
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow.AddDays(-5),
@@ -6019,7 +6017,6 @@ public static class DataSeeder
                     "Студенты группы ИСП-41 заняли I место в региональном хакатоне «Цифровой прорыв»! "
                     + "Команда разработала сервис для мониторинга экологической обстановки. Поздравляем!",
                 ImageUrl = "https://picsum.photos/seed/hackathon/1200/600",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-3),
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow.AddDays(-3),
@@ -6035,7 +6032,6 @@ public static class DataSeeder
                     + "Занятия по математике в группе ИСП-31 переносятся со вторника на среду. "
                     + "Актуальное расписание доступно в разделе «Расписание».",
                 ImageUrl = "https://picsum.photos/seed/schedule/1200/600",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(-1),
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow.AddDays(-1),
@@ -6051,7 +6047,6 @@ public static class DataSeeder
                     + "К участию приглашаются студенты всех курсов. Заявки принимаются до 1 ноября. "
                     + "Подробности в студенческом отделе (кабинет 201).",
                 ImageUrl = "https://picsum.photos/seed/best-student/1200/600",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow,
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -6066,7 +6061,6 @@ public static class DataSeeder
                     "С 20 по 30 ноября пройдёт ежегодная спартакиада колледжа. "
                     + "Соревнования по футболу, волейболу, баскетболу и лёгкой атлетике. "
                     + "Приглашаются все желающие. Заявки от групп принимаются в спортклубе до 15 ноября.",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(1),
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -6081,7 +6075,6 @@ public static class DataSeeder
                     "Литературный клуб приглашает на вечер поэзии «Осенний ритм». "
                     + "В программе: чтение стихов классиков и современных авторов, музыкальные номера. "
                     + "Мероприятие пройдёт 25 октября в актовом зале. Начало в 17:00.",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(2),
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -6096,7 +6089,6 @@ public static class DataSeeder
                     "Приглашаем студентов принять участие в ежегодной научно-практической конференции. "
                     + "Тематика: информационные технологии, математика, экономика. "
                     + "Приём тезисов до 1 декабря. Лучшие работы будут опубликованы в сборнике.",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(3),
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -6111,7 +6103,6 @@ public static class DataSeeder
                     "Центр карьеры приглашает студентов 3-4 курсов на стажировку в IT-компании города. "
                     + "Доступны направления: разработка, тестирование, DevOps, аналитика. "
                     + "Подробности и регистрация в кабинете 305 до 10 декабря.",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(4),
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -6126,7 +6117,6 @@ public static class DataSeeder
                     "Состоялось первое заседание студенческого совета в новом семестре. "
                     + "Избраны председатели комитетов, утверждён план мероприятий на семестр. "
                     + "Следующее собрание — 15 ноября в 15:00 в кабинете 410.",
-                IsPublished = true,
                 PublishedAt = DateTime.UtcNow.AddDays(5),
                 CreatedById = admin.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -6585,7 +6575,6 @@ public static class DataSeeder
                         Slug = slug,
                         ImageUrl = imageUrl,
                         CategoryId = categoryId,
-                        IsPublished = status == "publish",
                         PublishedAt = publishedAt,
                         IsDeleted = false,
                         CreatedById = admin?.Id ?? Guid.Empty,

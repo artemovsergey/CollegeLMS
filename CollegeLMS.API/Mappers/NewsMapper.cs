@@ -15,7 +15,6 @@ public static class NewsMapper
             ImageUrl = news.ImageUrl,
             CategoryId = news.CategoryId,
             CategoryName = news.Category?.Name ?? string.Empty,
-            IsPublished = news.IsPublished,
             PublishedAt = news.PublishedAt,
             CreatedAt = news.CreatedAt,
             CreatedByName = news.CreatedBy?.FullName ?? string.Empty,

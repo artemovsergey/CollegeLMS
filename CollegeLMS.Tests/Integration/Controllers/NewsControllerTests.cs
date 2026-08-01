@@ -120,7 +120,6 @@ public class NewsControllerTests : BaseIntegrationTest
         {
             Title = "Новая новость",
             Content = "<p>Содержание новой новости</p>",
-            IsPublished = true,
         };
 
         var response = await Client.PostAsJsonAsync("/api/news", request);

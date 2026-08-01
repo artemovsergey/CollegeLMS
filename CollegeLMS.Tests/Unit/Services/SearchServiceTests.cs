@@ -45,7 +45,6 @@ public class SearchServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Title = title,
             Content = content,
-            IsPublished = true,
             IsDeleted = false,
             CreatedById = _adminId,
             PublishedAt = DateTime.UtcNow,
@@ -110,20 +109,6 @@ public class SearchServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         var result = await _sut.SearchAsync("Удалённая", 1, 20, default);
-
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Items.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task SearchAsync_ExcludesUnpublishedNews()
-    {
-        var news = CreatePublishedNews("Черновик новости");
-        news.IsPublished = false;
-        _db.News.Add(news);
-        await _db.SaveChangesAsync();
-
-        var result = await _sut.SearchAsync("Черновик", 1, 20, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Items.Should().BeEmpty();

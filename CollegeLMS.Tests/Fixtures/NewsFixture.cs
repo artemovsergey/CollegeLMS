@@ -12,7 +12,6 @@ public static class NewsFixture
             .RuleFor(n => n.Slug, f => f.Lorem.Word() + "-" + f.Random.String2(8))
             .RuleFor(n => n.Content, f => f.Lorem.Paragraphs(3))
             .RuleFor(n => n.ImageUrl, f => f.Image.PicsumUrl())
-            .RuleFor(n => n.IsPublished, true)
             .RuleFor(n => n.PublishedAt, f => f.Date.Past(30))
             .RuleFor(n => n.CreatedAt, f => f.Date.Past(30))
             .RuleFor(n => n.UpdatedAt, f => f.Date.Past(30));

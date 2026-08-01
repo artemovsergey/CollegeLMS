@@ -88,8 +88,7 @@ public class NewsService(AppDbContext db) : INewsService
             Content = request.Content,
             ImageUrl = request.ImageUrl,
             CategoryId = request.CategoryId,
-            IsPublished = request.IsPublished,
-            PublishedAt = request.PublishedAt ?? DateTime.UtcNow,
+            PublishedAt = DateTime.UtcNow,
             CreatedById = currentUserId,
         };
 
@@ -132,8 +131,6 @@ public class NewsService(AppDbContext db) : INewsService
         news.Content = request.Content;
         news.ImageUrl = request.ImageUrl;
         news.CategoryId = request.CategoryId;
-        news.IsPublished = request.IsPublished;
-        news.PublishedAt = request.PublishedAt ?? news.PublishedAt;
         news.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
