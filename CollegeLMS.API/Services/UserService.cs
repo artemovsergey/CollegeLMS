@@ -36,6 +36,10 @@ public class UserService(AppDbContext db) : IUserService
         if (exists)
             return Result<UserResponse>.Fail("Пользователь с таким логином уже существует", 409);
 
+        var emailExists = await db.Users.AnyAsync(u => u.Email == request.Email, ct);
+        if (emailExists)
+            return Result<UserResponse>.Fail("Пользователь с таким email уже существует", 409);
+
         var user = request.ToEntity();
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
@@ -57,6 +61,11 @@ public class UserService(AppDbContext db) : IUserService
         if (loginExists)
             return Result<UserResponse>.Fail("Пользователь с таким логином уже существует", 409);
 
+        var emailExists = await db.Users.AnyAsync(u => u.Email == request.Email && u.Id != id, ct);
+        if (emailExists)
+            return Result<UserResponse>.Fail("Пользователь с таким email уже существует", 409);
+
+        user.Email = request.Email;
         user.Login = request.Login;
         user.FullName = request.FullName;
         user.Role = request.Role;

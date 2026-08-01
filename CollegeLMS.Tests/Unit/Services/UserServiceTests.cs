@@ -152,6 +152,50 @@ public class UserServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAsync_ReturnsFail_WhenEmailExists_WithDifferentLogin()
+    {
+        var existing = UserFixture.CreateFaker().Generate();
+        _db.Users.Add(existing);
+        await _db.SaveChangesAsync();
+
+        var request = new CreateUserRequest
+        {
+            Login = "different-login",
+            Email = existing.Email,
+            Password = "password123",
+            FullName = "Another",
+            Role = UserRole.Student,
+        };
+
+        var result = await _sut.CreateAsync(request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(409);
+        result.ErrorMessage.Should().Be("Пользователь с таким email уже существует");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UpdatesEmail()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var request = new UpdateUserRequest
+        {
+            Login = user.Login,
+            Email = "new-email@test.ru",
+            FullName = user.FullName,
+            Role = user.Role,
+        };
+
+        var result = await _sut.UpdateAsync(user.Id, request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Email.Should().Be("new-email@test.ru");
+    }
+
+    [Fact]
     public async Task DeleteAsync_RemovesUser()
     {
         var admin = UserFixture.CreateFaker().Generate();

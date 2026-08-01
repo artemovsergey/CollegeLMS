@@ -14,8 +14,12 @@ public class UpdateUserRequestValidator : AbstractValidator<UpdateUserRequest>
             .WithMessage("Логин не может быть длиннее 100 символов");
 
         RuleFor(x => x.Email)
+            .NotEmpty()
+            .WithMessage("Email обязателен")
             .MaximumLength(256)
-            .WithMessage("Email не может быть длиннее 256 символов");
+            .WithMessage("Email не может быть длиннее 256 символов")
+            .EmailAddress()
+            .WithMessage("Некорректный формат email");
 
         RuleFor(x => x.FullName)
             .NotEmpty()
