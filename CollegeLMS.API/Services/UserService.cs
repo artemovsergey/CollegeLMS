@@ -123,18 +123,16 @@ public class UserService(AppDbContext db) : IUserService
 
         var admin = await db
             .Users.AsNoTracking()
-            .Where(u => u.Role == UserRole.Admin)
+            .Where(u => u.Role == UserRole.Admin && u.Id != id)
             .OrderBy(u => u.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
         if (admin is null)
-            return Result.Fail("Не найден системный администратор", 500);
-
-        if (admin.Id == user.Id)
         {
-            var adminsCount = await db.Users.CountAsync(u => u.Role == UserRole.Admin, ct);
-            if (adminsCount == 1)
+            if (user.Role == UserRole.Admin)
                 return Result.Fail("Нельзя удалить последнего администратора", 409);
+
+            return Result.Fail("Не найден системный администратор", 500);
         }
 
         var news = await db.News.Where(n => n.CreatedById == id).ToListAsync(ct);

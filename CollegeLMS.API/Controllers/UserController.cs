@@ -62,20 +62,23 @@ public class UserController(IUserService service) : ControllerBase
     /// <summary>Получить профиль пользователя с курсами и новостями.</summary>
     /// <param name="id">Идентификатор пользователя</param>
     /// <param name="ct">Токен отмены</param>
-    /// <remarks>Возвращает данные пользователя, его курсы (если преподаватель) и новости.</remarks>
+    /// <remarks>Возвращает данные пользователя, его курсы (если преподаватель) и новости. Только для администраторов.</remarks>
     /// <response code="200">Профиль получен</response>
     /// <response code="401">Не авторизован</response>
+    /// <response code="403">Доступ запрещён (требуется роль Admin)</response>
     /// <response code="404">Пользователь не найден</response>
     /// <response code="500">Ошибка сервера</response>
     [HttpGet("{id:guid}/profile")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [SwaggerOperation(Summary = "Получить профиль пользователя с курсами и новостями")]
     [SwaggerResponse(200, "Профиль получен", typeof(Result<UserProfileResponse>))]
     [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён (требуется роль Admin)")]
     [SwaggerResponse(404, "Пользователь не найден")]
     [SwaggerResponse(500, "Ошибка сервера")]
     [ProducesResponseType(typeof(Result<UserProfileResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result<UserProfileResponse>>> GetProfile(

@@ -328,4 +328,33 @@ public class UserControllerTests : BaseIntegrationTest
         result.Data.Courses.Should().BeEmpty();
         result.Data.News.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task GetProfile_ReturnsForbidden_WhenNotAdmin()
+    {
+        var token = GetStudentToken();
+        var student = new Faker<User>()
+            .RuleFor(u => u.Id, f => f.Random.Guid())
+            .RuleFor(u => u.Login, f => f.Internet.UserName())
+            .RuleFor(u => u.Email, f => f.Internet.Email())
+            .RuleFor(u => u.FullName, f => f.Name.FullName())
+            .RuleFor(u => u.PasswordHash, _ => BCrypt.Net.BCrypt.HashPassword("test123"))
+            .RuleFor(u => u.Role, UserRole.Student)
+            .Generate();
+
+        using (var db = CreateDbContext())
+        {
+            db.Users.Add(student);
+            await db.SaveChangesAsync();
+        }
+
+        var response = await Client.SendAsync(
+            new HttpRequestMessage(HttpMethod.Get, $"/api/users/{student.Id}/profile")
+            {
+                Headers = { Authorization = new AuthenticationHeaderValue("Bearer", token) },
+            }
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
 }

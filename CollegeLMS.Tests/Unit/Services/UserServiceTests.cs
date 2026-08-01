@@ -357,6 +357,76 @@ public class UserServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteAsync_ReassignsCoursesToOtherAdmin_WhenDeletingSystemAdmin()
+    {
+        var systemAdmin = UserFixture.CreateFaker().Generate();
+        systemAdmin.Role = UserRole.Admin;
+        systemAdmin.CreatedAt = DateTime.UtcNow.AddDays(-2);
+        var otherAdmin = UserFixture.CreateFaker().Generate();
+        otherAdmin.Role = UserRole.Admin;
+        otherAdmin.CreatedAt = DateTime.UtcNow;
+        _db.Users.AddRange(systemAdmin, otherAdmin);
+        await _db.SaveChangesAsync();
+
+        var teacher = new API.Entities.Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = systemAdmin.Id,
+            CyclicalCommission = "Администрация",
+            Position = "Преподаватель",
+        };
+        var course = new API.Entities.Course
+        {
+            Title = "Курс",
+            Description = "Описание",
+            TeacherId = teacher.Id,
+            Status = CourseStatus.Active,
+        };
+        _db.Teachers.Add(teacher);
+        _db.Courses.Add(course);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.DeleteAsync(systemAdmin.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        (await _db.Users.FindAsync([systemAdmin.Id])).Should().BeNull();
+        (await _db.Teachers.FindAsync([teacher.Id])).Should().BeNull();
+        var adminTeacher = await _db.Teachers.FirstOrDefaultAsync(t => t.UserId == otherAdmin.Id);
+        adminTeacher.Should().NotBeNull();
+        _db.Courses.AsNoTracking().Single().TeacherId.Should().Be(adminTeacher!.Id);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ReassignsNewsToOtherAdmin_WhenDeletingSystemAdmin()
+    {
+        var systemAdmin = UserFixture.CreateFaker().Generate();
+        systemAdmin.Role = UserRole.Admin;
+        systemAdmin.CreatedAt = DateTime.UtcNow.AddDays(-2);
+        var otherAdmin = UserFixture.CreateFaker().Generate();
+        otherAdmin.Role = UserRole.Admin;
+        otherAdmin.CreatedAt = DateTime.UtcNow;
+        _db.Users.AddRange(systemAdmin, otherAdmin);
+        await _db.SaveChangesAsync();
+
+        var news = new API.Entities.News
+        {
+            Title = "Новость",
+            Slug = "novost",
+            Content = "Текст",
+            CreatedById = systemAdmin.Id,
+            PublishedAt = DateTime.UtcNow,
+        };
+        _db.News.Add(news);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.DeleteAsync(systemAdmin.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        (await _db.Users.FindAsync([systemAdmin.Id])).Should().BeNull();
+        _db.News.AsNoTracking().Single().CreatedById.Should().Be(otherAdmin.Id);
+    }
+
+    [Fact]
     public async Task GetProfileAsync_ReturnsUserWithCoursesAndNews()
     {
         var admin = UserFixture.CreateFaker().Generate();
