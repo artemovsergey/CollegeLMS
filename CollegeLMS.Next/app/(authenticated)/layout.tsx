@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
 import AuthenticatedShell from "@/components/AuthenticatedShell"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { adminMenuSections, type MenuSection } from "@/lib/menus"
 import { LayoutDashboard, BookOpen, FileCheck, CalendarDays, Settings, GraduationCap } from "lucide-react"
 
 const studentMenu = [
@@ -40,10 +41,11 @@ const dispatcherMenu = [
   ]},
 ]
 
-const menuByRole: Record<string, typeof studentMenu> = {
+const menuByRole: Record<string, MenuSection[]> = {
   Student: studentMenu,
   Teacher: teacherMenu,
   Dispatcher: dispatcherMenu,
+  Admin: adminMenuSections,
 }
 
 export default function AuthenticatedLayout({ children }: { children: ReactNode }) {
