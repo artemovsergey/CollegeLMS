@@ -6,7 +6,7 @@ test.describe("Teacher dashboard", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u2", email: "teacher@collegelms.ru", fullName: "Преподаватель", role: "Teacher", isActive: true })
+        JSON.stringify({ id: "u2", email: "teacher@collegelms.ru", fullName: "Преподаватель", role: "Teacher" })
       )
     })
   })
@@ -51,7 +51,7 @@ test.describe("Student dashboard", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u3", email: "student@collegelms.ru", fullName: "Студент", role: "Student", isActive: true })
+        JSON.stringify({ id: "u3", email: "student@collegelms.ru", fullName: "Студент", role: "Student" })
       )
     })
   })
@@ -115,7 +115,7 @@ test.describe("My submissions", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u3", email: "student@collegelms.ru", fullName: "Студент", role: "Student", isActive: true })
+        JSON.stringify({ id: "u3", email: "student@collegelms.ru", fullName: "Студент", role: "Student" })
       )
     })
   })

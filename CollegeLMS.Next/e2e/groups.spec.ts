@@ -6,7 +6,7 @@ test.describe("Groups page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })

@@ -4,7 +4,6 @@ export interface User {
   email: string
   fullName: string
   role: string
-  isActive: boolean
 }
 
 export interface LoginRequest {
@@ -490,7 +489,6 @@ export interface ProfileResponse {
   email: string
   fullName: string
   role: string
-  isActive: boolean
   teacherData: TeacherProfileData | null
   studentData: StudentProfileData | null
 }
@@ -503,4 +501,10 @@ export interface UpdateProfileRequest {
 export interface ChangePasswordRequest {
   oldPassword: string
   newPassword: string
+}
+
+export interface UserProfileResponse {
+  user: User
+  courses: { id: string; title: string }[]
+  news: { id: string; title: string; publishedAt: string }[]
 }

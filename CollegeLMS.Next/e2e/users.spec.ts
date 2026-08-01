@@ -6,7 +6,7 @@ test.describe("Users page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })
@@ -18,7 +18,7 @@ test.describe("Users page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true }],
+          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" }],
           errorMessage: null,
           statusCode: 200,
         }),

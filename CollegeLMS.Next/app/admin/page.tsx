@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import type { User, Result, CreateUserRequest, UpdateUserRequest, ChangeRoleRequest } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
@@ -8,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Ban, ChevronLeft, ChevronRight } from "lucide-react"
+import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +49,7 @@ import { SkeletonTable } from "@/components/SkeletonCardGrid"
 
 export default function UsersPage() {
   const { user } = useAuth()
+  const router = useRouter()
 
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -161,9 +164,11 @@ export default function UsersPage() {
     if (!deleteConfirmId) return
     try {
       await api.delete(`/api/users/${deleteConfirmId}`)
+      toast.success("Пользователь удалён")
       await fetchUsers()
-    } catch {
-      setError("Ошибка деактивации")
+    } catch (err) {
+      const data = (err as { response?: { data?: Result<null> } })?.response?.data
+      toast.error(data?.errorMessage ?? "Ошибка удаления")
     } finally {
       setDeleteConfirmId(null)
     }
@@ -248,13 +253,16 @@ export default function UsersPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>ФИО</TableHead>
                 <TableHead>Роль</TableHead>
-                <TableHead>Статус</TableHead>
                 {isAdmin && <TableHead>Действия</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedUsers.map(u => (
-                <TableRow key={u.id} className={!u.isActive ? "opacity-50" : ""}>
+                <TableRow
+                  key={u.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => router.push(`/admin/users/${u.id}`)}
+                >
                   <TableCell className="font-medium">{u.login}</TableCell>
                   <TableCell>{u.email}</TableCell>
                   <TableCell>{u.fullName}</TableCell>
@@ -272,13 +280,6 @@ export default function UsersPage() {
                       <Badge variant={roleVariants[u.role] ?? "secondary"}>
                         {roleLabels[u.role] ?? u.role}
                       </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {u.isActive ? (
-                      <span className="text-sm text-green-600">Активен</span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Неактивен</span>
                     )}
                   </TableCell>
                   {isAdmin && (
@@ -328,11 +329,15 @@ export default function UsersPage() {
                             </form>
                           </DialogContent>
                         </Dialog>
-                        {u.isActive && (
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(u.id)} className="text-destructive hover:text-destructive" aria-label="Деактивировать">
-                            <Ban size={16} />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(u.id) }}
+                          className="text-destructive hover:text-destructive"
+                          aria-label="Удалить пользователя"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
                       </div>
                     </TableCell>
                   )}
@@ -358,15 +363,15 @@ export default function UsersPage() {
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(o) => !o && setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Деактивировать пользователя?</AlertDialogTitle>
+            <AlertDialogTitle>Удалить пользователя?</AlertDialogTitle>
             <AlertDialogDescription>
-              Пользователь потеряет доступ к системе. Это действие можно отменить через редактирование.
+              Все связанные данные будут переприсвоены или удалены. Это действие нельзя отменить.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Деактивировать
+              Удалить
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

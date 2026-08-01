@@ -6,7 +6,7 @@ test.describe("Student Progress page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "s1", login: "student", email: "student@collegelms.ru", fullName: "Студент", role: "Student", isActive: true })
+        JSON.stringify({ id: "s1", login: "student", email: "student@collegelms.ru", fullName: "Студент", role: "Student" })
       )
     })
   })
@@ -69,7 +69,7 @@ test.describe("Student Transfers on Students page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", login: "admin", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", login: "admin", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })
@@ -177,7 +177,7 @@ test.describe("Change Password in admin sidebar", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", login: "admin", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", login: "admin", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })
@@ -189,7 +189,7 @@ test.describe("Change Password in admin sidebar", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "u1", login: "admin", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true }],
+          data: [{ id: "u1", login: "admin", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" }],
           errorMessage: null,
           statusCode: 200,
         }),

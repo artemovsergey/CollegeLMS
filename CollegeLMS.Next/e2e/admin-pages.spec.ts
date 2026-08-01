@@ -6,7 +6,7 @@ test.describe("Exams page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })
@@ -205,7 +205,7 @@ test.describe("Semesters page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })
@@ -284,7 +284,7 @@ test.describe("Specialties page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })
@@ -297,7 +297,7 @@ test.describe("Specialties page", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "sp1", code: "09.02.07", name: "Информационные системы и программирование", description: "Подготовка специалистов по ИС", isActive: true },
+            { id: "sp1", code: "09.02.07", name: "Информационные системы и программирование", description: "Подготовка специалистов по ИС" },
             { id: "sp2", code: "38.02.01", name: "Экономика и бухгалтерский учёт", description: "Подготовка бухгалтеров", isActive: false },
           ],
           errorMessage: null,
@@ -326,7 +326,7 @@ test.describe("Specialties page", () => {
           body: JSON.stringify({
             isSuccess: true,
             data: [
-              { id: "sp1", code: "09.02.07", name: "Информационные системы и программирование", description: "Подготовка специалистов по ИС", isActive: true },
+              { id: "sp1", code: "09.02.07", name: "Информационные системы и программирование", description: "Подготовка специалистов по ИС" },
             ],
             errorMessage: null,
             statusCode: 200,
@@ -339,7 +339,7 @@ test.describe("Specialties page", () => {
           body: JSON.stringify({
             isSuccess: true,
             data: [
-              { id: "sp1", code: "09.02.07", name: "Информационные системы и программирование", description: "Подготовка специалистов по ИС", isActive: true },
+              { id: "sp1", code: "09.02.07", name: "Информационные системы и программирование", description: "Подготовка специалистов по ИС" },
               { id: "sp2", code: "38.02.01", name: "Экономика и бухгалтерский учёт", description: "Подготовка бухгалтеров", isActive: false },
             ],
             errorMessage: null,
@@ -367,7 +367,7 @@ test.describe("Stipends page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })
@@ -440,7 +440,7 @@ test.describe("Testing page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })

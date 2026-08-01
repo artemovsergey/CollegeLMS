@@ -23,7 +23,7 @@ test.describe("Auth flow", () => {
           isSuccess: true,
           data: {
             token: "test-jwt-token",
-            user: { id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true },
+            user: { id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" },
           },
           errorMessage: null,
           statusCode: 200,
@@ -36,7 +36,7 @@ test.describe("Auth flow", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true }],
+          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" }],
           errorMessage: null,
           statusCode: 200,
         }),
@@ -79,7 +79,7 @@ test.describe("Auth flow", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
     await page.route("**/api/users", (route) =>
@@ -88,7 +88,7 @@ test.describe("Auth flow", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true }],
+          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" }],
           errorMessage: null,
           statusCode: 200,
         }),
@@ -107,7 +107,7 @@ test.describe("User management (authenticated)", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true })
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
       )
     })
   })
@@ -119,7 +119,7 @@ test.describe("User management (authenticated)", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true }],
+          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" }],
           errorMessage: null,
           statusCode: 200,
         }),
@@ -138,7 +138,7 @@ test.describe("User management (authenticated)", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin", isActive: true }],
+          data: [{ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" }],
           errorMessage: null,
           statusCode: 200,
         }),
