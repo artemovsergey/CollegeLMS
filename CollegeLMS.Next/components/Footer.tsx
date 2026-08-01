@@ -19,9 +19,9 @@ const footerColumns: { title: string; items: FooterLink[] }[] = [
   {
     title: "Реквизиты",
     items: [
-      { label: "ИНН 2634092525" },
+      { label: "ИНН 2634028465" },
       { label: "КПП 263401001" },
-      { label: "ОГРН 1132651000403" },
+      { label: "ОГРН 1022601963449" },
     ],
   },
   {
