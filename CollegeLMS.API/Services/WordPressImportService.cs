@@ -5,6 +5,7 @@ using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
+using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Response;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,22 +16,20 @@ public class WordPressImportService(
     ILogger<WordPressImportService> logger
 ) : IWordPressImportService
 {
-    private static readonly ConcurrentDictionary<string, ImportProgressDto> _imports = new();
-    private static readonly ConcurrentDictionary<string, CancellationTokenSource> _importCts =
-        new();
-
-    private static readonly TimeSpan CleanupAge = TimeSpan.FromMinutes(30);
+    private static readonly ConcurrentDictionary<Guid, CancellationTokenSource> _importCts = new();
 
     public string StartImport(Func<CancellationToken, Task> importAction)
     {
-        CleanupOldEntries();
-
-        var importId = Guid.NewGuid().ToString();
-        var progress = new ImportProgressDto { ImportId = importId, Status = "running" };
-        _imports[importId] = progress;
+        var jobId = Guid.NewGuid();
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.ImportJobs.Add(new ImportJob { Id = jobId, Status = "running" });
+            db.SaveChanges();
+        }
 
         var cts = new CancellationTokenSource();
-        _importCts[importId] = cts;
+        _importCts[jobId] = cts;
         var token = cts.Token;
 
         _ = Task.Run(
@@ -38,62 +37,91 @@ public class WordPressImportService(
             {
                 try
                 {
-                    var progressRef = _imports[importId];
-                    progressRef.Status = "running";
-
                     await importAction(token);
-
-                    progressRef.Status = token.IsCancellationRequested ? "cancelled" : "completed";
+                    await UpdateJobAsync(
+                        jobId,
+                        job =>
+                        {
+                            job.Status = token.IsCancellationRequested ? "cancelled" : "completed";
+                            job.CompletedAt = DateTime.UtcNow;
+                        }
+                    );
                 }
                 catch (OperationCanceledException)
                 {
-                    if (_imports.TryGetValue(importId, out var p))
-                        p.Status = "cancelled";
+                    await UpdateJobAsync(
+                        jobId,
+                        job =>
+                        {
+                            job.Status = "cancelled";
+                            job.CompletedAt = DateTime.UtcNow;
+                        }
+                    );
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Import {ImportId} failed", importId);
-                    if (_imports.TryGetValue(importId, out var p))
-                    {
-                        p.Status = "failed";
-                        p.ErrorMessages.Add(ex.Message);
-                    }
+                    logger.LogError(ex, "Import {ImportId} failed", jobId);
+                    await UpdateJobAsync(
+                        jobId,
+                        job =>
+                        {
+                            job.Status = "failed";
+                            job.CompletedAt = DateTime.UtcNow;
+                            job.ErrorCount = 1;
+                            job.ErrorMessages = [ex.Message];
+                        }
+                    );
                 }
                 finally
                 {
-                    _importCts.TryRemove(importId, out _);
+                    _importCts.TryRemove(jobId, out _);
                 }
             },
             token
         );
 
-        return importId;
+        return jobId.ToString();
     }
 
     public void StopImport(string importId)
     {
-        if (_importCts.TryRemove(importId, out var cts))
+        if (Guid.TryParse(importId, out var id) && _importCts.TryRemove(id, out var cts))
         {
             cts.Cancel();
             cts.Dispose();
         }
     }
 
-    public ImportProgressDto? GetImportProgress(string importId)
+    public async Task<ImportProgressDto?> GetImportProgressAsync(
+        string importId,
+        CancellationToken ct
+    )
     {
-        _imports.TryGetValue(importId, out var progress);
-        return progress;
+        if (!Guid.TryParse(importId, out var id))
+            return null;
+
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var job = await db.ImportJobs.AsNoTracking().FirstOrDefaultAsync(j => j.Id == id, ct);
+        return job?.ToDto();
     }
 
-    public ImportProgressDto? GetActiveImport()
+    public async Task<ImportProgressDto?> GetActiveImportAsync(CancellationToken ct)
     {
-        return _imports.Values.FirstOrDefault(p => p.Status == "running");
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var job = await db
+            .ImportJobs.AsNoTracking()
+            .Where(j => j.Status == "running")
+            .OrderByDescending(j => j.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+        return job?.ToDto();
     }
 
     public async Task<Result<ImportResult>> ImportFromJsonAsync(
         string jsonPath,
         CancellationToken ct,
-        string? importId = null
+        Guid? jobId = null
     )
     {
         if (!File.Exists(jsonPath))
@@ -104,9 +132,7 @@ public class WordPressImportService(
             var jsonBytes = await File.ReadAllBytesAsync(jsonPath, ct);
             using var doc = JsonDocument.Parse(jsonBytes);
             var root = doc.RootElement;
-
-            var progress = importId != null ? GetImportProgress(importId) : null;
-            return await ProcessImportAsync(root, ct, progress);
+            return await ProcessImportAsync(root, ct, jobId);
         }
         catch (Exception ex)
         {
@@ -118,7 +144,7 @@ public class WordPressImportService(
     public async Task<Result<ImportResult>> ImportFromRestApiAsync(
         string baseUrl,
         CancellationToken ct,
-        string? importId = null
+        Guid? jobId = null
     )
     {
         try
@@ -131,7 +157,6 @@ public class WordPressImportService(
                 ct
             );
 
-            // --- First request: get total pages ---
             var firstUrl = $"/wp-json/wp/v2/posts?per_page=100&page=1&_embed=1";
             var firstResponse = await httpClient.GetAsync(firstUrl, ct);
             firstResponse.EnsureSuccessStatusCode();
@@ -152,16 +177,17 @@ public class WordPressImportService(
 
             var firstBody = await firstResponse.Content.ReadAsStringAsync(ct);
 
-            // --- Process page by page ---
-            var progress = importId != null ? GetImportProgress(importId) : null;
-            if (progress != null)
-                progress.Total = totalPosts > 0 ? totalPosts : totalPages * 100;
-
-            int totalCategoriesCreated = 0;
-            int totalPostsImported = 0;
-            int totalPostsSkipped = 0;
-            int totalErrors = 0;
-            List<string> allErrors = [];
+            if (jobId.HasValue)
+            {
+                await UpdateJobAsync(
+                    jobId.Value,
+                    job =>
+                    {
+                        job.Total = totalPosts > 0 ? totalPosts : totalPages * 100;
+                        job.Processed = 0;
+                    }
+                );
+            }
 
             for (int page = 1; page <= totalPages; page++)
             {
@@ -178,43 +204,21 @@ public class WordPressImportService(
                     $"{{\"categories\":{categoriesJson},\"posts\":{body}}}"
                 );
 
-                var pageResult = await ProcessImportAsync(pageDoc.RootElement, ct, null);
-
-                if (pageResult.IsSuccess && pageResult.Data != null)
-                {
-                    totalCategoriesCreated += pageResult.Data.CategoriesCreated;
-                    totalPostsImported += pageResult.Data.PostsImported;
-                    totalPostsSkipped += pageResult.Data.PostsSkipped;
-                    allErrors.AddRange(pageResult.Data.Errors);
-                    totalErrors += pageResult.Data.Errors.Count;
-                }
-
-                if (progress != null)
-                {
-                    progress.Processed = totalPostsImported + totalPostsSkipped;
-                    progress.Errors = totalErrors;
-                }
+                var pageResult = await ProcessImportAsync(pageDoc.RootElement, ct, jobId);
 
                 logger.LogInformation(
                     "WP REST: page {Page}/{Total} done, imported={Imported}, skipped={Skipped}",
                     page,
                     totalPages,
-                    totalPostsImported,
-                    totalPostsSkipped
+                    pageResult.Data?.PostsImported ?? 0,
+                    pageResult.Data?.PostsSkipped ?? 0
                 );
 
                 if (page < totalPages)
                     await Task.Delay(200, ct);
             }
 
-            return Result<ImportResult>.Ok(
-                new ImportResult(
-                    totalCategoriesCreated,
-                    totalPostsImported,
-                    totalPostsSkipped,
-                    allErrors
-                )
-            );
+            return await GetStoredImportResultAsync(jobId, ct);
         }
         catch (HttpRequestException ex)
         {
@@ -231,14 +235,35 @@ public class WordPressImportService(
         }
     }
 
+    private async Task<Result<ImportResult>> GetStoredImportResultAsync(
+        Guid? jobId,
+        CancellationToken ct
+    )
+    {
+        if (!jobId.HasValue)
+            return Result<ImportResult>.Fail("Не найден ImportJob", 500);
+
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var job = await db.ImportJobs.AsNoTracking().FirstOrDefaultAsync(j => j.Id == jobId, ct);
+        if (job is null)
+            return Result<ImportResult>.Fail("Не найден ImportJob", 500);
+
+        return Result<ImportResult>.Ok(job.ToDto().Result!);
+    }
+
     private async Task<Result<ImportResult>> ProcessImportAsync(
         JsonElement root,
         CancellationToken ct,
-        ImportProgressDto? progress = null
+        Guid? jobId = null
     )
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        ImportJob? job = null;
+        if (jobId.HasValue)
+            job = await db.ImportJobs.FirstOrDefaultAsync(j => j.Id == jobId.Value, ct);
 
         List<string> errors = [];
         int categoriesCreated = 0;
@@ -247,7 +272,6 @@ public class WordPressImportService(
 
         var wpCategoryMap = new Dictionary<int, Guid>();
 
-        // --- 1. Import categories ---
         if (root.TryGetProperty("categories", out var categoriesEl))
         {
             foreach (var cat in categoriesEl.EnumerateArray())
@@ -285,7 +309,6 @@ public class WordPressImportService(
 
         await db.SaveChangesAsync(ct);
 
-        // --- 2. Import posts ---
         if (root.TryGetProperty("posts", out var postsEl))
         {
             var adminUser = await db
@@ -303,8 +326,11 @@ public class WordPressImportService(
             foreach (var _ in postsEl.EnumerateArray())
                 totalPosts++;
 
-            if (progress != null)
-                progress.Total = totalPosts;
+            if (job != null)
+            {
+                job.Total = totalPosts;
+                job.Processed = 0;
+            }
 
             var processed = 0;
             foreach (var post in postsEl.EnumerateArray())
@@ -329,7 +355,6 @@ public class WordPressImportService(
                         .GetProperty("rendered")
                         .GetString();
                     var dateStr = post.GetProperty("date").GetString();
-                    var status = post.GetProperty("status").GetString();
 
                     if (string.IsNullOrWhiteSpace(title))
                     {
@@ -396,8 +421,12 @@ public class WordPressImportService(
                     errors.Add($"Ошибка при импорте поста: {ex.Message}");
                 }
 
-                if (progress != null)
-                    progress.Processed = processed;
+                if (job != null)
+                {
+                    job.Processed = processed;
+                    job.ErrorCount = errors.Count;
+                    job.ErrorMessages = errors;
+                }
 
                 if (postsImported % 50 == 0)
                 {
@@ -407,10 +436,31 @@ public class WordPressImportService(
             }
         }
 
+        if (job != null)
+        {
+            job.CategoriesCreated += categoriesCreated;
+            job.PostsImported += postsImported;
+            job.PostsSkipped += postsSkipped;
+            job.ErrorCount = errors.Count;
+            job.ErrorMessages = errors;
+        }
+
         await db.SaveChangesAsync(ct);
 
         var result = new ImportResult(categoriesCreated, postsImported, postsSkipped, errors);
         return Result<ImportResult>.Ok(result);
+    }
+
+    private async Task UpdateJobAsync(Guid jobId, Action<ImportJob> update)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var job = await db.ImportJobs.FirstOrDefaultAsync(j => j.Id == jobId);
+        if (job is null)
+            return;
+        update(job);
+        job.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
     }
 
     private static string SanitizeHtml(string input)
@@ -429,18 +479,5 @@ public class WordPressImportService(
             .Replace("&laquo;", "«")
             .Replace("&raquo;", "»")
             .Trim();
-    }
-
-    private static void CleanupOldEntries()
-    {
-        var cutoff = DateTime.UtcNow - CleanupAge;
-        var stale = _imports
-            .Where(kvp => kvp.Value.Status != "running" && kvp.Value.CreatedAt < cutoff)
-            .ToList();
-
-        foreach (var kvp in stale)
-        {
-            _imports.TryRemove(kvp.Key, out _);
-        }
     }
 }

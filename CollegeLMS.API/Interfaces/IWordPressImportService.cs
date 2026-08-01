@@ -8,20 +8,20 @@ public interface IWordPressImportService
     Task<Result<ImportResult>> ImportFromJsonAsync(
         string jsonPath,
         CancellationToken ct,
-        string? importId = null
+        Guid? jobId = null
     );
 
     string StartImport(Func<CancellationToken, Task> importAction);
 
     void StopImport(string importId);
 
-    ImportProgressDto? GetImportProgress(string importId);
-    ImportProgressDto? GetActiveImport();
+    Task<ImportProgressDto?> GetImportProgressAsync(string importId, CancellationToken ct);
+    Task<ImportProgressDto?> GetActiveImportAsync(CancellationToken ct);
 
     Task<Result<ImportResult>> ImportFromRestApiAsync(
         string baseUrl,
         CancellationToken ct,
-        string? importId = null
+        Guid? jobId = null
     );
 }
 

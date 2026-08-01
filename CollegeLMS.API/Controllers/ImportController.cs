@@ -34,12 +34,7 @@ public class ImportController(
         string importId = null!;
         importId = importService.StartImport(async ct =>
         {
-            var result = await importService.ImportFromJsonAsync(jsonPath, ct, importId);
-            var progress = importService.GetImportProgress(importId);
-            if (progress != null && result.IsSuccess)
-            {
-                progress.Result = result.Data;
-            }
+            await importService.ImportFromJsonAsync(jsonPath, ct, Guid.Parse(importId));
         });
 
         return Ok(Result<string>.Ok(importId));
@@ -63,12 +58,7 @@ public class ImportController(
         string importId = null!;
         importId = importService.StartImport(async ct =>
         {
-            var result = await importService.ImportFromRestApiAsync(baseUrl, ct, importId);
-            var progress = importService.GetImportProgress(importId);
-            if (progress != null && result.IsSuccess)
-            {
-                progress.Result = result.Data;
-            }
+            await importService.ImportFromRestApiAsync(baseUrl, ct, Guid.Parse(importId));
         });
 
         return Ok(Result<string>.Ok(importId));
@@ -85,9 +75,9 @@ public class ImportController(
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public ActionResult<Result<bool>> StopImport(string importId)
+    public async Task<ActionResult<Result<bool>>> StopImport(string importId, CancellationToken ct)
     {
-        var progress = importService.GetImportProgress(importId);
+        var progress = await importService.GetImportProgressAsync(importId, ct);
         if (progress == null)
             return NotFound(Result<bool>.Fail("Импорт не найден", 404));
 
@@ -102,9 +92,9 @@ public class ImportController(
     [SwaggerResponse(404, "Нет активного импорта")]
     [ProducesResponseType(typeof(Result<ImportProgressDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public ActionResult<Result<ImportProgressDto>> GetActiveImport()
+    public async Task<ActionResult<Result<ImportProgressDto>>> GetActiveImport(CancellationToken ct)
     {
-        var progress = importService.GetActiveImport();
+        var progress = await importService.GetActiveImportAsync(ct);
         if (progress == null)
             return NotFound(Result<ImportProgressDto>.Fail("Нет активного импорта", 404));
 
@@ -122,9 +112,12 @@ public class ImportController(
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public ActionResult<Result<ImportProgressDto>> GetImportStatus(string importId)
+    public async Task<ActionResult<Result<ImportProgressDto>>> GetImportStatus(
+        string importId,
+        CancellationToken ct
+    )
     {
-        var progress = importService.GetImportProgress(importId);
+        var progress = await importService.GetImportProgressAsync(importId, ct);
         if (progress == null)
             return NotFound(Result<ImportProgressDto>.Fail("Импорт не найден", 404));
 

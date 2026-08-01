@@ -8,6 +8,9 @@ public class ImportJob : Entity
     public int Total { get; set; }
     public int Processed { get; set; }
     public int ErrorCount { get; set; }
+    public int CategoriesCreated { get; set; }
+    public int PostsImported { get; set; }
+    public int PostsSkipped { get; set; }
     public string? ErrorMessagesJson { get; set; }
     public DateTime? CompletedAt { get; set; }
 
