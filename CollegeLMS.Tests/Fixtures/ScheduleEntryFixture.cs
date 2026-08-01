@@ -45,7 +45,6 @@ public static class ScheduleEntryFixture
                             FullName = f.Name.FullName(),
                             PasswordHash = "hash",
                             Role = UserRole.Teacher,
-                            IsActive = true,
                         },
                     };
                 }

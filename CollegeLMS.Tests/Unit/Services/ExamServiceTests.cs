@@ -47,7 +47,6 @@ public class ExamServiceTests : IDisposable
             Email = "t@t.ru",
             PasswordHash = "hash",
             Role = UserRole.Teacher,
-            IsActive = true,
         };
         var teacher = new Teacher
         {
@@ -290,5 +289,4 @@ public class ExamServiceTests : IDisposable
         var exists = await _db.Exams.AnyAsync(e => e.Id == exam.Id);
         exists.Should().BeFalse();
     }
-
 }

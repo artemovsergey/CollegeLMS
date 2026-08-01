@@ -100,6 +100,124 @@ public static class UserResponseExample
 builder.Property(x => x.IsActive).HasDefaultValue(true);
 ```
 
+- [ ] **Step 6b: Минимальное жёсткое удаление в UserService (до Task 2)**
+
+`Services/UserService.cs` — заменить `DeleteAsync` (строки 68-79) на временное жёсткое удаление без переприсваивания (Task 2 добавит переприсваивание):
+```csharp
+public async Task<Result> DeleteAsync(Guid id, CancellationToken ct)
+{
+    var user = await db.Users.FindAsync([id], ct);
+    if (user is null)
+        return Result.Fail("Пользователь не найден", 404);
+
+    db.Users.Remove(user);
+    await db.SaveChangesAsync(ct);
+
+    return Result.Ok();
+}
+```
+
+- [ ] **Step 6c: Исправить TeacherService/StudentService (IsActive не существует)**
+
+`Services/TeacherService.cs` — конструктор (строка 12):
+```csharp
+public class TeacherService(AppDbContext db, IUserService userService) : ITeacherService
+```
+`DeleteAsync` (строки 104-119) заменить:
+```csharp
+public async Task<Result> DeleteAsync(Guid id, CancellationToken ct)
+{
+    var teacher = await db
+        .Teachers.AsNoTracking()
+        .FirstOrDefaultAsync(t => t.Id == id, ct);
+
+    if (teacher is null)
+        return Result.Fail("Преподаватель не найден", 404);
+
+    return await userService.DeleteAsync(teacher.UserId, ct);
+}
+```
+(нужен using `CollegeLMS.API.Interfaces` — проверить, уже есть)
+
+`Services/StudentService.cs` — конструктор (строка 13):
+```csharp
+public class StudentService(AppDbContext db, IUserService userService) : IStudentService
+```
+`DeleteAsync` (строки 146-161) заменить:
+```csharp
+public async Task<Result> DeleteAsync(Guid id, CancellationToken ct)
+{
+    var student = await db
+        .Students.AsNoTracking()
+        .FirstOrDefaultAsync(s => s.Id == id, ct);
+
+    if (student is null)
+        return Result.Fail("Студент не найден", 404);
+
+    return await userService.DeleteAsync(student.UserId, ct);
+}
+```
+
+`CollegeLMS.Tests/Unit/Services/TeacherServiceTests.cs` — конструктор:
+```csharp
+public TeacherServiceTests()
+{
+    _db = TestDbContextFactory.Create();
+    _sut = new TeacherService(_db, new UserService(_db));
+}
+```
+Тест `Delete_SoftDeletesTeacher` (строки 133-146) заменить:
+```csharp
+[Fact]
+public async Task Delete_RemovesTeacherAndUser()
+{
+    var admin = UserFixture.CreateFaker().Generate();
+    admin.Role = UserRole.Admin;
+    var teacher = TeacherFixture.CreateFaker().Generate();
+    _db.Users.AddRange(admin, teacher.User);
+    _db.Teachers.Add(teacher);
+    await _db.SaveChangesAsync();
+
+    var result = await _sut.DeleteAsync(teacher.Id, default);
+
+    result.IsSuccess.Should().BeTrue();
+    (await _db.Users.FindAsync(teacher.UserId)).Should().BeNull();
+    (await _db.Teachers.FindAsync(teacher.Id)).Should().BeNull();
+}
+```
+(проверить usings: `UserService`, `UserFixture`, `UserRole`)
+
+`CollegeLMS.Tests/Unit/Services/StudentServiceTests.cs` — конструктор:
+```csharp
+public StudentServiceTests()
+{
+    _db = TestDbContextFactory.Create();
+    _sut = new StudentService(_db, new UserService(_db));
+}
+```
+Тест `Delete_SoftDeletesStudent` (строки 226-240) заменить:
+```csharp
+[Fact]
+public async Task Delete_RemovesStudentAndUser()
+{
+    var admin = UserFixture.CreateFaker().Generate();
+    admin.Role = UserRole.Admin;
+    var student = StudentFixture.CreateFaker().Generate();
+    _db.Users.AddRange(admin, student.User);
+    _db.Groups.Add(student.Group);
+    _db.Students.Add(student);
+    await _db.SaveChangesAsync();
+
+    var result = await _sut.DeleteAsync(student.Id, default);
+
+    result.IsSuccess.Should().BeTrue();
+    (await _db.Users.FindAsync(student.UserId)).Should().BeNull();
+    (await _db.Students.FindAsync(student.Id)).Should().BeNull();
+}
+```
+
+`CollegeLMS.Tests/Integration/Controllers/TeacherControllerTests.cs` и `StudentControllerTests.cs` — заменить тесты DELETE: вместо проверки `IsActive == false` — проверка удаления пользователя (по образцу нового `Delete_RemovesUser_WhenAdmin` из Step 8, но с токеном админа; проверить фактические названия тестов в файле).
+
 - [ ] **Step 7: Создать миграцию**
 
 ```bash

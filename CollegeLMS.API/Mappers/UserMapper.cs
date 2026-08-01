@@ -14,7 +14,6 @@ public static class UserMapper
             Email = entity.Email,
             FullName = entity.FullName,
             Role = entity.Role.ToString(),
-            IsActive = entity.IsActive,
         };
     }
 
@@ -27,7 +26,6 @@ public static class UserMapper
             Email = entity.Email,
             FullName = entity.FullName,
             Role = entity.Role.ToString(),
-            IsActive = entity.IsActive,
         };
 
         if (roleData is Teacher teacher)
@@ -61,7 +59,6 @@ public static class UserMapper
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             FullName = dto.FullName,
             Role = dto.Role,
-            IsActive = true,
         };
     }
 }

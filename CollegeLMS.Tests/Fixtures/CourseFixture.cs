@@ -33,7 +33,6 @@ public static class CourseFixture
                             FullName = f.Name.FullName(),
                             PasswordHash = "hash",
                             Role = UserRole.Teacher,
-                            IsActive = true,
                         },
                     };
                 }

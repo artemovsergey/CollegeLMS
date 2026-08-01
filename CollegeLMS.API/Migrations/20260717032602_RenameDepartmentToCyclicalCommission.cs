@@ -13,7 +13,8 @@ namespace CollegeLMS.Migrations
             migrationBuilder.RenameColumn(
                 name: "department",
                 table: "teachers",
-                newName: "cyclical_commission");
+                newName: "cyclical_commission"
+            );
         }
 
         /// <inheritdoc />
@@ -22,7 +23,8 @@ namespace CollegeLMS.Migrations
             migrationBuilder.RenameColumn(
                 name: "cyclical_commission",
                 table: "teachers",
-                newName: "department");
+                newName: "department"
+            );
         }
     }
 }

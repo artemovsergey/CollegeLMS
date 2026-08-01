@@ -19,6 +19,6 @@ public class TeacherConfiguration : IEntityTypeConfiguration<Teacher>
             .HasOne(x => x.User)
             .WithMany()
             .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

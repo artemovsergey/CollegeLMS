@@ -32,7 +32,6 @@ public class SearchServiceTests : IDisposable
                 FullName = "Admin Test",
                 PasswordHash = "hash",
                 Role = API.Entities.Enums.UserRole.Admin,
-                IsActive = true,
             }
         );
         _db.SaveChanges();

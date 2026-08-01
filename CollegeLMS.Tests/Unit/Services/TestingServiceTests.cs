@@ -302,7 +302,7 @@ public class TestingServiceTests : IDisposable
             test.Id,
             new AssignTestRequest
             {
-                    OpenDate = DateTime.UtcNow,
+                OpenDate = DateTime.UtcNow,
                 CloseDate = DateTime.UtcNow.AddDays(30),
             },
             Guid.NewGuid(),
@@ -406,7 +406,6 @@ public class TestingServiceTests : IDisposable
                 Email = "s@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Student,
-                IsActive = true,
             }
         );
         _db.Students.Add(student);
@@ -469,7 +468,6 @@ public class TestingServiceTests : IDisposable
                 Email = "s@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Student,
-                IsActive = true,
             }
         );
         _db.Students.Add(student);
@@ -547,7 +545,6 @@ public class TestingServiceTests : IDisposable
                 Email = "s@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Student,
-                IsActive = true,
             }
         );
         _db.Students.Add(student);
@@ -617,7 +614,6 @@ public class TestingServiceTests : IDisposable
                 Email = "s@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Student,
-                IsActive = true,
             }
         );
         _db.Students.Add(student);
@@ -668,7 +664,6 @@ public class TestingServiceTests : IDisposable
                 Email = "s@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Student,
-                IsActive = true,
             }
         );
         _db.Students.Add(student);
@@ -712,7 +707,6 @@ public class TestingServiceTests : IDisposable
                 Email = "s@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Student,
-                IsActive = true,
             }
         );
         _db.Students.Add(student);
@@ -789,7 +783,6 @@ public class TestingServiceTests : IDisposable
                 Email = "a@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Admin,
-                IsActive = true,
             }
         );
 
@@ -810,7 +803,6 @@ public class TestingServiceTests : IDisposable
             Email = "s@t.ru",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         student.Group = new Group
         {

@@ -21,7 +21,6 @@ public class StipendControllerTests : BaseIntegrationTest
             FullName = "Admin",
             PasswordHash = "hash",
             Role = UserRole.Admin,
-            IsActive = true,
         };
         return tokenService.GenerateAccessToken(admin);
     }

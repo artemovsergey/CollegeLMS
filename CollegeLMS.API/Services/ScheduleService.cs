@@ -343,8 +343,10 @@ public class ScheduleService(
     )
     {
         var baseQuery = db.ScheduleEntries.Where(s =>
-            s.DayOfWeek == dayOfWeek && s.NumberPair == numberPair
-            && startTime < s.EndTime && endTime > s.StartTime
+            s.DayOfWeek == dayOfWeek
+            && s.NumberPair == numberPair
+            && startTime < s.EndTime
+            && endTime > s.StartTime
         );
 
         if (excludeId.HasValue)

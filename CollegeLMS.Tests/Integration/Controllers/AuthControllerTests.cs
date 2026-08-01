@@ -26,7 +26,6 @@ public class AuthControllerTests : BaseIntegrationTest
             FullName = "Test User",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
             Role = UserRole.Student,
-            IsActive = true,
         };
         db.Users.Add(user);
         await db.SaveChangesAsync();
@@ -59,7 +58,6 @@ public class AuthControllerTests : BaseIntegrationTest
             FullName = "Test User",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
             Role = UserRole.Student,
-            IsActive = true,
         };
         db.Users.Add(user);
         await db.SaveChangesAsync();
@@ -84,32 +82,6 @@ public class AuthControllerTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task Login_ReturnsForbidden_WhenUserDeactivated()
-    {
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
-        var user = new User
-        {
-            Id = Guid.NewGuid(),
-            Login = "testuser",
-            Email = "test@test.ru",
-            FullName = "Test User",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
-            Role = UserRole.Student,
-            IsActive = false,
-        };
-        db.Users.Add(user);
-        await db.SaveChangesAsync();
-
-        var response = await Client.PostAsJsonAsync(
-            "/api/auth/login",
-            new LoginRequest { Login = "testuser", Password = "password123" }
-        );
-
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-    }
-
-    [Fact]
     public async Task Profile_ReturnsUser_WhenAuthenticated()
     {
         using var scope = Factory.Services.CreateScope();
@@ -124,7 +96,6 @@ public class AuthControllerTests : BaseIntegrationTest
             FullName = "Profile User",
             PasswordHash = "hash",
             Role = UserRole.Teacher,
-            IsActive = true,
         };
         db.Users.Add(user);
         await db.SaveChangesAsync();
@@ -165,7 +136,6 @@ public class AuthControllerTests : BaseIntegrationTest
             FullName = "Change PW User",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("old-password"),
             Role = UserRole.Student,
-            IsActive = true,
         };
         db.Users.Add(user);
         await db.SaveChangesAsync();
@@ -200,7 +170,6 @@ public class AuthControllerTests : BaseIntegrationTest
             FullName = "Change PW User 2",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct-password"),
             Role = UserRole.Student,
-            IsActive = true,
         };
         db.Users.Add(user);
         await db.SaveChangesAsync();

@@ -71,8 +71,7 @@ public class UserService(AppDbContext db) : IUserService
         if (user is null)
             return Result.Fail("Пользователь не найден", 404);
 
-        user.IsActive = false;
-        user.UpdatedAt = DateTime.UtcNow;
+        db.Users.Remove(user);
         await db.SaveChangesAsync(ct);
 
         return Result.Ok();

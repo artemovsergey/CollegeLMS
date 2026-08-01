@@ -24,7 +24,6 @@ public class ExamControllerTests : BaseIntegrationTest
             FullName = "Admin",
             PasswordHash = "hash",
             Role = UserRole.Admin,
-            IsActive = true,
         };
         return tokenService.GenerateAccessToken(admin);
     }
@@ -77,7 +76,6 @@ public class ExamControllerTests : BaseIntegrationTest
             Email = "t@t.ru",
             PasswordHash = "hash",
             Role = UserRole.Teacher,
-            IsActive = true,
         };
         var teacher = new Teacher
         {

@@ -18,9 +18,6 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Result<LoginResponse>.Fail("Неверный логин или пароль", 401);
 
-        if (!user.IsActive)
-            return Result<LoginResponse>.Fail("Пользователь деактивирован", 403);
-
         var token = tokenService.GenerateAccessToken(user);
 
         return Result<LoginResponse>.Ok(new LoginResponse { Token = token, User = user.ToDto() });

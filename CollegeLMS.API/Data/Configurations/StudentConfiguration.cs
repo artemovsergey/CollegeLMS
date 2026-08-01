@@ -22,7 +22,7 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
             .HasOne(x => x.User)
             .WithMany()
             .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
         builder
             .HasOne(x => x.Group)
             .WithMany(g => g.Students)

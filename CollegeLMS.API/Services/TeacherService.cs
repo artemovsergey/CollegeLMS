@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class TeacherService(AppDbContext db) : ITeacherService
+public class TeacherService(AppDbContext db, IUserService userService) : ITeacherService
 {
     public async Task<Result<List<TeacherResponse>>> GetAllAsync(CancellationToken ct)
     {
@@ -51,7 +51,6 @@ public class TeacherService(AppDbContext db) : ITeacherService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             FullName = request.FullName,
             Role = UserRole.Teacher,
-            IsActive = true,
         };
         db.Users.Add(user);
 
@@ -103,18 +102,11 @@ public class TeacherService(AppDbContext db) : ITeacherService
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct)
     {
-        var teacher = await db
-            .Teachers.Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.Id == id, ct);
+        var teacher = await db.Teachers.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
 
         if (teacher is null)
             return Result.Fail("Преподаватель не найден", 404);
 
-        teacher.User.IsActive = false;
-        teacher.User.UpdatedAt = DateTime.UtcNow;
-        teacher.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
-
-        return Result.Ok();
+        return await userService.DeleteAsync(teacher.UserId, ct);
     }
 }

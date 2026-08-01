@@ -25,7 +25,6 @@ public class GroupControllerTests : BaseIntegrationTest
             FullName = "Admin",
             PasswordHash = "hash",
             Role = UserRole.Admin,
-            IsActive = true,
         };
         return tokenService.GenerateAccessToken(admin);
     }
@@ -41,7 +40,6 @@ public class GroupControllerTests : BaseIntegrationTest
             FullName = "Student",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         return tokenService.GenerateAccessToken(student);
     }

@@ -34,7 +34,6 @@ public class DashboardControllerTests : BaseIntegrationTest
             FullName = $"{role} User",
             PasswordHash = "hash",
             Role = role,
-            IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };

@@ -14,7 +14,6 @@ public static class LoginResponseExample
                 Email = "user@collegelms.ru",
                 FullName = "Иванов Иван Иванович",
                 Role = "Teacher",
-                IsActive = true,
             },
         };
 }

@@ -34,7 +34,6 @@ public class NewsServiceTests : IDisposable
                 FullName = "Admin Test",
                 PasswordHash = "hash",
                 Role = UserRole.Admin,
-                IsActive = true,
             }
         );
         _db.SaveChanges();

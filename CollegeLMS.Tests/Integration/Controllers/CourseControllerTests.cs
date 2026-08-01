@@ -25,7 +25,6 @@ public class CourseControllerTests : BaseIntegrationTest
             FullName = "Admin",
             PasswordHash = "hash",
             Role = UserRole.Admin,
-            IsActive = true,
         };
         return tokenService.GenerateAccessToken(admin);
     }
@@ -46,7 +45,6 @@ public class CourseControllerTests : BaseIntegrationTest
             FullName = "Student",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         return tokenService.GenerateAccessToken(student);
     }
@@ -223,7 +221,6 @@ public class CourseControllerTests : BaseIntegrationTest
                 Email = "s@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Student,
-                IsActive = true,
             }
         );
         db.Students.Add(student);

@@ -112,7 +112,6 @@ public class LectureServiceTests : IDisposable
                 FullName = "Admin",
                 PasswordHash = "hash",
                 Role = UserRole.Admin,
-                IsActive = true,
             }
         );
         var courseId = Guid.NewGuid();
@@ -152,7 +151,6 @@ public class LectureServiceTests : IDisposable
                 FullName = "Admin",
                 PasswordHash = "hash",
                 Role = UserRole.Admin,
-                IsActive = true,
             }
         );
         var courseId = Guid.NewGuid();
@@ -201,7 +199,6 @@ public class LectureServiceTests : IDisposable
                 FullName = "Admin",
                 PasswordHash = "hash",
                 Role = UserRole.Admin,
-                IsActive = true,
             }
         );
         var courseId = Guid.NewGuid();

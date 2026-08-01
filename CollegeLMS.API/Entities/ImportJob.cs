@@ -13,7 +13,10 @@ public class ImportJob : Entity
 
     public List<string>? ErrorMessages
     {
-        get => ErrorMessagesJson == null ? null : JsonSerializer.Deserialize<List<string>>(ErrorMessagesJson);
+        get =>
+            ErrorMessagesJson == null
+                ? null
+                : JsonSerializer.Deserialize<List<string>>(ErrorMessagesJson);
         set => ErrorMessagesJson = value == null ? null : JsonSerializer.Serialize(value);
     }
 }

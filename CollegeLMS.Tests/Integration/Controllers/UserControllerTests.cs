@@ -28,7 +28,6 @@ public class UserControllerTests : BaseIntegrationTest
             FullName = "Admin",
             PasswordHash = "hash",
             Role = UserRole.Admin,
-            IsActive = true,
         };
         return tokenService.GenerateAccessToken(admin);
     }
@@ -45,7 +44,6 @@ public class UserControllerTests : BaseIntegrationTest
             FullName = "Student",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         return tokenService.GenerateAccessToken(student);
     }
@@ -86,7 +84,6 @@ public class UserControllerTests : BaseIntegrationTest
             .RuleFor(u => u.FullName, f => f.Name.FullName())
             .RuleFor(u => u.PasswordHash, _ => BCrypt.Net.BCrypt.HashPassword("test123"))
             .RuleFor(u => u.Role, f => f.PickRandom<UserRole>())
-            .RuleFor(u => u.IsActive, _ => true)
             .Generate(5);
 
         db.Users.AddRange(fakeUsers);
@@ -211,7 +208,7 @@ public class UserControllerTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task Delete_DeactivatesUser_WhenAdmin()
+    public async Task Delete_RemovesUser_WhenAdmin()
     {
         SetAuthHeader(GetAdminToken());
 
@@ -226,8 +223,8 @@ public class UserControllerTests : BaseIntegrationTest
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var db2 = CreateDbContext();
-        var deactivated = await db2.Users.FindAsync([user.Id]);
-        Assert.False(deactivated!.IsActive);
+        var deleted = await db2.Users.FindAsync([user.Id]);
+        Assert.Null(deleted);
     }
 
     [Fact]
@@ -273,5 +270,4 @@ public class UserControllerTests : BaseIntegrationTest
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
-
 }

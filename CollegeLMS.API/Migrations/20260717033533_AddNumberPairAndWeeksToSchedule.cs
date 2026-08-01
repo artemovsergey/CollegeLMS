@@ -16,26 +16,32 @@ namespace CollegeLMS.Migrations
                 table: "schedule_entries",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
 
             migrationBuilder.AddColumn<List<int>>(
                 name: "weeks",
                 table: "schedule_entries",
                 type: "integer[]",
-                nullable: true);
+                nullable: true
+            );
 
-            migrationBuilder.Sql("UPDATE schedule_entries SET weeks = ARRAY[1] WHERE weeks IS NULL");
+            migrationBuilder.Sql(
+                "UPDATE schedule_entries SET weeks = ARRAY[1] WHERE weeks IS NULL"
+            );
 
             migrationBuilder.AlterColumn<List<int>>(
                 name: "weeks",
                 table: "schedule_entries",
                 type: "integer[]",
-                nullable: false);
+                nullable: false
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_schedule_entries_number_pair",
                 table: "schedule_entries",
-                column: "number_pair");
+                column: "number_pair"
+            );
         }
 
         /// <inheritdoc />
@@ -43,15 +49,12 @@ namespace CollegeLMS.Migrations
         {
             migrationBuilder.DropIndex(
                 name: "ix_schedule_entries_number_pair",
-                table: "schedule_entries");
+                table: "schedule_entries"
+            );
 
-            migrationBuilder.DropColumn(
-                name: "number_pair",
-                table: "schedule_entries");
+            migrationBuilder.DropColumn(name: "number_pair", table: "schedule_entries");
 
-            migrationBuilder.DropColumn(
-                name: "weeks",
-                table: "schedule_entries");
+            migrationBuilder.DropColumn(name: "weeks", table: "schedule_entries");
         }
     }
 }

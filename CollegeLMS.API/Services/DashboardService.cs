@@ -30,7 +30,9 @@ public class DashboardService(AppDbContext db) : IDashboardService
             })
             .ToListAsync(ct);
 
-        return Result<TeacherDashboardResponse>.Ok(new TeacherDashboardResponse { Courses = courses });
+        return Result<TeacherDashboardResponse>.Ok(
+            new TeacherDashboardResponse { Courses = courses }
+        );
     }
 
     public async Task<Result<StudentDashboardResponse>> GetStudentDashboardAsync(
@@ -61,15 +63,19 @@ public class DashboardService(AppDbContext db) : IDashboardService
         {
             var totalAssignments = course.Assignments.Count;
             var completedAssignments = await db.AssignmentSubmissions.CountAsync(
-                s => course.Assignments.Select(a => a.Id).Contains(s.AssignmentId)
-                     && s.StudentId == student.Id && s.Score.HasValue,
+                s =>
+                    course.Assignments.Select(a => a.Id).Contains(s.AssignmentId)
+                    && s.StudentId == student.Id
+                    && s.Score.HasValue,
                 ct
             );
 
             var totalTests = await db.Tests.CountAsync(t => t.CourseId == course.Id, ct);
             var completedTests = await db.TestAttempts.CountAsync(
-                a => a.StudentId == student.Id && a.Test.CourseId == course.Id
-                     && a.Status == Entities.Enums.AttemptStatus.Completed,
+                a =>
+                    a.StudentId == student.Id
+                    && a.Test.CourseId == course.Id
+                    && a.Status == Entities.Enums.AttemptStatus.Completed,
                 ct
             );
 
@@ -77,17 +83,21 @@ public class DashboardService(AppDbContext db) : IDashboardService
             var completed = completedAssignments + completedTests;
             var percent = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
 
-            result.Add(new CourseWithProgressDto
-            {
-                Id = course.Id,
-                Title = course.Title,
-                TeacherName = course.Teacher?.User?.FullName ?? "",
-                CompletionPercent = percent,
-                CompletedItems = completed,
-                TotalItems = total,
-            });
+            result.Add(
+                new CourseWithProgressDto
+                {
+                    Id = course.Id,
+                    Title = course.Title,
+                    TeacherName = course.Teacher?.User?.FullName ?? "",
+                    CompletionPercent = percent,
+                    CompletedItems = completed,
+                    TotalItems = total,
+                }
+            );
         }
 
-        return Result<StudentDashboardResponse>.Ok(new StudentDashboardResponse { Courses = result });
+        return Result<StudentDashboardResponse>.Ok(
+            new StudentDashboardResponse { Courses = result }
+        );
     }
 }

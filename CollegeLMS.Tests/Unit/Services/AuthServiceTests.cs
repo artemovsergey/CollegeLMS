@@ -27,7 +27,6 @@ public class AuthServiceTests : IDisposable
     {
         var user = UserFixture.CreateFaker().Generate();
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct-password");
-        user.IsActive = true;
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
@@ -51,7 +50,6 @@ public class AuthServiceTests : IDisposable
     {
         var user = UserFixture.CreateFaker().Generate();
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct-password");
-        user.IsActive = true;
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
@@ -74,24 +72,6 @@ public class AuthServiceTests : IDisposable
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
-    public async Task LoginAsync_ReturnsFail_WhenUserDeactivated()
-    {
-        var user = UserFixture.CreateFaker().Generate();
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("password");
-        user.IsActive = false;
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-
-        var result = await _sut.LoginAsync(
-            new LoginRequest { Login = user.Login, Password = "password" },
-            CancellationToken.None
-        );
-
-        result.IsSuccess.Should().BeFalse();
-        result.StatusCode.Should().Be(403);
     }
 
     [Fact]

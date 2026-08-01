@@ -30,9 +30,7 @@ public class CreateScheduleRequestValidator : AbstractValidator<CreateScheduleRe
             .LessThan(x => x.EndTime)
             .WithMessage("Время начала должно быть меньше времени окончания");
 
-        RuleFor(x => x.Weeks)
-            .NotEmpty()
-            .WithMessage("Укажите хотя бы одну неделю");
+        RuleFor(x => x.Weeks).NotEmpty().WithMessage("Укажите хотя бы одну неделю");
 
         RuleFor(x => x.LessonType)
             .NotEmpty()
@@ -70,9 +68,7 @@ public class UpdateScheduleRequestValidator : AbstractValidator<UpdateScheduleRe
             .LessThan(x => x.EndTime)
             .WithMessage("Время начала должно быть меньше времени окончания");
 
-        RuleFor(x => x.Weeks)
-            .NotEmpty()
-            .WithMessage("Укажите хотя бы одну неделю");
+        RuleFor(x => x.Weeks).NotEmpty().WithMessage("Укажите хотя бы одну неделю");
 
         RuleFor(x => x.LessonType)
             .NotEmpty()

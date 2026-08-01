@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class StudentService(AppDbContext db) : IStudentService
+public class StudentService(AppDbContext db, IUserService userService) : IStudentService
 {
     public async Task<Result<List<StudentResponse>>> GetAllAsync(
         Guid? groupId,
@@ -74,7 +74,6 @@ public class StudentService(AppDbContext db) : IStudentService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             FullName = request.FullName,
             Role = UserRole.Student,
-            IsActive = true,
         };
         db.Users.Add(user);
 
@@ -145,19 +144,12 @@ public class StudentService(AppDbContext db) : IStudentService
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct)
     {
-        var student = await db
-            .Students.Include(s => s.User)
-            .FirstOrDefaultAsync(s => s.Id == id, ct);
+        var student = await db.Students.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
 
         if (student is null)
             return Result.Fail("Студент не найден", 404);
 
-        student.User.IsActive = false;
-        student.User.UpdatedAt = DateTime.UtcNow;
-        student.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
-
-        return Result.Ok();
+        return await userService.DeleteAsync(student.UserId, ct);
     }
 
     public async Task<Result<StudentImportProgress>> ImportAsync(
@@ -233,7 +225,6 @@ public class StudentService(AppDbContext db) : IStudentService
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
                 FullName = fullName,
                 Role = UserRole.Student,
-                IsActive = true,
             };
             db.Users.Add(user);
 

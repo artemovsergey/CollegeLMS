@@ -32,7 +32,6 @@ public class SubmissionServiceTests : IDisposable
             FullName = "Student",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         _db.Users.Add(user);
 
@@ -63,7 +62,14 @@ public class SubmissionServiceTests : IDisposable
             Status = CourseStatus.Active,
         };
         _db.Courses.Add(course);
-        _db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = groupId });
+        _db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = groupId,
+            }
+        );
 
         var assignment = new Assignment
         {
@@ -101,7 +107,6 @@ public class SubmissionServiceTests : IDisposable
             FullName = "Student",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         _db.Users.Add(user);
 
@@ -168,7 +173,6 @@ public class SubmissionServiceTests : IDisposable
             FullName = "Student",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         _db.Users.Add(user);
 
@@ -199,7 +203,14 @@ public class SubmissionServiceTests : IDisposable
             Status = CourseStatus.Active,
         };
         _db.Courses.Add(course);
-        _db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = groupId });
+        _db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = groupId,
+            }
+        );
 
         var assignment = new Assignment
         {
@@ -242,7 +253,6 @@ public class SubmissionServiceTests : IDisposable
             FullName = "Teacher",
             PasswordHash = "hash",
             Role = UserRole.Teacher,
-            IsActive = true,
         };
         _db.Users.Add(teacherUser);
 
@@ -280,7 +290,6 @@ public class SubmissionServiceTests : IDisposable
             FullName = "Submitter",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         _db.Users.Add(submitterUser);
 
@@ -326,7 +335,6 @@ public class SubmissionServiceTests : IDisposable
             FullName = "Teacher",
             PasswordHash = "hash",
             Role = UserRole.Teacher,
-            IsActive = true,
         };
         _db.Users.Add(teacherUser);
 
@@ -364,7 +372,6 @@ public class SubmissionServiceTests : IDisposable
             FullName = "Submitter",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         _db.Users.Add(submitterUser);
 
@@ -410,7 +417,6 @@ public class SubmissionServiceTests : IDisposable
             FullName = "Student",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         _db.Users.Add(user);
 

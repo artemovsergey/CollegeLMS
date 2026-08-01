@@ -68,7 +68,6 @@ public class CourseServiceTests : IDisposable
                 FullName = "Учитель",
                 PasswordHash = "hash",
                 Role = UserRole.Teacher,
-                IsActive = true,
             }
         );
         _db.Teachers.Add(teacher);
@@ -136,18 +135,13 @@ public class CourseServiceTests : IDisposable
                 FullName = "Учитель",
                 PasswordHash = "hash",
                 Role = UserRole.Teacher,
-                IsActive = true,
             }
         );
         _db.Teachers.Add(teacher);
         await _db.SaveChangesAsync();
 
         var result = await _sut.CreateAsync(
-            new CreateCourseRequest
-            {
-                Title = "Новый курс",
-                Description = "Описание",
-            },
+            new CreateCourseRequest { Title = "Новый курс", Description = "Описание" },
             teacherUserId,
             "Teacher",
             default
@@ -379,7 +373,6 @@ public class CourseServiceTests : IDisposable
                 Email = "s@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Student,
-                IsActive = true,
             }
         );
         _db.Students.Add(student);
@@ -443,7 +436,6 @@ public class CourseServiceTests : IDisposable
                 Email = "s@t.ru",
                 PasswordHash = "hash",
                 Role = UserRole.Student,
-                IsActive = true,
             }
         );
         _db.Students.Add(student);
@@ -465,7 +457,6 @@ public class CourseServiceTests : IDisposable
                 FullName = "Admin",
                 PasswordHash = "hash",
                 Role = UserRole.Admin,
-                IsActive = true,
             }
         );
         _db.SaveChanges();

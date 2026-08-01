@@ -72,55 +72,55 @@ public class ScheduleExportService(AppDbContext db)
 
                 page.Header().Text("Расписание занятий").SemiBold().FontSize(16).AlignCenter();
 
-                    page.Content()
-                        .Table(table =>
+                page.Content()
+                    .Table(table =>
+                    {
+                        table.ColumnsDefinition(c =>
                         {
-                            table.ColumnsDefinition(c =>
-                            {
-                                c.RelativeColumn(1);
-                                c.RelativeColumn(3);
-                                c.RelativeColumn(2);
-                                c.RelativeColumn(0.7f);
-                                c.RelativeColumn(0.5f);
-                                c.RelativeColumn(1);
-                                c.RelativeColumn(1);
-                                c.RelativeColumn(1);
-                                c.RelativeColumn(1);
-                                c.RelativeColumn(1.5f);
-                            });
-
-                            table.Header(h =>
-                            {
-                                h.Cell().Text("День").Bold();
-                                h.Cell().Text("Предмет").Bold();
-                                h.Cell().Text("Преподаватель").Bold();
-                                h.Cell().Text("Пара").Bold();
-                                h.Cell().Text("Ауд.").Bold();
-                                h.Cell().Text("Начало").Bold();
-                                h.Cell().Text("Конец").Bold();
-                                h.Cell().Text("Группа").Bold();
-                                h.Cell().Text("Тип").Bold();
-                                h.Cell().Text("Недели").Bold();
-                            });
-
-                            foreach (var e in entries)
-                            {
-                                table
-                                    .Cell()
-                                    .Text(
-                                        DaysMap.GetValueOrDefault(e.DayOfWeek, e.DayOfWeek.ToString())
-                                    );
-                                table.Cell().Text(e.Subject);
-                                table.Cell().Text(e.Teacher?.User?.FullName ?? "");
-                                table.Cell().Text(e.NumberPair.ToString());
-                                table.Cell().Text(e.Room);
-                                table.Cell().Text(e.StartTime.ToString(@"hh\:mm"));
-                                table.Cell().Text(e.EndTime.ToString(@"hh\:mm"));
-                                table.Cell().Text(e.Group?.Name ?? "");
-                                table.Cell().Text(e.LessonType.ToString());
-                                table.Cell().Text(string.Join(", ", e.Weeks));
-                            }
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(3);
+                            c.RelativeColumn(2);
+                            c.RelativeColumn(0.7f);
+                            c.RelativeColumn(0.5f);
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(1);
+                            c.RelativeColumn(1.5f);
                         });
+
+                        table.Header(h =>
+                        {
+                            h.Cell().Text("День").Bold();
+                            h.Cell().Text("Предмет").Bold();
+                            h.Cell().Text("Преподаватель").Bold();
+                            h.Cell().Text("Пара").Bold();
+                            h.Cell().Text("Ауд.").Bold();
+                            h.Cell().Text("Начало").Bold();
+                            h.Cell().Text("Конец").Bold();
+                            h.Cell().Text("Группа").Bold();
+                            h.Cell().Text("Тип").Bold();
+                            h.Cell().Text("Недели").Bold();
+                        });
+
+                        foreach (var e in entries)
+                        {
+                            table
+                                .Cell()
+                                .Text(
+                                    DaysMap.GetValueOrDefault(e.DayOfWeek, e.DayOfWeek.ToString())
+                                );
+                            table.Cell().Text(e.Subject);
+                            table.Cell().Text(e.Teacher?.User?.FullName ?? "");
+                            table.Cell().Text(e.NumberPair.ToString());
+                            table.Cell().Text(e.Room);
+                            table.Cell().Text(e.StartTime.ToString(@"hh\:mm"));
+                            table.Cell().Text(e.EndTime.ToString(@"hh\:mm"));
+                            table.Cell().Text(e.Group?.Name ?? "");
+                            table.Cell().Text(e.LessonType.ToString());
+                            table.Cell().Text(string.Join(", ", e.Weeks));
+                        }
+                    });
 
                 page.Footer()
                     .AlignCenter()

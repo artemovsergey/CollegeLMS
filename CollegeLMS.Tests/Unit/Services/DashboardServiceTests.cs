@@ -50,7 +50,14 @@ public class DashboardServiceTests : IDisposable
         _db.Students.Add(student);
         _db.Groups.Add(group);
         _db.Courses.Add(course);
-        _db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = group.Id });
+        _db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = group.Id,
+            }
+        );
         _db.Assignments.Add(assignment);
         _db.AssignmentSubmissions.Add(submission);
         await _db.SaveChangesAsync();
@@ -107,7 +114,14 @@ public class DashboardServiceTests : IDisposable
         _db.Teachers.Add(teacher);
         _db.Groups.Add(group);
         _db.Courses.Add(course);
-        _db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = group.Id });
+        _db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = group.Id,
+            }
+        );
         _db.Assignments.Add(assignment);
         _db.AssignmentSubmissions.Add(submission);
         await _db.SaveChangesAsync();

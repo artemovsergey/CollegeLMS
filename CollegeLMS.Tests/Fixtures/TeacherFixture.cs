@@ -24,7 +24,6 @@ public static class TeacherFixture
                         FullName = f.Name.FullName(),
                         PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
                         Role = UserRole.Teacher,
-                        IsActive = true,
                         CreatedAt = t.CreatedAt,
                         UpdatedAt = t.UpdatedAt,
                     };

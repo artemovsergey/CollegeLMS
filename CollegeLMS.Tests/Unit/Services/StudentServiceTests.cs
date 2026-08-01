@@ -17,7 +17,7 @@ public class StudentServiceTests : IDisposable
     public StudentServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        _sut = new StudentService(_db);
+        _sut = new StudentService(_db, new UserService(_db));
     }
 
     public void Dispose() => _db.Dispose();
@@ -83,7 +83,6 @@ public class StudentServiceTests : IDisposable
                         FullName = $"S{i}",
                         PasswordHash = "h",
                         Role = UserRole.Student,
-                        IsActive = true,
                     },
                     Group = group,
                 }
@@ -104,7 +103,6 @@ public class StudentServiceTests : IDisposable
                 FullName = "O",
                 PasswordHash = "h",
                 Role = UserRole.Student,
-                IsActive = true,
             },
             Group = otherGroup,
         };
@@ -224,10 +222,12 @@ public class StudentServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Delete_SoftDeletesStudent()
+    public async Task Delete_RemovesStudentAndUser()
     {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
         var student = StudentFixture.CreateFaker().Generate();
-        _db.Users.Add(student.User);
+        _db.Users.AddRange(admin, student.User);
         _db.Groups.Add(student.Group);
         _db.Students.Add(student);
         await _db.SaveChangesAsync();
@@ -235,8 +235,8 @@ public class StudentServiceTests : IDisposable
         var result = await _sut.DeleteAsync(student.Id, default);
 
         result.IsSuccess.Should().BeTrue();
-        var user = await _db.Users.FindAsync(student.UserId);
-        user!.IsActive.Should().BeFalse();
+        (await _db.Users.FindAsync(student.UserId)).Should().BeNull();
+        (await _db.Students.FindAsync(student.Id)).Should().BeNull();
     }
 
     [Fact]

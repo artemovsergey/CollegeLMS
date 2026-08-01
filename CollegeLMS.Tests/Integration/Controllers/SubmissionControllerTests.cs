@@ -25,7 +25,6 @@ public class SubmissionControllerTests : BaseIntegrationTest
             FullName = $"{role} User",
             PasswordHash = "hash",
             Role = role,
-            IsActive = true,
         };
         db.Users.Add(user);
         db.SaveChanges();
@@ -73,7 +72,14 @@ public class SubmissionControllerTests : BaseIntegrationTest
             Status = CourseStatus.Active,
         };
         db.Courses.Add(course);
-        db.CourseGroups.Add(new CourseGroup { Id = Guid.NewGuid(), CourseId = course.Id, GroupId = groupId });
+        db.CourseGroups.Add(
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                GroupId = groupId,
+            }
+        );
 
         var assignment = new Assignment
         {
@@ -196,7 +202,6 @@ public class SubmissionControllerTests : BaseIntegrationTest
             FullName = "Submitter",
             PasswordHash = "hash",
             Role = UserRole.Student,
-            IsActive = true,
         };
         db.Users.Add(submitterUser);
 

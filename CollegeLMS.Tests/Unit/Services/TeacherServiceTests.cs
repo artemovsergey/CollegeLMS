@@ -14,7 +14,7 @@ public class TeacherServiceTests : IDisposable
     public TeacherServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        _sut = new TeacherService(_db);
+        _sut = new TeacherService(_db, new UserService(_db));
     }
 
     public void Dispose() => _db.Dispose();
@@ -131,17 +131,19 @@ public class TeacherServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Delete_SoftDeletesTeacher()
+    public async Task Delete_RemovesTeacherAndUser()
     {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = API.Entities.Enums.UserRole.Admin;
         var teacher = TeacherFixture.CreateFaker().Generate();
-        _db.Users.Add(teacher.User);
+        _db.Users.AddRange(admin, teacher.User);
         _db.Teachers.Add(teacher);
         await _db.SaveChangesAsync();
 
         var result = await _sut.DeleteAsync(teacher.Id, default);
 
         result.IsSuccess.Should().BeTrue();
-        var user = await _db.Users.FindAsync(teacher.UserId);
-        user!.IsActive.Should().BeFalse();
+        (await _db.Users.FindAsync(teacher.UserId)).Should().BeNull();
+        (await _db.Teachers.FindAsync(teacher.Id)).Should().BeNull();
     }
 }

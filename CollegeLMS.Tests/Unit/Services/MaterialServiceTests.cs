@@ -94,7 +94,6 @@ public class MaterialServiceTests : IDisposable
                 FullName = "Admin",
                 PasswordHash = "hash",
                 Role = UserRole.Admin,
-                IsActive = true,
             }
         );
 
@@ -139,7 +138,6 @@ public class MaterialServiceTests : IDisposable
                 FullName = "Admin",
                 PasswordHash = "hash",
                 Role = UserRole.Admin,
-                IsActive = true,
             }
         );
 

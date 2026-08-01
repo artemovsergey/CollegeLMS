@@ -86,7 +86,6 @@ public class UserServiceTests : IDisposable
         result.Data!.Login.Should().Be("newuser");
         result.Data.Email.Should().Be("new@test.ru");
         result.Data.FullName.Should().Be("New User");
-        result.Data.IsActive.Should().BeTrue();
     }
 
     [Fact]
@@ -152,7 +151,7 @@ public class UserServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteAsync_DeactivatesUser()
+    public async Task DeleteAsync_RemovesUser()
     {
         var user = UserFixture.CreateFaker().Generate();
         _db.Users.Add(user);
@@ -163,7 +162,7 @@ public class UserServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
 
         var deleted = await _db.Users.FindAsync([user.Id]);
-        deleted!.IsActive.Should().BeFalse();
+        deleted.Should().BeNull();
     }
 
     [Fact]
@@ -201,5 +200,4 @@ public class UserServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
     }
-
 }

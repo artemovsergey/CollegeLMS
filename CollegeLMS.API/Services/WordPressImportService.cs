@@ -16,7 +16,8 @@ public class WordPressImportService(
 ) : IWordPressImportService
 {
     private static readonly ConcurrentDictionary<string, ImportProgressDto> _imports = new();
-    private static readonly ConcurrentDictionary<string, CancellationTokenSource> _importCts = new();
+    private static readonly ConcurrentDictionary<string, CancellationTokenSource> _importCts =
+        new();
 
     private static readonly TimeSpan CleanupAge = TimeSpan.FromMinutes(30);
 
@@ -32,36 +33,39 @@ public class WordPressImportService(
         _importCts[importId] = cts;
         var token = cts.Token;
 
-        _ = Task.Run(async () =>
-        {
-            try
+        _ = Task.Run(
+            async () =>
             {
-                var progressRef = _imports[importId];
-                progressRef.Status = "running";
-
-                await importAction(token);
-
-                progressRef.Status = token.IsCancellationRequested ? "cancelled" : "completed";
-            }
-            catch (OperationCanceledException)
-            {
-                if (_imports.TryGetValue(importId, out var p))
-                    p.Status = "cancelled";
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Import {ImportId} failed", importId);
-                if (_imports.TryGetValue(importId, out var p))
+                try
                 {
-                    p.Status = "failed";
-                    p.ErrorMessages.Add(ex.Message);
+                    var progressRef = _imports[importId];
+                    progressRef.Status = "running";
+
+                    await importAction(token);
+
+                    progressRef.Status = token.IsCancellationRequested ? "cancelled" : "completed";
                 }
-            }
-            finally
-            {
-                _importCts.TryRemove(importId, out _);
-            }
-        }, token);
+                catch (OperationCanceledException)
+                {
+                    if (_imports.TryGetValue(importId, out var p))
+                        p.Status = "cancelled";
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Import {ImportId} failed", importId);
+                    if (_imports.TryGetValue(importId, out var p))
+                    {
+                        p.Status = "failed";
+                        p.ErrorMessages.Add(ex.Message);
+                    }
+                }
+                finally
+                {
+                    _importCts.TryRemove(importId, out _);
+                }
+            },
+            token
+        );
 
         return importId;
     }

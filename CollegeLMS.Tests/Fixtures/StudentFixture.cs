@@ -27,7 +27,6 @@ public static class StudentFixture
                         FullName = f.Name.FullName(),
                         PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
                         Role = UserRole.Student,
-                        IsActive = true,
                         CreatedAt = s.CreatedAt,
                         UpdatedAt = s.UpdatedAt,
                     };

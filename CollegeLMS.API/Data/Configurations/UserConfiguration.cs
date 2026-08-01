@@ -24,7 +24,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.FullName).HasMaxLength(200);
 
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(50);
-        builder.Property(x => x.IsActive).HasDefaultValue(true);
 
         // CHECK constraints — in Data/DbConstraints.cs (not here)
     }
