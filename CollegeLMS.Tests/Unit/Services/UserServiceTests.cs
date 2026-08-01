@@ -4,6 +4,7 @@ using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.Tests.Unit.Services;
 
@@ -153,8 +154,10 @@ public class UserServiceTests : IDisposable
     [Fact]
     public async Task DeleteAsync_RemovesUser()
     {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
         var user = UserFixture.CreateFaker().Generate();
-        _db.Users.Add(user);
+        _db.Users.AddRange(admin, user);
         await _db.SaveChangesAsync();
 
         var result = await _sut.DeleteAsync(user.Id, CancellationToken.None);
@@ -199,5 +202,113 @@ public class UserServiceTests : IDisposable
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ReassignsNewsToSystemAdmin()
+    {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
+        var victim = UserFixture.CreateFaker().Generate();
+        victim.Role = UserRole.Teacher;
+        _db.Users.AddRange(admin, victim);
+        await _db.SaveChangesAsync();
+
+        var news = new API.Entities.News
+        {
+            Title = "Новость",
+            Slug = "novost",
+            Content = "Текст",
+            CreatedById = victim.Id,
+            PublishedAt = DateTime.UtcNow,
+        };
+        _db.News.Add(news);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.DeleteAsync(victim.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        (await _db.News.FindAsync([news.Id])).Should().NotBeNull();
+        _db.News.AsNoTracking().Single().CreatedById.Should().Be(admin.Id);
+        (await _db.Users.FindAsync([victim.Id])).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ReassignsCoursesToAdminTeacherProfile()
+    {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
+        var victim = UserFixture.CreateFaker().Generate();
+        victim.Role = UserRole.Teacher;
+        _db.Users.AddRange(admin, victim);
+        await _db.SaveChangesAsync();
+
+        var teacher = new API.Entities.Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = victim.Id,
+            CyclicalCommission = "ИВТ",
+            Position = "Преподаватель",
+        };
+        var course = new API.Entities.Course
+        {
+            Title = "Курс",
+            Description = "Описание",
+            TeacherId = teacher.Id,
+            Status = CourseStatus.Active,
+        };
+        _db.Teachers.Add(teacher);
+        _db.Courses.Add(course);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.DeleteAsync(victim.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var adminTeacher = await _db.Teachers.FirstOrDefaultAsync(t => t.UserId == admin.Id);
+        adminTeacher.Should().NotBeNull();
+        _db.Courses.AsNoTracking().Single().TeacherId.Should().Be(adminTeacher!.Id);
+        (await _db.Teachers.FindAsync([teacher.Id])).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_DeletesTeacherAndStudentProfiles()
+    {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
+        var victim = UserFixture.CreateFaker().Generate();
+        victim.Role = UserRole.Student;
+        _db.Users.AddRange(admin, victim);
+        await _db.SaveChangesAsync();
+
+        var student = new API.Entities.Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = victim.Id,
+            GroupId = Guid.NewGuid(),
+            RecordBookNumber = "001",
+        };
+        _db.Students.Add(student);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.DeleteAsync(victim.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        (await _db.Students.FindAsync([student.Id])).Should().BeNull();
+        (await _db.Users.FindAsync([victim.Id])).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ReturnsFail_WhenLastAdmin()
+    {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
+        _db.Users.Add(admin);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.DeleteAsync(admin.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(409);
+        (await _db.Users.FindAsync([admin.Id])).Should().NotBeNull();
     }
 }

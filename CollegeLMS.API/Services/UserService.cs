@@ -1,6 +1,7 @@
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
+using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Response;
@@ -70,6 +71,53 @@ public class UserService(AppDbContext db) : IUserService
         var user = await db.Users.FindAsync([id], ct);
         if (user is null)
             return Result.Fail("Пользователь не найден", 404);
+
+        var admin = await db
+            .Users.AsNoTracking()
+            .Where(u => u.Role == UserRole.Admin)
+            .OrderBy(u => u.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (admin is null)
+            return Result.Fail("Не найден системный администратор", 500);
+
+        if (admin.Id == user.Id)
+        {
+            var adminsCount = await db.Users.CountAsync(u => u.Role == UserRole.Admin, ct);
+            if (adminsCount == 1)
+                return Result.Fail("Нельзя удалить последнего администратора", 409);
+        }
+
+        var news = await db.News.Where(n => n.CreatedById == id).ToListAsync(ct);
+        foreach (var item in news)
+            item.CreatedById = admin.Id;
+
+        var teacher = await db.Teachers.FirstOrDefaultAsync(t => t.UserId == id, ct);
+        if (teacher is not null)
+        {
+            var adminTeacher = await db.Teachers.FirstOrDefaultAsync(t => t.UserId == admin.Id, ct);
+            if (adminTeacher is null)
+            {
+                adminTeacher = new Teacher
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = admin.Id,
+                    CyclicalCommission = "Администрация",
+                    Position = "Преподаватель",
+                };
+                db.Teachers.Add(adminTeacher);
+            }
+
+            var courses = await db.Courses.Where(c => c.TeacherId == teacher.Id).ToListAsync(ct);
+            foreach (var course in courses)
+                course.TeacherId = adminTeacher.Id;
+
+            var exams = await db.Exams.Where(e => e.TeacherId == teacher.Id).ToListAsync(ct);
+            foreach (var exam in exams)
+                exam.TeacherId = adminTeacher.Id;
+
+            db.Teachers.Remove(teacher);
+        }
 
         db.Users.Remove(user);
         await db.SaveChangesAsync(ct);

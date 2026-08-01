@@ -214,8 +214,10 @@ public class UserControllerTests : BaseIntegrationTest
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
         var user = UserFixture.CreateFaker().Generate();
-        db.Users.Add(user);
+        db.Users.AddRange(admin, user);
         await db.SaveChangesAsync();
 
         var response = await Client.DeleteAsync($"/api/users/{user.Id}");
@@ -225,6 +227,27 @@ public class UserControllerTests : BaseIntegrationTest
         var db2 = CreateDbContext();
         var deleted = await db2.Users.FindAsync([user.Id]);
         Assert.Null(deleted);
+    }
+
+    [Fact]
+    public async Task Delete_ReturnsConflict_WhenLastAdmin()
+    {
+        SetAuthHeader(GetAdminToken());
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
+        db.Users.Add(admin);
+        await db.SaveChangesAsync();
+
+        var response = await Client.DeleteAsync($"/api/users/{admin.Id}");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        var db2 = CreateDbContext();
+        var stillThere = await db2.Users.FindAsync([admin.Id]);
+        Assert.NotNull(stillThere);
     }
 
     [Fact]

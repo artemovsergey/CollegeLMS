@@ -23,7 +23,7 @@ public class AssignmentSubmissionConfiguration : IEntityTypeConfiguration<Assign
             .HasOne(x => x.Student)
             .WithMany(s => s.Submissions)
             .HasForeignKey(x => x.StudentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
         builder
             .HasIndex(x => new { x.AssignmentId, x.StudentId })
             .HasDatabaseName("ix_assignment_submissions_assignment_id_student_id");

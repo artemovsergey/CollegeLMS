@@ -22,7 +22,7 @@ public class TestAttemptConfiguration : IEntityTypeConfiguration<TestAttempt>
             .HasOne(x => x.Student)
             .WithMany(s => s.TestAttempts)
             .HasForeignKey(x => x.StudentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => x.TestId).HasDatabaseName("ix_test_attempts_test_id");
         builder.HasIndex(x => x.StudentId).HasDatabaseName("ix_test_attempts_student_id");
     }

@@ -16,7 +16,7 @@ public class TransferRecordConfiguration : IEntityTypeConfiguration<TransferReco
             .HasOne(x => x.Student)
             .WithMany()
             .HasForeignKey(x => x.StudentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => x.StudentId).HasDatabaseName("ix_transfer_records_student_id");
     }
 }

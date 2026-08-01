@@ -21,6 +21,6 @@ public class StipendListItemConfiguration : IEntityTypeConfiguration<StipendList
             .HasOne(x => x.Student)
             .WithMany()
             .HasForeignKey(x => x.StudentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

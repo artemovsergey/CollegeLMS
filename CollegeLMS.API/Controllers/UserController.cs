@@ -135,26 +135,33 @@ public class UserController(IUserService service) : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>Деактивировать пользователя (мягкое удаление).</summary>
+    /// <summary>Удалить пользователя (жёсткое удаление).</summary>
     /// <param name="id">Идентификатор пользователя</param>
     /// <param name="ct">Токен отмены</param>
-    /// <response code="200">Пользователь деактивирован</response>
+    /// <remarks>
+    /// Новости и курсы пользователя переприсваиваются системному администратору,
+    /// профили Teacher/Student и связанные данные удаляются каскадом.
+    /// </remarks>
+    /// <response code="200">Пользователь удалён</response>
     /// <response code="401">Не авторизован</response>
     /// <response code="403">Доступ запрещён (требуется роль Admin)</response>
     /// <response code="404">Пользователь не найден</response>
+    /// <response code="409">Нельзя удалить последнего администратора</response>
     /// <response code="500">Ошибка сервера</response>
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin")]
-    [SwaggerOperation(Summary = "Деактивировать пользователя")]
-    [SwaggerResponse(200, "Пользователь деактивирован", typeof(Result))]
+    [SwaggerOperation(Summary = "Удалить пользователя (жёсткое удаление)")]
+    [SwaggerResponse(200, "Пользователь удалён", typeof(Result))]
     [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(403, "Доступ запрещён")]
     [SwaggerResponse(404, "Пользователь не найден")]
+    [SwaggerResponse(409, "Нельзя удалить последнего администратора")]
     [SwaggerResponse(500, "Ошибка сервера")]
     [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result>> Delete(Guid id, CancellationToken ct)
     {

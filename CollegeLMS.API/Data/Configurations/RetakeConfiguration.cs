@@ -23,7 +23,7 @@ public class RetakeConfiguration : IEntityTypeConfiguration<Retake>
             .HasOne(x => x.Student)
             .WithMany()
             .HasForeignKey(x => x.StudentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => x.ExamId).HasDatabaseName("ix_retakes_exam_id");
     }
 }
