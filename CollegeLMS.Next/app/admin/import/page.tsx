@@ -18,12 +18,6 @@ export default function AdminImportPage() {
   const [polling, setPolling] = useState(false)
 
   useEffect(() => {
-    const storedId = localStorage.getItem("importId")
-    if (storedId) {
-      setPolling(true)
-      pollStatus(storedId)
-      return
-    }
     api
       .get<Result<ImportProgressDto>>("/api/import/wordpress/active")
       .then((res) => {
@@ -31,7 +25,6 @@ export default function AdminImportPage() {
         if (body.isSuccess && body.data) {
           setProgress(body.data)
           setPolling(true)
-          localStorage.setItem("importId", body.data.importId)
           pollStatus(body.data.importId)
         }
       })
@@ -54,7 +47,6 @@ export default function AdminImportPage() {
       }
 
       const importId = body.data
-      localStorage.setItem("importId", importId)
       setLoading(false)
       setPolling(true)
       pollStatus(importId)
@@ -77,9 +69,6 @@ export default function AdminImportPage() {
           if (body.data.status === "completed" || body.data.status === "failed") {
             clearInterval(interval)
             setPolling(false)
-            if (body.data.status === "completed") {
-              localStorage.removeItem("importId")
-            }
           }
         } else {
           clearInterval(interval)
@@ -103,6 +92,11 @@ export default function AdminImportPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Импорт данных</h2>
       </div>
+
+      <p className="text-sm text-muted-foreground">
+        Импорт новостей и категорий из WordPress (stvcc.ru). Импорт асинхронный — можно покинуть
+        страницу и вернуться позже.
+      </p>
 
       {error && <ErrorBanner message={error} />}
 

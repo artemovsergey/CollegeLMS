@@ -398,6 +398,11 @@ export default function AdminNewsPage() {
         </div>
       </div>
 
+      <p className="text-xs text-muted-foreground">
+        Импорт новостей и категорий из WordPress (stvcc.ru). Импорт асинхронный — можно покинуть
+        страницу и вернуться позже.
+      </p>
+
       {importProgress && (
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-center justify-between mb-2">
