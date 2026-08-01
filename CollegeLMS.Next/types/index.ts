@@ -40,6 +40,7 @@ export interface Result<T> {
   data: T | null
   errorMessage: string | null
   statusCode: number
+  errors?: Record<string, string[]>
 }
 
 export interface GroupResponse {

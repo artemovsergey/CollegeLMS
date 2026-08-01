@@ -12,10 +12,13 @@ import type {
 } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
+import ContentRenderer from "@/components/ContentRenderer"
+import FormField from "@/components/FormField"
+import FormErrorBanner from "@/components/FormErrorBanner"
+import { parseErrors } from "@/lib/errors"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -75,6 +78,8 @@ export default function AdminNewsPage() {
   const [formImageUrl, setFormImageUrl] = useState("")
   const [formCategoryId, setFormCategoryId] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
+  const [showPreview, setShowPreview] = useState(false)
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [uploading, setUploading] = useState(false)
 
@@ -183,6 +188,8 @@ export default function AdminNewsPage() {
     setFormImageUrl("")
     setFormCategoryId("")
     setFormError(null)
+    setFieldErrors({})
+    setShowPreview(false)
     setShowCreate(false)
     setEditingId(null)
   }
@@ -194,6 +201,8 @@ export default function AdminNewsPage() {
     setFormImageUrl(item.imageUrl ?? "")
     setFormCategoryId(item.categoryId ?? "")
     setFormError(null)
+    setFieldErrors({})
+    setShowPreview(false)
   }
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -214,9 +223,12 @@ export default function AdminNewsPage() {
         toast("Новость создана")
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка создания")
+        setFieldErrors(res.data.errors ?? {})
       }
-    } catch {
-      setFormError("Ошибка создания новости")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormError(parsed.message)
+      setFieldErrors(parsed.fieldErrors)
     } finally {
       setFormSubmitting(false)
     }
@@ -241,9 +253,12 @@ export default function AdminNewsPage() {
         toast("Новость обновлена")
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка обновления")
+        setFieldErrors(res.data.errors ?? {})
       }
-    } catch {
-      setFormError("Ошибка обновления новости")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormError(parsed.message)
+      setFieldErrors(parsed.fieldErrors)
     } finally {
       setFormSubmitting(false)
     }
@@ -263,19 +278,47 @@ export default function AdminNewsPage() {
 
   const formDialog = (
     <form onSubmit={editingId ? handleUpdate : handleCreate} className="flex flex-col gap-4">
-      {formError && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{formError}</div>
-      )}
+      {formError && <FormErrorBanner message={formError} />}
+
+      <FormField id="news-title" label="Заголовок" required error={fieldErrors.Title?.[0]}>
+        <Input
+          id="news-title"
+          required
+          value={formTitle}
+          onChange={e => setFormTitle(e.target.value)}
+        />
+      </FormField>
+
       <div className="flex flex-col gap-2">
-        <Label htmlFor="news-title">Заголовок</Label>
-        <Input id="news-title" required value={formTitle} onChange={e => setFormTitle(e.target.value)} />
+        <div className="flex items-center justify-between">
+          <FormField id="news-content" label="Текст (HTML)" required error={fieldErrors.Content?.[0]}>
+            <Textarea
+              id="news-content"
+              required
+              value={formContent}
+              onChange={e => setFormContent(e.target.value)}
+              rows={8}
+              className="font-mono text-sm"
+            />
+          </FormField>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="self-end"
+            onClick={() => setShowPreview(v => !v)}
+          >
+            {showPreview ? "Редактирование" : "Предпросмотр"}
+          </Button>
+        </div>
+        {showPreview && (
+          <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/40 p-3">
+            <ContentRenderer content={formContent || "<p>Введите текст для предпросмотра</p>"} />
+          </div>
+        )}
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="news-content">Текст</Label>
-        <Textarea id="news-content" required value={formContent} onChange={e => setFormContent(e.target.value)} rows={8} />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="news-image">Изображение (постер)</Label>
+
+      <FormField id="news-image" label="Изображение (постер)" hint="JPG или PNG">
         <div className="flex items-center gap-2">
           <Input
             id="news-image"
@@ -310,20 +353,22 @@ export default function AdminNewsPage() {
           )}
         </div>
         {formImageUrl && (
-          <div className="relative mt-1 overflow-hidden rounded-md" style={{ height: "128px" }}>
+          <div className="mt-1 flex justify-center rounded-md border bg-muted/40 p-2">
             <Image
               src={formImageUrl}
               alt="Превью"
-              fill
-              className="object-cover"
+              width={0}
+              height={0}
               sizes="100vw"
+              className="h-auto max-h-64 w-auto object-contain"
+              style={{ width: "auto", height: "auto", maxHeight: "16rem" }}
               unoptimized
             />
           </div>
         )}
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="news-category">Категория</Label>
+      </FormField>
+
+      <FormField id="news-category" label="Категория">
         <Select value={formCategoryId} onValueChange={setFormCategoryId}>
           <SelectTrigger id="news-category">
             <SelectValue placeholder="Без категории" />
@@ -337,7 +382,8 @@ export default function AdminNewsPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </FormField>
+
       <div className="flex gap-2 justify-end pt-2">
         <Button type="button" variant="ghost" onClick={resetForm}>
           Отмена
