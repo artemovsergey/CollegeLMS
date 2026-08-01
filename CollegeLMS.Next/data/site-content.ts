@@ -80,6 +80,39 @@ export const siteNavigation: Section[] = [
       { title: "Мастер года", slug: "master-year", href: "/achievements/master-year", content: "" },
     ],
   },
+  {
+    title: "Сведения об ОО",
+    slug: "about",
+    href: "/about",
+    subsections: [
+      { title: "Основные сведения", slug: "common", href: "/about/common", content: "" },
+      { title: "Структура и органы управления", slug: "struct", href: "/about/struct", content: "" },
+      { title: "Документы", slug: "document", href: "/about/document", content: "" },
+      { title: "Образование", slug: "education", href: "/about/education", content: "" },
+      { title: "Образовательные стандарты и требования", slug: "edustandarts", href: "/about/edustandarts", content: "" },
+      { title: "Руководство", slug: "rucovodstvo", href: "/about/rucovodstvo", content: "" },
+      { title: "Педагогический состав", slug: "teachingstaff", href: "/about/teachingstaff", content: "" },
+      { title: "Материально-техническое обеспечение", slug: "objects", href: "/about/objects", content: "" },
+      { title: "Стипендии и меры поддержки", slug: "grants", href: "/about/grants", content: "" },
+      { title: "Платные образовательные услуги", slug: "paid_edu", href: "/about/paid_edu", content: "" },
+      { title: "Финансово-хозяйственная деятельность", slug: "budget", href: "/about/budget", content: "" },
+      { title: "Вакантные места для приема", slug: "vacant", href: "/about/vacant", content: "" },
+      { title: "Международное сотрудничество", slug: "inter", href: "/about/inter", content: "" },
+      { title: "Организация питания", slug: "meals", href: "/about/meals", content: "" },
+      { title: "Лицензия", slug: "litsenziya-na-obrazovatelnuyu-deyatel", href: "/about/litsenziya-na-obrazovatelnuyu-deyatel", content: "" },
+      { title: "Свидетельство об аккредитации", slug: "svidetelstvo-ob-akkreditatsii", href: "/about/svidetelstvo-ob-akkreditatsii", content: "" },
+      { title: "Полная контактная информация", slug: "polnaya-kontaktnaya-informatsiya", href: "/about/polnaya-kontaktnaya-informatsiya", content: "" },
+    ],
+  },
+  {
+    title: "Сотруднику",
+    slug: "employee",
+    href: "/employee",
+    subsections: [
+      { title: "Личный кабинет", slug: "dashboard", href: "/lms", content: "" },
+      { title: "Расписание", slug: "schedule", href: "/schedule", content: "" },
+    ],
+  },
 ]
 
 export function getSectionBySlug(slug: string): Section | undefined {
