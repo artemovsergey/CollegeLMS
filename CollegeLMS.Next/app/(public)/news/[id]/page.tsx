@@ -207,7 +207,7 @@ export default function NewsDetailPage() {
       {/* Lightbox */}
       {galleryOpen && allImages.length > 0 && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
           onClick={() => setGalleryOpen(false)}
         >
           <button
