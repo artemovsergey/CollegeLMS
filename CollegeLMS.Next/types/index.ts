@@ -132,7 +132,6 @@ export interface NewsResponse {
   imageUrl: string | null
   categoryId: string | null
   categoryName: string | null
-  isPublished: boolean
   publishedAt: string
   createdAt: string
   createdByName: string
@@ -143,8 +142,6 @@ export interface CreateNewsRequest {
   content: string
   imageUrl?: string
   categoryId?: string
-  isPublished?: boolean
-  publishedAt?: string
 }
 
 export interface UpdateNewsRequest {
@@ -152,8 +149,6 @@ export interface UpdateNewsRequest {
   content: string
   imageUrl?: string
   categoryId?: string
-  isPublished?: boolean
-  publishedAt?: string
 }
 
 export interface UploadResponse {

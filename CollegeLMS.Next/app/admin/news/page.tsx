@@ -74,7 +74,6 @@ export default function AdminNewsPage() {
   const [formContent, setFormContent] = useState("")
   const [formImageUrl, setFormImageUrl] = useState("")
   const [formCategoryId, setFormCategoryId] = useState("")
-  const [formPublished, setFormPublished] = useState(true)
   const [formError, setFormError] = useState<string | null>(null)
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -183,7 +182,6 @@ export default function AdminNewsPage() {
     setFormContent("")
     setFormImageUrl("")
     setFormCategoryId("")
-    setFormPublished(true)
     setFormError(null)
     setShowCreate(false)
     setEditingId(null)
@@ -195,7 +193,6 @@ export default function AdminNewsPage() {
     setFormContent(item.content)
     setFormImageUrl(item.imageUrl ?? "")
     setFormCategoryId(item.categoryId ?? "")
-    setFormPublished(item.isPublished)
     setFormError(null)
   }
 
@@ -209,7 +206,6 @@ export default function AdminNewsPage() {
         content: formContent,
         imageUrl: formImageUrl || undefined,
         categoryId: formCategoryId || undefined,
-        isPublished: formPublished,
       }
       const res = await api.post<Result<NewsResponse>>("/api/news", body)
       if (res.data.isSuccess) {
@@ -237,7 +233,6 @@ export default function AdminNewsPage() {
         content: formContent,
         imageUrl: formImageUrl || undefined,
         categoryId: formCategoryId || undefined,
-        isPublished: formPublished,
       }
       const res = await api.put<Result<NewsResponse>>(`/api/news/${editingId}`, body)
       if (res.data.isSuccess) {
@@ -263,21 +258,6 @@ export default function AdminNewsPage() {
       toast("Новость удалена")
     } catch {
       setError("Ошибка удаления")
-    }
-  }
-
-  const handleTogglePublish = async (item: NewsResponse) => {
-    try {
-      await api.put<Result<NewsResponse>>(`/api/news/${item.id}`, {
-        title: item.title,
-        content: item.content,
-        categoryId: item.categoryId ?? undefined,
-        isPublished: !item.isPublished,
-      })
-      await fetchNews()
-      toast(item.isPublished ? "Новость снята с публикации" : "Новость опубликована")
-    } catch {
-      setError("Ошибка изменения статуса")
     }
   }
 
@@ -357,18 +337,6 @@ export default function AdminNewsPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
-      <div className="flex items-center gap-2">
-        <input
-          id="news-published"
-          type="checkbox"
-          checked={formPublished}
-          onChange={e => setFormPublished(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300"
-        />
-        <Label htmlFor="news-published" className="text-sm">
-          Опубликовано
-        </Label>
       </div>
       <div className="flex gap-2 justify-end pt-2">
         <Button type="button" variant="ghost" onClick={resetForm}>
@@ -480,7 +448,6 @@ export default function AdminNewsPage() {
                 <TableRow>
                   <TableHead>Заголовок</TableHead>
                   <TableHead>Категория</TableHead>
-                  <TableHead>Статус</TableHead>
                   <TableHead>Дата</TableHead>
                   {canManage && <TableHead>Действия</TableHead>}
                 </TableRow>
@@ -500,19 +467,6 @@ export default function AdminNewsPage() {
                       ) : (
                         <span className="text-sm text-muted-foreground">—</span>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <button
-                        onClick={() => canManage && handleTogglePublish(item)}
-                        disabled={!canManage}
-                        className={`text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#568cd6] focus-visible:ring-offset-2 rounded ${
-                          item.isPublished
-                            ? "text-green-600"
-                            : "text-muted-foreground"
-                        } ${canManage ? "hover:underline cursor-pointer" : "cursor-default"}`}
-                      >
-                        {item.isPublished ? "Активна" : "Черновик"}
-                      </button>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
