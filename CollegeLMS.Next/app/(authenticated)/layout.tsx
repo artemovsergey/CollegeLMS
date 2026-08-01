@@ -32,6 +32,7 @@ const teacherMenu = [
 
 const dispatcherMenu = [
   { label: "Расписание", items: [
+    { href: "/dispatcher/dashboard", label: "Дашборд", icon: LayoutDashboard },
     { href: "/schedule", label: "Расписание", icon: CalendarDays },
   ]},
   { label: "Профиль", items: [

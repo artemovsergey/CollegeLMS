@@ -508,3 +508,30 @@ export interface UserProfileResponse {
   courses: { id: string; title: string }[]
   news: { id: string; title: string; publishedAt: string }[]
 }
+
+export interface ScheduleEntryResponse {
+  id: string
+  groupId: string
+  groupName: string
+  teacherId: string | null
+  teacherName: string | null
+  subject: string
+  room: string
+  dayOfWeek: number
+  numberPair: number
+  startTime: string
+  endTime: string
+  weeks: number[]
+  lessonType: string
+}
+
+export interface CalendarDayResponse {
+  day: string
+  dayOfWeek: number
+  entries: ScheduleEntryResponse[]
+}
+
+export interface CalendarResponse {
+  weekStart: string
+  days: CalendarDayResponse[]
+}
