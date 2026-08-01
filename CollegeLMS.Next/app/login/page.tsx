@@ -7,6 +7,9 @@ import type { Result, LoginResponse } from "@/types"
 import api from "@/lib/api"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth"
+import FormField from "@/components/FormField"
+import FormErrorBanner from "@/components/FormErrorBanner"
+import { parseErrors } from "@/lib/errors"
 
 const QUICK_LOGINS = [
   { role: "Admin", login: "admin", password: "admin", label: "Администратор" },
@@ -18,14 +21,16 @@ const QUICK_LOGINS = [
 export default function LoginPage() {
   const [loginInput, setLoginInput] = useState("admin")
   const [password, setPassword] = useState("admin")
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
+  const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const { login } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
+    setFormError(null)
+    setFieldErrors({})
     setSubmitting(true)
 
     try {
@@ -41,10 +46,12 @@ export default function LoginPage() {
         }
         router.push(homeByRole[body.data.user.role] ?? "/lms")
       } else {
-        setError(body.errorMessage ?? "Ошибка входа")
+        setFormError(body.errorMessage ?? "Ошибка входа")
       }
-    } catch {
-      setError("Неверный логин или пароль")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFieldErrors(parsed.fieldErrors)
+      setFormError(parsed.message ?? "Неверный логин или пароль")
     } finally {
       setSubmitting(false)
     }
@@ -111,43 +118,41 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+            {formError && <FormErrorBanner message={formError} />}
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="login" className="text-sm text-fg">
-                Логин
-              </label>
+            <FormField
+              id="login"
+              label="Логин"
+              required
+              error={fieldErrors.login?.[0]}
+            >
               <input
                 id="login"
                 type="text"
-                required
                 value={loginInput}
                 onChange={e => setLoginInput(e.target.value)}
                 placeholder="admin"
                 autoComplete="username"
                 className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-fg placeholder:text-accent-lighter focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
-            </div>
+            </FormField>
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="password" className="text-sm text-fg">
-                Пароль
-              </label>
+            <FormField
+              id="password"
+              label="Пароль"
+              required
+              error={fieldErrors.password?.[0]}
+            >
               <input
                 id="password"
                 type="password"
-                required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••"
                 autoComplete="current-password"
                 className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-fg placeholder:text-accent-lighter focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
-            </div>
+            </FormField>
 
             <button
               type="submit"

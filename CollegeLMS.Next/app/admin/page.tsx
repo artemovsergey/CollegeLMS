@@ -7,7 +7,6 @@ import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
@@ -45,6 +44,9 @@ import {
 } from "@/components/ui/select"
 import { roleLabels, roleVariants } from "@/lib/constants"
 import ErrorBanner from "@/components/ErrorBanner"
+import FormField from "@/components/FormField"
+import FormErrorBanner from "@/components/FormErrorBanner"
+import { parseErrors } from "@/lib/errors"
 import { SkeletonTable } from "@/components/SkeletonCardGrid"
 
 export default function UsersPage() {
@@ -64,6 +66,7 @@ export default function UsersPage() {
   const [formFullName, setFormFullName] = useState("")
   const [formRole, setFormRole] = useState("Student")
   const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
   const [formSubmitting, setFormSubmitting] = useState(false)
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
@@ -105,6 +108,7 @@ export default function UsersPage() {
     setFormFullName("")
     setFormRole("Student")
     setFormError(null)
+    setFieldErrors({})
     setShowCreate(false)
     setEditingId(null)
   }
@@ -112,6 +116,7 @@ export default function UsersPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    setFieldErrors({})
     setFormSubmitting(true)
     try {
       const body: CreateUserRequest = { login: formLogin, email: formEmail, password: formPassword, fullName: formFullName, role: formRole }
@@ -122,8 +127,10 @@ export default function UsersPage() {
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка создания")
       }
-    } catch {
-      setFormError("Ошибка создания пользователя")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFieldErrors(parsed.fieldErrors)
+      setFormError(parsed.message)
     } finally {
       setFormSubmitting(false)
     }
@@ -143,6 +150,7 @@ export default function UsersPage() {
     e.preventDefault()
     if (!editingId) return
     setFormError(null)
+    setFieldErrors({})
     setFormSubmitting(true)
     try {
       const body: UpdateUserRequest = { login: formLogin, email: formEmail, fullName: formFullName, role: formRole }
@@ -153,8 +161,10 @@ export default function UsersPage() {
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка обновления")
       }
-    } catch {
-      setFormError("Ошибка обновления пользователя")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFieldErrors(parsed.fieldErrors)
+      setFormError(parsed.message)
     } finally {
       setFormSubmitting(false)
     }
@@ -198,25 +208,37 @@ export default function UsersPage() {
                 <DialogTitle>Создать пользователя</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreate} className="flex flex-col gap-4">
-                {formError && <ErrorBanner message={formError} />}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-login">Логин</Label>
-                  <Input id="create-login" type="text" required value={formLogin} onChange={e => setFormLogin(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-email">Email</Label>
+                {formError && <FormErrorBanner message={formError} />}
+                <FormField
+                  id="create-login"
+                  label="Логин"
+                  required
+                  error={fieldErrors.login?.[0]}
+                  hint="Используется для входа в систему"
+                >
+                  <Input id="create-login" type="text" value={formLogin} onChange={e => setFormLogin(e.target.value)} />
+                </FormField>
+                <FormField
+                  id="create-email"
+                  label="Email"
+                  required
+                  error={fieldErrors.email?.[0]}
+                  hint="Рабочая почта пользователя"
+                >
                   <Input id="create-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-password">Пароль</Label>
-                  <Input id="create-password" type="password" required value={formPassword} onChange={e => setFormPassword(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-name">ФИО</Label>
-                  <Input id="create-name" required value={formFullName} onChange={e => setFormFullName(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-role">Роль</Label>
+                </FormField>
+                <FormField
+                  id="create-password"
+                  label="Пароль"
+                  required
+                  error={fieldErrors.password?.[0]}
+                >
+                  <Input id="create-password" type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} />
+                </FormField>
+                <FormField id="create-name" label="ФИО" required error={fieldErrors.fullName?.[0]}>
+                  <Input id="create-name" value={formFullName} onChange={e => setFormFullName(e.target.value)} />
+                </FormField>
+                <FormField id="create-role" label="Роль" error={fieldErrors.role?.[0]}>
                   <Select value={formRole} onValueChange={setFormRole}>
                     <SelectTrigger id="create-role"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -225,7 +247,7 @@ export default function UsersPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </FormField>
                 <div className="flex gap-2 justify-end pt-2">
                   <Button type="button" variant="ghost" onClick={resetForm}>Отмена</Button>
                   <Button type="submit" disabled={formSubmitting}>
@@ -296,21 +318,29 @@ export default function UsersPage() {
                               <DialogTitle>Редактировать пользователя</DialogTitle>
                             </DialogHeader>
                             <form onSubmit={handleUpdate} className="flex flex-col gap-4">
-                              {formError && <ErrorBanner message={formError} />}
-                              <div className="flex flex-col gap-2">
-                                <Label htmlFor="edit-login">Логин</Label>
-                                <Input id="edit-login" type="text" required value={formLogin} onChange={e => setFormLogin(e.target.value)} />
-                              </div>
-                              <div className="flex flex-col gap-2">
-                                <Label htmlFor="edit-email">Email</Label>
+                              {formError && <FormErrorBanner message={formError} />}
+                              <FormField
+                                id="edit-login"
+                                label="Логин"
+                                required
+                                error={fieldErrors.login?.[0]}
+                                hint="Используется для входа в систему"
+                              >
+                                <Input id="edit-login" type="text" value={formLogin} onChange={e => setFormLogin(e.target.value)} />
+                              </FormField>
+                              <FormField
+                                id="edit-email"
+                                label="Email"
+                                required
+                                error={fieldErrors.email?.[0]}
+                                hint="Рабочая почта пользователя"
+                              >
                                 <Input id="edit-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
-                              </div>
-                              <div className="flex flex-col gap-2">
-                                <Label htmlFor="edit-name">ФИО</Label>
-                                <Input id="edit-name" required value={formFullName} onChange={e => setFormFullName(e.target.value)} />
-                              </div>
-                              <div className="flex flex-col gap-2">
-                                <Label htmlFor="edit-role">Роль</Label>
+                              </FormField>
+                              <FormField id="edit-name" label="ФИО" required error={fieldErrors.fullName?.[0]}>
+                                <Input id="edit-name" value={formFullName} onChange={e => setFormFullName(e.target.value)} />
+                              </FormField>
+                              <FormField id="edit-role" label="Роль" error={fieldErrors.role?.[0]}>
                                 <Select value={formRole} onValueChange={setFormRole}>
                                   <SelectTrigger id="edit-role"><SelectValue /></SelectTrigger>
                                   <SelectContent>
@@ -319,7 +349,7 @@ export default function UsersPage() {
                                     ))}
                                   </SelectContent>
                                 </Select>
-                              </div>
+                              </FormField>
                               <div className="flex gap-2 justify-end pt-2">
                                 <Button type="button" variant="ghost" onClick={resetForm}>Отмена</Button>
                                 <Button type="submit" disabled={formSubmitting}>
