@@ -7,6 +7,7 @@ public interface IUserService
 {
     Task<Result<List<UserResponse>>> GetAllAsync(CancellationToken ct = default);
     Task<Result<UserResponse>> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<Result<UserProfileResponse>> GetProfileAsync(Guid id, CancellationToken ct = default);
     Task<Result<UserResponse>> CreateAsync(
         CreateUserRequest request,
         CancellationToken ct = default

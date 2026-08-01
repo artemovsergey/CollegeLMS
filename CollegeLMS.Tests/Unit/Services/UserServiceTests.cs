@@ -355,4 +355,58 @@ public class UserServiceTests : IDisposable
         result.StatusCode.Should().Be(409);
         (await _db.Users.FindAsync([admin.Id])).Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task GetProfileAsync_ReturnsUserWithCoursesAndNews()
+    {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
+        var teacherUser = UserFixture.CreateFaker().Generate();
+        teacherUser.Role = UserRole.Teacher;
+        _db.Users.AddRange(admin, teacherUser);
+        await _db.SaveChangesAsync();
+
+        var teacher = new API.Entities.Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = teacherUser.Id,
+            CyclicalCommission = "ИВТ",
+            Position = "Преподаватель",
+        };
+        var course = new API.Entities.Course
+        {
+            Title = "Курс 1",
+            Description = "Описание",
+            TeacherId = teacher.Id,
+            Status = CourseStatus.Active,
+        };
+        var news = new API.Entities.News
+        {
+            Title = "Новость 1",
+            Slug = "novost-1",
+            Content = "Текст",
+            CreatedById = teacherUser.Id,
+            PublishedAt = DateTime.UtcNow,
+        };
+        _db.Teachers.Add(teacher);
+        _db.Courses.Add(course);
+        _db.News.Add(news);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetProfileAsync(teacherUser.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.User.Id.Should().Be(teacherUser.Id);
+        result.Data.Courses.Should().ContainSingle(c => c.Title == "Курс 1");
+        result.Data.News.Should().ContainSingle(n => n.Title == "Новость 1");
+    }
+
+    [Fact]
+    public async Task GetProfileAsync_ReturnsFail_WhenNotFound()
+    {
+        var result = await _sut.GetProfileAsync(Guid.NewGuid(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
 }

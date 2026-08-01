@@ -74,13 +74,25 @@
           }
         },
         {
+          "name": "Get user profile (courses + news)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "profile"]
+            }
+          }
+        },
+        {
           "name": "Create user",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"newuser@collegelms.ru\",\n  \"password\": \"password123\",\n  \"fullName\": \"Новый пользователь\",\n  \"role\": \"Student\"\n}"
+              "raw": "{\n  \"login\": \"newuser\",\n  \"email\": \"newuser@collegelms.ru\",\n  \"password\": \"password123\",\n  \"fullName\": \"Новый пользователь\",\n  \"role\": \"Student\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/users",
@@ -96,7 +108,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"updated@collegelms.ru\",\n  \"fullName\": \"Обновлённый пользователь\",\n  \"role\": \"Teacher\"\n}"
+              "raw": "{\n  \"login\": \"updateduser\",\n  \"email\": \"updated@collegelms.ru\",\n  \"fullName\": \"Обновлённый пользователь\",\n  \"role\": \"Teacher\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/users/{{userId}}",
@@ -106,7 +118,7 @@
           }
         },
         {
-          "name": "Delete user (deactivate)",
+          "name": "Delete user (hard delete)",
           "request": {
             "method": "DELETE",
             "header": [],

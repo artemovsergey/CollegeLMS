@@ -10,6 +10,7 @@ using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
 using CollegeLMS.Tests.Fixtures;
 using CollegeLMS.Tests.Integration;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CollegeLMS.Tests.Integration.Controllers;
@@ -292,5 +293,39 @@ public class UserControllerTests : BaseIntegrationTest
         );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProfile_ReturnsProfile_WhenAdmin()
+    {
+        var token = GetAdminToken();
+        var admin = new Faker<User>()
+            .RuleFor(u => u.Id, f => f.Random.Guid())
+            .RuleFor(u => u.Login, f => f.Internet.UserName())
+            .RuleFor(u => u.Email, f => f.Internet.Email())
+            .RuleFor(u => u.FullName, f => f.Name.FullName())
+            .RuleFor(u => u.PasswordHash, _ => BCrypt.Net.BCrypt.HashPassword("test123"))
+            .RuleFor(u => u.Role, UserRole.Student)
+            .Generate();
+
+        using (var db = CreateDbContext())
+        {
+            db.Users.Add(admin);
+            await db.SaveChangesAsync();
+        }
+
+        var response = await Client.SendAsync(
+            new HttpRequestMessage(HttpMethod.Get, $"/api/users/{admin.Id}/profile")
+            {
+                Headers = { Authorization = new AuthenticationHeaderValue("Bearer", token) },
+            }
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await DeserializeAsync<Result<UserProfileResponse>>(response);
+        result!.IsSuccess.Should().BeTrue();
+        result.Data!.User.Id.Should().Be(admin.Id);
+        result.Data.Courses.Should().BeEmpty();
+        result.Data.News.Should().BeEmpty();
     }
 }

@@ -59,6 +59,36 @@ public class UserController(IUserService service) : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Получить профиль пользователя с курсами и новостями.</summary>
+    /// <param name="id">Идентификатор пользователя</param>
+    /// <param name="ct">Токен отмены</param>
+    /// <remarks>Возвращает данные пользователя, его курсы (если преподаватель) и новости.</remarks>
+    /// <response code="200">Профиль получен</response>
+    /// <response code="401">Не авторизован</response>
+    /// <response code="404">Пользователь не найден</response>
+    /// <response code="500">Ошибка сервера</response>
+    [HttpGet("{id:guid}/profile")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Получить профиль пользователя с курсами и новостями")]
+    [SwaggerResponse(200, "Профиль получен", typeof(Result<UserProfileResponse>))]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(404, "Пользователь не найден")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<UserProfileResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<UserProfileResponse>>> GetProfile(
+        Guid id,
+        CancellationToken ct
+    )
+    {
+        var result = await service.GetProfileAsync(id, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
     /// <summary>Создать нового пользователя.</summary>
     /// <remarks>Только для администраторов. Пароль задаётся вручную.</remarks>
     /// <param name="request">Данные нового пользователя</param>

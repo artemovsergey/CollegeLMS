@@ -27,6 +27,46 @@ public class UserService(AppDbContext db) : IUserService
         return Result<UserResponse>.Ok(user.ToDto());
     }
 
+    public async Task<Result<UserProfileResponse>> GetProfileAsync(Guid id, CancellationToken ct)
+    {
+        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+        if (user is null)
+            return Result<UserProfileResponse>.Fail("Пользователь не найден", 404);
+
+        var teacher = await db.Teachers.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == id, ct);
+        var courses = new List<UserCourseItem>();
+        if (teacher is not null)
+        {
+            courses = await db
+                .Courses.AsNoTracking()
+                .Where(c => c.TeacherId == teacher.Id)
+                .OrderBy(c => c.Title)
+                .Select(c => new UserCourseItem { Id = c.Id, Title = c.Title })
+                .ToListAsync(ct);
+        }
+
+        var news = await db
+            .News.AsNoTracking()
+            .Where(n => n.CreatedById == id && !n.IsDeleted)
+            .OrderByDescending(n => n.PublishedAt)
+            .Select(n => new UserNewsItem
+            {
+                Id = n.Id,
+                Title = n.Title,
+                PublishedAt = n.PublishedAt,
+            })
+            .ToListAsync(ct);
+
+        return Result<UserProfileResponse>.Ok(
+            new UserProfileResponse
+            {
+                User = user.ToDto(),
+                Courses = courses,
+                News = news,
+            }
+        );
+    }
+
     public async Task<Result<UserResponse>> CreateAsync(
         CreateUserRequest request,
         CancellationToken ct
