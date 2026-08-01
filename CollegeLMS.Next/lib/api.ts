@@ -1,4 +1,5 @@
 import axios from "axios"
+import { toast } from "sonner"
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "",
@@ -15,14 +16,31 @@ api.interceptors.request.use(config => {
   return config
 })
 
+const TOAST_DEBOUNCE_MS = 5000
+const lastShownAt: Record<number, number> = {}
+
+function showDebouncedToast(status: number, message: string) {
+  const now = Date.now()
+  if (now - (lastShownAt[status] ?? 0) < TOAST_DEBOUNCE_MS) return
+  lastShownAt[status] = now
+  toast.error(message)
+}
+
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("token")
-      localStorage.removeItem("user")
-      if (!window.location.pathname.startsWith("/login")) {
-        window.location.href = "/login"
+    const status = error.response?.status as number | undefined
+    if (typeof window !== "undefined" && status) {
+      if (status === 401) {
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        if (!window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login"
+        }
+      } else if (status === 500) {
+        showDebouncedToast(500, "Ошибка сервера. Попробуйте позже")
+      } else if (status === 504) {
+        showDebouncedToast(504, "Сервер недоступен. Проверьте соединение")
       }
     }
     return Promise.reject(error)
