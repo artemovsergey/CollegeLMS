@@ -104,8 +104,6 @@ export default function Header() {
                 </a>
               ))}
               <span className="mx-1 text-white/20">|</span>
-              <Link href="/schedule" className="text-xs text-white/70 hover:text-white transition-colors">Расписание</Link>
-              <span className="mx-1 text-white/20">|</span>
               <Link href="/contacts" className="text-xs text-white/70 hover:text-white transition-colors">Контакты</Link>
               <span className="mx-1 text-white/20">|</span>
               <Link href="/admissions" className="text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors">Приёмная кампания 2026</Link>
