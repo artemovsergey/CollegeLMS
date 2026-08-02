@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import ErrorBanner from "@/components/ErrorBanner"
-import { SkeletonDetail } from "@/components/SkeletonCardGrid"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 export default function CourseProgressPage() {
   const { token } = useAuth()
@@ -51,7 +51,7 @@ export default function CourseProgressPage() {
   }, [token, fetchProgress])
 
   if (!token) return null
-  if (loading) return <SkeletonDetail />
+  if (loading) return <LoadingSpinner size="lg" className="py-20" />
 
   if (notFound) {
     return (

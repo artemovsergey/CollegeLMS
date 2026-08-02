@@ -47,7 +47,7 @@ import ErrorBanner from "@/components/ErrorBanner"
 import FormField from "@/components/FormField"
 import FormErrorBanner from "@/components/FormErrorBanner"
 import { parseErrors } from "@/lib/errors"
-import { SkeletonTable } from "@/components/SkeletonCardGrid"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 export default function UsersPage() {
   const { user } = useAuth()
@@ -101,6 +101,31 @@ export default function UsersPage() {
 
   useEffect(() => { setPage(1) }, [users.length])
 
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  const validateUserForm = (
+    values: { login: string; email: string; password: string; fullName: string },
+    requirePassword: boolean,
+  ): Record<string, string[]> => {
+    const errors: Record<string, string[]> = {}
+    if (!values.login.trim()) errors.login = ["Логин обязателен"]
+    else if (values.login.trim().length < 3) errors.login = ["Логин должен содержать минимум 3 символа"]
+    if (!values.email.trim()) errors.email = ["Email обязателен"]
+    else if (!EMAIL_RE.test(values.email.trim())) errors.email = ["Некорректный формат email"]
+    if (requirePassword && !values.password) errors.password = ["Пароль обязателен"]
+    else if (values.password && values.password.length < 6) errors.password = ["Пароль должен содержать минимум 6 символов"]
+    if (!values.fullName.trim()) errors.fullName = ["ФИО обязательно"]
+    return errors
+  }
+
+  const validateField = (field: "login" | "email" | "password" | "fullName") => {
+    const errs = validateUserForm(
+      { login: formLogin, email: formEmail, password: formPassword, fullName: formFullName },
+      editingId === null,
+    )
+    setFieldErrors(prev => ({ ...prev, [field]: errs[field] }))
+  }
+
   const resetForm = () => {
     setFormLogin("")
     setFormEmail("")
@@ -116,7 +141,12 @@ export default function UsersPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
-    setFieldErrors({})
+    const clientErrors = validateUserForm(
+      { login: formLogin, email: formEmail, password: formPassword, fullName: formFullName },
+      true,
+    )
+    setFieldErrors(clientErrors)
+    if (Object.keys(clientErrors).length > 0) return
     setFormSubmitting(true)
     try {
       const body: CreateUserRequest = { login: formLogin, email: formEmail, password: formPassword, fullName: formFullName, role: formRole }
@@ -150,7 +180,12 @@ export default function UsersPage() {
     e.preventDefault()
     if (!editingId) return
     setFormError(null)
-    setFieldErrors({})
+    const clientErrors = validateUserForm(
+      { login: formLogin, email: formEmail, password: formPassword, fullName: formFullName },
+      false,
+    )
+    setFieldErrors(clientErrors)
+    if (Object.keys(clientErrors).length > 0) return
     setFormSubmitting(true)
     try {
       const body: UpdateUserRequest = { login: formLogin, email: formEmail, fullName: formFullName, role: formRole }
@@ -216,7 +251,7 @@ export default function UsersPage() {
                   error={fieldErrors.login?.[0]}
                   hint="Используется для входа в систему"
                 >
-                  <Input id="create-login" type="text" value={formLogin} onChange={e => setFormLogin(e.target.value)} />
+                  <Input id="create-login" type="text" value={formLogin} onChange={e => setFormLogin(e.target.value)} onBlur={() => validateField("login")} />
                 </FormField>
                 <FormField
                   id="create-email"
@@ -225,7 +260,7 @@ export default function UsersPage() {
                   error={fieldErrors.email?.[0]}
                   hint="Рабочая почта пользователя"
                 >
-                  <Input id="create-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                  <Input id="create-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} onBlur={() => validateField("email")} />
                 </FormField>
                 <FormField
                   id="create-password"
@@ -233,10 +268,10 @@ export default function UsersPage() {
                   required
                   error={fieldErrors.password?.[0]}
                 >
-                  <Input id="create-password" type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} />
+                  <Input id="create-password" type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} onBlur={() => validateField("password")} />
                 </FormField>
                 <FormField id="create-name" label="ФИО" required error={fieldErrors.fullName?.[0]}>
-                  <Input id="create-name" value={formFullName} onChange={e => setFormFullName(e.target.value)} />
+                  <Input id="create-name" value={formFullName} onChange={e => setFormFullName(e.target.value)} onBlur={() => validateField("fullName")} />
                 </FormField>
                 <FormField id="create-role" label="Роль" error={fieldErrors.role?.[0]}>
                   <Select value={formRole} onValueChange={setFormRole}>
@@ -263,7 +298,7 @@ export default function UsersPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <SkeletonTable rows={8} cols={5} />
+        <LoadingSpinner size="lg" className="py-20" />
       ) : users.length === 0 ? (
         <p className="text-muted-foreground">Нет пользователей</p>
       ) : (
@@ -326,7 +361,7 @@ export default function UsersPage() {
                                 error={fieldErrors.login?.[0]}
                                 hint="Используется для входа в систему"
                               >
-                                <Input id="edit-login" type="text" value={formLogin} onChange={e => setFormLogin(e.target.value)} />
+                                <Input id="edit-login" type="text" value={formLogin} onChange={e => setFormLogin(e.target.value)} onBlur={() => validateField("login")} />
                               </FormField>
                               <FormField
                                 id="edit-email"
@@ -335,10 +370,10 @@ export default function UsersPage() {
                                 error={fieldErrors.email?.[0]}
                                 hint="Рабочая почта пользователя"
                               >
-                                <Input id="edit-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                                <Input id="edit-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} onBlur={() => validateField("email")} />
                               </FormField>
                               <FormField id="edit-name" label="ФИО" required error={fieldErrors.fullName?.[0]}>
-                                <Input id="edit-name" value={formFullName} onChange={e => setFormFullName(e.target.value)} />
+                                <Input id="edit-name" value={formFullName} onChange={e => setFormFullName(e.target.value)} onBlur={() => validateField("fullName")} />
                               </FormField>
                               <FormField id="edit-role" label="Роль" error={fieldErrors.role?.[0]}>
                                 <Select value={formRole} onValueChange={setFormRole}>
@@ -363,7 +398,7 @@ export default function UsersPage() {
                           variant="ghost"
                           size="sm"
                           onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(u.id) }}
-                          className="text-destructive hover:text-destructive"
+                          className="text-muted-foreground hover:text-fg"
                           aria-label="Удалить пользователя"
                         >
                           <Trash2 size={16} />

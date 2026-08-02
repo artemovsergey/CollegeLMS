@@ -54,7 +54,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import { Pencil, Trash2, Upload, Square, ExternalLink } from "lucide-react"
+import { Pencil, Trash2, Upload, Square, ExternalLink, CircleHelp } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ImportProgressDto } from "@/types"
 
 const PAGE_SIZE = 20
@@ -182,6 +183,22 @@ export default function AdminNewsPage() {
     fetchNews()
   }, [fetchNews])
 
+  useEffect(() => {
+    api
+      .get<Result<ImportProgressDto>>("/api/import/wordpress/active")
+      .then(res => {
+        const body = res.data
+        if (body.isSuccess && body.data && body.data.status === "running") {
+          setImportId(body.data.importId)
+          setImportProgress(body.data)
+          setPolling(true)
+          pollStatus(body.data.importId)
+        }
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const resetForm = () => {
     setFormTitle("")
     setFormContent("")
@@ -202,12 +219,23 @@ export default function AdminNewsPage() {
     setFormCategoryId(item.categoryId ?? "")
     setFormError(null)
     setFieldErrors({})
-    setShowPreview(false)
+    setShowPreview(true)
+  }
+
+  const validateNewsForm = (title: string, content: string): Record<string, string[]> => {
+    const errors: Record<string, string[]> = {}
+    if (!title.trim()) errors.title = ["Заголовок обязателен"]
+    else if (title.trim().length < 3) errors.title = ["Заголовок должен содержать минимум 3 символа"]
+    if (!content.trim()) errors.content = ["Текст новости обязателен"]
+    return errors
   }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    const clientErrors = validateNewsForm(formTitle, formContent)
+    setFieldErrors(clientErrors)
+    if (Object.keys(clientErrors).length > 0) return
     setFormSubmitting(true)
     try {
       const body: CreateNewsRequest = {
@@ -238,6 +266,9 @@ export default function AdminNewsPage() {
     e.preventDefault()
     if (!editingId) return
     setFormError(null)
+    const clientErrors = validateNewsForm(formTitle, formContent)
+    setFieldErrors(clientErrors)
+    if (Object.keys(clientErrors).length > 0) return
     setFormSubmitting(true)
     try {
       const body: UpdateNewsRequest = {
@@ -280,7 +311,7 @@ export default function AdminNewsPage() {
     <form onSubmit={editingId ? handleUpdate : handleCreate} className="flex flex-col gap-4">
       {formError && <FormErrorBanner message={formError} />}
 
-      <FormField id="news-title" label="Заголовок" required error={fieldErrors.Title?.[0]}>
+      <FormField id="news-title" label="Заголовок" required error={fieldErrors.title?.[0]}>
         <Input
           id="news-title"
           required
@@ -290,8 +321,31 @@ export default function AdminNewsPage() {
       </FormField>
 
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <FormField id="news-content" label="Текст (HTML)" required error={fieldErrors.Content?.[0]}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex rounded-md border bg-muted/40 p-0.5">
+            <button
+              type="button"
+              onClick={() => setShowPreview(false)}
+              className={`rounded-sm px-3 py-1 text-sm ${!showPreview ? "bg-card font-medium shadow-sm" : "text-muted-foreground"}`}
+            >
+              Разметка
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPreview(true)}
+              className={`rounded-sm px-3 py-1 text-sm ${showPreview ? "bg-card font-medium shadow-sm" : "text-muted-foreground"}`}
+            >
+              Предпросмотр
+            </button>
+          </div>
+          <span className="text-xs text-muted-foreground">HTML</span>
+        </div>
+        {showPreview ? (
+          <div className="min-h-40 max-h-72 overflow-y-auto rounded-md border bg-muted/40 p-3">
+            <ContentRenderer content={formContent || "<p>Введите текст для предпросмотра</p>"} />
+          </div>
+        ) : (
+          <FormField id="news-content" label="Текст новости" required error={fieldErrors.content?.[0]}>
             <Textarea
               id="news-content"
               required
@@ -301,20 +355,6 @@ export default function AdminNewsPage() {
               className="font-mono text-sm"
             />
           </FormField>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="self-end"
-            onClick={() => setShowPreview(v => !v)}
-          >
-            {showPreview ? "Редактирование" : "Предпросмотр"}
-          </Button>
-        </div>
-        {showPreview && (
-          <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/40 p-3">
-            <ContentRenderer content={formContent || "<p>Введите текст для предпросмотра</p>"} />
-          </div>
         )}
       </div>
 
@@ -396,7 +436,7 @@ export default function AdminNewsPage() {
   )
 
   return (
-    <div className="flex flex-col gap-6 p-6 mx-auto max-w-6xl">
+    <div className="flex flex-col gap-6 p-6 mx-auto max-w-5xl">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Новости</h2>
         <div className="flex items-center gap-2">
@@ -412,7 +452,7 @@ export default function AdminNewsPage() {
                 <DialogTrigger asChild>
                   <Button size="sm">+ Создать</Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Создать новость</DialogTitle>
                   </DialogHeader>
@@ -428,6 +468,21 @@ export default function AdminNewsPage() {
                 <Upload size={16} className="mr-1" />
                 {importing ? "Запуск..." : "Импорт"}
               </Button>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="О работе импорта"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:text-fg"
+                  >
+                    <CircleHelp className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  Асинхронный импорт новостей с WordPress (stvcc.ru). Можно покинуть страницу —
+                  импорт продолжится, при возвращении прогресс восстановится.
+                </TooltipContent>
+              </Tooltip>
               {polling && (
                 <Button
                   size="sm"
@@ -531,7 +586,7 @@ export default function AdminNewsPage() {
                                 <Pencil size={16} />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Редактировать новость</DialogTitle>
                               </DialogHeader>
@@ -541,7 +596,7 @@ export default function AdminNewsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-destructive hover:text-destructive"
+                            className="text-muted-foreground hover:text-fg"
                             onClick={() => setDeleteId(item.id)}
                             aria-label="Удалить"
                           >

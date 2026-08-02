@@ -95,6 +95,7 @@ export interface LectureResponse {
   title: string
   content: string
   order: number
+  lectureType: "Lecture" | "Practice" | "SelfStudy"
 }
 
 export interface AssignmentResponse {
@@ -337,7 +338,6 @@ export interface TransferRecordResponse {
 }
 
 export interface CourseGroupResponse {
-  id: string
   groupId: string
   groupName: string
 }
@@ -405,7 +405,16 @@ export interface ChangePasswordRequest {
 export interface UserProfileResponse {
   user: User
   courses: { id: string; title: string }[]
-  news: { id: string; title: string; publishedAt: string }[]
+}
+
+export interface AdminDashboardResponse {
+  userCount: number
+  teacherCount: number
+  studentCount: number
+  courseCount: number
+  groupCount: number
+  newsCount: number
+  feedbackCount: number
 }
 
 export interface ScheduleEntryResponse {

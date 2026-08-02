@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import ErrorBanner from "@/components/ErrorBanner"
-import { SkeletonTable } from "@/components/SkeletonCardGrid"
+import LoadingSpinner from "@/components/LoadingSpinner"
 import { Eye, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   Dialog,
@@ -29,7 +29,6 @@ export default function AdminFeedbackPage() {
   const [items, setItems] = useState<FeedbackListItemDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [selectedMessage, setSelectedMessage] = useState<FeedbackListItemDto | null>(null)
   const [page, setPage] = useState(1)
   const pageSize = 10
@@ -59,11 +58,11 @@ export default function AdminFeedbackPage() {
 
   useEffect(() => { setPage(1) }, [items.length])
 
-  if (loading) return <SkeletonTable rows={6} cols={5} />
+  if (loading) return <LoadingSpinner size="lg" className="py-20" />
   if (error) return <ErrorBanner message={error} className="m-6" />
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-6 mx-auto max-w-5xl">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Обратная связь</h2>
         <Badge variant="secondary">{items.length} {items.length === 1 ? "сообщение" : (items.length >= 2 && items.length <= 4 ? "сообщения" : "сообщений")}</Badge>
@@ -75,6 +74,7 @@ export default function AdminFeedbackPage() {
           <p className="text-sm">Пользователи ещё не отправляли обратную связь.</p>
         </div>
       ) : (
+        <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -87,13 +87,7 @@ export default function AdminFeedbackPage() {
           </TableHeader>
           <TableBody>
             {paginatedItems.map(item => (
-              <TableRow
-                key={item.id}
-                className="cursor-pointer"
-                onClick={() =>
-                  setExpandedId(expandedId === item.id ? null : item.id)
-                }
-              >
+              <TableRow key={item.id}>
                 <TableCell className="whitespace-nowrap text-sm">
                   {new Date(item.createdAt).toLocaleString("ru")}
                 </TableCell>
@@ -102,13 +96,7 @@ export default function AdminFeedbackPage() {
                   {item.email}
                 </TableCell>
                 <TableCell className="max-w-md">
-                  <p
-                    className={
-                      expandedId === item.id
-                        ? "line-clamp-none"
-                        : "line-clamp-2"
-                    }
-                  >
+                  <p className="line-clamp-2">
                     {item.message}
                   </p>
                 </TableCell>
@@ -121,6 +109,7 @@ export default function AdminFeedbackPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
       )}
 
       {totalPages > 1 && (

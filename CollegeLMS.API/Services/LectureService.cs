@@ -82,6 +82,9 @@ public class LectureService(AppDbContext db) : ILectureService
             Title = request.Title,
             Content = request.Content,
             Order = maxOrder + 1,
+            LectureType = Enum.TryParse<Entities.Enums.LectureType>(request.LectureType, out var lt)
+                ? lt
+                : Entities.Enums.LectureType.Lecture,
             TestId = request.TestId,
         };
         db.Lectures.Add(lecture);
@@ -124,6 +127,12 @@ public class LectureService(AppDbContext db) : ILectureService
 
         lecture.Title = request.Title;
         lecture.Content = request.Content;
+        lecture.LectureType = Enum.TryParse<Entities.Enums.LectureType>(
+            request.LectureType,
+            out var lt
+        )
+            ? lt
+            : Entities.Enums.LectureType.Lecture;
         lecture.TestId = request.TestId;
         lecture.UpdatedAt = DateTime.UtcNow;
 

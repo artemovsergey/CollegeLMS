@@ -24,7 +24,7 @@ export default function ContactsPage() {
         <h1 className="mb-8 text-3xl font-bold text-fg">Контакты</h1>
 
         <div className="grid gap-8 lg:grid-cols-2">
-          <div className="flex flex-col justify-between gap-6">
+          <div className="flex min-h-[400px] flex-col justify-start gap-6">
             {contacts.map((item) => (
               <div key={item.label} className="flex items-start gap-4">
                 <item.icon size={24} className="shrink-0 mt-0.5 text-accent" />

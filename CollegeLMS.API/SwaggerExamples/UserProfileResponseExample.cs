@@ -16,14 +16,5 @@ public static class UserProfileResponseExample
                     Title = "МДК 09.01 Проектирование и разработка веб-приложений",
                 },
             },
-            News = new List<UserNewsItem>
-            {
-                new()
-                {
-                    Id = Guid.NewGuid(),
-                    Title = "Новость",
-                    PublishedAt = DateTime.UtcNow,
-                },
-            },
         };
 }

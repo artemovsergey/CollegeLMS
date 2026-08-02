@@ -450,17 +450,8 @@ public class UserServiceTests : IDisposable
             TeacherId = teacher.Id,
             Status = CourseStatus.Active,
         };
-        var news = new API.Entities.News
-        {
-            Title = "Новость 1",
-            Slug = "novost-1",
-            Content = "Текст",
-            CreatedById = teacherUser.Id,
-            PublishedAt = DateTime.UtcNow,
-        };
         _db.Teachers.Add(teacher);
         _db.Courses.Add(course);
-        _db.News.Add(news);
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetProfileAsync(teacherUser.Id, CancellationToken.None);
@@ -468,7 +459,6 @@ public class UserServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.User.Id.Should().Be(teacherUser.Id);
         result.Data.Courses.Should().ContainSingle(c => c.Title == "Курс 1");
-        result.Data.News.Should().ContainSingle(n => n.Title == "Новость 1");
     }
 
     [Fact]

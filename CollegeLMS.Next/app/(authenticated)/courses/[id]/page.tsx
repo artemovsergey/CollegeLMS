@@ -5,11 +5,12 @@ import { useParams, useRouter } from "next/navigation"
 import type { Result, CourseResponse, LectureResponse, AssignmentResponse, MaterialResponse, CourseGroupResponse, GroupResponse } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
+import { LECTURE_TYPE_LABELS, LECTURE_TYPE_VARIANTS } from "@/lib/lectureTypes"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { roleLabels, roleVariants } from "@/lib/constants"
 import ErrorBanner from "@/components/ErrorBanner"
-import { SkeletonDetail } from "@/components/SkeletonCardGrid"
+import LoadingSpinner from "@/components/LoadingSpinner"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import {
@@ -50,7 +51,7 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
   Draft: "outline",
 }
 
-type Tab = "lectures" | "assignments" | "materials" | "groups"
+type Tab = "lessons" | "materials" | "groups"
 
 export default function CourseDetailPage() {
   const { user } = useAuth()
@@ -66,7 +67,7 @@ export default function CourseDetailPage() {
   const [availableGroups, setAvailableGroups] = useState<GroupResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>("lectures")
+  const [tab, setTab] = useState<Tab>("lessons")
 
   const [showAddGroup, setShowAddGroup] = useState(false)
   const [addGroupSelectedId, setAddGroupSelectedId] = useState("")
@@ -202,7 +203,7 @@ export default function CourseDetailPage() {
     }
   }
 
-  if (loading) return <SkeletonDetail />
+  if (loading) return <LoadingSpinner size="lg" className="py-20" />
   if (error) {
     return (
       <div className="flex flex-col gap-4 p-6 max-w-5xl mx-auto">
@@ -239,7 +240,7 @@ export default function CourseDetailPage() {
       </div>
 
       <div className="flex gap-4 border-b">
-        {(["lectures", "assignments", "materials", "groups"] as Tab[]).map(t => (
+        {(["lessons", "materials", "groups"] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -249,22 +250,25 @@ export default function CourseDetailPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "lectures" ? "Лекции" : t === "assignments" ? "Задания" : t === "materials" ? "Материалы" : "Группы"}
+            {t === "lessons" ? "Занятия" : t === "materials" ? "Материалы" : "Группы"}
           </button>
         ))}
       </div>
 
-      {tab === "lectures" && (
+      {tab === "lessons" && (
         <div className="flex flex-col gap-3">
           {canEdit && (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <Button size="sm" onClick={() => router.push(`/courses/${courseId}/lectures/new`)}>
-                + Добавить лекцию
+                + Лекция
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => router.push(`/courses/${courseId}/assignments/new`)}>
+                + Задание
               </Button>
             </div>
           )}
-          {lectures.length === 0 ? (
-            <p className="text-muted-foreground">Нет лекций</p>
+          {lectures.length === 0 && assignments.length === 0 ? (
+            <p className="text-muted-foreground">Нет занятий</p>
           ) : (
             <div className="rounded-lg border bg-card divide-y">
               {lectures.map(l => (
@@ -277,35 +281,22 @@ export default function CourseDetailPage() {
                     <span className="text-sm text-muted-foreground w-6">{l.order}</span>
                     <span className="font-medium">{l.title}</span>
                   </div>
+                  <Badge variant={LECTURE_TYPE_VARIANTS[l.lectureType] ?? "outline"}>
+                    {LECTURE_TYPE_LABELS[l.lectureType] ?? l.lectureType}
+                  </Badge>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === "assignments" && (
-        <div className="flex flex-col gap-3">
-          {canEdit && (
-            <div className="flex justify-end">
-              <Button size="sm" onClick={() => router.push(`/courses/${courseId}/assignments/new`)}>
-                + Добавить задание
-              </Button>
-            </div>
-          )}
-          {assignments.length === 0 ? (
-            <p className="text-muted-foreground">Нет заданий</p>
-          ) : (
-            <div className="rounded-lg border bg-card divide-y">
               {assignments.map(a => (
                 <div
                   key={a.id}
                   className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50"
                   onClick={() => router.push(`/courses/${courseId}/assignments/${a.id}`)}
                 >
-                  <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground w-6">{a.order}</span>
                     <span className="font-medium">{a.title}</span>
                   </div>
+                  <Badge variant="secondary">Задание</Badge>
                 </div>
               ))}
             </div>
@@ -381,11 +372,11 @@ export default function CourseDetailPage() {
             <div className="rounded-lg border bg-card">
               <div className="divide-y">
                 {courseGroups.map(cg => (
-                  <div key={cg.id} className="flex items-center justify-between p-4">
+                  <div key={cg.groupId} className="flex items-center justify-between p-4">
                     <span className="font-medium">{cg.groupName}</span>
                     {canEdit && (
-                      <Button variant="ghost" size="sm" onClick={() => setRemoveGroupId(cg.id)}>
-                        <XIcon className="size-4 text-destructive" />
+                      <Button variant="ghost" size="sm" onClick={() => setRemoveGroupId(cg.groupId)} className="text-muted-foreground hover:text-fg">
+                        <XIcon className="size-4" />
                       </Button>
                     )}
                   </div>

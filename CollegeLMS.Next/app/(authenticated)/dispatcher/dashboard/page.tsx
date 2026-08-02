@@ -7,7 +7,7 @@ import type { Result, CalendarResponse, GroupResponse } from "@/types"
 import api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import ErrorBanner from "@/components/ErrorBanner"
-import { Skeleton } from "@/components/ui/skeleton"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 const DAY_LABELS = ["", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
 
@@ -33,9 +33,7 @@ export default function DispatcherDashboardPage() {
   if (loading) {
     return (
       <div className="flex flex-col gap-4 p-6 max-w-5xl mx-auto">
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-32 w-full" />
+        <LoadingSpinner size="lg" className="py-20" />
       </div>
     )
   }

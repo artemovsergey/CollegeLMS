@@ -16,6 +16,10 @@ public class CreateLectureRequestValidator : AbstractValidator<CreateLectureRequ
         RuleFor(x => x.Content)
             .MaximumLength(65535)
             .WithMessage("Содержание не должно превышать 65535 символов");
+
+        RuleFor(x => x.LectureType)
+            .Must(t => t is "Lecture" or "Practice" or "SelfStudy")
+            .WithMessage("Недопустимый тип занятия");
     }
 }
 
@@ -32,5 +36,9 @@ public class UpdateLectureRequestValidator : AbstractValidator<UpdateLectureRequ
         RuleFor(x => x.Content)
             .MaximumLength(65535)
             .WithMessage("Содержание не должно превышать 65535 символов");
+
+        RuleFor(x => x.LectureType)
+            .Must(t => t is "Lecture" or "Practice" or "SelfStudy")
+            .WithMessage("Недопустимый тип занятия");
     }
 }

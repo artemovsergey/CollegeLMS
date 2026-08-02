@@ -34,7 +34,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import ErrorBanner from "@/components/ErrorBanner"
-import { SkeletonTable } from "@/components/SkeletonCardGrid"
+import LoadingSpinner from "@/components/LoadingSpinner"
 import EmptyState from "@/components/EmptyState"
 import { toast } from "sonner"
 
@@ -232,7 +232,7 @@ export default function SpecialtiesPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <SkeletonTable rows={6} cols={4} />
+        <LoadingSpinner size="lg" className="py-20" />
       ) : specialties.length === 0 ? (
         <EmptyState message="Специальности не найдены" />
       ) : (
@@ -279,7 +279,7 @@ export default function SpecialtiesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive hover:text-destructive"
+                          className="text-muted-foreground hover:text-fg"
                           onClick={() => setDeleteConfirmId(s.id)}
                         >
                           Удал.

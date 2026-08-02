@@ -13,6 +13,7 @@ public static class LectureMapper
             Title = lecture.Title,
             Content = lecture.Content,
             Order = lecture.Order,
+            LectureType = lecture.LectureType.ToString(),
             TestId = lecture.TestId,
             TestTitle = lecture.Test?.Title,
         };

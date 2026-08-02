@@ -24,6 +24,7 @@ public static class DataSeeder
         await SeedNewsCategoriesAsync(db);
         await SeedNewsAsync(db);
         await ImportWordPressDataAsync(db);
+        await SeedMdk0901CourseAsync(db);
         await SeedAssignmentSubmissionsAsync(db);
         await SeedCourseMaterialsAsync(db);
         await SeedFeedbacksAsync(db);
@@ -6593,6 +6594,126 @@ public static class DataSeeder
         catch
         {
             // silent — import is best-effort
+        }
+    }
+
+    private static async Task SeedMdk0901CourseAsync(AppDbContext db)
+    {
+        if (
+            await db.Courses.AnyAsync(c =>
+                c.Title == "МДК 09.01 Проектирование и разработка веб-приложений"
+            )
+        )
+            return;
+
+        string[] jsonPaths =
+        [
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..",
+                "..",
+                "..",
+                "import",
+                "mdk0901_course.json"
+            ),
+            "/import/mdk0901_course.json",
+            Path.Combine(AppContext.BaseDirectory, "import", "mdk0901_course.json"),
+        ];
+
+        string? jsonPath = null;
+        foreach (var p in jsonPaths)
+        {
+            if (File.Exists(p))
+            {
+                jsonPath = p;
+                break;
+            }
+        }
+
+        if (jsonPath == null)
+            return;
+
+        try
+        {
+            var jsonBytes = await File.ReadAllBytesAsync(jsonPath);
+            using var doc = System.Text.Json.JsonDocument.Parse(jsonBytes);
+            var root = doc.RootElement;
+
+            var courseEl = root.GetProperty("course");
+            var teacherEmail = root.GetProperty("teacherEmail").GetString() ?? "";
+            var studentEmail = root.GetProperty("studentEmail").GetString() ?? "";
+            var groupName = root.GetProperty("groupName").GetString() ?? "";
+
+            var teacherUser = await db.Users.FirstOrDefaultAsync(u => u.Email == teacherEmail);
+            if (teacherUser == null)
+                return;
+
+            var teacher = await db.Teachers.FirstOrDefaultAsync(t => t.UserId == teacherUser.Id);
+            if (teacher == null)
+                return;
+
+            var group = await db.Groups.FirstOrDefaultAsync(g => g.Name == groupName);
+            if (group == null)
+                return;
+
+            var course = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = courseEl.GetProperty("title").GetString() ?? "МДК 09.01",
+                Description = courseEl.GetProperty("description").GetString() ?? string.Empty,
+                TeacherId = teacher.Id,
+                Status = CourseStatus.Active,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            db.Courses.Add(course);
+            await db.SaveChangesAsync();
+
+            if (!root.TryGetProperty("lectures", out var lecturesEl))
+                return;
+
+            foreach (var item in lecturesEl.EnumerateArray())
+            {
+                var title = item.GetProperty("title").GetString() ?? "";
+                var content = item.GetProperty("content").GetString() ?? "";
+                var order = item.GetProperty("order").GetInt32();
+                var typeStr = item.GetProperty("lectureType").GetString() ?? "Lecture";
+
+                var lectureType = Enum.TryParse<LectureType>(typeStr, out var parsed)
+                    ? parsed
+                    : LectureType.Lecture;
+
+                db.Lectures.Add(
+                    new Lecture
+                    {
+                        Id = Guid.NewGuid(),
+                        CourseId = course.Id,
+                        Title = title,
+                        Content = content,
+                        Order = order,
+                        LectureType = lectureType,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    }
+                );
+            }
+
+            db.CourseGroups.Add(
+                new CourseGroup
+                {
+                    Id = Guid.NewGuid(),
+                    CourseId = course.Id,
+                    GroupId = group.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
+
+            await db.SaveChangesAsync();
+        }
+        catch
+        {
+            // silent — seed is best-effort
         }
     }
 }

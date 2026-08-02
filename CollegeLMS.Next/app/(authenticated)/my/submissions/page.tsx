@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import ErrorBanner from "@/components/ErrorBanner"
-import { SkeletonTable } from "@/components/SkeletonCardGrid"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 export default function MySubmissionsPage() {
   const { token } = useAuth()
@@ -55,7 +55,7 @@ export default function MySubmissionsPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <SkeletonTable rows={6} cols={5} />
+        <LoadingSpinner size="lg" className="py-20" />
       ) : submissions.length === 0 ? (
         <p className="text-muted-foreground">Нет отправленных работ</p>
       ) : (

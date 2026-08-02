@@ -100,4 +100,28 @@ public class DashboardService(AppDbContext db) : IDashboardService
             new StudentDashboardResponse { Courses = result }
         );
     }
+
+    public async Task<Result<AdminDashboardResponse>> GetAdminDashboardAsync(CancellationToken ct)
+    {
+        var userCount = await db.Users.CountAsync(ct);
+        var teacherCount = await db.Teachers.CountAsync(ct);
+        var studentCount = await db.Students.CountAsync(ct);
+        var courseCount = await db.Courses.CountAsync(ct);
+        var groupCount = await db.Groups.CountAsync(ct);
+        var newsCount = await db.News.CountAsync(n => !n.IsDeleted, ct);
+        var feedbackCount = await db.Feedbacks.CountAsync(ct);
+
+        return Result<AdminDashboardResponse>.Ok(
+            new AdminDashboardResponse
+            {
+                UserCount = userCount,
+                TeacherCount = teacherCount,
+                StudentCount = studentCount,
+                CourseCount = courseCount,
+                GroupCount = groupCount,
+                NewsCount = newsCount,
+                FeedbackCount = feedbackCount,
+            }
+        );
+    }
 }

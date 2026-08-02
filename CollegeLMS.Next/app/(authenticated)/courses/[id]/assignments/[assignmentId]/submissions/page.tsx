@@ -7,7 +7,7 @@ import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ErrorBanner from "@/components/ErrorBanner"
-import { SkeletonTable } from "@/components/SkeletonCardGrid"
+import LoadingSpinner from "@/components/LoadingSpinner"
 import {
   Table,
   TableBody,
@@ -83,7 +83,7 @@ export default function SubmissionsPage() {
       )}
 
       {loading ? (
-        <SkeletonTable rows={6} cols={5} />
+        <LoadingSpinner size="lg" className="py-20" />
       ) : submissions.length === 0 ? (
         <p className="text-muted-foreground">Нет работ</p>
       ) : (

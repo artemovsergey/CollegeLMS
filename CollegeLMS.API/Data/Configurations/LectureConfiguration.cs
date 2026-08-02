@@ -14,6 +14,7 @@ public class LectureConfiguration : IEntityTypeConfiguration<Lecture>
         builder.Property(x => x.Title).HasMaxLength(255);
         builder.Property(x => x.Content).HasMaxLength(65535);
         builder.Property(x => x.Order).HasDefaultValue(0);
+        builder.Property(x => x.LectureType).HasConversion<string>().HasMaxLength(20);
         builder
             .HasOne(x => x.Course)
             .WithMany(c => c.Lectures)

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { LECTURE_TYPE_LABELS, LECTURE_TYPE_VARIANTS } from "@/lib/lectureTypes"
 
 const roleLabels: Record<string, string> = {
   Admin: "Админ",
@@ -25,7 +26,7 @@ const roleVariants: Record<string, "default" | "secondary" | "outline" | "destru
   Dispatcher: "outline",
 }
 
-type Tab = "lectures" | "assignments" | "materials"
+type Tab = "lessons" | "materials"
 
 export default function MyCourseDetailPage() {
   const { user, token, logout, isLoading: authLoading } = useAuth()
@@ -40,7 +41,7 @@ export default function MyCourseDetailPage() {
   const [submissions, setSubmissions] = useState<Record<string, SubmissionResponse | null>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>("lectures")
+  const [tab, setTab] = useState<Tab>("lessons")
 
   const fetchData = useCallback(async () => {
     try {
@@ -143,7 +144,7 @@ export default function MyCourseDetailPage() {
       </div>
 
       <div className="flex gap-4 border-b">
-        {(["lectures", "assignments", "materials"] as Tab[]).map(t => (
+        {(["lessons", "materials"] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -153,15 +154,15 @@ export default function MyCourseDetailPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "lectures" ? "Лекции" : t === "assignments" ? "Задания" : "Материалы"}
+            {t === "lessons" ? "Занятия" : "Материалы"}
           </button>
         ))}
       </div>
 
-      {tab === "lectures" && (
-        <div>
-          {lectures.length === 0 ? (
-            <p className="text-muted-foreground">Нет лекций</p>
+      {tab === "lessons" && (
+        <div className="flex flex-col gap-3">
+          {lectures.length === 0 && assignments.length === 0 ? (
+            <p className="text-muted-foreground">Нет занятий</p>
           ) : (
             <div className="rounded-lg border bg-card divide-y">
               {lectures.map(l => (
@@ -174,19 +175,11 @@ export default function MyCourseDetailPage() {
                     <span className="text-sm text-muted-foreground w-6">{l.order}</span>
                     <span className="font-medium">{l.title}</span>
                   </div>
+                  <Badge variant={LECTURE_TYPE_VARIANTS[l.lectureType] ?? "outline"}>
+                    {LECTURE_TYPE_LABELS[l.lectureType] ?? l.lectureType}
+                  </Badge>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === "assignments" && (
-        <div>
-          {assignments.length === 0 ? (
-            <p className="text-muted-foreground">Нет заданий</p>
-          ) : (
-            <div className="rounded-lg border bg-card divide-y">
               {assignments.map(a => {
                 const sub = submissions[a.id]
                 return (
@@ -199,13 +192,16 @@ export default function MyCourseDetailPage() {
                           {a.dueDate ? ` · Срок: ${new Date(a.dueDate).toLocaleDateString("ru-RU")}` : ""}
                         </span>
                       </div>
-                      {sub?.score !== null && sub?.score !== undefined ? (
-                        <Badge variant="default">{sub.score} / {a.maxScore}</Badge>
-                      ) : sub ? (
-                        <Badge variant="secondary">На проверке</Badge>
-                      ) : (
-                        <Badge variant="outline">Не сдано</Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">Задание</Badge>
+                        {sub?.score !== null && sub?.score !== undefined ? (
+                          <Badge variant="default">{sub.score} / {a.maxScore}</Badge>
+                        ) : sub ? (
+                          <Badge variant="outline">На проверке</Badge>
+                        ) : (
+                          <Badge variant="outline">Не сдано</Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <Button

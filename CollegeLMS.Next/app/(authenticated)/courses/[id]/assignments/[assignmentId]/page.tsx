@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import ErrorBanner from "@/components/ErrorBanner"
-import { SkeletonDetail } from "@/components/SkeletonCardGrid"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 export default function AssignmentViewPage() {
   const { user } = useAuth()
@@ -80,7 +80,7 @@ export default function AssignmentViewPage() {
     }
   }
 
-  if (loading) return <SkeletonDetail />
+  if (loading) return <LoadingSpinner size="lg" className="py-20" />
 
   if (error) {
     return (

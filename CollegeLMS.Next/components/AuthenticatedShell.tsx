@@ -78,7 +78,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
             >
               <Menu size={20} />
             </button>
-            <Link href="/lms" className="flex items-center gap-2 ml-2">
+            <Link href={user?.role === "Admin" ? "/admin" : user?.role === "Dispatcher" ? "/schedule" : "/my/dashboard"} className="flex items-center gap-2 ml-2">
               <Image src="/logo.svg" alt="" width={0} height={0} sizes="100vw" className="object-contain h-auto w-auto" style={{ maxHeight: "40px", width: 'auto', height: '100%' }} unoptimized />
               <div className="flex flex-col leading-tight">
                 <span className="text-xs font-semibold text-fg leading-tight">Ставропольский колледж связи</span>

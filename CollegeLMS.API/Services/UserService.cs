@@ -45,25 +45,8 @@ public class UserService(AppDbContext db) : IUserService
                 .ToListAsync(ct);
         }
 
-        var news = await db
-            .News.AsNoTracking()
-            .Where(n => n.CreatedById == id && !n.IsDeleted)
-            .OrderByDescending(n => n.PublishedAt)
-            .Select(n => new UserNewsItem
-            {
-                Id = n.Id,
-                Title = n.Title,
-                PublishedAt = n.PublishedAt,
-            })
-            .ToListAsync(ct);
-
         return Result<UserProfileResponse>.Ok(
-            new UserProfileResponse
-            {
-                User = user.ToDto(),
-                Courses = courses,
-                News = news,
-            }
+            new UserProfileResponse { User = user.ToDto(), Courses = courses }
         );
     }
 
@@ -111,8 +94,61 @@ public class UserService(AppDbContext db) : IUserService
         user.Role = request.Role;
         user.UpdatedAt = DateTime.UtcNow;
 
+        var profileResult = await EnsureProfileAsync(user, ct);
+        if (!profileResult.IsSuccess)
+            return Result<UserResponse>.Fail(
+                profileResult.ErrorMessage ?? "Не удалось создать профиль",
+                profileResult.StatusCode
+            );
+
         await db.SaveChangesAsync(ct);
         return Result<UserResponse>.Ok(user.ToDto());
+    }
+
+    private async Task<Result> EnsureProfileAsync(User user, CancellationToken ct)
+    {
+        if (user.Role == UserRole.Teacher)
+        {
+            var exists = await db.Teachers.AnyAsync(t => t.UserId == user.Id, ct);
+            if (!exists)
+            {
+                db.Teachers.Add(
+                    new Teacher
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = user.Id,
+                        CyclicalCommission = "Не назначена",
+                        Position = "Преподаватель",
+                    }
+                );
+            }
+        }
+        else if (user.Role == UserRole.Student)
+        {
+            var exists = await db.Students.AnyAsync(s => s.UserId == user.Id, ct);
+            if (!exists)
+            {
+                var group = await db.Groups.OrderBy(g => g.Name).FirstOrDefaultAsync(ct);
+                if (group is null)
+                    return Result.Fail(
+                        "Невозможно назначить роль «Студент»: в системе нет ни одной группы",
+                        400
+                    );
+
+                db.Students.Add(
+                    new Student
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = user.Id,
+                        GroupId = group.Id,
+                        RecordBookNumber =
+                            $"ЗН-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+                    }
+                );
+            }
+        }
+
+        return Result.Ok();
     }
 
     public async Task<Result> DeleteAsync(Guid id, CancellationToken ct)
@@ -180,6 +216,14 @@ public class UserService(AppDbContext db) : IUserService
 
         user.Role = request.Role;
         user.UpdatedAt = DateTime.UtcNow;
+
+        var profileResult = await EnsureProfileAsync(user, ct);
+        if (!profileResult.IsSuccess)
+            return Result<UserResponse>.Fail(
+                profileResult.ErrorMessage ?? "Не удалось создать профиль",
+                profileResult.StatusCode
+            );
+
         await db.SaveChangesAsync(ct);
 
         return Result<UserResponse>.Ok(user.ToDto());

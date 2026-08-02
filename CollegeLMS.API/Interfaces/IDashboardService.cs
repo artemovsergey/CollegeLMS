@@ -13,4 +13,5 @@ public interface IDashboardService
         Guid userId,
         CancellationToken ct = default
     );
+    Task<Result<AdminDashboardResponse>> GetAdminDashboardAsync(CancellationToken ct = default);
 }

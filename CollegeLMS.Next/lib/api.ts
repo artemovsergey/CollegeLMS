@@ -38,9 +38,9 @@ api.interceptors.response.use(
           window.location.href = "/login"
         }
       } else if (status === 500) {
-        showDebouncedToast(500, "Ошибка сервера. Попробуйте позже")
+        showDebouncedToast(500, "Внутренняя ошибка сервера")
       } else if (status === 504) {
-        showDebouncedToast(504, "Сервер недоступен. Проверьте соединение")
+        showDebouncedToast(504, "Проблемы на стороне провайдера (504). Попробуйте позже")
       }
     }
     return Promise.reject(error)

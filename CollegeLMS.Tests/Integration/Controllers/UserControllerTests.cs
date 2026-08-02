@@ -326,7 +326,6 @@ public class UserControllerTests : BaseIntegrationTest
         result!.IsSuccess.Should().BeTrue();
         result.Data!.User.Id.Should().Be(admin.Id);
         result.Data.Courses.Should().BeEmpty();
-        result.Data.News.Should().BeEmpty();
     }
 
     [Fact]

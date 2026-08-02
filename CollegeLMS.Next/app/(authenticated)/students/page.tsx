@@ -6,7 +6,7 @@ import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { roleLabels, roleVariants } from "@/lib/constants"
 import ErrorBanner from "@/components/ErrorBanner"
-import { SkeletonTable } from "@/components/SkeletonCardGrid"
+import LoadingSpinner from "@/components/LoadingSpinner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -364,7 +364,7 @@ export default function StudentsPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <SkeletonTable rows={8} cols={5} />
+        <LoadingSpinner size="lg" className="py-20" />
       ) : filteredStudents.length === 0 ? (
         <p className="text-muted-foreground">Нет студентов</p>
       ) : (

@@ -55,7 +55,6 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import LoadingSpinner from "@/components/LoadingSpinner"
-import { SkeletonTable } from "@/components/SkeletonCardGrid"
 import ErrorBanner from "@/components/ErrorBanner"
 import EmptyState from "@/components/EmptyState"
 import { ArrowLeft } from "lucide-react"
@@ -777,7 +776,7 @@ export default function AdminTestingPage() {
             {questionsError && <ErrorBanner message={questionsError} />}
 
             {questionsLoading ? (
-              <SkeletonTable rows={5} cols={4} />
+              <LoadingSpinner size="lg" className="py-20" />
             ) : questions.length === 0 ? (
               <EmptyState message="Нет вопросов" />
             ) : (
@@ -828,7 +827,7 @@ export default function AdminTestingPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-destructive hover:text-destructive"
+                                className="text-muted-foreground hover:text-fg"
                                 onClick={() => setDeleteQuestionId(q.id)}
                               >
                                 Удал.
@@ -871,7 +870,7 @@ export default function AdminTestingPage() {
             {assignmentsError && <ErrorBanner message={assignmentsError} />}
 
             {assignmentsLoading ? (
-              <SkeletonTable rows={5} cols={4} />
+              <LoadingSpinner size="lg" className="py-20" />
             ) : assignments.length === 0 ? (
               <EmptyState message="Нет назначений" />
             ) : (
@@ -902,7 +901,7 @@ export default function AdminTestingPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-destructive hover:text-destructive"
+                              className="text-muted-foreground hover:text-fg"
                               onClick={() => setDeleteAssignmentId(a.id)}
                             >
                               Удал.
@@ -995,7 +994,7 @@ export default function AdminTestingPage() {
       {testsError && <ErrorBanner message={testsError} />}
 
       {testsLoading ? (
-        <SkeletonTable rows={6} cols={6} />
+        <LoadingSpinner size="lg" className="py-20" />
       ) : tests.length === 0 ? (
         <EmptyState message="Нет тестов" />
       ) : (
@@ -1047,7 +1046,7 @@ export default function AdminTestingPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive hover:text-destructive"
+                          className="text-muted-foreground hover:text-fg"
                           onClick={() => setDeleteTestId(t.id)}
                         >
                           Удал.

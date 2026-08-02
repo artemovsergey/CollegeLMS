@@ -66,7 +66,7 @@ export default function AdminImportPage() {
 
         if (body.isSuccess && body.data) {
           setProgress(body.data)
-          if (body.data.status === "completed" || body.data.status === "failed") {
+          if (body.data.status === "completed" || body.data.status === "failed" || body.data.status === "cancelled") {
             clearInterval(interval)
             setPolling(false)
           }
@@ -127,7 +127,9 @@ export default function AdminImportPage() {
                 ? "Выполняется..."
                 : progress.status === "completed"
                   ? "Завершён"
-                  : "Ошибка"}
+                  : progress.status === "cancelled"
+                    ? "Остановлен"
+                    : "Ошибка"}
             </span>
             {progress.status === "running" && (
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-primary" />

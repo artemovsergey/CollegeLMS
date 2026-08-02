@@ -1,4 +1,5 @@
 import {
+  LayoutDashboard,
   Users,
   Newspaper,
   MessageSquare,
@@ -26,6 +27,7 @@ export const adminMenuSections: MenuSection[] = [
   {
     label: "Система",
     items: [
+      { href: "/admin/dashboard", label: "Дашборд", icon: LayoutDashboard },
       { href: "/admin", label: "Пользователи", icon: Users },
       { href: "/admin/news", label: "Новости", icon: Newspaper },
       { href: "/admin/feedback", label: "Обратная связь", icon: MessageSquare },
@@ -49,6 +51,7 @@ export const adminMenuSections: MenuSection[] = [
 ]
 
 export const adminRoleMap: Record<string, string[]> = {
+  "/admin/dashboard": ["Admin"],
   "/admin": ["Admin"],
   "/admin/news": ["Admin", "Dispatcher"],
   "/admin/feedback": ["Admin"],

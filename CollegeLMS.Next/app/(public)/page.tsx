@@ -86,7 +86,7 @@ function HomePageContent() {
           ) : news.length === 0 && !error ? (
             <p className="text-center text-muted-foreground">Новостей пока нет</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {news.map((item) => (
                 <Link
                   key={item.id}

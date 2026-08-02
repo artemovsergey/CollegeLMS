@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { ChevronLeft, BookOpen, Newspaper } from "lucide-react"
+import { ChevronLeft, BookOpen } from "lucide-react"
 import type { Result, UserProfileResponse } from "@/types"
 import api from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import ErrorBanner from "@/components/ErrorBanner"
-import { Skeleton } from "@/components/ui/skeleton"
 import { roleLabels, roleVariants } from "@/lib/constants"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -34,9 +34,7 @@ export default function UserProfilePage() {
   if (loading) {
     return (
       <div className="flex flex-col gap-4 p-6 max-w-3xl mx-auto">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-32 w-full" />
+        <LoadingSpinner size="lg" className="py-20" />
       </div>
     )
   }
@@ -49,7 +47,7 @@ export default function UserProfilePage() {
     )
   }
 
-  const { user, courses, news } = profile
+  const { user, courses } = profile
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
@@ -91,32 +89,6 @@ export default function UserProfilePage() {
                 <li key={c.id}>
                   <Link href={`/courses/${c.id}`} className="block py-2 text-sm hover:text-primary">
                     {c.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Newspaper size={16} /> Новости автора
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {news.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Нет новостей</p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-border">
-              {news.map(n => (
-                <li key={n.id}>
-                  <Link href={`/news/${n.id}`} className="flex items-center justify-between py-2 text-sm hover:text-primary">
-                    <span>{n.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(n.publishedAt).toLocaleDateString("ru-RU")}
-                    </span>
                   </Link>
                 </li>
               ))}

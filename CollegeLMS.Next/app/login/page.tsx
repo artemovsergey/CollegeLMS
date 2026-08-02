@@ -30,7 +30,11 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
-    setFieldErrors({})
+    const clientErrors: Record<string, string[]> = {}
+    if (!loginInput.trim()) clientErrors.login = ["Введите логин"]
+    if (!password) clientErrors.password = ["Введите пароль"]
+    setFieldErrors(clientErrors)
+    if (Object.keys(clientErrors).length > 0) return
     setSubmitting(true)
 
     try {
@@ -44,7 +48,7 @@ export default function LoginPage() {
           Student: "/my/dashboard",
           Dispatcher: "/schedule",
         }
-        router.push(homeByRole[body.data.user.role] ?? "/lms")
+        router.push(homeByRole[body.data.user.role] ?? "/my/dashboard")
       } else {
         setFormError(body.errorMessage ?? "Ошибка входа")
       }
@@ -97,8 +101,7 @@ export default function LoginPage() {
 
           <h1 className="mb-4 text-2xl font-semibold text-primary text-center">Личный кабинет</h1>
 
-          <div className="mb-6 rounded-md border border-border bg-muted/50 p-3">
-            <p className="mb-1.5 text-xs text-accent-lighter">Быстрый вход (разработка)</p>
+          <div className="mb-6">
             <select
               onChange={(e) => {
                 const account = QUICK_LOGINS.find(a => a.role === e.target.value)
@@ -108,9 +111,10 @@ export default function LoginPage() {
                 }
               }}
               defaultValue=""
-              className="w-full rounded-md border border-input bg-white px-3 py-1.5 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              aria-label="Быстрый вход (разработка)"
+              className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             >
-              <option value="" disabled>Выберите роль...</option>
+              <option value="" disabled>Быстрый вход (разработка): выберите роль...</option>
               {QUICK_LOGINS.map(a => (
                 <option key={a.role} value={a.role}>{a.label}</option>
               ))}

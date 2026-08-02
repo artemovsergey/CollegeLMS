@@ -59,4 +59,25 @@ public class DashboardController(IDashboardService service) : ControllerBase
             return StatusCode(result.StatusCode, result);
         return Ok(result);
     }
+
+    [HttpGet("api/admin/dashboard")]
+    [Authorize(Roles = "Admin")]
+    [SwaggerOperation(Summary = "Получить дашборд администратора")]
+    [SwaggerResponse(200, "Дашборд получен", typeof(Result<AdminDashboardResponse>))]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<AdminDashboardResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<AdminDashboardResponse>>> GetAdminDashboard(
+        CancellationToken ct
+    )
+    {
+        var result = await service.GetAdminDashboardAsync(ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
 }

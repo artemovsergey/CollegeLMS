@@ -453,6 +453,12 @@ namespace CollegeLMS.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("LectureType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("lecture_type");
+
                     b.Property<int>("Order")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
