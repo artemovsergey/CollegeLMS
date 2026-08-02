@@ -10,6 +10,7 @@ export interface Section {
   slug: string
   href: string
   subsections: Subsection[]
+  inHeader?: boolean
 }
 
 export const siteNavigation: Section[] = [
@@ -28,6 +29,7 @@ export const siteNavigation: Section[] = [
       { title: "План работы", slug: "plan-raboty-gbpou-sks-na-tekushhij-uchebnyj-god", href: "/college/plan-raboty-gbpou-sks-na-tekushhij-uchebnyj-god", content: "" },
       { title: "Контакты", slug: "polnaya-kontaktnaya-informatsiya", href: "/college/polnaya-kontaktnaya-informatsiya", content: "" },
       { title: "Сведения об ОО", slug: "svedeniya-oo", href: "/about", content: "" },
+      { title: "Достижения", slug: "achievements", href: "/achievements", content: "" },
     ],
   },
   {
@@ -75,6 +77,7 @@ export const siteNavigation: Section[] = [
     title: "Достижения",
     slug: "achievements",
     href: "/achievements",
+    inHeader: false,
     subsections: [
       { title: "Профессионалы", slug: "professionaly", href: "/achievements/professionaly", content: "" },
       { title: "Мастер года", slug: "master-year", href: "/achievements/master-year", content: "" },
@@ -84,6 +87,7 @@ export const siteNavigation: Section[] = [
     title: "Сведения об ОО",
     slug: "about",
     href: "/about",
+    inHeader: false,
     subsections: [
       { title: "Основные сведения", slug: "common", href: "/about/common", content: "" },
       { title: "Структура и органы управления", slug: "struct", href: "/about/struct", content: "" },
@@ -102,15 +106,6 @@ export const siteNavigation: Section[] = [
       { title: "Лицензия", slug: "litsenziya-na-obrazovatelnuyu-deyatel", href: "/about/litsenziya-na-obrazovatelnuyu-deyatel", content: "" },
       { title: "Свидетельство об аккредитации", slug: "svidetelstvo-ob-akkreditatsii", href: "/about/svidetelstvo-ob-akkreditatsii", content: "" },
       { title: "Полная контактная информация", slug: "polnaya-kontaktnaya-informatsiya", href: "/about/polnaya-kontaktnaya-informatsiya", content: "" },
-    ],
-  },
-  {
-    title: "Сотруднику",
-    slug: "employee",
-    href: "/employee",
-    subsections: [
-      { title: "Личный кабинет", slug: "dashboard", href: "/lms", content: "" },
-      { title: "Расписание", slug: "schedule", href: "/schedule", content: "" },
     ],
   },
 ]

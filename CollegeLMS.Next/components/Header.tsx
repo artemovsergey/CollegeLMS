@@ -82,6 +82,8 @@ export default function Header() {
     closeTimer.current = setTimeout(() => setOpenMenu(null), 120)
   }
 
+  const navSections = siteNavigation.filter(s => s.inHeader !== false)
+
   return (
     <header className="sticky top-0 z-50 bg-accent">
       <div className="flex flex-col">
@@ -126,7 +128,7 @@ export default function Header() {
           </Link>
 
           <nav className="hidden lg:flex items-center justify-center gap-0.5" aria-label="Главное меню">
-            {siteNavigation.map((section) => {
+            {navSections.map((section) => {
               const hasSubs = section.subsections.length > 0
               const isOpen = openMenu === section.slug
               return (
@@ -204,7 +206,7 @@ export default function Header() {
       {mobileOpen && (
         <div className="lg:hidden border-b border-white/10 bg-accent px-4 pb-4 pt-2">
           <nav className="flex flex-col gap-1">
-            {siteNavigation.map((section) => {
+            {navSections.map((section) => {
               const hasSubs = section.subsections.length > 0
               const isOpen = openMobileSection === section.slug
               return (
