@@ -178,14 +178,6 @@ export default function Header() {
                 </div>
               )
             })}
-
-            <Link
-              href="/login"
-              className="ml-2 flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-white hover:text-accent"
-            >
-              <User size={16} />
-              Войти
-            </Link>
           </nav>
 
           <div className="flex items-center justify-end gap-2">
