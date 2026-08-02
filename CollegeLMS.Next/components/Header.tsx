@@ -121,7 +121,7 @@ export default function Header() {
         </div>
 
         {/* Row 2: Logo text + Navigation */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 items-center border-b border-white/10 px-4 lg:px-6">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 lg:px-6">
           <Link href="/" className="flex shrink-0 flex-col py-3 leading-tight">
             <span className="text-base sm:text-lg font-bold text-white">Ставропольский колледж связи</span>
             <span className="text-[10px] sm:text-xs text-white/60">имени Героя Советского Союза В.А. Петрова</span>
