@@ -8,7 +8,6 @@ import SpecialtiesSectionTPU from "./SpecialtiesSectionTPU"
 import AdmissionSectionTPU from "./AdmissionSectionTPU"
 import NewsSectionTPU from "./NewsSectionTPU"
 import StatisticsSectionTPU from "./StatisticsSectionTPU"
-import PartnersSectionTPU from "./PartnersSectionTPU"
 import FAQSectionTPU from "./FAQSectionTPU"
 import FeedbackFormTPU from "./FeedbackFormTPU"
 
@@ -53,7 +52,6 @@ export default function HomeTPU() {
       <AdmissionSectionTPU />
       <NewsSectionTPU />
       <StatisticsSectionTPU />
-      <PartnersSectionTPU />
 
       <section className="app-section app-section--alt">
         <div className="mx-auto max-w-7xl px-4 lg:px-8">
