@@ -159,10 +159,6 @@ public class UserService(AppDbContext db) : IUserService
             foreach (var course in courses)
                 course.TeacherId = adminTeacher.Id;
 
-            var exams = await db.Exams.Where(e => e.TeacherId == teacher.Id).ToListAsync(ct);
-            foreach (var exam in exams)
-                exam.TeacherId = adminTeacher.Id;
-
             db.Teachers.Remove(teacher);
         }
 

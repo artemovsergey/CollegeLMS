@@ -113,18 +113,6 @@ public static class DbConstraints
             """
         );
 
-        // Semesters
-        await db.Database.ExecuteSqlRawAsync(
-            """
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_semesters_dates_range') THEN
-                        ALTER TABLE semesters ADD CONSTRAINT ck_semesters_dates_range CHECK (end_date > start_date);
-                    END IF;
-                END $$;
-            """
-        );
-
         // Specialties
         await db.Database.ExecuteSqlRawAsync(
             """

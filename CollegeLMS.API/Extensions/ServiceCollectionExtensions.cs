@@ -190,10 +190,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<ITestingService, TestingService>();
-        services.AddScoped<ISemesterService, SemesterService>();
         services.AddScoped<ISpecialtyService, SpecialtyService>();
-        services.AddScoped<IExamService, ExamService>();
-        services.AddScoped<IStipendService, StipendService>();
         services.AddScoped<ScheduleExportService>();
         services.AddScoped<ScheduleImportService>();
         services.AddFluentValidationAutoValidation();

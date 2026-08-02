@@ -425,25 +425,24 @@
 
 ---
 
-### UC-20: Пользователь может смотреть расписание на день/неделю/месяц/семестр/год
+### UC-20: Пользователь может смотреть расписание на день/неделю/месяц/год
 
 **Критерии приемки:**
 - [ ] `GET /api/schedule?dayOfWeek={n}` — на день (по дню недели)
 - [ ] `GET /api/schedule?period=week` — на неделю
 - [ ] `GET /api/schedule?period=month` — на месяц
-- [ ] `GET /api/schedule?period=semester&semesterId={id}` — на семестр
 - [ ] `GET /api/schedule?period=year` — на год
-- [ ] Фильтрация по groupId/teacherId/room комбинируется с period и semesterId
+- [ ] Фильтрация по groupId/teacherId/room комбинируется с period
 - [ ] AUTH-1
 
 **API:**
-- `GET /api/schedule?groupId={id}&dayOfWeek={n}&period={week|month|semester|year}&semesterId={id}` — расписание за период
+- `GET /api/schedule?groupId={id}&dayOfWeek={n}&period={week|month|year}` — расписание за период
 
 **UI:**
-- Переключатель периодов (день/неделя/месяц/семестр/год) на странице `/schedule`
+- Переключатель периодов (день/неделя/месяц/год) на странице `/schedule`
 - UI-1, UI-2, UI-3
 
-**Зависимости:** ScheduleService, SemesterService
+**Зависимости:** ScheduleService
 
 ---
 
@@ -834,33 +833,6 @@
 
 ---
 
-### UC-37: Администратор может управлять учебными семестрами
-
-**Критерии приемки:**
-- [ ] `POST /api/semesters` — создать семестр (название, дата начала, дата конца, тип: осенний/весенний)
-- [ ] `GET /api/semesters` — список семестров (сортировка по дате начала)
-- [ ] `PUT /api/semesters/{id}` — редактировать
-- [ ] `DELETE /api/semesters/{id}` — удалить
-- [ ] Семестр: название, дата начала, дата конца, тип (Autumn/Spring), учебный год
-- [ ] AUTH-2 (только Admin)
-- [ ] AUTH-3 (404 если семестр не найден)
-- [ ] VAL-1, VAL-2, VAL-3
-- [ ] Дата начала < Дата конца
-
-**API:**
-- `GET /api/semesters?page={n}&pageSize={m}` — список
-- `POST /api/semesters` — создать
-- `PUT /api/semesters/{id}` — обновить
-- `DELETE /api/semesters/{id}` — удалить
-
-**UI:**
-- Страница `/admin/semesters` с таблицей и формой
-- UI-1, UI-2, UI-3, UI-4
-
-**Зависимости:** LearningService
-
----
-
 ### UC-38: Администратор может массово импортировать студентов из Excel
 
 **Критерии приемки:**
@@ -1131,33 +1103,6 @@
 
 ---
 
-### UC-49: Заведующий отделением может управлять экзаменами и зачётами
-
-**Критерии приемки:**
-- [ ] `GET /api/exams` — список экзаменов/зачётов с фильтрами (группа, предмет, семестр)
-- [ ] `POST /api/exams` — создать экзамен/зачёт (предмет, группа, дата, тип, преподаватель, семестр)
-- [ ] `PUT /api/exams/{id}` — редактировать
-- [ ] `DELETE /api/exams/{id}` — удалить
-- [ ] Экзамен: предмет, группа, дата проведения, тип (Exam/Test), преподаватель, семестр, статус (Scheduled/Passed/Cancelled)
-- [ ] PAG-1, PAG-2, PAG-3
-- [ ] AUTH-2 (только Admin / Заведующий отделением)
-- [ ] AUTH-3 (404 если экзамен не найден)
-- [ ] VAL-1, VAL-2, VAL-3 (дата экзамена обязательна)
-
-**API:**
-- `GET /api/exams?groupId={id}&semesterId={id}&type={exam|test}&page={n}&pageSize={m}` — список
-- `POST /api/exams` — создать
-- `PUT /api/exams/{id}` — обновить
-- `DELETE /api/exams/{id}` — удалить
-
-**UI:**
-- Страница `/admin/exams` с таблицей экзаменов и формой создания/редактирования
-- UI-1, UI-2, UI-3, UI-4
-
-**Зависимости:** GroupService, TeacherService, SemesterService
-
----
-
 ### UC-51: Заведующий отделением может переводить студентов между группами
 
 **Критерии приемки:**
@@ -1182,31 +1127,6 @@
 
 ---
 
-### UC-52: Заведующий отделением может формировать список на стипендию
-
-**Критерии приемки:**
-- [ ] `POST /api/stipend/generate?semesterId={id}` — сформировать стипендиальный список на основе успеваемости за семестр
-- [ ] `GET /api/stipend/lists` — список сформированных ведомостей
-- [ ] `GET /api/stipend/lists/{id}` — детали ведомости (студенты, суммы)
-- [ ] `DELETE /api/stipend/lists/{id}` — удалить ведомость
-- [ ] Алгоритм: студенты без задолженностей, средний балл ≥ 4.0, не имеющие дисциплинарных взысканий
-- [ ] AUTH-2 (только Admin / Заведующий отделением)
-- [ ] VAL-1, VAL-2
-
-**API:**
-- `POST /api/stipend/generate?semesterId={id}` — сформировать
-- `GET /api/stipend/lists` — список ведомостей
-- `GET /api/stipend/lists/{id}` — детали
-- `DELETE /api/stipend/lists/{id}` — удалить
-
-**UI:**
-- Страница `/admin/stipend` с кнопкой генерации и списком ведомостей
-- UI-1, UI-2, UI-3, UI-4
-
-**Зависимости:** SemesterService, StudentService, SubmissionService
-
----
-
 ## Сводная таблица
 
 | Сервис | User Stories | Статус реализации | Приоритет |
@@ -1214,7 +1134,7 @@
 | SiteService | UC-1 — UC-8 (8) | ✅ Все реализованы | — |
 | AuthService | UC-9 — UC-14 (6) | ✅ Все реализованы | P1 |
 | ScheduleService | UC-16 — UC-23 (8) | ✅ Все реализованы | P2 |
-| LearningService | UC-24 — UC-38, UC-46 — UC-51 (21) | ✅ Все реализованы | P1 |
+| LearningService | UC-24 — UC-38, UC-46 — UC-48, UC-50 — UC-51 (20) | ✅ Все реализованы | P1 |
 | TestingService | UC-39 — UC-45 (7) | ✅ Все реализованы | P0 |
 
-**Итого: 50 User Stories** — все реализованы.
+**Итого: 49 User Stories** — все реализованы.

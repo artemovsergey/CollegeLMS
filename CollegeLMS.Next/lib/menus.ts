@@ -8,8 +8,6 @@ import {
   CalendarDays,
   BookType,
   BadgeInfo,
-  ClipboardCheck,
-  Banknote,
   type LucideIcon,
 } from "lucide-react"
 
@@ -40,15 +38,9 @@ export const adminMenuSections: MenuSection[] = [
       { href: "/groups", label: "Группы", icon: UsersRound },
       { href: "/teachers", label: "Преподаватели", icon: GraduationCap },
       { href: "/students", label: "Студенты", icon: Users },
-      { href: "/admin/semesters", label: "Семестры", icon: CalendarDays },
       { href: "/admin/specialties", label: "Специальности", icon: BadgeInfo },
-      { href: "/admin/exams", label: "Экзамены", icon: ClipboardCheck },
       { href: "/admin/testing", label: "Тесты", icon: BookType },
     ],
-  },
-  {
-    label: "Финансы",
-    items: [{ href: "/admin/stipends", label: "Стипендии", icon: Banknote }],
   },
   {
     label: "Расписание",
@@ -65,10 +57,7 @@ export const adminRoleMap: Record<string, string[]> = {
   "/groups": ["Admin"],
   "/teachers": ["Admin"],
   "/students": ["Admin"],
-  "/admin/semesters": ["Admin"],
   "/admin/specialties": ["Admin"],
-  "/admin/exams": ["Admin"],
   "/admin/testing": ["Admin"],
-  "/admin/stipends": ["Admin"],
   "/schedule": ["Admin", "Dispatcher", "Teacher"],
 }

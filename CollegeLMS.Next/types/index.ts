@@ -213,56 +213,6 @@ export interface FeedbackListItemDto {
   createdAt: string
 }
 
-export interface ExamResponse {
-  id: string
-  subject: string
-  groupId: string
-  groupName: string
-  examDate: string
-  type: string
-  teacherId: string
-  teacherName: string
-  semesterId: string
-  semesterName: string
-  status: string
-}
-
-export interface CreateExamRequest {
-  subject: string
-  groupId: string
-  examDate: string
-  type: string
-  teacherId: string
-  semesterId: string
-}
-
-export interface UpdateExamRequest {
-  subject: string
-  examDate: string
-  type: string
-  teacherId: string
-  semesterId: string
-  status: string
-}
-
-export interface RetakeResponse {
-  id: string
-  examId: string
-  studentId: string
-  studentName: string
-  retakeDate: string
-  status: string
-}
-
-export interface CreateRetakeRequest {
-  studentId: string
-  retakeDate: string
-}
-
-export interface UpdateRetakeStatusRequest {
-  status: string
-}
-
 export interface TestResponse {
   id: string
   title: string
@@ -351,28 +301,6 @@ export interface TestAttemptResponse {
   status: string
 }
 
-export interface SemesterResponse {
-  id: string
-  name: string
-  startDate: string
-  endDate: string
-  type: string
-}
-
-export interface CreateSemesterRequest {
-  name: string
-  startDate: string
-  endDate: string
-  type: string
-}
-
-export interface UpdateSemesterRequest {
-  name: string
-  startDate: string
-  endDate: string
-  type: string
-}
-
 export interface SpecialtyResponse {
   id: string
   code: string
@@ -392,31 +320,6 @@ export interface UpdateSpecialtyRequest {
   name: string
   description: string
   isActive: boolean
-}
-
-export interface StipendListResponse {
-  id: string
-  title: string
-  semesterId: string
-  semesterName: string
-  studentCount: number
-  createdAt: string
-}
-
-export interface StipendListItemResponse {
-  id: string
-  studentId: string
-  studentName: string
-  groupName: string
-  amount: number
-  type: string
-  comment: string | null
-}
-
-export interface GenerateStipendRequest {
-  semesterId: string
-  type: string
-  minScore: number
 }
 
 export interface ChangePasswordRequest {
