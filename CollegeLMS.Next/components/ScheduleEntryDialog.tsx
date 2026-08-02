@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import FormField from "@/components/FormField"
 import {
   Select,
   SelectContent,
@@ -62,9 +62,11 @@ export default function ScheduleEntryDialog({
   const [weeksInput, setWeeksInput] = useState("")
   const [lessonType, setLessonType] = useState("")
   const [saving, setSaving] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (open) {
+      setFieldErrors({})
       if (entry) {
         setGroupId(entry.groupId)
         setTeacherId(entry.teacherId ?? "")
@@ -100,27 +102,34 @@ export default function ScheduleEntryDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!groupId || !subject || !room || !dayOfWeek || !startTime || !endTime || !lessonType) {
-      toast.error("Заполните все обязательные поля")
-      return
-    }
+    const errors: Record<string, string> = {}
+    if (!groupId) errors.groupId = "Группа обязательна"
+    if (!subject.trim()) errors.subject = "Название предмета обязательно"
+    else if (subject.trim().length > 200) errors.subject = "Название предмета не должно превышать 200 символов"
+    if (!room.trim()) errors.room = "Номер аудитории обязателен"
+    else if (room.trim().length > 50) errors.room = "Номер аудитории не должен превышать 50 символов"
+    if (!dayOfWeek) errors.dayOfWeek = "День недели обязателен"
+    if (!lessonType) errors.lessonType = "Тип занятия обязателен"
 
-    if (startTime >= endTime) {
-      toast.error("Время начала должно быть раньше времени окончания")
-      return
-    }
+    if (!startTime) errors.startTime = "Время начала обязательно"
+    if (!endTime) errors.endTime = "Время окончания обязательно"
+    else if (startTime && startTime >= endTime) errors.endTime = "Время начала должно быть раньше времени окончания"
 
     const np = parseInt(numberPair, 10)
     if (isNaN(np) || np < 1 || np > 8) {
-      toast.error("Номер пары должен быть от 1 до 8")
-      return
+      errors.numberPair = "Номер пары должен быть от 1 до 8"
     }
 
     const weeks = parseWeeks(weeksInput)
     if (weeks.length === 0) {
-      toast.error("Укажите хотя бы одну неделю")
+      errors.weeks = "Укажите хотя бы одну неделю"
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
       return
     }
+    setFieldErrors({})
 
     setSaving(true)
     try {
@@ -176,10 +185,9 @@ export default function ScheduleEntryDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="grid gap-4">
-          <div className="grid gap-2">
-            <Label>Группа *</Label>
+          <FormField id="schedule-group" label="Группа" required error={fieldErrors.groupId}>
             <Select value={groupId} onValueChange={setGroupId}>
-              <SelectTrigger>
+              <SelectTrigger id="schedule-group">
                 <SelectValue placeholder="Выберите группу" />
               </SelectTrigger>
               <SelectContent>
@@ -190,12 +198,11 @@ export default function ScheduleEntryDialog({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
-          <div className="grid gap-2">
-            <Label>Преподаватель</Label>
+          <FormField id="schedule-teacher" label="Преподаватель">
             <Select value={teacherId} onValueChange={setTeacherId}>
-              <SelectTrigger>
+              <SelectTrigger id="schedule-teacher">
                 <SelectValue placeholder="Выберите преподавателя" />
               </SelectTrigger>
               <SelectContent>
@@ -207,22 +214,19 @@ export default function ScheduleEntryDialog({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
-          <div className="grid gap-2">
-            <Label>Предмет *</Label>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Математика" />
-          </div>
+          <FormField id="schedule-subject" label="Предмет" required error={fieldErrors.subject}>
+            <Input id="schedule-subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Математика" />
+          </FormField>
 
-          <div className="grid gap-2">
-            <Label>Аудитория *</Label>
-            <Input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="301" />
-          </div>
+          <FormField id="schedule-room" label="Аудитория" required error={fieldErrors.room}>
+            <Input id="schedule-room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="301" />
+          </FormField>
 
-          <div className="grid gap-2">
-            <Label>День недели *</Label>
+          <FormField id="schedule-day" label="День недели" required error={fieldErrors.dayOfWeek}>
             <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
-              <SelectTrigger>
+              <SelectTrigger id="schedule-day">
                 <SelectValue placeholder="День" />
               </SelectTrigger>
               <SelectContent>
@@ -233,13 +237,12 @@ export default function ScheduleEntryDialog({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label>Номер пары *</Label>
+            <FormField id="schedule-pair" label="Номер пары" required error={fieldErrors.numberPair}>
               <Select value={numberPair} onValueChange={setNumberPair}>
-                <SelectTrigger>
+                <SelectTrigger id="schedule-pair">
                   <SelectValue placeholder="Пара" />
                 </SelectTrigger>
                 <SelectContent>
@@ -250,11 +253,10 @@ export default function ScheduleEntryDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>Тип занятия *</Label>
+            </FormField>
+            <FormField id="schedule-lesson-type" label="Тип занятия" required error={fieldErrors.lessonType}>
               <Select value={lessonType} onValueChange={setLessonType}>
-                <SelectTrigger>
+                <SelectTrigger id="schedule-lesson-type">
                   <SelectValue placeholder="Тип" />
                 </SelectTrigger>
                 <SelectContent>
@@ -265,23 +267,21 @@ export default function ScheduleEntryDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FormField>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label>Начало *</Label>
-              <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Конец *</Label>
-              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-            </div>
+            <FormField id="schedule-start" label="Начало" required error={fieldErrors.startTime}>
+              <Input id="schedule-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            </FormField>
+            <FormField id="schedule-end" label="Конец" required error={fieldErrors.endTime}>
+              <Input id="schedule-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            </FormField>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Недели *</Label>
+          <FormField id="schedule-weeks" label="Недели" required error={fieldErrors.weeks}>
             <Input
+              id="schedule-weeks"
               value={weeksInput}
               onChange={(e) => setWeeksInput(e.target.value)}
               placeholder="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
@@ -289,7 +289,7 @@ export default function ScheduleEntryDialog({
             <p className="text-xs text-muted-foreground">
               Номера недель через запятую. Например: 1,3,5,7,9,11,13,15 — нечётные
             </p>
-          </div>
+          </FormField>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

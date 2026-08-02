@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import type { Result, SpecialtyResponse, CreateSpecialtyRequest, UpdateSpecialtyRequest } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
+import { parseErrors } from "@/lib/errors"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -34,6 +35,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import ErrorBanner from "@/components/ErrorBanner"
+import FormField from "@/components/FormField"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import EmptyState from "@/components/EmptyState"
 import { toast } from "sonner"
@@ -56,6 +58,7 @@ export default function SpecialtiesPage() {
   const [formDescription, setFormDescription] = useState("")
   const [formIsActive, setFormIsActive] = useState(true)
   const [formError, setFormError] = useState<string | null>(null)
+  const [formFieldErrors, setFormFieldErrors] = useState<Record<string, string>>({})
   const [formSubmitting, setFormSubmitting] = useState(false)
 
   const fetchSpecialties = useCallback(async (searchTerm?: string) => {
@@ -90,6 +93,7 @@ export default function SpecialtiesPage() {
     setFormDescription("")
     setFormIsActive(true)
     setFormError(null)
+    setFormFieldErrors({})
     setShowCreate(false)
     setEditingId(null)
   }
@@ -101,14 +105,30 @@ export default function SpecialtiesPage() {
     setFormDescription(s.description)
     setFormIsActive(s.isActive)
     setFormError(null)
+    setFormFieldErrors({})
+  }
+
+  const validate = (): Record<string, string> => {
+    const errors: Record<string, string> = {}
+    if (!formCode.trim()) errors.code = "Код специальности обязателен"
+    else if (formCode.trim().length > 50) errors.code = "Код не должен превышать 50 символов"
+    if (!formName.trim()) errors.name = "Название специальности обязательно"
+    else if (formName.trim().length > 255) errors.name = "Название не должно превышать 255 символов"
+    if (formDescription.trim().length > 4000) errors.description = "Описание не должно превышать 4000 символов"
+    return errors
   }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
+    const fieldErrors = validate()
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormFieldErrors(fieldErrors)
+      return
+    }
     setFormError(null)
     setFormSubmitting(true)
     try {
-      const body: CreateSpecialtyRequest = { code: formCode, name: formName, description: formDescription }
+      const body: CreateSpecialtyRequest = { code: formCode.trim(), name: formName.trim(), description: formDescription.trim() }
       const res = await api.post<Result<SpecialtyResponse>>("/api/specialties", body)
       if (res.data.isSuccess) {
         resetForm()
@@ -117,8 +137,12 @@ export default function SpecialtiesPage() {
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка создания")
       }
-    } catch {
-      setFormError("Ошибка создания специальности")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormError(parsed.message)
+      setFormFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setFormSubmitting(false)
     }
@@ -127,10 +151,15 @@ export default function SpecialtiesPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingId) return
+    const fieldErrors = validate()
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormFieldErrors(fieldErrors)
+      return
+    }
     setFormError(null)
     setFormSubmitting(true)
     try {
-      const body: UpdateSpecialtyRequest = { code: formCode, name: formName, description: formDescription, isActive: formIsActive }
+      const body: UpdateSpecialtyRequest = { code: formCode.trim(), name: formName.trim(), description: formDescription.trim(), isActive: formIsActive }
       const res = await api.put<Result<SpecialtyResponse>>(`/api/specialties/${editingId}`, body)
       if (res.data.isSuccess) {
         resetForm()
@@ -139,8 +168,12 @@ export default function SpecialtiesPage() {
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка обновления")
       }
-    } catch {
-      setFormError("Ошибка обновления специальности")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormError(parsed.message)
+      setFormFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setFormSubmitting(false)
     }
@@ -171,18 +204,15 @@ export default function SpecialtiesPage() {
   const formContent = (
     <form onSubmit={editingId ? handleUpdate : handleCreate} className="flex flex-col gap-4">
       {formError && <ErrorBanner message={formError} />}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="code">Код</Label>
-        <Input id="code" required value={formCode} onChange={e => setFormCode(e.target.value)} />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Название</Label>
-        <Input id="name" required value={formName} onChange={e => setFormName(e.target.value)} />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="description">Описание</Label>
+      <FormField id="code" label="Код" required error={formFieldErrors.code}>
+        <Input id="code" value={formCode} onChange={e => setFormCode(e.target.value)} />
+      </FormField>
+      <FormField id="name" label="Название" required error={formFieldErrors.name}>
+        <Input id="name" value={formName} onChange={e => setFormName(e.target.value)} />
+      </FormField>
+      <FormField id="description" label="Описание" error={formFieldErrors.description}>
         <Input id="description" value={formDescription} onChange={e => setFormDescription(e.target.value)} />
-      </div>
+      </FormField>
       {editingId && (
         <div className="flex items-center gap-2">
           <input

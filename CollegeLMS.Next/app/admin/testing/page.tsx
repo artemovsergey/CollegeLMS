@@ -16,6 +16,7 @@ import type {
 } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
+import { parseErrors } from "@/lib/errors"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -56,6 +57,7 @@ import {
 import { toast } from "sonner"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import FormField from "@/components/FormField"
 import EmptyState from "@/components/EmptyState"
 import { ArrowLeft } from "lucide-react"
 
@@ -93,6 +95,7 @@ export default function AdminTestingPage() {
   const [formTestPassingScore, setFormTestPassingScore] = useState(60)
   const [formTestType, setFormTestType] = useState("None")
   const [formTestError, setFormTestError] = useState<string | null>(null)
+  const [formTestFieldErrors, setFormTestFieldErrors] = useState<Record<string, string>>({})
   const [formTestSubmitting, setFormTestSubmitting] = useState(false)
   const [courses, setCourses] = useState<CourseResponse[]>([])
 
@@ -110,6 +113,7 @@ export default function AdminTestingPage() {
   const [formQPoints, setFormQPoints] = useState(1)
   const [formQOrder, setFormQOrder] = useState(0)
   const [formQError, setFormQError] = useState<string | null>(null)
+  const [formQFieldErrors, setFormQFieldErrors] = useState<Record<string, string>>({})
   const [formQSubmitting, setFormQSubmitting] = useState(false)
 
   const [assignments, setAssignments] = useState<TestAssignmentResponse[]>([])
@@ -123,6 +127,7 @@ export default function AdminTestingPage() {
   const [formACloseDate, setFormACloseDate] = useState("")
   const [formAMaxAttempts, setFormAMaxAttempts] = useState(3)
   const [formAError, setFormAError] = useState<string | null>(null)
+  const [formAFieldErrors, setFormAFieldErrors] = useState<Record<string, string>>({})
   const [formASubmitting, setFormASubmitting] = useState(false)
   const [groups, setGroups] = useState<GroupResponse[]>([])
 
@@ -175,6 +180,7 @@ export default function AdminTestingPage() {
     setFormTestPassingScore(60)
     setFormTestType("None")
     setFormTestError(null)
+    setFormTestFieldErrors({})
     setShowCreateTest(false)
     setEditingTestId(null)
   }
@@ -189,15 +195,32 @@ export default function AdminTestingPage() {
     setFormTestPassingScore(t.passingScore)
     setFormTestType(t.type)
     setFormTestError(null)
+    setFormTestFieldErrors({})
+  }
+
+  const validateTestForm = (): Record<string, string> => {
+    const errors: Record<string, string> = {}
+    if (!formTestTitle.trim()) errors.title = "Название теста обязательно"
+    else if (formTestTitle.trim().length > 255) errors.title = "Название теста не должно превышать 255 символов"
+    if (!formTestCourseId) errors.courseId = "Курс обязателен"
+    if (!formTestMaxAttempts || formTestMaxAttempts < 1) errors.maxAttempts = "Количество попыток должно быть больше 0"
+    if (!formTestTimeLimit || formTestTimeLimit < 1) errors.timeLimitMinutes = "Время на прохождение должно быть больше 0"
+    if (formTestPassingScore < 0 || formTestPassingScore > 100) errors.passingScore = "Проходной балл должен быть от 0 до 100"
+    return errors
   }
 
   const handleCreateTest = async (e: React.FormEvent) => {
     e.preventDefault()
+    const fieldErrors = validateTestForm()
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormTestFieldErrors(fieldErrors)
+      return
+    }
     setFormTestError(null)
     setFormTestSubmitting(true)
     try {
       const body: CreateTestRequest = {
-        title: formTestTitle,
+        title: formTestTitle.trim(),
         description: formTestDescription,
         courseId: formTestCourseId,
         maxAttempts: formTestMaxAttempts,
@@ -213,8 +236,12 @@ export default function AdminTestingPage() {
       } else {
         setFormTestError(res.data.errorMessage ?? "Ошибка создания")
       }
-    } catch {
-      setFormTestError("Ошибка создания теста")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormTestError(parsed.message)
+      setFormTestFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setFormTestSubmitting(false)
     }
@@ -223,11 +250,16 @@ export default function AdminTestingPage() {
   const handleUpdateTest = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingTestId) return
+    const fieldErrors = validateTestForm()
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormTestFieldErrors(fieldErrors)
+      return
+    }
     setFormTestError(null)
     setFormTestSubmitting(true)
     try {
       const body: UpdateTestRequest = {
-        title: formTestTitle,
+        title: formTestTitle.trim(),
         description: formTestDescription,
         maxAttempts: formTestMaxAttempts,
         timeLimitMinutes: formTestTimeLimit,
@@ -242,8 +274,12 @@ export default function AdminTestingPage() {
       } else {
         setFormTestError(res.data.errorMessage ?? "Ошибка обновления")
       }
-    } catch {
-      setFormTestError("Ошибка обновления теста")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormTestError(parsed.message)
+      setFormTestFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setFormTestSubmitting(false)
     }
@@ -288,6 +324,7 @@ export default function AdminTestingPage() {
     setFormQPoints(1)
     setFormQOrder(0)
     setFormQError(null)
+    setFormQFieldErrors({})
     setShowCreateQuestion(false)
     setEditingQuestionId(null)
   }
@@ -301,16 +338,30 @@ export default function AdminTestingPage() {
     setFormQPoints(q.points)
     setFormQOrder(q.orderIndex)
     setFormQError(null)
+    setFormQFieldErrors({})
+  }
+
+  const validateQuestionForm = (): Record<string, string> => {
+    const errors: Record<string, string> = {}
+    if (!formQText.trim()) errors.text = "Текст вопроса обязателен"
+    else if (formQText.trim().length > 4000) errors.text = "Текст вопроса не должен превышать 4000 символов"
+    if (!formQPoints || formQPoints < 1) errors.points = "Баллы должны быть больше 0"
+    return errors
   }
 
   const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedTest) return
+    const fieldErrors = validateQuestionForm()
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormQFieldErrors(fieldErrors)
+      return
+    }
     setFormQError(null)
     setFormQSubmitting(true)
     try {
       const body: CreateTestQuestionRequest = {
-        text: formQText,
+        text: formQText.trim(),
         type: formQType,
         options: formQOptions,
         correctAnswer: formQCorrect,
@@ -328,8 +379,12 @@ export default function AdminTestingPage() {
       } else {
         setFormQError(res.data.errorMessage ?? "Ошибка создания")
       }
-    } catch {
-      setFormQError("Ошибка создания вопроса")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormQError(parsed.message)
+      setFormQFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setFormQSubmitting(false)
     }
@@ -338,11 +393,16 @@ export default function AdminTestingPage() {
   const handleUpdateQuestion = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedTest || !editingQuestionId) return
+    const fieldErrors = validateQuestionForm()
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormQFieldErrors(fieldErrors)
+      return
+    }
     setFormQError(null)
     setFormQSubmitting(true)
     try {
       const body: UpdateTestQuestionRequest = {
-        text: formQText,
+        text: formQText.trim(),
         type: formQType,
         options: formQOptions,
         correctAnswer: formQCorrect,
@@ -360,8 +420,12 @@ export default function AdminTestingPage() {
       } else {
         setFormQError(res.data.errorMessage ?? "Ошибка обновления")
       }
-    } catch {
-      setFormQError("Ошибка обновления вопроса")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormQError(parsed.message)
+      setFormQFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setFormQSubmitting(false)
     }
@@ -405,12 +469,23 @@ export default function AdminTestingPage() {
     setFormACloseDate("")
     setFormAMaxAttempts(3)
     setFormAError(null)
+    setFormAFieldErrors({})
     setShowCreateAssignment(false)
   }
 
   const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedTest) return
+    const fieldErrors: Record<string, string> = {}
+    if (!formAGroupId) fieldErrors.groupId = "Группа обязательна"
+    if (!formAOpenDate) fieldErrors.openDate = "Дата открытия обязательна"
+    if (!formACloseDate) fieldErrors.closeDate = "Дата закрытия обязательна"
+    else if (formAOpenDate && formACloseDate <= formAOpenDate) fieldErrors.closeDate = "Дата закрытия должна быть позже даты открытия"
+    if (!formAMaxAttempts || formAMaxAttempts < 1) fieldErrors.maxAttempts = "Количество попыток должно быть больше 0"
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormAFieldErrors(fieldErrors)
+      return
+    }
     setFormAError(null)
     setFormASubmitting(true)
     try {
@@ -431,8 +506,12 @@ export default function AdminTestingPage() {
       } else {
         setFormAError(res.data.errorMessage ?? "Ошибка создания")
       }
-    } catch {
-      setFormAError("Ошибка создания назначения")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormAError(parsed.message)
+      setFormAFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setFormASubmitting(false)
     }
@@ -465,25 +544,21 @@ export default function AdminTestingPage() {
       className="flex flex-col gap-4"
     >
       {formTestError && <ErrorBanner message={formTestError} />}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="test-title">Название</Label>
+      <FormField id="test-title" label="Название" required error={formTestFieldErrors.title}>
         <Input
           id="test-title"
-          required
           value={formTestTitle}
           onChange={e => setFormTestTitle(e.target.value)}
         />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="test-description">Описание</Label>
+      </FormField>
+      <FormField id="test-description" label="Описание">
         <Textarea
           id="test-description"
           value={formTestDescription}
           onChange={e => setFormTestDescription(e.target.value)}
         />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="test-course">Курс</Label>
+      </FormField>
+      <FormField id="test-course" label="Курс" required error={formTestFieldErrors.courseId}>
         {editingTestId ? (
           <Input disabled value={courses.find(c => c.id === formTestCourseId)?.title ?? ""} />
         ) : (
@@ -500,7 +575,7 @@ export default function AdminTestingPage() {
             </SelectContent>
           </Select>
         )}
-      </div>
+      </FormField>
       <div className="flex flex-col gap-2">
         <Label htmlFor="test-type">Тип</Label>
         <Select value={formTestType} onValueChange={setFormTestType}>
@@ -517,40 +592,34 @@ export default function AdminTestingPage() {
         </Select>
       </div>
       <div className="grid grid-cols-3 gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="test-max-attempts">Попыток</Label>
+        <FormField id="test-max-attempts" label="Попыток" required error={formTestFieldErrors.maxAttempts}>
           <Input
             id="test-max-attempts"
             type="number"
             min={1}
-            required
             value={formTestMaxAttempts}
             onChange={e => setFormTestMaxAttempts(Number(e.target.value))}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="test-time-limit">Время (мин)</Label>
+        </FormField>
+        <FormField id="test-time-limit" label="Время (мин)" required error={formTestFieldErrors.timeLimitMinutes}>
           <Input
             id="test-time-limit"
             type="number"
-            min={0}
-            required
+            min={1}
             value={formTestTimeLimit}
             onChange={e => setFormTestTimeLimit(Number(e.target.value))}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="test-passing-score">Балл прохода</Label>
+        </FormField>
+        <FormField id="test-passing-score" label="Балл прохода" required error={formTestFieldErrors.passingScore}>
           <Input
             id="test-passing-score"
             type="number"
             min={0}
             max={100}
-            required
             value={formTestPassingScore}
             onChange={e => setFormTestPassingScore(Number(e.target.value))}
           />
-        </div>
+        </FormField>
       </div>
       <div className="flex gap-2 justify-end pt-2">
         <Button type="button" variant="ghost" onClick={resetTestForm}>
@@ -573,15 +642,13 @@ export default function AdminTestingPage() {
       className="flex flex-col gap-4"
     >
       {formQError && <ErrorBanner message={formQError} />}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="q-text">Текст вопроса</Label>
+      <FormField id="q-text" label="Текст вопроса" required error={formQFieldErrors.text}>
         <Textarea
           id="q-text"
-          required
           value={formQText}
           onChange={e => setFormQText(e.target.value)}
         />
-      </div>
+      </FormField>
       <div className="flex flex-col gap-2">
         <Label htmlFor="q-type">Тип</Label>
         <Select value={formQType} onValueChange={setFormQType}>
@@ -615,28 +682,24 @@ export default function AdminTestingPage() {
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="q-points">Баллы</Label>
+        <FormField id="q-points" label="Баллы" required error={formQFieldErrors.points}>
           <Input
             id="q-points"
             type="number"
-            min={0}
-            required
+            min={1}
             value={formQPoints}
             onChange={e => setFormQPoints(Number(e.target.value))}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="q-order">Порядок</Label>
+        </FormField>
+        <FormField id="q-order" label="Порядок">
           <Input
             id="q-order"
             type="number"
             min={0}
-            required
             value={formQOrder}
             onChange={e => setFormQOrder(Number(e.target.value))}
           />
-        </div>
+        </FormField>
       </div>
       <div className="flex gap-2 justify-end pt-2">
         <Button type="button" variant="ghost" onClick={resetQuestionForm}>
@@ -656,8 +719,7 @@ export default function AdminTestingPage() {
   const assignmentFormDialog = (
     <form onSubmit={handleCreateAssignment} className="flex flex-col gap-4">
       {formAError && <ErrorBanner message={formAError} />}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="a-group">Группа</Label>
+      <FormField id="a-group" label="Группа" required error={formAFieldErrors.groupId}>
         <Select value={formAGroupId} onValueChange={setFormAGroupId}>
           <SelectTrigger id="a-group">
             <SelectValue placeholder="Выберите группу" />
@@ -670,38 +732,32 @@ export default function AdminTestingPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="a-open">Дата открытия</Label>
+      </FormField>
+      <FormField id="a-open" label="Дата открытия" required error={formAFieldErrors.openDate}>
         <Input
           id="a-open"
           type="datetime-local"
-          required
           value={formAOpenDate}
           onChange={e => setFormAOpenDate(e.target.value)}
         />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="a-close">Дата закрытия</Label>
+      </FormField>
+      <FormField id="a-close" label="Дата закрытия" required error={formAFieldErrors.closeDate}>
         <Input
           id="a-close"
           type="datetime-local"
-          required
           value={formACloseDate}
           onChange={e => setFormACloseDate(e.target.value)}
         />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="a-max-attempts">Макс. попыток</Label>
+      </FormField>
+      <FormField id="a-max-attempts" label="Макс. попыток" required error={formAFieldErrors.maxAttempts}>
         <Input
           id="a-max-attempts"
           type="number"
           min={1}
-          required
           value={formAMaxAttempts}
           onChange={e => setFormAMaxAttempts(Number(e.target.value))}
         />
-      </div>
+      </FormField>
       <div className="flex gap-2 justify-end pt-2">
         <Button type="button" variant="ghost" onClick={resetAssignmentForm}>
           Отмена

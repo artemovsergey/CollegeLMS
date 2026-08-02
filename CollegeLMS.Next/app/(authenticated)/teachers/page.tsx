@@ -4,12 +4,12 @@ import { useEffect, useState, useCallback } from "react"
 import type { Result, TeacherResponse } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
-import { roleLabels, roleVariants } from "@/lib/constants"
+import { parseErrors } from "@/lib/errors"
 import ErrorBanner from "@/components/ErrorBanner"
+import FormField from "@/components/FormField"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Table,
   TableBody,
@@ -42,6 +42,7 @@ export default function TeachersPage() {
   const [formDepartment, setFormDepartment] = useState("")
   const [formPosition, setFormPosition] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
+  const [formFieldErrors, setFormFieldErrors] = useState<Record<string, string>>({})
   const [formSubmitting, setFormSubmitting] = useState(false)
 
   const isAdmin = user?.role === "Admin"
@@ -77,21 +78,42 @@ export default function TeachersPage() {
     setFormDepartment("")
     setFormPosition("")
     setFormError(null)
+    setFormFieldErrors({})
     setShowCreate(false)
     setEditingId(null)
   }
 
+  const validate = (): Record<string, string> => {
+    const errors: Record<string, string> = {}
+    if (!formEmail.trim()) errors.email = "Email обязателен"
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail.trim())) errors.email = "Некорректный email"
+    if (!formPassword) errors.password = "Пароль обязателен"
+    else if (formPassword.length < 6) errors.password = "Пароль должен содержать минимум 6 символов"
+    if (!formFullName.trim()) errors.fullName = "ФИО обязательно"
+    else if (formFullName.trim().length > 200) errors.fullName = "ФИО не должно превышать 200 символов"
+    if (!formDepartment.trim()) errors.department = "Цикловая комиссия обязательна"
+    else if (formDepartment.trim().length > 200) errors.department = "Цикловая комиссия не должна превышать 200 символов"
+    if (!formPosition.trim()) errors.position = "Должность обязательна"
+    else if (formPosition.trim().length > 200) errors.position = "Должность не должна превышать 200 символов"
+    return errors
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
+    const fieldErrors = validate()
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormFieldErrors(fieldErrors)
+      return
+    }
     setFormError(null)
     setFormSubmitting(true)
     try {
       const body = {
-        email: formEmail,
+        email: formEmail.trim(),
         password: formPassword,
-        fullName: formFullName,
-        department: formDepartment,
-        position: formPosition,
+        fullName: formFullName.trim(),
+        department: formDepartment.trim(),
+        position: formPosition.trim(),
       }
       const res = await api.post<Result<TeacherResponse>>("/api/teachers", body)
       if (res.data.isSuccess) {
@@ -100,8 +122,12 @@ export default function TeachersPage() {
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка создания")
       }
-    } catch {
-      setFormError("Ошибка создания преподавателя")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormError(parsed.message)
+      setFormFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setFormSubmitting(false)
     }
@@ -123,26 +149,21 @@ export default function TeachersPage() {
               </DialogHeader>
               <form onSubmit={handleCreate} className="flex flex-col gap-4">
                 {formError && <ErrorBanner message={formError} />}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-email">Email</Label>
-                  <Input id="create-email" type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-password">Пароль</Label>
-                  <Input id="create-password" type="password" required value={formPassword} onChange={e => setFormPassword(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-name">ФИО</Label>
-                  <Input id="create-name" required value={formFullName} onChange={e => setFormFullName(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-department">Кафедра</Label>
-                  <Input id="create-department" required value={formDepartment} onChange={e => setFormDepartment(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="create-position">Должность</Label>
-                  <Input id="create-position" required value={formPosition} onChange={e => setFormPosition(e.target.value)} />
-                </div>
+                <FormField id="create-email" label="Email" required error={formFieldErrors.email}>
+                  <Input id="create-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                </FormField>
+                <FormField id="create-password" label="Пароль" required error={formFieldErrors.password} hint="Минимум 6 символов">
+                  <Input id="create-password" type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} />
+                </FormField>
+                <FormField id="create-name" label="ФИО" required error={formFieldErrors.fullName}>
+                  <Input id="create-name" value={formFullName} onChange={e => setFormFullName(e.target.value)} />
+                </FormField>
+                <FormField id="create-department" label="Цикловая комиссия" required error={formFieldErrors.department}>
+                  <Input id="create-department" value={formDepartment} onChange={e => setFormDepartment(e.target.value)} />
+                </FormField>
+                <FormField id="create-position" label="Должность" required error={formFieldErrors.position}>
+                  <Input id="create-position" value={formPosition} onChange={e => setFormPosition(e.target.value)} />
+                </FormField>
                 <div className="flex gap-2 justify-end pt-2">
                   <Button type="button" variant="ghost" onClick={resetForm}>Отмена</Button>
                   <Button type="submit" disabled={formSubmitting}>

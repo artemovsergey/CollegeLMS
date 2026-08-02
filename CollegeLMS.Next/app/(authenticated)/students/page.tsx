@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import type { Result, StudentResponse, GroupResponse, TransferRecordResponse } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
-import { roleLabels, roleVariants } from "@/lib/constants"
+import { parseErrors } from "@/lib/errors"
 import ErrorBanner from "@/components/ErrorBanner"
+import FormField from "@/components/FormField"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,6 +53,7 @@ export default function StudentsPage() {
   const [formGroupId, setFormGroupId] = useState("")
   const [formRecordBook, setFormRecordBook] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
+  const [formFieldErrors, setFormFieldErrors] = useState<Record<string, string>>({})
   const [formSubmitting, setFormSubmitting] = useState(false)
 
   const [showTransfer, setShowTransfer] = useState(false)
@@ -60,6 +62,7 @@ export default function StudentsPage() {
   const [transferReason, setTransferReason] = useState("")
   const [transferSubmitting, setTransferSubmitting] = useState(false)
   const [transferError, setTransferError] = useState<string | null>(null)
+  const [transferFieldErrors, setTransferFieldErrors] = useState<Record<string, string>>({})
 
   const [showHistory, setShowHistory] = useState(false)
   const [historyStudentName, setHistoryStudentName] = useState("")
@@ -72,6 +75,7 @@ export default function StudentsPage() {
   const [importGroupId, setImportGroupId] = useState("")
   const [importSubmitting, setImportSubmitting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  const [importFieldErrors, setImportFieldErrors] = useState<Record<string, string>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isAdmin = user?.role === "Admin"
@@ -123,20 +127,40 @@ export default function StudentsPage() {
     setFormGroupId("")
     setFormRecordBook("")
     setFormError(null)
+    setFormFieldErrors({})
     setShowCreate(false)
+  }
+
+  const validateCreate = (): Record<string, string> => {
+    const errors: Record<string, string> = {}
+    if (!formEmail.trim()) errors.email = "Email обязателен"
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail.trim())) errors.email = "Некорректный email"
+    if (!formPassword) errors.password = "Пароль обязателен"
+    else if (formPassword.length < 6) errors.password = "Пароль должен содержать минимум 6 символов"
+    if (!formFullName.trim()) errors.fullName = "ФИО обязательно"
+    else if (formFullName.trim().length > 200) errors.fullName = "ФИО не должно превышать 200 символов"
+    if (!formGroupId) errors.groupId = "Группа обязательна"
+    if (!formRecordBook.trim()) errors.recordBookNumber = "Номер зачётной книжки обязателен"
+    else if (formRecordBook.trim().length > 20) errors.recordBookNumber = "Номер зачётной книжки не должен превышать 20 символов"
+    return errors
   }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
+    const fieldErrors = validateCreate()
+    if (Object.keys(fieldErrors).length > 0) {
+      setFormFieldErrors(fieldErrors)
+      return
+    }
     setFormError(null)
     setFormSubmitting(true)
     try {
       const body = {
-        email: formEmail,
+        email: formEmail.trim(),
         password: formPassword,
-        fullName: formFullName,
+        fullName: formFullName.trim(),
         groupId: formGroupId,
-        recordBookNumber: formRecordBook,
+        recordBookNumber: formRecordBook.trim(),
       }
       const res = await api.post<Result<StudentResponse>>("/api/students", body)
       if (res.data.isSuccess) {
@@ -145,8 +169,12 @@ export default function StudentsPage() {
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка создания")
       }
-    } catch {
-      setFormError("Ошибка создания студента")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setFormError(parsed.message)
+      setFormFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setFormSubmitting(false)
     }
@@ -157,18 +185,27 @@ export default function StudentsPage() {
     setTransferGroupId("")
     setTransferReason("")
     setTransferError(null)
+    setTransferFieldErrors({})
     setShowTransfer(true)
   }
 
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!transferStudentId) return
+    const fieldErrors: Record<string, string> = {}
+    if (!transferGroupId) fieldErrors.newGroupId = "Новая группа обязательна"
+    if (!transferReason.trim()) fieldErrors.reason = "Причина перевода обязательна"
+    else if (transferReason.trim().length > 1000) fieldErrors.reason = "Причина перевода не должна превышать 1000 символов"
+    if (Object.keys(fieldErrors).length > 0) {
+      setTransferFieldErrors(fieldErrors)
+      return
+    }
     setTransferError(null)
     setTransferSubmitting(true)
     try {
       const res = await api.patch<Result<void>>(`/api/students/${transferStudentId}/transfer`, {
         newGroupId: transferGroupId,
-        reason: transferReason,
+        reason: transferReason.trim(),
       })
       if (res.data.isSuccess) {
         toast.success("Студент переведён")
@@ -177,8 +214,12 @@ export default function StudentsPage() {
       } else {
         setTransferError(res.data.errorMessage ?? "Ошибка перевода")
       }
-    } catch {
-      setTransferError("Ошибка перевода студента")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setTransferError(parsed.message)
+      setTransferFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setTransferSubmitting(false)
     }
@@ -213,18 +254,25 @@ export default function StudentsPage() {
     setImportFile(null)
     setImportGroupId("")
     setImportError(null)
+    setImportFieldErrors({})
     if (fileInputRef.current) fileInputRef.current.value = ""
     setShowImport(false)
   }
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!importFile) return
+    const fieldErrors: Record<string, string> = {}
+    if (!importFile) fieldErrors.file = "CSV файл обязателен"
+    if (!importGroupId) fieldErrors.groupId = "Группа обязательна"
+    if (Object.keys(fieldErrors).length > 0) {
+      setImportFieldErrors(fieldErrors)
+      return
+    }
     setImportError(null)
     setImportSubmitting(true)
     try {
       const formData = new FormData()
-      formData.append("file", importFile)
+      formData.append("file", importFile!)
       formData.append("groupId", importGroupId)
       const res = await api.post<Result<void>>("/api/students/import", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -236,8 +284,12 @@ export default function StudentsPage() {
       } else {
         setImportError(res.data.errorMessage ?? "Ошибка импорта")
       }
-    } catch {
-      setImportError("Ошибка импорта CSV")
+    } catch (err) {
+      const parsed = parseErrors(err)
+      setImportError(parsed.message)
+      setImportFieldErrors(
+        Object.fromEntries(Object.entries(parsed.fieldErrors).map(([k, v]) => [k, v[0] ?? ""])),
+      )
     } finally {
       setImportSubmitting(false)
     }
@@ -277,8 +329,7 @@ export default function StudentsPage() {
                   </DialogHeader>
                   <form onSubmit={handleImport} className="flex flex-col gap-4">
                     {importError && <ErrorBanner message={importError} />}
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="import-file">CSV файл</Label>
+                    <FormField id="import-file" label="CSV файл" required error={importFieldErrors.file}>
                       <Input
                         id="import-file"
                         ref={fileInputRef}
@@ -289,9 +340,8 @@ export default function StudentsPage() {
                       {importFile && (
                         <p className="text-xs text-muted-foreground">{importFile.name}</p>
                       )}
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="import-group">Группа</Label>
+                    </FormField>
+                    <FormField id="import-group" label="Группа" required error={importFieldErrors.groupId}>
                       <Select value={importGroupId} onValueChange={setImportGroupId}>
                         <SelectTrigger id="import-group"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -300,10 +350,10 @@ export default function StudentsPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
+                    </FormField>
                     <div className="flex gap-2 justify-end pt-2">
                       <Button type="button" variant="ghost" onClick={resetImport}>Отмена</Button>
-                      <Button type="submit" disabled={importSubmitting || !importFile}>
+                      <Button type="submit" disabled={importSubmitting}>
                         {importSubmitting ? "Загрузка..." : "Импортировать"}
                       </Button>
                     </div>
@@ -320,20 +370,16 @@ export default function StudentsPage() {
                   </DialogHeader>
                   <form onSubmit={handleCreate} className="flex flex-col gap-4">
                     {formError && <ErrorBanner message={formError} />}
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="create-email">Email</Label>
-                      <Input id="create-email" type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)} />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="create-password">Пароль</Label>
-                      <Input id="create-password" type="password" required value={formPassword} onChange={e => setFormPassword(e.target.value)} />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="create-name">ФИО</Label>
-                      <Input id="create-name" required value={formFullName} onChange={e => setFormFullName(e.target.value)} />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="create-group">Группа</Label>
+                    <FormField id="create-email" label="Email" required error={formFieldErrors.email}>
+                      <Input id="create-email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                    </FormField>
+                    <FormField id="create-password" label="Пароль" required error={formFieldErrors.password} hint="Минимум 6 символов">
+                      <Input id="create-password" type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} />
+                    </FormField>
+                    <FormField id="create-name" label="ФИО" required error={formFieldErrors.fullName}>
+                      <Input id="create-name" value={formFullName} onChange={e => setFormFullName(e.target.value)} />
+                    </FormField>
+                    <FormField id="create-group" label="Группа" required error={formFieldErrors.groupId}>
                       <Select value={formGroupId} onValueChange={setFormGroupId}>
                         <SelectTrigger id="create-group"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -342,11 +388,10 @@ export default function StudentsPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="create-record">Номер зачётки</Label>
-                      <Input id="create-record" required value={formRecordBook} onChange={e => setFormRecordBook(e.target.value)} />
-                    </div>
+                    </FormField>
+                    <FormField id="create-record" label="Номер зачётки" required error={formFieldErrors.recordBookNumber}>
+                      <Input id="create-record" value={formRecordBook} onChange={e => setFormRecordBook(e.target.value)} />
+                    </FormField>
                     <div className="flex gap-2 justify-end pt-2">
                       <Button type="button" variant="ghost" onClick={resetForm}>Отмена</Button>
                       <Button type="submit" disabled={formSubmitting}>
@@ -410,9 +455,8 @@ export default function StudentsPage() {
           </DialogHeader>
           <form onSubmit={handleTransfer} className="flex flex-col gap-4">
             {transferError && <ErrorBanner message={transferError} />}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="transfer-group">Новая группа</Label>
-              <Select value={transferGroupId} onValueChange={setTransferGroupId} required>
+            <FormField id="transfer-group" label="Новая группа" required error={transferFieldErrors.newGroupId}>
+              <Select value={transferGroupId} onValueChange={setTransferGroupId}>
                 <SelectTrigger id="transfer-group"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {groups.map(g => (
@@ -420,11 +464,10 @@ export default function StudentsPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="transfer-reason">Причина перевода</Label>
+            </FormField>
+            <FormField id="transfer-reason" label="Причина перевода" required error={transferFieldErrors.reason}>
               <Input id="transfer-reason" value={transferReason} onChange={e => setTransferReason(e.target.value)} />
-            </div>
+            </FormField>
             <div className="flex gap-2 justify-end pt-2">
               <Button type="button" variant="ghost" onClick={() => setShowTransfer(false)}>Отмена</Button>
               <Button type="submit" disabled={transferSubmitting || !transferGroupId}>
