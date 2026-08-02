@@ -177,6 +177,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<INewsService, NewsService>();
         services.AddScoped<IWordPressImportService, WordPressImportService>();
+        services.AddHttpClient(
+            "stvcc",
+            c =>
+            {
+                c.Timeout = TimeSpan.FromSeconds(5);
+                c.DefaultRequestHeaders.UserAgent.ParseAdd("CollegeLMS/1.0");
+            }
+        );
+        services.AddScoped<IStvccHealthService, StvccHealthService>();
         services.AddScoped<IScheduleService, ScheduleService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ISearchService, SearchService>();
