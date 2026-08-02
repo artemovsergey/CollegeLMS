@@ -146,6 +146,7 @@ export default function Header() {
                 >
                   <Link
                     href={section.href}
+                    onClick={() => setOpenMenu(null)}
                     aria-expanded={hasSubs ? isOpen : undefined}
                     aria-haspopup={hasSubs ? "true" : undefined}
                     className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors rounded-md"
@@ -167,6 +168,7 @@ export default function Header() {
                           <Link
                             key={sub.slug}
                             href={sub.href}
+                            onClick={() => setOpenMenu(null)}
                             className="block border-b border-border/50 px-4 py-2.5 text-sm text-fg transition-colors last:border-b-0 hover:bg-muted hover:text-primary"
                           >
                             {sub.title}
