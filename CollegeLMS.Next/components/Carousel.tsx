@@ -7,10 +7,8 @@ import Image from "next/image"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { useDesign } from "@/lib/design-provider"
-import CarouselTPU from "./CarouselTPU"
 
-function CarouselDefault() {
+export default function Carousel() {
   const [slides, setSlides] = useState<NewsResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -80,54 +78,56 @@ function CarouselDefault() {
               <Link
                 key={item.id}
                 href={`/news/${item.id}`}
-                className="relative min-w-0 flex-[0_0_100%] h-[400px] md:h-[550px]"
+                className="relative flex min-h-0 flex-[0_0_100%] flex-col overflow-hidden rounded-lg bg-primary h-[400px] md:h-[550px] lg:grid lg:grid-cols-3"
               >
-              {item.imageUrl ? (
-                <Image
-                  src={item.imageUrl}
-                  alt=""
-                  fill
-                  className="object-cover rounded-lg"
-                  sizes="100vw"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-lilac/80 via-primary/60 to-blue-900/80" />
-              )}
-
-              <div className="absolute inset-0 bg-gradient-to-tr from-[#0f1a2e]/90 via-[#0f1a2e]/40 30% to-transparent 60% pointer-events-none" />
-
-              <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)]">
-                <Image
-                  src="/logo.svg"
-                  alt="Ставропольский колледж связи"
-                  width={0}
-                  height={0}
-                  sizes="100vw"
-                  className="object-contain h-auto"
-                  style={{ width: "auto", height: "100%", maxHeight: "100px" }}
-                  unoptimized
-                />
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
-                <p className="mb-2 text-sm text-white/80">
-                  {new Date(item.publishedAt).toLocaleDateString("ru-RU")}
-                </p>
-                <h2 className="mb-2 text-xl font-bold text-white sm:text-2xl md:text-3xl line-clamp-2 [text-shadow:_0_2px_4px_rgb(0_0_0_/_50%)]">
-                  {item.title}
-                </h2>
-                <p className="max-w-2xl text-sm text-white/70 line-clamp-2 [text-shadow:_0_1px_3px_rgb(0_0_0_/_50%)]">
-                  {item.content.replace(/<[^>]*>/g, '').slice(0, 100)}
-                  {item.content.length > 100 ? "..." : ""}
-                </p>
-                <div className="mt-4">
-                  <span className="inline-block rounded-full bg-white/20 px-6 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30">
-                    Подробнее
-                  </span>
+                <div className="relative flex flex-1 flex-col justify-center gap-3 p-5 text-primary-foreground sm:p-6 lg:col-span-1 lg:h-full lg:p-10">
+                  <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
+                    <Image
+                      src="/logo.svg"
+                      alt="Ставропольский колледж связи"
+                      width={0}
+                      height={0}
+                      sizes="100vw"
+                      className="object-contain h-auto"
+                      style={{ width: "auto", height: "100%", maxHeight: "64px" }}
+                      unoptimized
+                    />
+                  </div>
+                  <p className="text-sm text-primary-foreground/80">
+                    {new Date(item.publishedAt).toLocaleDateString("ru-RU", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                    {item.categoryName && ` · ${item.categoryName}`}
+                  </p>
+                  <h2 className="line-clamp-2 text-xl font-bold leading-tight sm:text-2xl md:text-3xl">
+                    {item.title}
+                  </h2>
+                  <p className="line-clamp-3 text-sm text-primary-foreground/90">
+                    {item.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
+                  </p>
+                  <div className="mt-2">
+                    <span className="inline-block rounded-full bg-white/20 px-6 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30">
+                      Подробнее
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+                <div className="relative order-first h-48 sm:h-56 lg:order-none lg:col-span-2 lg:h-full">
+                  {item.imageUrl ? (
+                    <Image
+                      src={item.imageUrl}
+                      alt=""
+                      fill
+                      sizes="(min-width: 1024px) 66vw, 100vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-lilac/80 via-primary/60 to-blue-900/80" />
+                  )}
+                </div>
+              </Link>
+            ))}
         </div>
       </div>
 
@@ -165,10 +165,4 @@ function CarouselDefault() {
     </section>
     </div>
   )
-}
-
-export default function Carousel() {
-  const { design } = useDesign()
-  if (design === "tpu") return <CarouselTPU />
-  return <CarouselDefault />
 }
