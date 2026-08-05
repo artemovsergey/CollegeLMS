@@ -52,12 +52,4 @@
     <PackageReference Include="QuestPDF" Version="2025.12.0" />
     <PackageReference Include="ClosedXML" Version="0.104.2" />
   </ItemGroup>
-
-  <!-- Seed data (import) -->
-  <ItemGroup>
-    <Content Include="..\import\mdk0901_course.json" Link="import\mdk0901_course.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
 </Project>
