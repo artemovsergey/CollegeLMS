@@ -21,6 +21,7 @@ public class UserController(IUserService service) : ControllerBase
     /// <response code="401">Пользователь не авторизован</response>
     /// <response code="500">Внутренняя ошибка сервера</response>
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     [SwaggerOperation(Summary = "Получить список пользователей")]
     [SwaggerResponse(200, "Список пользователей получен", typeof(Result<List<UserResponse>>))]
     [SwaggerResponse(401, "Не авторизован")]

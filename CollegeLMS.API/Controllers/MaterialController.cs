@@ -43,6 +43,7 @@ public class MaterialController(IMaterialService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    [RequestSizeLimit(50L * 1024 * 1024)]
     public async Task<ActionResult<Result<MaterialResponse>>> Upload(
         Guid courseId,
         IFormFile file,

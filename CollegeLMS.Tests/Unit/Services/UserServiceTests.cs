@@ -115,6 +115,7 @@ public class UserServiceTests : IDisposable
     public async Task UpdateAsync_UpdatesUser()
     {
         var user = UserFixture.CreateFaker().Generate();
+        user.Role = UserRole.Dispatcher;
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
@@ -178,6 +179,7 @@ public class UserServiceTests : IDisposable
     public async Task UpdateAsync_UpdatesEmail()
     {
         var user = UserFixture.CreateFaker().Generate();
+        user.Role = UserRole.Dispatcher;
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
@@ -246,6 +248,46 @@ public class UserServiceTests : IDisposable
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task ChangeRoleAsync_ReturnsFail_WhenLastAdmin()
+    {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
+        _db.Users.Add(admin);
+        await _db.SaveChangesAsync();
+
+        var request = new ChangeRoleRequest { Role = UserRole.Teacher };
+
+        var result = await _sut.ChangeRoleAsync(admin.Id, request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(409);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ReturnsFail_WhenLastAdminDemoted()
+    {
+        var admin = UserFixture.CreateFaker().Generate();
+        admin.Role = UserRole.Admin;
+        _db.Users.Add(admin);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.UpdateAsync(
+            admin.Id,
+            new UpdateUserRequest
+            {
+                Login = admin.Login,
+                Email = admin.Email,
+                FullName = admin.FullName,
+                Role = UserRole.Student,
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(409);
     }
 
     [Fact]

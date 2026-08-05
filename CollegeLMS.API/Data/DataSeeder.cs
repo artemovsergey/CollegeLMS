@@ -478,10 +478,9 @@ public static class DataSeeder
         var groupMap = groups.ToDictionary(g => g.Name);
         var groupIds = groupNames.Select(n => groupMap[n].Id).ToList();
 
-        var studentUsers = await db
-            .Users.Where(u => u.Role == UserRole.Student)
-            .OrderBy(u => u.Email)
-            .ToListAsync();
+        var studentUsers = (await db.Users.Where(u => u.Role == UserRole.Student).ToListAsync())
+            .OrderBy(u => u.Email, StringComparer.Ordinal)
+            .ToList();
 
         var studentRecords = new List<Student>
         {
@@ -6610,6 +6609,7 @@ public static class DataSeeder
         [
             Path.Combine(
                 AppContext.BaseDirectory,
+                "..",
                 "..",
                 "..",
                 "..",

@@ -230,4 +230,37 @@ public class NewsServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
     }
+
+    [Fact]
+    public async Task GetAllAsync_ExcludesSoftDeletedNews()
+    {
+        var active = NewsFixture.CreateFaker().Generate();
+        active.CreatedById = _adminId;
+        var deleted = NewsFixture.CreateFaker().Generate();
+        deleted.CreatedById = _adminId;
+        deleted.IsDeleted = true;
+        _db.News.AddRange(active, deleted);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetAllAsync(1, 10, null, null, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Items.Should().HaveCount(1);
+        result.Data.Items[0].Id.Should().Be(active.Id);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsNotFound_WhenSoftDeleted()
+    {
+        var deleted = NewsFixture.CreateFaker().Generate();
+        deleted.CreatedById = _adminId;
+        deleted.IsDeleted = true;
+        _db.News.Add(deleted);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetByIdAsync(deleted.Id, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
 }

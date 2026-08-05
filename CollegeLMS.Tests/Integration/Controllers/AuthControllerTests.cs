@@ -199,4 +199,21 @@ public class AuthControllerTests : BaseIntegrationTest
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Login_ReturnsTooManyRequests_WhenLimitExceeded()
+    {
+        const int limit = 5;
+        HttpResponseMessage? last = null;
+
+        for (int i = 0; i < limit + 1; i++)
+        {
+            last = await Client.PostAsJsonAsync(
+                "/api/auth/login",
+                new LoginRequest { Login = $"user{i}", Password = "password123" }
+            );
+        }
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, last!.StatusCode);
+    }
 }

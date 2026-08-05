@@ -832,4 +832,119 @@ public class TestingServiceTests : IDisposable
         result.Data!.TotalAttempts.Should().Be(1);
         result.Data.PassedCount.Should().Be(1);
     }
+
+    [Fact]
+    public async Task GetQuestionsAsync_ReturnsForbidden_WhenStudent()
+    {
+        var test = TestFixture.CreateFaker().Generate();
+        _db.Tests.Add(test);
+
+        var question = new TestQuestion
+        {
+            Id = Guid.NewGuid(),
+            Text = "Вопрос 1",
+            Type = QuestionType.SingleChoice,
+            Options = "A\nB\nC",
+            CorrectAnswer = "A",
+            Points = 10,
+            OrderIndex = 1,
+            TestId = test.Id,
+        };
+        _db.TestQuestions.Add(question);
+        await _db.SaveChangesAsync();
+
+        var studentUser = new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = "Студент",
+            Email = "s@t.ru",
+            PasswordHash = "hash",
+            Role = UserRole.Student,
+            Login = "s",
+        };
+        _db.Users.Add(studentUser);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetQuestionsAsync(
+            test.Id,
+            studentUser.Id,
+            "Student",
+            default
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(403);
+    }
+
+    [Fact]
+    public async Task SubmitAnswersAsync_DoesNotCountDuplicateQuestionsTwice()
+    {
+        var studentUserId = Guid.NewGuid();
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+                Login = "s",
+            }
+        );
+        _db.Students.Add(student);
+
+        var test = TestFixture.CreateFaker().Generate();
+        test.AutoCheck = true;
+        test.TimeLimitMinutes = 60;
+        _db.Tests.Add(test);
+
+        var question = new TestQuestion
+        {
+            Id = Guid.NewGuid(),
+            Text = "Q1",
+            Type = QuestionType.SingleChoice,
+            CorrectAnswer = "A",
+            Points = 10,
+            OrderIndex = 1,
+            TestId = test.Id,
+        };
+        _db.TestQuestions.Add(question);
+
+        var attempt = new TestAttempt
+        {
+            Id = Guid.NewGuid(),
+            TestId = test.Id,
+            StudentId = student.Id,
+            StartedAt = DateTime.UtcNow.AddMinutes(-5),
+            Status = AttemptStatus.InProgress,
+            Test = test,
+        };
+        _db.TestAttempts.Add(attempt);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.SubmitAnswersAsync(
+            test.Id,
+            attempt.Id,
+            new SubmitAnswersRequest
+            {
+                Answers = new List<AnswerDto>
+                {
+                    new() { QuestionId = question.Id, GivenAnswer = "A" },
+                    new() { QuestionId = question.Id, GivenAnswer = "A" },
+                    new() { QuestionId = question.Id, GivenAnswer = "A" },
+                },
+            },
+            studentUserId,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Score.Should().Be(10);
+    }
 }

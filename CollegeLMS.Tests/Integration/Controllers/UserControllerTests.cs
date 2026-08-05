@@ -110,6 +110,16 @@ public class UserControllerTests : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task GetAll_ReturnsForbidden_WhenStudent()
+    {
+        SetAuthHeader(GetStudentToken());
+
+        var response = await Client.GetAsync("/api/users");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Create_CreatesUser_WhenAdmin()
     {
         SetAuthHeader(GetAdminToken());
@@ -184,6 +194,7 @@ public class UserControllerTests : BaseIntegrationTest
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var user = UserFixture.CreateFaker().Generate();
+        user.Role = UserRole.Dispatcher;
         db.Users.Add(user);
         await db.SaveChangesAsync();
 

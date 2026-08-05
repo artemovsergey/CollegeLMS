@@ -1,4 +1,5 @@
 using CollegeLMS.API.Extensions;
+using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,13 @@ builder
     .AddRateLimit();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(
+    new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    }
+);
 
 app.UseExceptionMiddleware();
 app.UseRateLimiter();

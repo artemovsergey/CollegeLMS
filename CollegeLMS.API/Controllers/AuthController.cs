@@ -5,6 +5,7 @@ using CollegeLMS.API.Response;
 using CollegeLMS.API.SwaggerExamples;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace CollegeLMS.API.Controllers;
@@ -25,6 +26,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// <response code="500">Внутренняя ошибка сервера</response>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthPolicy")]
     [SwaggerOperation(Summary = "Вход в систему")]
     [SwaggerResponse(200, "Успешный вход", typeof(Result<LoginResponse>))]
     [SwaggerResponse(401, "Неверные учётные данные")]

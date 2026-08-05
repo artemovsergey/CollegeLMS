@@ -33,6 +33,15 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddJwt(this IServiceCollection services, IConfiguration config)
     {
+        var key = config["Jwt:Key"];
+        if (string.IsNullOrEmpty(key) || Encoding.UTF8.GetByteCount(key) < 32)
+            throw new InvalidOperationException(
+                "Jwt:Key не задан или короче 32 байт (требование HS256)"
+            );
+
+        var issuer = config["Jwt:Issuer"] ?? "CollegeLMS";
+        var audience = config["Jwt:Audience"] ?? "CollegeLMS.Clients";
+
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(o =>
@@ -40,12 +49,13 @@ public static class ServiceCollectionExtensions
                 o.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(config["Jwt:Key"]!)
-                    ),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ClockSkew = TimeSpan.Zero,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                    ValidateIssuer = true,
+                    ValidIssuer = issuer,
+                    ValidateAudience = true,
+                    ValidAudience = audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(30),
                 };
             });
         services.AddAuthorization();
@@ -213,14 +223,29 @@ public static class ServiceCollectionExtensions
     {
         services.AddRateLimiter(options =>
         {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.AddPolicy(
                 "SearchPolicy",
                 context =>
                     RateLimitPartition.GetFixedWindowLimiter(
-                        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        partitionKey: GetClientIp(context),
                         factory: _ => new FixedWindowRateLimiterOptions
                         {
                             PermitLimit = 30,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0,
+                        }
+                    )
+            );
+            options.AddPolicy(
+                "AuthPolicy",
+                context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetClientIp(context),
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 5,
                             Window = TimeSpan.FromMinutes(1),
                             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                             QueueLimit = 0,
@@ -231,4 +256,7 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    private static string GetClientIp(HttpContext context) =>
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }

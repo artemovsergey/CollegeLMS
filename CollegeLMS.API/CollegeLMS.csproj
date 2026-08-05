@@ -8,7 +8,6 @@
   </PropertyGroup>
   <!-- EF Core & Database -->
   <ItemGroup>
-    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -27,7 +26,8 @@
 
   <!-- Validation -->
   <ItemGroup>
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
   </ItemGroup>
 
   <!-- Swagger / OpenAPI -->
@@ -51,5 +51,13 @@
   <ItemGroup>
     <PackageReference Include="QuestPDF" Version="2025.12.0" />
     <PackageReference Include="ClosedXML" Version="0.104.2" />
+  </ItemGroup>
+
+  <!-- Seed data (import) -->
+  <ItemGroup>
+    <Content Include="..\import\mdk0901_course.json" Link="import\mdk0901_course.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 </Project>

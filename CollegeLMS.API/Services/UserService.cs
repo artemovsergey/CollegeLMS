@@ -88,6 +88,16 @@ public class UserService(AppDbContext db) : IUserService
         if (emailExists)
             return Result<UserResponse>.Fail("Пользователь с таким email уже существует", 409);
 
+        if (
+            user.Role == UserRole.Admin
+            && request.Role != UserRole.Admin
+            && !await db.Users.AnyAsync(u => u.Role == UserRole.Admin && u.Id != id, ct)
+        )
+            return Result<UserResponse>.Fail(
+                "Нельзя изменить роль последнего администратора",
+                409
+            );
+
         user.Email = request.Email;
         user.Login = request.Login;
         user.FullName = request.FullName;
@@ -213,6 +223,19 @@ public class UserService(AppDbContext db) : IUserService
         var user = await db.Users.FindAsync([id], ct);
         if (user is null)
             return Result<UserResponse>.Fail("Пользователь не найден", 404);
+
+        if (user.Role == UserRole.Admin && request.Role != UserRole.Admin)
+        {
+            var otherAdminExists = await db.Users.AnyAsync(
+                u => u.Role == UserRole.Admin && u.Id != id,
+                ct
+            );
+            if (!otherAdminExists)
+                return Result<UserResponse>.Fail(
+                    "Нельзя изменить роль последнего администратора",
+                    409
+                );
+        }
 
         user.Role = request.Role;
         user.UpdatedAt = DateTime.UtcNow;

@@ -19,10 +19,14 @@ public class JwtTokenService(IConfiguration config) : ITokenService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var key = Encoding.UTF8.GetBytes(config["Jwt:Key"]!);
+        var issuer = config["Jwt:Issuer"] ?? "CollegeLMS";
+        var audience = config["Jwt:Audience"] ?? "CollegeLMS.Clients";
+        var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(24),
             signingCredentials: creds

@@ -162,9 +162,18 @@ public class TestingService(AppDbContext db) : ITestingService
         CancellationToken ct
     )
     {
-        var test = await db.Tests.AsNoTracking().FirstOrDefaultAsync(t => t.Id == testId, ct);
+        var test = await db.Tests.FirstOrDefaultAsync(t => t.Id == testId, ct);
         if (test is null)
             return Result<List<QuestionResponse>>.Fail("Тест не найден", 404);
+
+        if (currentUserRole != "Admin" && currentUserRole != "Teacher")
+            return Result<List<QuestionResponse>>.Fail(
+                "Только преподаватель или администратор могут просматривать вопросы",
+                403
+            );
+
+        if (!await CanEditTest(test, currentUserId, currentUserRole, ct))
+            return Result<List<QuestionResponse>>.Fail("У вас нет прав на просмотр вопросов", 403);
 
         var questions = await db
             .TestQuestions.AsNoTracking()
@@ -518,7 +527,7 @@ public class TestingService(AppDbContext db) : ITestingService
             .ToListAsync(ct);
 
         int score = 0;
-        foreach (var answer in request.Answers)
+        foreach (var answer in request.Answers.DistinctBy(a => a.QuestionId))
         {
             var question = questions.FirstOrDefault(q => q.Id == answer.QuestionId);
             if (question is null)

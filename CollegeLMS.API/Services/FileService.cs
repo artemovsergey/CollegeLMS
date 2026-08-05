@@ -15,7 +15,7 @@ public class FileService : IFileService
         var uploadsDir = Path.Combine("uploads", entityType, entityId.ToString());
         Directory.CreateDirectory(uploadsDir);
 
-        var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+        var fileName = $"{Guid.NewGuid()}_{SanitizeFileName(file.FileName)}";
         var filePath = Path.Combine(uploadsDir, fileName);
 
         await using var stream = new FileStream(filePath, FileMode.Create);
@@ -32,5 +32,14 @@ public class FileService : IFileService
 
         File.Delete(fullPath);
         return Task.FromResult(true);
+    }
+
+    private static string SanitizeFileName(string fileName)
+    {
+        var name = Path.GetFileName(fileName.Replace('\\', '/'));
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var sanitized = new string(name.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray());
+
+        return string.IsNullOrWhiteSpace(sanitized) ? "file" : sanitized;
     }
 }
