@@ -2,13 +2,12 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 
-export type DesignPreset = "default" | "tpu"
+export type DesignPreset = "default"
 
-const DESIGN_PRESETS: DesignPreset[] = ["default", "tpu"]
+const DESIGN_PRESETS: DesignPreset[] = ["default"]
 
 const DESIGN_LABELS: Record<DesignPreset, string> = {
   default: "Стандартный",
-  tpu: "ТПУ",
 }
 
 const DEFAULT_DESIGN: DesignPreset = "default"
