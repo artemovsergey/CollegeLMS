@@ -13,6 +13,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { parseErrors } from "@/lib/errors"
 
+// Тестовые входы для разработки. Убрать перед боевым запуском.
+const QUICK_LOGINS = [
+  { role: "Admin", login: "admin", password: "admin", label: "Администратор" },
+  { role: "Teacher", login: "teacher", password: "teacher", label: "Преподаватель" },
+  { role: "Student", login: "student", password: "student", label: "Студент" },
+  { role: "Dispatcher", login: "dispatcher", password: "dispatcher", label: "Диспетчер" },
+]
+
 export default function LoginPage() {
   const [loginInput, setLoginInput] = useState("")
   const [password, setPassword] = useState("")
@@ -95,6 +103,28 @@ export default function LoginPage() {
           </div>
 
           <h1 className="mb-6 text-2xl font-semibold text-primary text-center">Личный кабинет</h1>
+
+          <div className="mb-6">
+            <select
+              onChange={(e) => {
+                const account = QUICK_LOGINS.find(a => a.role === e.target.value)
+                if (account) {
+                  setLoginInput(account.login)
+                  setPassword(account.password)
+                  setFieldErrors({})
+                  setFormError(null)
+                }
+              }}
+              defaultValue=""
+              aria-label="Быстрый вход (разработка)"
+              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            >
+              <option value="" disabled>Быстрый вход (разработка): выберите роль...</option>
+              {QUICK_LOGINS.map(a => (
+                <option key={a.role} value={a.role}>{a.label}</option>
+              ))}
+            </select>
+          </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {formError && <FormErrorBanner message={formError} />}
