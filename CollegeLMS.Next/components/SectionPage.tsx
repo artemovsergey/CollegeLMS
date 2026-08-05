@@ -3,12 +3,10 @@
 import { redirect } from "next/navigation"
 import { notFound } from "next/navigation"
 import Breadcrumbs from "@/components/Breadcrumbs"
-import BreadcrumbsTPU from "@/components/BreadcrumbsTPU"
 import ContentRenderer from "@/components/ContentRenderer"
 import DocsSidebar from "@/components/DocsSidebar"
 import { getSectionBySlug } from "@/data/site-content"
 import pageContents from "@/data/page-contents.json"
-import { useDesign } from "@/lib/design-provider"
 
 interface SectionPageProps {
   sectionSlug: string
@@ -25,7 +23,6 @@ function getContent(slug: string): string {
 }
 
 export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
-  const { design } = useDesign()
   const section = getSectionBySlug(sectionSlug)
 
   if (!section) {
@@ -52,17 +49,9 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
     ? (pageContents as Record<string, { content: string }>)["trudoustroystvo"]?.content || ""
     : getContent(subSlug) || subsection.content
 
-  const Bc = design === "tpu" ? BreadcrumbsTPU : Breadcrumbs
-
-  const titleClass = design === "tpu"
-    ? "text-tpu-text"
-    : "text-primary"
-  const boxClass = design === "tpu"
-    ? "rounded-lg border border-tpu-border bg-white p-8 text-center"
-    : "rounded-lg border border-border bg-card p-8 text-center"
-  const emptyClass = design === "tpu"
-    ? "text-tpu-text-muted"
-    : "text-muted-foreground"
+  const titleClass = "text-primary"
+  const boxClass = "rounded-lg border border-border bg-card p-8 text-center"
+  const emptyClass = "text-muted-foreground"
 
   return (
     <div className="mx-auto flex max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -73,7 +62,7 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
         currentSlug={subSlug}
       />
       <div className="min-w-0 flex-1 pl-0 md:pl-8">
-        <Bc
+        <Breadcrumbs
           items={[
             { label: section.title, href: section.href },
             { label: subsection.title },
