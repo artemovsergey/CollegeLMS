@@ -36,7 +36,7 @@ export default function GraduateStoriesSection() {
           {graduates.map((g) => (
             <div
               key={g.name}
-              className="relative flex flex-col rounded-lg border border-border bg-card p-6 transition-all duration-200 hover:shadow-sm"
+              className="relative flex flex-col rounded-lg border border-border bg-card p-6 transition-all duration-200"
             >
               <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Quote size={18} />

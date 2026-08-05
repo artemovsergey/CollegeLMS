@@ -9,18 +9,13 @@ import Image from "next/image"
 import { useAuth } from "@/lib/auth"
 import FormField from "@/components/FormField"
 import FormErrorBanner from "@/components/FormErrorBanner"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { parseErrors } from "@/lib/errors"
 
-const QUICK_LOGINS = [
-  { role: "Admin", login: "admin", password: "admin", label: "Администратор" },
-  { role: "Teacher", login: "teacher", password: "teacher", label: "Преподаватель" },
-  { role: "Student", login: "student", password: "student", label: "Студент" },
-  { role: "Dispatcher", login: "dispatcher", password: "dispatcher", label: "Диспетчер" },
-]
-
 export default function LoginPage() {
-  const [loginInput, setLoginInput] = useState("admin")
-  const [password, setPassword] = useState("admin")
+  const [loginInput, setLoginInput] = useState("")
+  const [password, setPassword] = useState("")
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -63,7 +58,7 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-[#24386a] to-[#3B7DD8] p-12">
+      <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-primary to-primary/40 p-12">
         <div className="max-w-md">
           <Link href="/">
             <Image
@@ -71,7 +66,7 @@ export default function LoginPage() {
               alt="Ставропольский колледж связи"
               width={300}
               height={200}
-              className="w-full h-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+              className="w-full h-auto"
               unoptimized
             />
           </Link>
@@ -82,7 +77,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-4 bg-white">
+      <div className="flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
             <Link href="/">
@@ -99,27 +94,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <h1 className="mb-4 text-2xl font-semibold text-primary text-center">Личный кабинет</h1>
-
-          <div className="mb-6">
-            <select
-              onChange={(e) => {
-                const account = QUICK_LOGINS.find(a => a.role === e.target.value)
-                if (account) {
-                  setLoginInput(account.login)
-                  setPassword(account.password)
-                }
-              }}
-              defaultValue=""
-              aria-label="Быстрый вход (разработка)"
-              className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            >
-              <option value="" disabled>Быстрый вход (разработка): выберите роль...</option>
-              {QUICK_LOGINS.map(a => (
-                <option key={a.role} value={a.role}>{a.label}</option>
-              ))}
-            </select>
-          </div>
+          <h1 className="mb-6 text-2xl font-semibold text-primary text-center">Личный кабинет</h1>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {formError && <FormErrorBanner message={formError} />}
@@ -130,14 +105,14 @@ export default function LoginPage() {
               required
               error={fieldErrors.login?.[0]}
             >
-              <input
+              <Input
                 id="login"
                 type="text"
                 value={loginInput}
                 onChange={e => setLoginInput(e.target.value)}
-                placeholder="admin"
+                placeholder="Логин"
                 autoComplete="username"
-                className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-fg placeholder:text-accent-lighter focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                aria-invalid={!!fieldErrors.login?.[0]}
               />
             </FormField>
 
@@ -147,24 +122,20 @@ export default function LoginPage() {
               required
               error={fieldErrors.password?.[0]}
             >
-              <input
+              <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="••••••"
+                placeholder="Пароль"
                 autoComplete="current-password"
-                className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-fg placeholder:text-accent-lighter focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                aria-invalid={!!fieldErrors.password?.[0]}
               />
             </FormField>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
+            <Button type="submit" disabled={submitting} className="w-full">
               {submitting ? "Вход..." : "Войти"}
-            </button>
+            </Button>
           </form>
         </div>
       </div>

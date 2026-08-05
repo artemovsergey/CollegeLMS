@@ -36,7 +36,7 @@ export default function StvccUnavailableBanner() {
   return (
     <div
       role="status"
-      className="flex items-center justify-center gap-2 bg-amber-400 px-4 py-1.5 text-center text-xs font-medium text-amber-950 sm:text-sm"
+      className="flex items-center justify-center gap-2 bg-warning px-4 py-1.5 text-center text-xs font-medium text-warning-foreground sm:text-sm"
     >
       <AlertTriangle size={16} className="shrink-0" aria-hidden="true" />
       Источник данных (stvcc.ru) временно недоступен — часть контента может не загружаться

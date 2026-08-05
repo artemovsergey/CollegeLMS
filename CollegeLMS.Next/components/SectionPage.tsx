@@ -7,6 +7,7 @@ import ContentRenderer from "@/components/ContentRenderer"
 import DocsSidebar from "@/components/DocsSidebar"
 import { getSectionBySlug } from "@/data/site-content"
 import pageContents from "@/data/page-contents.json"
+import EmptyState from "@/components/EmptyState"
 
 interface SectionPageProps {
   sectionSlug: string
@@ -51,7 +52,6 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
 
   const titleClass = "text-primary"
   const boxClass = "rounded-lg border border-border bg-card p-8 text-center"
-  const emptyClass = "text-muted-foreground"
 
   return (
     <div className="mx-auto flex max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -73,7 +73,7 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
           <ContentRenderer content={rawContent} />
         ) : (
           <div className={boxClass}>
-            <p className={emptyClass}>Нет данных</p>
+            <EmptyState message="Нет данных" />
           </div>
         )}
       </div>

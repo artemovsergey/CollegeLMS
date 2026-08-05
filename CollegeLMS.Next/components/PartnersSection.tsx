@@ -13,7 +13,7 @@ export default function PartnersSection() {
               href={p.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex flex-col items-center rounded-lg border border-border bg-card p-6 text-center transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
+              className="group flex flex-col items-center rounded-lg border border-border bg-card p-6 text-center transition-all duration-200 hover:border-accent/30"
             >
               <div className="mb-3 flex h-16 items-center justify-center">
                 <img

@@ -38,7 +38,7 @@ export default function StatisticsSection() {
         </p>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {facts.map((f) => (
-            <div key={f.title} className="rounded-lg bg-white/10 p-5 backdrop-blur-sm">
+            <div key={f.title} className="rounded-lg bg-white/10 p-5">
               <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white">
                 <f.icon size={20} />
               </span>
