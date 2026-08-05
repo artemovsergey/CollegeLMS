@@ -112,7 +112,7 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
                     {dayEntries.map(entry => (
                       <div
                         key={entry.id}
-                        className={`group relative mb-1 rounded-md border-l-[3px] p-2 text-xs shadow-sm last:mb-0 ${LESSON_TYPE_STYLES[entry.lessonType] ?? "border-l-gray-400 bg-gray-50 dark:bg-gray-900/20"} ${onEntryClick ? "cursor-pointer transition-colors hover:bg-accent/50" : ""}`}
+                        className={`group relative mb-1 rounded-md border-l-[3px] p-2 text-xs last:mb-0 ${LESSON_TYPE_STYLES[entry.lessonType] ?? "border-l-gray-400 bg-gray-50 dark:bg-gray-900/20"} ${onEntryClick ? "cursor-pointer transition-colors hover:bg-accent/50" : ""}`}
                         onClick={() => onEntryClick?.(entry)}
                       >
                         <p className="mb-1 font-semibold text-foreground">
@@ -147,19 +147,20 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
                         <span className="mt-1 inline-block rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                           {LESSON_TYPE_LABELS[entry.lessonType]}
                         </span>
-                        {onDeleteClick && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1 size-5 opacity-0 transition-opacity group-hover:opacity-100"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onDeleteClick(entry.id)
-                            }}
-                          >
-                            <Trash2 className="size-3 text-destructive" />
-                          </Button>
-                        )}
+{onDeleteClick && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Удалить занятие"
+              className="absolute right-1 top-1 size-5"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDeleteClick(entry.id)
+              }}
+            >
+              <Trash2 className="size-3 text-destructive" />
+            </Button>
+          )}
                       </div>
                     ))}
                   </div>
@@ -228,7 +229,8 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="absolute right-2 top-2 size-6 opacity-0 transition-opacity group-hover:opacity-100"
+                        aria-label="Удалить занятие"
+                        className="absolute right-2 top-2 size-6"
                         onClick={(e) => {
                           e.stopPropagation()
                           onDeleteClick(entry.id)

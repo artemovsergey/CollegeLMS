@@ -123,7 +123,7 @@ export default function Carousel() {
                       className="object-cover"
                     />
                   ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-lilac/80 via-primary/60 to-blue-900/80" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-accent/80 via-primary/60 to-accent/60" />
                   )}
                 </div>
               </Link>

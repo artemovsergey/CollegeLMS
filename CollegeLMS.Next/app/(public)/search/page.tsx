@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Search as SearchIcon } from "lucide-react"
 import type { Result, PagedResponse, NewsResponse, SearchResult } from "@/types"
 import api from "@/lib/api"
+import EmptyState from "@/components/EmptyState"
 
 function SearchResults() {
   const router = useRouter()
@@ -186,8 +187,8 @@ function SearchResults() {
                 <span
                   className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
                     item.type === "news"
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                      : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                      ? "bg-accent/10 text-accent"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {item.type === "news" ? "Новость" : "Страница"}
@@ -208,7 +209,7 @@ function SearchResults() {
 
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
         </div>
       )}
 
@@ -221,7 +222,7 @@ function SearchResults() {
       {!loading && !error && query && results.length === 0 && (
         <div className="rounded-lg border border-border bg-card p-8 text-center">
           <SearchIcon className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-          <p className="text-muted-foreground">Ничего не найдено</p>
+          <EmptyState message="Ничего не найдено" />
         </div>
       )}
 
@@ -232,14 +233,14 @@ function SearchResults() {
               <Link
                 key={`${item.type}-${item.url}-${i}`}
                 href={item.url}
-                className="rounded-lg border border-border bg-card p-5 transition-all hover:border-accent/30 hover:shadow-sm"
+                className="rounded-lg border border-border bg-card p-5 transition-all hover:border-accent/30"
               >
                 <div className="mb-1 flex items-center gap-2">
                   <span
                     className={`rounded px-2 py-0.5 text-xs font-medium ${
                       item.type === "news"
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                        : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                        ? "bg-accent/10 text-accent"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {item.type === "news" ? "Новость" : "Страница"}
@@ -294,7 +295,7 @@ function SearchResults() {
                 <Link
                   key={n.id}
                   href={`/news/${n.id}`}
-                  className="group overflow-hidden rounded-lg border border-border bg-card transition-shadow hover:shadow-lg"
+                  className="group overflow-hidden rounded-lg border border-border bg-card transition-shadow"
                 >
                   {n.imageUrl && (
                     <div className="relative h-40 w-full overflow-hidden">
@@ -330,7 +331,7 @@ export default function SearchPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
         </div>
       }
     >

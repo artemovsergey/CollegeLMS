@@ -1,17 +1,8 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Metadata } from "next"
-import { Laptop, Radio, Cpu, Zap, ArrowLeft, GraduationCap, Clock, Award } from "lucide-react"
-
-const specialties = [
-  { code: "09.02.07", title: "Информационные системы и программирование", qualifications: ["Программист", "Администратор баз данных", "Разработчик веб и мультимедийных приложений"], duration: "3 года 10 месяцев (9 классов)", durationShort: "3 г 10 мес (9 кл)", icon: Laptop, slug: "informatsionnye-sistemy", description: "Специалист в области информационных систем занимается разработкой, внедрением и сопровождением программного обеспечения, баз данных и веб-приложений. Выпускники востребованы в IT-компаниях, телекоммуникационных и промышленных предприятиях.",
-    form: "Очная", budget: "Бюджетные места", level: "Среднее профессиональное образование" },
-  { code: "11.02.02", title: "Техническое обслуживание и ремонт радиоэлектронной техники", qualifications: ["Техник"], duration: "3 года 10 месяцев (9 классов) / 2 года 10 месяцев (11 классов)", durationShort: "3 г 10 мес (9 кл) / 2 г 10 мес (11 кл)", icon: Radio, slug: "remont-radioelektronnoj-tekhniki", description: "Техник по радиоэлектронной технике осуществляет техническое обслуживание, диагностику и ремонт радиоэлектронных устройств и систем различного назначения.", form: "Очная", budget: "Бюджетные места", level: "Среднее профессиональное образование" },
-  { code: "11.02.15", title: "Инфокоммуникационные сети и системы связи", qualifications: ["Специалист по обслуживанию телекоммуникаций", "Специалист по монтажу и обслуживанию телекоммуникаций"], duration: "3 года 10 месяцев (9 классов) / 2 года 10 месяцев (11 классов)", durationShort: "3 г 10 мес (9 кл) / 2 г 10 мес (11 кл)", icon: Radio, slug: "infokommunikatsionnye-seti", description: "Специалист в области инфокоммуникаций занимается проектированием, монтажом и обслуживанием сетей связи, телекоммуникационного оборудования и систем передачи данных.", form: "Очная", budget: "Бюджетные места", level: "Среднее профессиональное образование" },
-  { code: "11.02.17", title: "Разработка электронных устройств и систем", qualifications: ["Техник"], duration: "2 года 10 месяцев (9 классов) / 1 год 10 месяцев (11 классов)", durationShort: "2 г 10 мес (9 кл) / 1 г 10 мес (11 кл)", icon: Cpu, slug: "razrabotka-elektronnykh-ustrojstv", description: "Техник по разработке электронных устройств занимается проектированием, сборкой и настройкой электронных схем, микропроцессорных систем и устройств автоматики.", form: "Очная", budget: "Бюджетные места", level: "Среднее профессиональное образование" },
-  { code: "13.02.06", title: "Релейная защита и автоматизация электроэнергетических систем", qualifications: ["Техник-электрик"], duration: "3 года 10 месяцев (9 классов) / 2 года 10 месяцев (11 классов)", durationShort: "3 г 10 мес (9 кл) / 2 г 10 мес (11 кл)", icon: Zap, slug: "relejnaya-zashchita", description: "Техник-электрик в области релейной защиты занимается эксплуатацией, наладкой и обслуживанием устройств релейной защиты и автоматики электроэнергетических систем.", form: "Очная", budget: "Бюджетные места", level: "Среднее профессиональное образование" },
-  { code: "13.02.12", title: "Электрические станции, сети, их релейная защита и автоматизация", qualifications: ["Техник-электрик"], duration: "3 года 10 месяцев (9 классов)", durationShort: "3 г 10 мес (9 кл)", icon: Zap, slug: "elektricheskie-stantsii", description: "Специалист в области электрических станций и сетей занимается эксплуатацией, обслуживанием и ремонтом электрооборудования электрических станций и сетей.", form: "Очная", budget: "Бюджетные места", level: "Среднее профессиональное образование" },
-]
+import { ArrowLeft, GraduationCap, Clock, Award } from "lucide-react"
+import { specialties } from "@/data/specialties"
 
 export function generateStaticParams() {
   return specialties.map((s) => ({ slug: s.slug }))
@@ -67,7 +58,7 @@ export default function SpecialtyDetailPage({ params }: { params: { slug: string
               <GraduationCap size={14} />
               {spec.form}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-green-100 dark:bg-green-900/30 px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
               <Award size={14} />
               {spec.budget}
             </span>

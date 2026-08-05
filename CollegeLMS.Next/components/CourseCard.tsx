@@ -19,11 +19,22 @@ interface CourseCardProps {
 export default function CourseCard({ id, title, subtitle, href, progress }: CourseCardProps) {
   const router = useRouter()
 
+  const open = () => router.push(href)
+
   return (
     <Card
       key={id}
-      className="cursor-pointer hover:shadow-md transition-shadow"
-      onClick={() => router.push(href)}
+      className="cursor-pointer transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      onClick={open}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          open()
+        }
+      }}
+      role="link"
+      tabIndex={0}
+      aria-label={title}
     >
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>

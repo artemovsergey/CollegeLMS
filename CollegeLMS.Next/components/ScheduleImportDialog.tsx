@@ -94,7 +94,7 @@ export default function ScheduleImportDialog({
             >
               {file ? (
                 <>
-                  <FileSpreadsheet className="size-10 text-college-navy" />
+                  <FileSpreadsheet className="size-10 text-accent" />
                   <div>
                     <p className="font-medium">{file.name}</p>
                     <p className="text-sm text-muted-foreground">
@@ -132,17 +132,17 @@ export default function ScheduleImportDialog({
           </div>
         ) : (
           <div className="grid gap-4">
-            <div className="flex items-center gap-2 rounded-md bg-green-50 dark:bg-green-950/20 p-3 text-sm text-green-700 dark:text-green-400">
+            <div className="flex items-center gap-2 rounded-md bg-success/10 p-3 text-sm text-success">
               <CheckCircle className="size-4 shrink-0" />
               Импорт завершён
             </div>
             <div className="grid grid-cols-2 gap-3 text-center">
               <div className="rounded-lg border bg-card p-3">
-                <p className="text-2xl font-bold text-green-600">{result.imported}</p>
+                <p className="text-2xl font-bold text-success">{result.imported}</p>
                 <p className="text-xs text-muted-foreground">Импортировано</p>
               </div>
               <div className="rounded-lg border bg-card p-3">
-                <p className={`text-2xl font-bold ${result.skipped > 0 ? "text-amber-600" : "text-green-600"}`}>
+                <p className={`text-2xl font-bold ${result.skipped > 0 ? "text-warning" : "text-success"}`}>
                   {result.skipped}
                 </p>
                 <p className="text-xs text-muted-foreground">Пропущено</p>

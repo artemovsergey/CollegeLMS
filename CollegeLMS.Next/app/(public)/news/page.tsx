@@ -135,7 +135,7 @@ export default function NewsListPage() {
       {/* Loading */}
       {loading ? (
           <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
         </div>
       ) : news.length === 0 ? (
         <div className="py-20 text-center">
@@ -149,7 +149,7 @@ export default function NewsListPage() {
               <Link
                 key={item.id}
                 href={`/news/${item.id}`}
-                className="group rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
+                className="group rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-accent/30"
               >
                 {item.imageUrl && (
                   <div className="mb-3 overflow-hidden rounded-md">

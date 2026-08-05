@@ -123,7 +123,7 @@ export default function NewsDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
       </div>
     )
   }
@@ -151,7 +151,7 @@ export default function NewsDetailPage() {
       </Button>
 
       {allImages.length > 0 ? (
-        <div className="mb-8 grid grid-cols-1 overflow-hidden rounded-xl border border-border shadow-sm lg:grid-cols-3">
+        <div className="mb-8 grid grid-cols-1 overflow-hidden rounded-xl border border-border lg:grid-cols-3">
           <div className="flex flex-col justify-center gap-3 bg-primary p-6 text-primary-foreground lg:p-8">
             <p className="text-sm text-primary-foreground/80">
               {new Date(news.publishedAt).toLocaleDateString("ru-RU", {

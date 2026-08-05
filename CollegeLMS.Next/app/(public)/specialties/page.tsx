@@ -1,20 +1,12 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { Laptop, Radio, Cpu, Zap, ArrowRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
+import { specialties } from "@/data/specialties"
 
 export const metadata: Metadata = {
   title: "Специальности | Ставропольский колледж связи",
   description: "Специальности и профессии колледжа",
 }
-
-const specialtiesPage = [
-  { code: "09.02.07", title: "Информационные системы и программирование", qualifications: ["Программист", "Администратор баз данных", "Разработчик веб и мультимедийных приложений"], duration: "3 г 10 мес (9 кл)", icon: Laptop, slug: "informatsionnye-sistemy" },
-  { code: "11.02.02", title: "Техническое обслуживание и ремонт радиоэлектронной техники", qualifications: ["Техник"], duration: "3 г 10 мес (9 кл) / 2 г 10 мес (11 кл)", icon: Radio, slug: "remont-radioelektronnoj-tekhniki" },
-  { code: "11.02.15", title: "Инфокоммуникационные сети и системы связи", qualifications: ["Специалист по обслуживанию телекоммуникаций", "Специалист по монтажу и обслуживанию телекоммуникаций"], duration: "3 г 10 мес (9 кл) / 2 г 10 мес (11 кл)", icon: Radio, slug: "infokommunikatsionnye-seti" },
-  { code: "11.02.17", title: "Разработка электронных устройств и систем", qualifications: ["Техник"], duration: "2 г 10 мес (9 кл) / 1 г 10 мес (11 кл)", icon: Cpu, slug: "razrabotka-elektronnykh-ustrojstv" },
-  { code: "13.02.06", title: "Релейная защита и автоматизация электроэнергетических систем", qualifications: ["Техник-электрик"], duration: "3 г 10 мес (9 кл) / 2 г 10 мес (11 кл)", icon: Zap, slug: "relejnaya-zashchita" },
-  { code: "13.02.12", title: "Электрические станции, сети, их релейная защита и автоматизация", qualifications: ["Техник-электрик"], duration: "3 г 10 мес (9 кл)", icon: Zap, slug: "elektricheskie-stantsii" },
-]
 
 export default function SpecialtiesPage() {
   return (
@@ -28,13 +20,13 @@ export default function SpecialtiesPage() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {specialtiesPage.map((s) => {
+          {specialties.map((s) => {
             const Icon = s.icon
             return (
               <Link
                 key={s.code}
                 href={`/specialties/${s.slug}`}
-                className="group relative flex flex-col rounded-xl border border-border bg-card transition-all duration-200 hover:shadow-lg hover:border-accent/30 hover:-translate-y-0.5 overflow-hidden"
+                className="group relative flex flex-col rounded-xl border border-border bg-card transition-all duration-200 hover:border-accent/30 hover:-translate-y-0.5 overflow-hidden"
               >
                 <div className="h-1 w-full bg-gradient-to-r from-accent to-accent/60" />
 
@@ -68,7 +60,7 @@ export default function SpecialtiesPage() {
 
                   <div className="mt-auto" />
 
-                  <div className="flex items-center gap-1 text-sm font-medium text-accent opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 text-sm font-medium text-accent">
                     Подробнее
                     <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                   </div>

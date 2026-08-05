@@ -18,7 +18,7 @@ export default function MediaSection() {
         <div className="mx-auto max-w-2xl">
           <button
             onClick={() => setOpen(true)}
-            className="group flex w-full gap-5 rounded-lg border border-border bg-card p-5 text-left transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
+            className="group flex w-full gap-5 rounded-lg border border-border bg-card p-5 text-left transition-all duration-200 hover:border-accent/30"
           >
             <div className="relative flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
               <Image
@@ -61,7 +61,7 @@ export default function MediaSection() {
 
       {open && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           onClick={() => setOpen(false)}
         >
           <div
