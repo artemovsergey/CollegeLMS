@@ -56,6 +56,7 @@ public class FileServiceTests : IDisposable
             default
         );
 
-        result.Should().NotContainAny(":", "*", "?");
+        var fileName = result.Split('/').Last();
+        fileName.Should().NotContainAny(Path.GetInvalidFileNameChars().Select(c => c.ToString()));
     }
 }
