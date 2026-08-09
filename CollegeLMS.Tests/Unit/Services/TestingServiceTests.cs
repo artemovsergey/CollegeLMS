@@ -1210,4 +1210,184 @@ public class TestingServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(403);
     }
+
+    [Fact]
+    public async Task GetMyResultAsync_PassedByPercentage_WhenMaxScoreNot100()
+    {
+        var studentUserId = Guid.NewGuid();
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+            }
+        );
+        _db.Students.Add(student);
+
+        var test = new Test
+        {
+            Id = Guid.NewGuid(),
+            Title = "Тест",
+            PassingScore = 70,
+            ShowCorrectAnswers = false,
+            TimeLimitMinutes = 60,
+            MaxAttempts = 1,
+            Type = TestType.SelfStudy,
+            CourseId = Guid.NewGuid(),
+        };
+        _db.Tests.Add(test);
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow.AddHours(-1),
+                CompletedAt = DateTime.UtcNow,
+                Status = AttemptStatus.Completed,
+                Score = 15,
+                MaxScore = 20,
+                Test = test,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetMyResultAsync(test.Id, studentUserId, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Percentage.Should().Be(75);
+        result.Data.Passed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetMyResultAsync_NotPassedByPercentage_WhenBelowThreshold()
+    {
+        var studentUserId = Guid.NewGuid();
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+            }
+        );
+        _db.Students.Add(student);
+
+        var test = new Test
+        {
+            Id = Guid.NewGuid(),
+            Title = "Тест",
+            PassingScore = 70,
+            ShowCorrectAnswers = false,
+            TimeLimitMinutes = 60,
+            MaxAttempts = 1,
+            Type = TestType.SelfStudy,
+            CourseId = Guid.NewGuid(),
+        };
+        _db.Tests.Add(test);
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow.AddHours(-1),
+                CompletedAt = DateTime.UtcNow,
+                Status = AttemptStatus.Completed,
+                Score = 12,
+                MaxScore = 20,
+                Test = test,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetMyResultAsync(test.Id, studentUserId, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Percentage.Should().Be(60);
+        result.Data.Passed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetStatsAsync_PassedCount_UsesPercentage()
+    {
+        var adminId = Guid.NewGuid();
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                FullName = "Admin",
+                Email = "a@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+            }
+        );
+
+        var test = TestFixture.CreateFaker().Generate();
+        test.PassingScore = 50;
+        _db.Tests.Add(test);
+
+        for (int i = 0; i < 2; i++)
+        {
+            var student = new Student
+            {
+                Id = Guid.NewGuid(),
+                UserId = Guid.NewGuid(),
+                RecordBookNumber = $"ЗК-00{i}",
+            };
+            student.User = new User
+            {
+                Id = student.UserId,
+                FullName = $"Студент {i}",
+                Email = $"s{i}@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+            };
+            student.Group = new Group
+            {
+                Id = Guid.NewGuid(),
+                Name = $"ГР-{i}",
+                Course = 1,
+            };
+            student.GroupId = student.Group.Id;
+            _db.Students.Add(student);
+            _db.TestAttempts.Add(
+                new TestAttempt
+                {
+                    Id = Guid.NewGuid(),
+                    TestId = test.Id,
+                    StudentId = student.Id,
+                    Status = AttemptStatus.Completed,
+                    Score = i == 0 ? 80 : 150,
+                    MaxScore = 200,
+                    Student = student,
+                }
+            );
+        }
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetStatsAsync(test.Id, adminId, "Admin", default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.TotalAttempts.Should().Be(2);
+        result.Data.PassedCount.Should().Be(1);
+        result.Data.FailedCount.Should().Be(1);
+    }
 }

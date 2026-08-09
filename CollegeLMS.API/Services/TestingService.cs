@@ -638,14 +638,16 @@ public class TestingService(AppDbContext db) : ITestingService
 
         var showAnswers = attempt.Test.ShowCorrectAnswers;
 
+        var percentage = Percent(attempt.Score, attempt.MaxScore);
+
         return Result<TestResultResponse>.Ok(
             new TestResultResponse
             {
                 AttemptId = attempt.Id,
                 Score = attempt.Score,
                 MaxScore = attempt.MaxScore,
-                Percentage = attempt.MaxScore > 0 ? attempt.Score * 100 / attempt.MaxScore : 0,
-                Passed = attempt.Score >= attempt.Test.PassingScore,
+                Percentage = percentage,
+                Passed = percentage >= attempt.Test.PassingScore,
                 CompletedAt = attempt.CompletedAt ?? attempt.StartedAt,
                 AnswerReviews = attempt
                     .Answers.Select(a => new AnswerReviewDto
@@ -720,12 +722,14 @@ public class TestingService(AppDbContext db) : ITestingService
                     : (scores[count / 2 - 1] + scores[count / 2]) / 2.0
                 : 0;
 
+        var passCount = attempts.Count(a => Percent(a.Score, a.MaxScore) >= test.PassingScore);
+
         return Result<TestStatsResponse>.Ok(
             new TestStatsResponse
             {
                 TotalAttempts = count,
-                PassedCount = attempts.Count(a => a.Score >= test.PassingScore),
-                FailedCount = attempts.Count(a => a.Score < test.PassingScore),
+                PassedCount = passCount,
+                FailedCount = count - passCount,
                 AverageScore = count > 0 ? attempts.Average(a => a.Score) : 0,
                 MedianScore = median,
                 MaxScore = count > 0 ? scores.Max() : 0,
@@ -737,7 +741,7 @@ public class TestingService(AppDbContext db) : ITestingService
                         GroupName = a.Student?.Group?.Name ?? string.Empty,
                         Score = a.Score,
                         MaxScore = a.MaxScore,
-                        Passed = a.Score >= test.PassingScore,
+                        Passed = Percent(a.Score, a.MaxScore) >= test.PassingScore,
                     })
                     .ToList(),
             }
@@ -767,6 +771,9 @@ public class TestingService(AppDbContext db) : ITestingService
         }
         return false;
     }
+
+    private static int Percent(int score, int maxScore) =>
+        maxScore > 0 ? score * 100 / maxScore : 0;
 }
 
 internal static class TestQuestionExtensions
