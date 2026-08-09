@@ -13,6 +13,8 @@ import type {
   CreateTestQuestionRequest,
   UpdateTestQuestionRequest,
   TestStatsResponse,
+  TestResultResponse,
+  TestAttemptResponse,
 } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
@@ -102,6 +104,9 @@ export default function LectureViewPage() {
   const [formQCorrect, setFormQCorrect] = useState("")
   const [formQPoints, setFormQPoints] = useState(1)
 
+  const [studentResult, setStudentResult] = useState<TestResultResponse | null>(null)
+  const [attemptCount, setAttemptCount] = useState(0)
+
   const canManage = user?.role === "Admin" || (user?.role === "Teacher" && course?.teacherId === user?.id)
   const isStudent = user?.role === "Student"
 
@@ -162,6 +167,26 @@ export default function LectureViewPage() {
   useEffect(() => {
     if (test && canManage) fetchQuestions()
   }, [test, canManage, fetchQuestions])
+
+  const fetchStudentData = useCallback(async () => {
+    if (!lecture?.testId || !isStudent) return
+    try {
+      const [resultRes, attemptsRes] = await Promise.all([
+        api.get<Result<TestResultResponse>>(`/api/tests/${lecture.testId}/results`),
+        api.get<Result<TestAttemptResponse[]>>(`/api/tests/${lecture.testId}/attempts`),
+      ])
+      if (resultRes.data.isSuccess && resultRes.data.data) setStudentResult(resultRes.data.data)
+      if (attemptsRes.data.isSuccess && attemptsRes.data.data) {
+        setAttemptCount(attemptsRes.data.data.length)
+      }
+    } catch {
+      setStudentResult(null)
+    }
+  }, [lecture?.testId, isStudent])
+
+  useEffect(() => {
+    if (lecture?.testId && isStudent) fetchStudentData()
+  }, [lecture?.testId, isStudent, fetchStudentData])
 
   const handleDelete = async () => {
     if (!lecture) return
@@ -477,6 +502,53 @@ export default function LectureViewPage() {
             </form>
           </DialogContent>
         </Dialog>
+      )}
+
+      {isStudent && lecture.testId && (
+        <div className="rounded-lg border bg-card p-6 flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              <span className="font-medium">{test?.title ?? lecture.testTitle ?? "Тест к лекции"}</span>
+            </div>
+            {studentResult ? (
+              <p className="text-sm text-muted-foreground">
+                {studentResult.passed ? (
+                  <span className="text-emerald-600 font-medium">
+                    Пройден: {studentResult.percentage}% ({studentResult.score}/{studentResult.maxScore})
+                  </span>
+                ) : (
+                  <span className="text-orange-600 font-medium">
+                    Не пройден: {studentResult.percentage}% ({studentResult.score}/{studentResult.maxScore})
+                  </span>
+                )}
+                {" "}· {new Date(studentResult.completedAt).toLocaleDateString("ru-RU")}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {test?.questionCount && test.questionCount > 0
+                  ? `Вопросов: ${test.questionCount} · Проходной балл: ${test.passingScore}%`
+                  : "Тест ещё не содержит вопросов"}
+              </p>
+            )}
+          </div>
+          {studentResult ? (
+            attemptCount < (test?.maxAttempts ?? 1) ? (
+              <Button onClick={() => router.push(`/courses/${courseId}/lectures/${lecture.id}/test`)}>
+                Пересдать
+              </Button>
+            ) : (
+              <Badge variant="outline">Попытки исчерпаны</Badge>
+            )
+          ) : (
+            <Button
+              disabled={!(test?.questionCount && test.questionCount > 0)}
+              onClick={() => router.push(`/courses/${courseId}/lectures/${lecture.id}/test`)}
+            >
+              Пройти тест
+            </Button>
+          )}
+        </div>
       )}
 
       <div className="rounded-lg border bg-card p-6">
