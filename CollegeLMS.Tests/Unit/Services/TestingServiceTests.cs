@@ -772,6 +772,76 @@ public class TestingServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetMyResultAsync_IgnoresInProgressAttempt()
+    {
+        var studentUserId = Guid.NewGuid();
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+            }
+        );
+        _db.Students.Add(student);
+
+        var test = new Test
+        {
+            Id = Guid.NewGuid(),
+            Title = "Тест",
+            PassingScore = 5,
+            ShowCorrectAnswers = true,
+            TimeLimitMinutes = 60,
+            MaxAttempts = 1,
+            Type = TestType.SelfStudy,
+            CourseId = Guid.NewGuid(),
+        };
+        _db.Tests.Add(test);
+
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow,
+                Status = AttemptStatus.InProgress,
+                Test = test,
+            }
+        );
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow.AddHours(-1),
+                CompletedAt = DateTime.UtcNow,
+                Status = AttemptStatus.Completed,
+                Score = 10,
+                MaxScore = 10,
+                Test = test,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetMyResultAsync(test.Id, studentUserId, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Score.Should().Be(10);
+        result.Data.Percentage.Should().Be(100);
+        result.Data.Passed.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task GetStatsAsync_ReturnsStats()
     {
         var adminId = Guid.NewGuid();

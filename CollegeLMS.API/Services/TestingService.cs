@@ -637,7 +637,12 @@ public class TestingService(AppDbContext db) : ITestingService
             .Include(a => a.Answers)
                 .ThenInclude(a => a.Question)
             .Include(a => a.Test)
-            .Where(a => a.TestId == testId && a.StudentId == student.Id)
+            .Where(
+                a =>
+                    a.TestId == testId
+                    && a.StudentId == student.Id
+                    && a.Status == AttemptStatus.Completed
+            )
             .OrderByDescending(a => a.CompletedAt)
             .FirstOrDefaultAsync(ct);
 
