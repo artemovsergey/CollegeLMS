@@ -1078,4 +1078,136 @@ public class TestingServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(400);
     }
+
+    [Fact]
+    public async Task StartTestAsync_AllowsAccess_WhenStudentEnrolledInCourse()
+    {
+        var groupId = Guid.NewGuid();
+        var studentUserId = Guid.NewGuid();
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            GroupId = groupId,
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+            }
+        );
+        _db.Students.Add(student);
+
+        var courseId = Guid.NewGuid();
+        var course = new Course
+        {
+            Id = courseId,
+            Title = "Курс",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        _db.Courses.Add(course);
+
+        var test = TestFixture.CreateFaker().Generate();
+        test.CourseId = courseId;
+        test.Course = course;
+        test.MaxAttempts = 3;
+        _db.Tests.Add(test);
+        _db.TestQuestions.Add(
+            new TestQuestion
+            {
+                Id = Guid.NewGuid(),
+                Text = "Вопрос 1",
+                Type = QuestionType.SingleChoice,
+                Options = "A\nB\nC",
+                CorrectAnswer = "A",
+                Points = 10,
+                OrderIndex = 1,
+                TestId = test.Id,
+            }
+        );
+        _db.Lectures.Add(
+            new Lecture
+            {
+                Id = Guid.NewGuid(),
+                CourseId = courseId,
+                Title = "Лекция",
+                Order = 1,
+                LectureType = LectureType.Lecture,
+                TestId = test.Id,
+            }
+        );
+        _db.CourseGroups.Add(
+            new CourseGroup { Id = Guid.NewGuid(), CourseId = courseId, GroupId = groupId }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.StartTestAsync(test.Id, studentUserId, default);
+
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task StartTestAsync_ReturnsFail_WhenNotEnrolledAndNoAssignment()
+    {
+        var groupId = Guid.NewGuid();
+        var studentUserId = Guid.NewGuid();
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            GroupId = groupId,
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+            }
+        );
+        _db.Students.Add(student);
+
+        var test = TestFixture.CreateFaker().Generate();
+        test.MaxAttempts = 3;
+        _db.Tests.Add(test);
+        _db.TestQuestions.Add(
+            new TestQuestion
+            {
+                Id = Guid.NewGuid(),
+                Text = "Вопрос 1",
+                Type = QuestionType.SingleChoice,
+                Options = "A\nB\nC",
+                CorrectAnswer = "A",
+                Points = 10,
+                OrderIndex = 1,
+                TestId = test.Id,
+            }
+        );
+        _db.Lectures.Add(
+            new Lecture
+            {
+                Id = Guid.NewGuid(),
+                CourseId = test.CourseId,
+                Title = "Лекция",
+                Order = 1,
+                LectureType = LectureType.Lecture,
+                TestId = test.Id,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.StartTestAsync(test.Id, studentUserId, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(403);
+    }
 }

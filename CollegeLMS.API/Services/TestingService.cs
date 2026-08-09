@@ -449,17 +449,24 @@ public class TestingService(AppDbContext db) : ITestingService
         if (student is null)
             return Result<StartTestResponse>.Fail("Студент не найден", 404);
 
-        var canAccess = await db
-            .TestAssignments.AsNoTracking()
-            .AnyAsync(
-                a =>
-                    a.TestId == testId
-                    && a.GroupId == student.GroupId
-                    && a.OpenDate <= DateTime.UtcNow
-                    && a.CloseDate >= DateTime.UtcNow,
+        var hasAssignment = await db.TestAssignments.AsNoTracking().AnyAsync(
+            a =>
+                a.TestId == testId
+                && a.GroupId == student.GroupId
+                && a.OpenDate <= DateTime.UtcNow
+                && a.CloseDate >= DateTime.UtcNow,
+            ct
+        );
+        var lecture = await db.Lectures.AsNoTracking().FirstOrDefaultAsync(
+            l => l.TestId == testId,
+            ct
+        );
+        var enrolled = lecture is not null
+            && await db.CourseGroups.AsNoTracking().AnyAsync(
+                cg => cg.CourseId == lecture.CourseId && cg.GroupId == student.GroupId,
                 ct
             );
-        if (!canAccess)
+        if (!hasAssignment && !enrolled)
             return Result<StartTestResponse>.Fail("Тест не доступен для вашей группы", 403);
 
         var attemptCount = await db.TestAttempts.CountAsync(
