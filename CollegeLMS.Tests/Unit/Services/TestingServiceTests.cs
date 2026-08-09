@@ -947,4 +947,135 @@ public class TestingServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.Score.Should().Be(10);
     }
+
+    [Fact]
+    public async Task CreateAsync_LinksTestToLecture_WhenLectureIdProvided()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        _db.Courses.Add(course);
+        var lecture = new Lecture
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "Лекция 1",
+            Order = 1,
+            LectureType = LectureType.Lecture,
+        };
+        _db.Lectures.Add(lecture);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.CreateAsync(
+            new CreateTestRequest
+            {
+                Title = "Тест к лекции",
+                Description = "Описание",
+                CourseId = course.Id,
+                Type = "SelfStudy",
+                LectureId = lecture.Id,
+            },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var linked = await _db.Lectures.FindAsync([lecture.Id]);
+        linked!.TestId.Should().Be(result.Data!.Id);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ReturnsFail_WhenLectureBelongsToAnotherCourse()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        var otherCourse = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Другой курс",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        _db.Courses.AddRange(course, otherCourse);
+        var lecture = new Lecture
+        {
+            Id = Guid.NewGuid(),
+            CourseId = otherCourse.Id,
+            Title = "Лекция",
+            Order = 1,
+            LectureType = LectureType.Lecture,
+        };
+        _db.Lectures.Add(lecture);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.CreateAsync(
+            new CreateTestRequest
+            {
+                Title = "Тест",
+                CourseId = course.Id,
+                Type = "SelfStudy",
+                LectureId = lecture.Id,
+            },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ReturnsFail_WhenLectureAlreadyHasTest()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        _db.Courses.Add(course);
+        var existingTest = TestFixture.CreateFaker().Generate();
+        existingTest.CourseId = course.Id;
+        existingTest.Course = course;
+        _db.Tests.Add(existingTest);
+        var lecture = new Lecture
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "Лекция",
+            Order = 1,
+            LectureType = LectureType.Lecture,
+            TestId = existingTest.Id,
+        };
+        _db.Lectures.Add(lecture);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.CreateAsync(
+            new CreateTestRequest
+            {
+                Title = "Тест",
+                CourseId = course.Id,
+                Type = "SelfStudy",
+                LectureId = lecture.Id,
+            },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+    }
 }

@@ -81,6 +81,21 @@ public class TestingService(AppDbContext db) : ITestingService
                 );
         }
 
+        Lecture? lecture = null;
+        if (request.LectureId.HasValue)
+        {
+            lecture = await db.Lectures.FirstOrDefaultAsync(
+                l => l.Id == request.LectureId.Value,
+                ct
+            );
+            if (lecture is null)
+                return Result<TestResponse>.Fail("Лекция не найдена", 404);
+            if (lecture.CourseId != request.CourseId)
+                return Result<TestResponse>.Fail("Лекция не принадлежит этому курсу", 400);
+            if (lecture.TestId.HasValue)
+                return Result<TestResponse>.Fail("У лекции уже есть тест", 400);
+        }
+
         var test = new Test
         {
             Id = Guid.NewGuid(),
@@ -93,6 +108,8 @@ public class TestingService(AppDbContext db) : ITestingService
             CourseId = request.CourseId,
         };
         db.Tests.Add(test);
+        if (lecture is not null)
+            lecture.TestId = test.Id;
         await db.SaveChangesAsync(ct);
 
         test = await db
