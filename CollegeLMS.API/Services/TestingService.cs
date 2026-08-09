@@ -550,6 +550,14 @@ public class TestingService(AppDbContext db) : ITestingService
             .Where(q => q.TestId == testId)
             .ToListAsync(ct);
 
+        var unknownQuestionIds = request
+            .Answers.Select(a => a.QuestionId)
+            .Distinct()
+            .Where(id => !questions.Any(q => q.Id == id))
+            .ToList();
+        if (unknownQuestionIds.Count > 0)
+            return Result<AttemptResponse>.Fail("Тест содержит неизвестные вопросы", 400);
+
         int score = 0;
         foreach (var answer in request.Answers.DistinctBy(a => a.QuestionId))
         {

@@ -106,3 +106,21 @@ public class TestSettingsRequestValidator : AbstractValidator<TestSettingsReques
         );
     }
 }
+
+public class SubmitAnswersRequestValidator : AbstractValidator<SubmitAnswersRequest>
+{
+    public SubmitAnswersRequestValidator()
+    {
+        RuleFor(x => x.Answers)
+            .NotNull()
+            .WithMessage("Ответы обязательны");
+        RuleForEach(x => x.Answers)
+            .ChildRules(answers =>
+            {
+                answers
+                    .RuleFor(a => a.QuestionId)
+                    .NotEmpty()
+                    .WithMessage("Идентификатор вопроса обязателен");
+            });
+    }
+}

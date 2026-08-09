@@ -1390,4 +1390,73 @@ public class TestingServiceTests : IDisposable
         result.Data.PassedCount.Should().Be(1);
         result.Data.FailedCount.Should().Be(1);
     }
+
+    [Fact]
+    public async Task SubmitAnswersAsync_ReturnsFail_WhenUnknownQuestion()
+    {
+        var studentUserId = Guid.NewGuid();
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+            }
+        );
+        _db.Students.Add(student);
+
+        var test = TestFixture.CreateFaker().Generate();
+        test.AutoCheck = true;
+        test.TimeLimitMinutes = 60;
+        _db.Tests.Add(test);
+
+        var question = new TestQuestion
+        {
+            Id = Guid.NewGuid(),
+            Text = "Q1",
+            Type = QuestionType.SingleChoice,
+            CorrectAnswer = "A",
+            Points = 10,
+            OrderIndex = 1,
+            TestId = test.Id,
+        };
+        _db.TestQuestions.Add(question);
+
+        var attempt = new TestAttempt
+        {
+            Id = Guid.NewGuid(),
+            TestId = test.Id,
+            StudentId = student.Id,
+            StartedAt = DateTime.UtcNow.AddMinutes(-5),
+            Status = AttemptStatus.InProgress,
+            Test = test,
+        };
+        _db.TestAttempts.Add(attempt);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.SubmitAnswersAsync(
+            test.Id,
+            attempt.Id,
+            new SubmitAnswersRequest
+            {
+                Answers = new List<AnswerDto>
+                {
+                    new() { QuestionId = Guid.NewGuid(), GivenAnswer = "A" },
+                },
+            },
+            studentUserId,
+            default
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+    }
 }
