@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import type { Result, CourseResponse, LectureResponse, AssignmentResponse, MaterialResponse, CourseGroupResponse, GroupResponse } from "@/types"
+import type { Result, CourseResponse, LectureResponse, AssignmentResponse, MaterialResponse, CourseGroupResponse, GroupResponse, MyTestResultDto } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { LECTURE_TYPE_LABELS, LECTURE_TYPE_VARIANTS } from "@/lib/lectureTypes"
+import { TEST_STATUS_LABELS, TEST_STATUS_VARIANTS, testStatusFor } from "@/lib/testStatus"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { roleLabels, roleVariants } from "@/lib/constants"
@@ -73,6 +74,7 @@ export default function CourseDetailPage() {
   const [addGroupSelectedId, setAddGroupSelectedId] = useState("")
   const [addGroupSubmitting, setAddGroupSubmitting] = useState(false)
   const [addGroupError, setAddGroupError] = useState<string | null>(null)
+  const [myTestResults, setMyTestResults] = useState<Map<string, MyTestResultDto>>(new Map())
 
   const [removeGroupId, setRemoveGroupId] = useState<string | null>(null)
   const [removeSubmitting, setRemoveSubmitting] = useState(false)
@@ -160,6 +162,17 @@ export default function CourseDetailPage() {
     Promise.all([fetchCourse(), fetchLectures(), fetchAssignments(), fetchMaterials(), fetchCourseGroups(), fetchAvailableGroups()])
       .finally(() => setLoading(false))
   }, [fetchCourse, fetchLectures, fetchAssignments, fetchMaterials, fetchCourseGroups, fetchAvailableGroups])
+
+  useEffect(() => {
+    if (user?.role !== "Student") return
+    api.get<Result<MyTestResultDto[]>>("/api/my/test-results").then(res => {
+      if (res.data.isSuccess && res.data.data) {
+        setMyTestResults(new Map(res.data.data.map(r => [r.testId, r])))
+      }
+    }).catch(() => {
+      // ignore
+    })
+  }, [user?.role])
 
   const handleAddGroup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -284,6 +297,19 @@ export default function CourseDetailPage() {
                   <Badge variant={LECTURE_TYPE_VARIANTS[l.lectureType] ?? "outline"}>
                     {LECTURE_TYPE_LABELS[l.lectureType] ?? l.lectureType}
                   </Badge>
+                  {l.testId && (
+                    <Badge
+                      variant={
+                        user?.role === "Student"
+                          ? TEST_STATUS_VARIANTS[testStatusFor(l.testId, myTestResults)]
+                          : "outline"
+                      }
+                    >
+                      {user?.role === "Student"
+                        ? TEST_STATUS_LABELS[testStatusFor(l.testId, myTestResults)]
+                        : "Тест"}
+                    </Badge>
+                  )}
                 </div>
               ))}
               {assignments.map(a => (

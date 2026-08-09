@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import type { Result, CourseResponse, LectureResponse, AssignmentResponse, MaterialResponse, SubmissionResponse } from "@/types"
+import type { Result, CourseResponse, LectureResponse, AssignmentResponse, MaterialResponse, SubmissionResponse, MyTestResultDto } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { LECTURE_TYPE_LABELS, LECTURE_TYPE_VARIANTS } from "@/lib/lectureTypes"
+import { TEST_STATUS_LABELS, TEST_STATUS_VARIANTS, testStatusFor } from "@/lib/testStatus"
 
 const roleLabels: Record<string, string> = {
   Admin: "Админ",
@@ -39,6 +40,7 @@ export default function MyCourseDetailPage() {
   const [assignments, setAssignments] = useState<AssignmentResponse[]>([])
   const [materials, setMaterials] = useState<MaterialResponse[]>([])
   const [submissions, setSubmissions] = useState<Record<string, SubmissionResponse | null>>({})
+  const [myTestResults, setMyTestResults] = useState<Map<string, MyTestResultDto>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>("lessons")
@@ -77,6 +79,10 @@ export default function MyCourseDetailPage() {
       }
       if (materialsRes.data.isSuccess && materialsRes.data.data) {
         setMaterials(materialsRes.data.data)
+      }
+      const testRes = await api.get<Result<MyTestResultDto[]>>("/api/my/test-results")
+      if (testRes.data.isSuccess && testRes.data.data) {
+        setMyTestResults(new Map(testRes.data.data.map(r => [r.testId, r])))
       }
     } catch {
       setError("Ошибка загрузки курса")
@@ -178,6 +184,11 @@ export default function MyCourseDetailPage() {
                   <Badge variant={LECTURE_TYPE_VARIANTS[l.lectureType] ?? "outline"}>
                     {LECTURE_TYPE_LABELS[l.lectureType] ?? l.lectureType}
                   </Badge>
+                  {l.testId && (
+                    <Badge variant={TEST_STATUS_VARIANTS[testStatusFor(l.testId, myTestResults)]}>
+                      {TEST_STATUS_LABELS[testStatusFor(l.testId, myTestResults)]}
+                    </Badge>
+                  )}
                 </div>
               ))}
               {assignments.map(a => {
