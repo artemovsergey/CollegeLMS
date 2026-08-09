@@ -179,3 +179,14 @@ public class StudentResultDto
     public int MaxScore { get; set; }
     public bool Passed { get; set; }
 }
+
+public class MyTestResultDto
+{
+    public Guid TestId { get; set; }
+    public string TestTitle { get; set; } = string.Empty;
+    public int Score { get; set; }
+    public int MaxScore { get; set; }
+    public int Percentage { get; set; }
+    public bool Passed { get; set; }
+    public DateTime CompletedAt { get; set; }
+}

@@ -1459,4 +1459,77 @@ public class TestingServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(400);
     }
+
+    [Fact]
+    public async Task GetAllMyResultsAsync_ReturnsResultsWithPassedFlag()
+    {
+        var studentUserId = Guid.NewGuid();
+        var student = new Student
+        {
+            Id = Guid.NewGuid(),
+            UserId = studentUserId,
+            RecordBookNumber = "ЗК-001",
+        };
+        _db.Users.Add(
+            new User
+            {
+                Id = studentUserId,
+                FullName = "Студент",
+                Email = "s@t.ru",
+                PasswordHash = "hash",
+                Role = UserRole.Student,
+            }
+        );
+        _db.Students.Add(student);
+
+        var test = new Test
+        {
+            Id = Guid.NewGuid(),
+            Title = "Тест",
+            PassingScore = 60,
+            TimeLimitMinutes = 60,
+            MaxAttempts = 1,
+            Type = TestType.SelfStudy,
+            CourseId = Guid.NewGuid(),
+        };
+        _db.Tests.Add(test);
+
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow.AddHours(-2),
+                CompletedAt = DateTime.UtcNow.AddHours(-2),
+                Status = AttemptStatus.Completed,
+                Score = 40,
+                MaxScore = 100,
+                Test = test,
+            }
+        );
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow.AddHours(-1),
+                CompletedAt = DateTime.UtcNow.AddHours(-1),
+                Status = AttemptStatus.Completed,
+                Score = 80,
+                MaxScore = 100,
+                Test = test,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetAllMyResultsAsync(studentUserId, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data.Should().HaveCount(2);
+        result.Data![0].Passed.Should().BeTrue();
+        result.Data[0].TestId.Should().Be(test.Id);
+        result.Data[1].Passed.Should().BeFalse();
+    }
 }

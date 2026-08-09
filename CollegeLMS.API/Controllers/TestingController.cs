@@ -327,8 +327,8 @@ public class TestingController(ITestingService service) : ControllerBase
 
     [HttpGet("~/api/my/test-results")]
     [SwaggerOperation(Summary = "Получить все результаты студента")]
-    [SwaggerResponse(200, "Результаты получены", typeof(Result<List<AttemptResponse>>))]
-    public async Task<ActionResult<Result<List<AttemptResponse>>>> GetAllMyResults(
+    [SwaggerResponse(200, "Результаты получены", typeof(Result<List<MyTestResultDto>>))]
+    public async Task<ActionResult<Result<List<MyTestResultDto>>>> GetAllMyResults(
         CancellationToken ct
     )
     {

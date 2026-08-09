@@ -674,7 +674,7 @@ public class TestingService(AppDbContext db) : ITestingService
         );
     }
 
-    public async Task<Result<List<AttemptResponse>>> GetAllMyResultsAsync(
+    public async Task<Result<List<MyTestResultDto>>> GetAllMyResultsAsync(
         Guid currentUserId,
         CancellationToken ct
     )
@@ -683,7 +683,7 @@ public class TestingService(AppDbContext db) : ITestingService
             .Students.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == currentUserId, ct);
         if (student is null)
-            return Result<List<AttemptResponse>>.Fail("Студент не найден", 404);
+            return Result<List<MyTestResultDto>>.Fail("Студент не найден", 404);
 
         var attempts = await db
             .TestAttempts.AsNoTracking()
@@ -692,7 +692,24 @@ public class TestingService(AppDbContext db) : ITestingService
             .OrderByDescending(a => a.CompletedAt)
             .ToListAsync(ct);
 
-        return Result<List<AttemptResponse>>.Ok(attempts.Select(a => a.ToDto()).ToList());
+        var results = attempts
+            .Select(a =>
+            {
+                var percentage = Percent(a.Score, a.MaxScore);
+                return new MyTestResultDto
+                {
+                    TestId = a.TestId,
+                    TestTitle = a.Test?.Title ?? string.Empty,
+                    Score = a.Score,
+                    MaxScore = a.MaxScore,
+                    Percentage = percentage,
+                    Passed = a.Test is not null && percentage >= a.Test.PassingScore,
+                    CompletedAt = a.CompletedAt ?? a.StartedAt,
+                };
+            })
+            .ToList();
+
+        return Result<List<MyTestResultDto>>.Ok(results);
     }
 
     public async Task<Result<TestStatsResponse>> GetStatsAsync(

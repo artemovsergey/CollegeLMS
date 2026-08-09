@@ -108,7 +108,7 @@ public interface ITestingService
         Guid currentUserId,
         CancellationToken ct = default
     );
-    Task<Result<List<AttemptResponse>>> GetAllMyResultsAsync(
+    Task<Result<List<MyTestResultDto>>> GetAllMyResultsAsync(
         Guid currentUserId,
         CancellationToken ct = default
     );
