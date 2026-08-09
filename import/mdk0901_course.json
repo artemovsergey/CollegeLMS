@@ -3,8 +3,8 @@
     "title": "МДК 09.01 Проектирование и разработка веб-приложений",
     "description": "МДК 09.01 — проектирование и разработка веб-приложений: HTML, CSS, JavaScript, TypeScript, React, .NET, интеграция клиент-сервер, тестирование и развертывание. Специальность ИП."
   },
-  "teacherEmail": "ivanova@collegelms.ru",
-  "studentEmail": "student01@collegelms.ru",
+  "teacherEmail": "teacher@collegelms.ru",
+  "studentEmail": "student@collegelms.ru",
   "groupName": "ИСП-31",
   "lectures": [
     {
