@@ -1070,7 +1070,7 @@ export default function AdminTestingPage() {
               {tests.map(t => (
                 <TableRow key={t.id}>
                   <TableCell className="font-medium">{t.title}</TableCell>
-                  <TableCell>{t.courseName}</TableCell>
+                  <TableCell>{t.courseTitle}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{typeLabels[t.type] ?? t.type}</Badge>
                   </TableCell>

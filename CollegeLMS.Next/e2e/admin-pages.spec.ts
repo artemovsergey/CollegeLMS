@@ -102,8 +102,8 @@ test.describe("Testing page", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "t1", title: "Контрольная работа №1", description: "Первая контрольная", courseId: "c1", courseName: "Математика", maxAttempts: 1, timeLimitMinutes: 90, passingScore: 60, type: "Control" },
-            { id: "t2", title: "Самостоятельная работа №1", description: "Самостоятельная по теме", courseId: "c2", courseName: "Физика", maxAttempts: 3, timeLimitMinutes: 45, passingScore: 50, type: "SelfStudy" },
+            { id: "t1", title: "Контрольная работа №1", description: "Первая контрольная", courseId: "c1", courseTitle: "Математика", maxAttempts: 1, timeLimitMinutes: 90, passingScore: 60, type: "Control" },
+            { id: "t2", title: "Самостоятельная работа №1", description: "Самостоятельная по теме", courseId: "c2", courseTitle: "Физика", maxAttempts: 3, timeLimitMinutes: 45, passingScore: 50, type: "SelfStudy" },
           ],
           errorMessage: null,
           statusCode: 200,
@@ -141,7 +141,7 @@ test.describe("Testing page", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "t1", title: "Контрольная работа №1", description: "Первая контрольная", courseId: "c1", courseName: "Математика", maxAttempts: 1, timeLimitMinutes: 90, passingScore: 60, type: "Control" },
+            { id: "t1", title: "Контрольная работа №1", description: "Первая контрольная", courseId: "c1", courseTitle: "Математика", maxAttempts: 1, timeLimitMinutes: 90, passingScore: 60, type: "Control" },
           ],
           errorMessage: null,
           statusCode: 200,

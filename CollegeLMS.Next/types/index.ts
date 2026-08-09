@@ -96,6 +96,8 @@ export interface LectureResponse {
   content: string
   order: number
   lectureType: "Lecture" | "Practice" | "SelfStudy"
+  testId: string | null
+  testTitle: string | null
 }
 
 export interface AssignmentResponse {
@@ -219,11 +221,16 @@ export interface TestResponse {
   title: string
   description: string
   courseId: string
-  courseName: string
+  courseTitle: string
   maxAttempts: number
   timeLimitMinutes: number
   passingScore: number
   type: string
+  autoCheck: boolean
+  showCorrectAnswers: boolean
+  shuffleQuestions: boolean
+  shuffleOptions: boolean
+  questionCount: number
 }
 
 export interface CreateTestRequest {
@@ -234,6 +241,7 @@ export interface CreateTestRequest {
   timeLimitMinutes: number
   passingScore: number
   type: string
+  lectureId?: string | null
 }
 
 export interface UpdateTestRequest {
@@ -294,12 +302,11 @@ export interface CreateTestAssignmentRequest {
 export interface TestAttemptResponse {
   id: string
   testId: string
-  studentId: string
-  studentName: string
   startedAt: string
   completedAt: string | null
-  score: number | null
   status: string
+  score: number
+  maxScore: number
 }
 
 export interface SpecialtyResponse {
@@ -442,4 +449,76 @@ export interface CalendarDayResponse {
 export interface CalendarResponse {
   weekStart: string
   days: CalendarDayResponse[]
+}
+
+export interface StartTestResponse {
+  attemptId: string
+  startedAt: string
+  timeLimitMinutes: number
+  questions: TestQuestionDto[]
+}
+
+export interface TestQuestionDto {
+  id: string
+  text: string
+  type: string
+  options: string
+  orderIndex: number
+}
+
+export interface SubmitAnswersRequest {
+  answers: AnswerDto[]
+}
+
+export interface AnswerDto {
+  questionId: string
+  givenAnswer: string
+}
+
+export interface TestResultResponse {
+  attemptId: string
+  score: number
+  maxScore: number
+  percentage: number
+  passed: boolean
+  completedAt: string
+  answerReviews: AnswerReviewDto[]
+}
+
+export interface AnswerReviewDto {
+  questionId: string
+  questionText: string
+  givenAnswer: string
+  correctAnswer: string
+  isCorrect: boolean
+  points: number
+}
+
+export interface TestStatsResponse {
+  totalAttempts: number
+  passedCount: number
+  failedCount: number
+  averageScore: number
+  medianScore: number
+  maxScore: number
+  minScore: number
+  studentResults: StudentResultDto[]
+}
+
+export interface StudentResultDto {
+  studentName: string
+  groupName: string
+  score: number
+  maxScore: number
+  passed: boolean
+}
+
+export interface MyTestResultDto {
+  testId: string
+  testTitle: string
+  score: number
+  maxScore: number
+  percentage: number
+  passed: boolean
+  completedAt: string
 }
