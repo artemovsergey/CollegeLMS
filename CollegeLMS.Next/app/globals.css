@@ -258,6 +258,10 @@
   @apply text-accent no-underline hover:underline;
 }
 
+.prose pre {
+  @apply max-w-full overflow-x-auto;
+}
+
 .prose table {
   @apply w-full text-sm;
 }

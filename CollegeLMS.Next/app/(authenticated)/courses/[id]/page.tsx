@@ -287,18 +287,17 @@ export default function CourseDetailPage() {
               {lectures.map(l => (
                 <div
                   key={l.id}
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50"
+                  className="flex items-center gap-2 p-4 cursor-pointer hover:bg-muted/50"
                   onClick={() => router.push(`/courses/${courseId}/lectures/${l.id}`)}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground w-6">{l.order}</span>
-                    <span className="font-medium">{l.title}</span>
-                  </div>
-                  <Badge variant={LECTURE_TYPE_VARIANTS[l.lectureType] ?? "outline"}>
+                  <span className="text-sm text-muted-foreground w-6 shrink-0">{l.order}</span>
+                  <span className="font-medium min-w-0 flex-1">{l.title}</span>
+                  <Badge className="shrink-0" variant={LECTURE_TYPE_VARIANTS[l.lectureType] ?? "outline"}>
                     {LECTURE_TYPE_LABELS[l.lectureType] ?? l.lectureType}
                   </Badge>
                   {l.testId && (
                     <Badge
+                      className="shrink-0"
                       variant={
                         user?.role === "Student"
                           ? TEST_STATUS_VARIANTS[testStatusFor(l.testId, myTestResults)]
@@ -315,14 +314,12 @@ export default function CourseDetailPage() {
               {assignments.map(a => (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50"
+                  className="flex items-center gap-2 p-4 cursor-pointer hover:bg-muted/50"
                   onClick={() => router.push(`/courses/${courseId}/assignments/${a.id}`)}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground w-6">{a.order}</span>
-                    <span className="font-medium">{a.title}</span>
-                  </div>
-                  <Badge variant="secondary">Задание</Badge>
+                  <span className="text-sm text-muted-foreground w-6 shrink-0">{a.order}</span>
+                  <span className="font-medium min-w-0 flex-1">{a.title}</span>
+                  <Badge className="shrink-0" variant="secondary">Задание</Badge>
                 </div>
               ))}
             </div>

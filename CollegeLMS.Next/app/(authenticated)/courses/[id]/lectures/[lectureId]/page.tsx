@@ -380,8 +380,8 @@ export default function LectureViewPage() {
         &larr; Назад к курсу
       </Button>
 
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1 min-w-0">
           <h2 className="text-xl font-semibold">
             {lecture.order}. {lecture.title}
           </h2>
@@ -390,7 +390,7 @@ export default function LectureViewPage() {
           </Badge>
         </div>
         {canManage && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => router.push(`/courses/${courseId}/lectures/${lecture.id}/edit`)}>
               Редактировать
             </Button>
@@ -403,10 +403,10 @@ export default function LectureViewPage() {
 
       {canManage && lecture.testId && (
         <div className="rounded-lg border bg-card p-6 flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <ClipboardList className="h-5 w-5 text-primary" />
-              <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <ClipboardList className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="font-medium">{test?.title ?? "Тест к лекции"}</span>
                 <span className="text-xs text-muted-foreground">
                   Вопросов: {test?.questionCount ?? questions.length} · Проходной балл:{" "}
@@ -414,7 +414,7 @@ export default function LectureViewPage() {
                 </span>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowQuestions(true)}>
                 <FileQuestion className="size-4 mr-1" />
                 Вопросы
@@ -462,7 +462,7 @@ export default function LectureViewPage() {
                   onChange={e => setFormTestDescription(e.target.value)}
                 />
               </FormField>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField id="t-max" label="Попыток" required error={formFieldErrors.maxAttempts}>
                   <Input
                     id="t-max"
@@ -506,10 +506,10 @@ export default function LectureViewPage() {
       )}
 
       {isStudent && lecture.testId && (
-        <div className="rounded-lg border bg-card p-6 flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
+        <div className="rounded-lg border bg-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-3">
-              <ClipboardList className="h-5 w-5 text-primary" />
+              <ClipboardList className="h-5 w-5 text-primary shrink-0" />
               <span className="font-medium">{test?.title ?? lecture.testTitle ?? "Тест к лекции"}</span>
             </div>
             {studentResult ? (
@@ -579,7 +579,7 @@ export default function LectureViewPage() {
             <DialogTitle>Вопросы теста «{test?.title ?? ""}»</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Вопросов: {questions.length}</span>
               <Dialog open={showCreateQuestion} onOpenChange={o => { if (o) resetQuestionForm(); setShowCreateQuestion(o) }}>
                 <DialogTrigger asChild>
@@ -667,7 +667,7 @@ export default function LectureViewPage() {
             {questions.length === 0 ? (
               <EmptyState message="Вопросов пока нет" />
             ) : (
-              <div className="rounded-lg border bg-card">
+              <div className="rounded-lg border bg-card overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -759,7 +759,7 @@ export default function LectureViewPage() {
                   <p className="text-lg font-semibold">{stats.averageScore.toFixed(1)}</p>
                 </div>
               </div>
-              <div className="rounded-lg border bg-card">
+              <div className="rounded-lg border bg-card overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
