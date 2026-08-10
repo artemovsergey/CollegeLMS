@@ -75,6 +75,61 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task LoginAsync_ReturnsTeacherId_WhenUserIsTeacher()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        user.Role = API.Entities.Enums.UserRole.Teacher;
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct-password");
+        _db.Users.Add(user);
+
+        var teacher = new API.Entities.Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            CyclicalCommission = "Информационных технологий",
+            Position = "Преподаватель",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        _db.Teachers.Add(teacher);
+        await _db.SaveChangesAsync();
+
+        _tokenServiceMock
+            .Setup(x => x.GenerateAccessToken(It.IsAny<API.Entities.User>()))
+            .Returns("test-token");
+
+        var result = await _sut.LoginAsync(
+            new LoginRequest { Login = user.Login, Password = "correct-password" },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.User.TeacherId.Should().Be(teacher.Id);
+    }
+
+    [Fact]
+    public async Task LoginAsync_ReturnsNullTeacherId_WhenUserIsStudent()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        user.Role = API.Entities.Enums.UserRole.Student;
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("correct-password");
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        _tokenServiceMock
+            .Setup(x => x.GenerateAccessToken(It.IsAny<API.Entities.User>()))
+            .Returns("test-token");
+
+        var result = await _sut.LoginAsync(
+            new LoginRequest { Login = user.Login, Password = "correct-password" },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.User.TeacherId.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetProfileAsync_ReturnsUser_WhenFound()
     {
         var user = UserFixture.CreateFaker().Generate();

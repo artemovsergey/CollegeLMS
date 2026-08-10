@@ -107,7 +107,8 @@ export default function LectureViewPage() {
   const [studentResult, setStudentResult] = useState<TestResultResponse | null>(null)
   const [attemptCount, setAttemptCount] = useState(0)
 
-  const canManage = user?.role === "Admin" || (user?.role === "Teacher" && course?.teacherId === user?.id)
+  const canManage =
+    user?.role === "Admin" || (user?.role === "Teacher" && course?.teacherId === user?.teacherId)
   const isStudent = user?.role === "Student"
 
   const fetchLecture = useCallback(async () => {

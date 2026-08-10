@@ -20,7 +20,15 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
 
         var token = tokenService.GenerateAccessToken(user);
 
-        return Result<LoginResponse>.Ok(new LoginResponse { Token = token, User = user.ToDto() });
+        Guid? teacherId = null;
+        if (user.Role == Entities.Enums.UserRole.Teacher)
+        {
+            teacherId = (await db
+                .Teachers.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.UserId == user.Id, ct))?.Id;
+        }
+
+        return Result<LoginResponse>.Ok(new LoginResponse { Token = token, User = user.ToDto(teacherId) });
     }
 
     public async Task<Result<ProfileResponse>> GetProfileAsync(Guid userId, CancellationToken ct)

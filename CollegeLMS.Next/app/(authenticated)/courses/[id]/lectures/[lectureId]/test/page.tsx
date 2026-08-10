@@ -51,9 +51,9 @@ export default function LectureTestPage() {
       const body = res.data
       if (body.isSuccess && body.data) {
         setLecture(body.data)
+        setLoading(false)
         if (!body.data.testId) {
           setError("У этой лекции нет теста")
-          setLoading(false)
         }
       } else {
         setError(body.errorMessage ?? "Ошибка загрузки")

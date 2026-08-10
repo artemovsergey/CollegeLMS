@@ -4,6 +4,7 @@ export interface User {
   email: string
   fullName: string
   role: string
+  teacherId?: string | null
 }
 
 export interface LoginRequest {

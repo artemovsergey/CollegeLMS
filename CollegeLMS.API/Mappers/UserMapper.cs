@@ -5,7 +5,7 @@ namespace CollegeLMS.API.Mappers;
 
 public static class UserMapper
 {
-    public static UserResponse ToDto(this User entity)
+    public static UserResponse ToDto(this User entity, Guid? teacherId = null)
     {
         return new UserResponse
         {
@@ -14,6 +14,7 @@ public static class UserMapper
             Email = entity.Email,
             FullName = entity.FullName,
             Role = entity.Role.ToString(),
+            TeacherId = teacherId,
         };
     }
 

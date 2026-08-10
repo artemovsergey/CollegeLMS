@@ -79,7 +79,7 @@ export default function CourseDetailPage() {
   const [removeGroupId, setRemoveGroupId] = useState<string | null>(null)
   const [removeSubmitting, setRemoveSubmitting] = useState(false)
 
-  const isTeacher = user?.role === "Teacher" && course?.teacherId === user?.id
+  const isTeacher = user?.role === "Teacher" && course?.teacherId === user?.teacherId
   const isAdmin = user?.role === "Admin"
   const canEdit = isTeacher || isAdmin
 
