@@ -30,10 +30,6 @@
             "template": "!`scripts/git-push.ps1`",
             "description": "Commit all changes and push to remote using GITHUB_TOKEN"
         },
-        "voice_google": {
-            "template": "!python scripts/voice_google.py",
-            "description": "Voice input: records 10s audio, transcribes with Google Speech API, copies text to clipboard"
-        },
         "analyze": {
             "template": "!echo '🔍 Starting project analysis...'",
             "description": "Run full project analysis — spec, user stories, plugins, MCP, skills, readiness, phases, agents, models"

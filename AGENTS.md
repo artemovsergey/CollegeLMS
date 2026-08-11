@@ -9,7 +9,7 @@
 - Backend: .NET 10, ASP.NET Core Web API
 - Frontend: Next.js 14, TS, Tailwind CSS 4 (в `CollegeLMS.Next/`)
 - DB: PostgreSQL 16
-- Cache: Redis (только сессии)
+- Cache: Redis (только сессии) — контейнер поднят в compose, интеграция в коде ещё не реализована
 - Deploy: Docker Compose, GitHub Actions CD (только деплой, тесты локально)
 - Files: локальная ФС (позже MinIO)
 
@@ -47,6 +47,7 @@
 Установлен: `superpowers@git+https://github.com/obra/superpowers.git`
 Расположение: `~/.cache/opencode/packages/superpowers/.../`
 Предоставляет: process-скиллы (brainstorming, systematic-debugging, verification-before-completion и т.д.)
+Дополнительно: `@mohak34/opencode-notifier` — уведомления о завершении задач
 
 ## Структура проекта
 
@@ -69,7 +70,10 @@ CollegeLMS.API/
   Response/              # Result<T>, ApiResult<T>, ErrorResponse
   Exceptions/            # NotFoundException, ValidationException, ForbiddenException
   Extensions/            # ServiceCollectionExtensions, ApplicationBuilderExtensions, ClaimsPrincipalExtensions
-docs/spec/               # Postman-коллекция, task.md, userstories.md
+docs/
+  spec/                  # Postman-коллекция, task.md, userstories.md
+  diagrams/              # PlantUML: er/, sequence/, class/
+  superpowers/           # Спеки и планы фич
 CollegeLMS.Tests/
   Integration/           # Тесты WebApplicationFactory
   Integration/Controllers/
@@ -79,8 +83,11 @@ CollegeLMS.Next/         # Next.js 14 + Tailwind CSS 4 + TypeScript
   components/ui/         # Примитивы shadcn/ui
   components/            # Проектные компоненты
   lib/utils.ts           # Хелпер cn()
+CollegeLMS.TelegramBot/  # Telegram-бот (уведомления)
+loadbalancer/            # Nginx-балансировщик (Dockerfile, nginx.conf, тестовая страница чата)
 import/                  # Данные импорта
 scripts/                 # Скрипты парсинга WP
+.github/workflows/       # deploy.yml — CD на VPS
 ```
 
 ## Роли агентов
@@ -131,6 +138,28 @@ scripts/                 # Скрипты парсинга WP
 | `analyze` | Комплексный анализ проекта: спека, user stories, плагины, MCP, skills, готовность, фазы, агенты, модели (`/analyze`) |
 | `gh-address-comments` | Обработка комментариев ревью/issues на открытом GitHub PR текущей ветки через `gh` CLI |
 | `security-best-practices` | Ревью безопасности кода (Python/JS/TS/Go) и рекомендации secure-by-default (только по запросу) |
+| `aspnet-core` | Официальные практики ASP.NET Core: middleware, DI, конфигурация, auth, тестирование, производительность |
+| `impeccable` | Дизайн-скилл: shape → craft → polish → audit + live-инструменты и детектор анти-паттернов |
+| `playwright` | Автоматизация браузера из терминала: навигация, формы, скриншоты, E2E-отладка |
+| `playwright-interactive` | Персистентный браузер через js_repl для быстрой итеративной отладки UI |
+| `security-threat-model` | Threat modeling: trust boundaries, пути атак, митигации → Markdown-отчёт |
+| `sentry` | Read-only просмотр issues/событий Sentry через CLI |
+| `gh-fix-ci` | Диагностика падающих GitHub Actions checks через `gh` и фикс после утверждения |
+| `yeet` | Весь флоу разом: add → commit → push → PR через `gh` |
+
+### Общие UI-скиллы (.agents/skills/ — gitignored, восстановление: `npx skills sync`)
+
+| Skill | Назначение |
+|-------|------------|
+| `frontend-design` | Визуальная направленность UI: типографика, композиция, нешаблонный дизайн |
+| `web-design-guidelines` | Аудит UI против Web Interface Guidelines (доступность, UX) |
+| `refactor-ui` | Анализ дизайна по 10 правилам Refactoring UI с конкретными фиксами |
+| `layers-intro` | Фреймворк Layers of Product Design (входная точка) |
+| `layers-user-needs` | Сбор и приоритизация потребностей пользователя |
+| `layers-conceptual-model` | Модель объектов и отношений продукта независимо от интерфейса |
+| `layers-interaction-flow` | Картирование структуры и потоков взаимодействия |
+| `layers-surface` | Аудит поверхности интерфейса относительно нижних слоёв |
+| `layers-orient` | Диагностический аудит по 7 слоям, поиск узкого места |
 
 ### Superpowers Process Skills (~/.cache/opencode/.../superpowers/)
 
@@ -334,8 +363,8 @@ git push                  → CD deploy сразу в production
 | Гейт | Проверка | Кто | Фаза |
 |------|----------|-----|------|
 | **G1** | `dotnet build` | BackendAgent | Phase 1 |
-| **G2** | `npm run dev` — страница рендерится | FrontendAgent | Phase 2 |
-| **G3** | `docker compose up --build` — все сервисы стартуют | DevOpsAgent | Phase 4 |
+| **G2** | `npm run dev` — страница рендерится | FrontendAgent | Phase 4 |
+| **G3** | `docker compose up --build` — все сервисы стартуют | DevOpsAgent | Phase 6 |
 
 ### Definition of Done
 
@@ -370,16 +399,17 @@ git push                  → CD deploy сразу в production
 |-----------|--------|
 | EF Core и БД | `Microsoft.EntityFrameworkCore`, `Npgsql.EntityFrameworkCore.PostgreSQL`, `Microsoft.EntityFrameworkCore.Design`, `EFCore.NamingConventions`, `AspNetCore.HealthChecks.NpgSql` |
 | Auth и безопасность | `Microsoft.AspNetCore.Authentication.JwtBearer`, `BCrypt.Net-Next` |
-| Валидация | `FluentValidation.DependencyInjectionExtensions` |
+| Валидация | `FluentValidation.AspNetCore`, `FluentValidation.DependencyInjectionExtensions` |
 | Swagger | `Swashbuckle.AspNetCore`, `Swashbuckle.AspNetCore.Annotations`, `Microsoft.OpenApi` |
 | Логирование | `Serilog.AspNetCore` |
+| Файлы и документы | `SixLabors.ImageSharp` (изображения), `QuestPDF` (PDF-расписание), `ClosedXML` (Excel-импорт студентов) |
 | Тесты | `xunit`, `coverlet.msbuild`, `Bogus`, `Moq`, `FluentAssertions`, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory` |
 
 ## Разработка
 
 ### Docker-first подход
 
-Всё окружение работает в Docker — никаких локальных SDK, кроме Docker Desktop.
+Всё окружение (Postgres, Redis, API, фронтенд, nginx) работает в Docker — достаточно Docker Desktop. Локальные SDK (.NET, Node) нужны только для быстрых проверок: `dotnet build` / `dotnet test`, `npm run dev`.
 
 ```powershell
 # Старт полного стека (db + redis + api + frontend + nginx + telegram-bot)
@@ -398,8 +428,8 @@ NuGet пакеты кэшируются в named volume `nuget_packages` — н�
 |------|---------|----------|
 | **Phase 1** | `dotnet build` | Локальная проверка backend |
 | **Phase 1** | `dotnet ef migrations add Add{Name} --project CollegeLMS.API -- --provider Npgsql` | Миграция |
-| **Phase 2** | Открыть `http://localhost/` в браузере | Проверка frontend |
-| **Phase 4** | `docker compose up --build -d --profile telegram-bot` | Локальная проверка compose |
+| **Phase 4** | Открыть `http://localhost/` в браузере | Проверка frontend |
+| **Phase 6** | `docker compose up --build -d --profile telegram-bot` | Локальная проверка compose |
 | **Format** | `dotnet csharpier format .` | CSharpier |
 | **Stop** | `docker compose down` | Остановить всё |
 
@@ -409,14 +439,14 @@ NuGet пакеты кэшируются в named volume `nuget_packages` — н�
 - `CancellationToken ct` на всех асинхронных методах
 - `AsNoTracking()` на чтении, `FindAsync()` для поиска по PK
 - Сообщения об ошибках на русском, Swagger summaries на русском
-- Git-префиксы: `feature:` / `fix:` / `docs:` / `test:`
+- Git-префиксы: `feat:` / `fix:` / `docs:` / `test:` / `refactor:` / `chore:` / `hotfix:` / `merge:`
 - `git add -A` для добавления всех изменений (никогда не перечислять файлы по одному)
 - `gh` CLI должен использовать `GITHUB_TOKEN` env var для аутентификации (`GH_TOKEN` тоже работает) — перед любым `git push` или `gh pr create` убедиться, что `$env:GITHUB_TOKEN` или `$env:GH_TOKEN` установлен. Это предотвращает интерактивный выбор аккаунта при пуше.
 - Предпочитать `List<T>` вместо `IEnumerable<T>`
 - Плоские DTO со значениями по умолчанию, file-scoped namespaces
 - `Result<T>.Ok()` для успеха, `Result<T>.Fail()` для ошибок
 - OpenApi namespace: `using Microsoft.OpenApi;`
-- Форматирование: CSharpier (`dotnet csharpier .` для форматирования, `dotnet csharpier . --check` в CI)
+- Форматирование: CSharpier (`dotnet csharpier format .` для форматирования, `dotnet csharpier format . --check` в CI)
 - Все entity наследуют базовый `Entities/Entity` (Guid Id, CreatedAt, UpdatedAt)
 - Мапперы в корневой папке `Mappers/`, интерфейсы сервисов в корневой папке `Interfaces/`
 - `Program.cs` минимален — все `builder.Services.Add*` в `Extensions/ServiceCollectionExtensions.cs`, все `app.Use*` в `Extensions/ApplicationBuilderExtensions.cs`
