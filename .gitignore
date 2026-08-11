@@ -61,3 +61,5 @@ output
 
 # Import data (large JSON dumps from WordPress)
 import/wp_data_full.json
+# Generated reports
+scripts/content-links-report.json
