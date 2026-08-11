@@ -22,7 +22,10 @@ public class JwtTokenService(IConfiguration config) : ITokenService
         var key = Encoding.UTF8.GetBytes(config["Jwt:Key"]!);
         var issuer = config["Jwt:Issuer"] ?? "CollegeLMS";
         var audience = config["Jwt:Audience"] ?? "CollegeLMS.Clients";
-        var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+        var creds = new SigningCredentials(
+            new SymmetricSecurityKey(key),
+            SecurityAlgorithms.HmacSha256
+        );
 
         var token = new JwtSecurityToken(
             issuer: issuer,

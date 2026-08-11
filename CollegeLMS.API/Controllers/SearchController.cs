@@ -37,7 +37,7 @@ public class SearchController(ISearchService service) : ControllerBase
         CancellationToken ct = default
     )
     {
-        var result = await service.SearchAsync(q, page, pageSize, ct);
+        var result = await service.SearchAsync(q ?? "", page, pageSize, ct);
         return Ok(result);
     }
 }

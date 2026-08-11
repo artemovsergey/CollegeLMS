@@ -128,6 +128,9 @@ scripts/                 # Скрипты парсинга WP
 | `seed-data` | EF Core HasData + классы Seed |
 | `feature-workflow` | Полная вертикальная фича — ветка, entity, API, тесты, фронтенд, документация, слияние |
 | `project-reference` | Общие соглашения проекта: NuGet-пакеты, JWT auth, Docker, EF Core |
+| `analyze` | Комплексный анализ проекта: спека, user stories, плагины, MCP, skills, готовность, фазы, агенты, модели (`/analyze`) |
+| `gh-address-comments` | Обработка комментариев ревью/issues на открытом GitHub PR текущей ветки через `gh` CLI |
+| `security-best-practices` | Ревью безопасности кода (Python/JS/TS/Go) и рекомендации secure-by-default (только по запросу) |
 
 ### Superpowers Process Skills (~/.cache/opencode/.../superpowers/)
 

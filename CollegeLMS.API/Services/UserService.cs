@@ -93,10 +93,7 @@ public class UserService(AppDbContext db) : IUserService
             && request.Role != UserRole.Admin
             && !await db.Users.AnyAsync(u => u.Role == UserRole.Admin && u.Id != id, ct)
         )
-            return Result<UserResponse>.Fail(
-                "Нельзя изменить роль последнего администратора",
-                409
-            );
+            return Result<UserResponse>.Fail("Нельзя изменить роль последнего администратора", 409);
 
         user.Email = request.Email;
         user.Login = request.Login;

@@ -935,12 +935,7 @@ public class TestingServiceTests : IDisposable
         _db.Users.Add(studentUser);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GetQuestionsAsync(
-            test.Id,
-            studentUser.Id,
-            "Student",
-            default
-        );
+        var result = await _sut.GetQuestionsAsync(test.Id, studentUser.Id, "Student", default);
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(403);

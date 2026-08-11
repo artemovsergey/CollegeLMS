@@ -172,10 +172,10 @@ public class StudentService(AppDbContext db, IUserService userService) : IStuden
             return Result<StudentImportProgress>.Fail("Файл пуст", 400);
 
         int row = 1;
-        while (!reader.EndOfStream)
+        string? line;
+        while ((line = await reader.ReadLineAsync(ct)) is not null)
         {
             row++;
-            var line = await reader.ReadLineAsync(ct);
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
