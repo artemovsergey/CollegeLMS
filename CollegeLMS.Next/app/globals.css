@@ -309,6 +309,7 @@
   margin-bottom: 1rem;
   line-height: 1.75;
   color: hsl(var(--fg));
+  overflow-wrap: anywhere;
 }
 
 .docs-content ul,
@@ -343,6 +344,7 @@
   padding: 0.75rem 1rem;
   border: 1px solid hsl(var(--border));
   color: hsl(var(--fg));
+  overflow-wrap: anywhere;
 }
 
 .docs-content a {
@@ -449,6 +451,7 @@
 
 .docs-content .docs-button {
   display: inline-block;
+  max-width: 100%;
   margin: 0.25rem 0.5rem 0.25rem 0;
   padding: 0.625rem 1.25rem;
   border-radius: 0.5rem;
@@ -456,6 +459,7 @@
   color: hsl(var(--primary-foreground));
   font-weight: 600;
   transition: opacity 0.15s ease;
+  overflow-wrap: anywhere;
 }
 
 .docs-content .docs-button:hover {

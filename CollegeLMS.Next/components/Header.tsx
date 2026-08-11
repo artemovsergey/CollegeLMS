@@ -103,10 +103,13 @@ export default function Header() {
                   <SocialIcon icon={link.icon} className="h-4 w-4" />
                 </a>
               ))}
-              <span className="mx-1 text-white/20">|</span>
-              <Link href="/contacts" className="text-xs text-white/70 hover:text-white transition-colors">Контакты</Link>
-              <span className="mx-1 text-white/20">|</span>
-              <Link href="/admissions" className="text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors">Приёмная кампания 2026</Link>
+              <span className="mx-1 hidden text-white/20 sm:inline">|</span>
+              <Link href="/contacts" className="hidden text-xs text-white/70 hover:text-white transition-colors sm:inline">Контакты</Link>
+              <span className="mx-1 hidden text-white/20 sm:inline">|</span>
+              <Link href="/admissions" className="text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors">
+                <span className="hidden sm:inline">Приёмная кампания 2026</span>
+                <span className="sm:hidden">Приёмная 2026</span>
+              </Link>
             </div>
             <div className="flex items-center gap-1">
               <Link href="/search" className="flex items-center justify-center h-8 w-8 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-label="Поиск"><Search size={16} /></Link>
@@ -120,7 +123,7 @@ export default function Header() {
 
         {/* Row 2: Logo text + Navigation */}
         <div className="flex items-center justify-between border-b border-white/10 px-4 lg:px-6">
-          <Link href="/" className="flex shrink-0 flex-col py-3 leading-tight">
+          <Link href="/" className="flex min-w-0 flex-1 flex-col py-3 leading-tight">
             <span className="text-base sm:text-lg font-bold text-white">Ставропольский колледж связи</span>
             <span className="text-[10px] sm:text-xs text-white/60">имени Героя Советского Союза В.А. Петрова</span>
           </Link>
@@ -182,7 +185,7 @@ export default function Header() {
             })}
           </nav>
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex shrink-0 items-center justify-end gap-2">
             <Link
               href="/login"
               className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-white/20 px-3 py-1.5 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition-colors"
