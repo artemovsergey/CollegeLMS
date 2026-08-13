@@ -13,13 +13,13 @@ export default function PartnersSection() {
               href={p.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex flex-col items-center rounded-lg border border-border bg-card p-6 text-center transition-all duration-200 hover:border-accent/30"
+              className="group flex flex-col items-center rounded-lg border border-border bg-card p-6 text-center transition-colors duration-200 hover:border-accent/30"
             >
               <div className="mb-3 flex h-16 items-center justify-center">
                 <img
                   src={p.logo}
                   alt={`Логотип ${p.name}`}
-                  className="h-14 w-auto max-w-[200px] object-contain transition-transform duration-200 group-hover:scale-105"
+                  className="h-14 w-auto max-w-[200px] object-contain"
                 />
               </div>
               <h3 className="mb-1 text-sm font-semibold text-primary">{p.name}</h3>

@@ -68,7 +68,7 @@ export default function Carousel() {
   return (
     <div className="mx-auto max-w-7xl">
       <section
-        className="relative mt-6"
+        className="mt-6"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -81,18 +81,15 @@ export default function Carousel() {
                 className="relative flex min-h-0 flex-[0_0_100%] flex-col overflow-hidden rounded-lg bg-primary h-[400px] md:h-[550px] lg:grid lg:grid-cols-3"
               >
                 <div className="relative flex flex-1 flex-col justify-center gap-3 p-5 text-primary-foreground sm:p-6 lg:col-span-1 lg:h-full lg:p-10">
-                  <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
-                    <Image
-                      src="/logo.svg"
-                      alt="Ставропольский колледж связи"
-                      width={0}
-                      height={0}
-                      sizes="100vw"
-                      className="object-contain h-auto"
-                      style={{ width: "auto", height: "100%", maxHeight: "64px" }}
-                      unoptimized
-                    />
-                  </div>
+                  <Image
+                    src="/logo.svg"
+                    alt="Ставропольский колледж связи"
+                    width={2048}
+                    height={1359}
+                    sizes="(min-width: 1024px) 33vw, 0px"
+                    className="hidden h-24 w-auto object-contain lg:block"
+                    unoptimized
+                  />
                   <p className="text-sm text-primary-foreground/80">
                     {new Date(item.publishedAt).toLocaleDateString("ru-RU", {
                       year: "numeric",
@@ -114,6 +111,17 @@ export default function Carousel() {
                   </div>
                 </div>
                 <div className="relative order-first h-48 sm:h-56 lg:order-none lg:col-span-2 lg:h-full">
+                  <div className="absolute left-3 top-3 z-10 rounded-lg bg-white/85 p-1.5 lg:hidden">
+                    <Image
+                      src="/logo.svg"
+                      alt="Ставропольский колледж связи"
+                      width={2048}
+                      height={1359}
+                      sizes="0px"
+                      className="h-10 w-auto object-contain"
+                      unoptimized
+                    />
+                  </div>
                   {item.imageUrl ? (
                     <Image
                       src={item.imageUrl}
@@ -132,35 +140,36 @@ export default function Carousel() {
       </div>
 
       {slides.length > 1 && (
-        <>
-          <button
-            onClick={scrollPrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-            aria-label="Предыдущий"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <button
-            onClick={scrollNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-            aria-label="Следующий"
-          >
-            <ChevronRight size={24} />
-          </button>
-
-          <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+        <div className="mt-4 flex items-center justify-between px-1">
+          <div className="flex items-center gap-2" role="group" aria-label="Выбор слайда">
             {slides.map((_, i) => (
               <button
                 key={i}
                 onClick={() => scrollTo(i)}
                 className={`h-2 rounded-full transition-all ${
-                  i === selectedIndex ? "w-6 bg-white" : "w-2 bg-white/50"
+                  i === selectedIndex ? "w-6 bg-accent" : "w-2 bg-accent-lighter hover:bg-accent/60"
                 }`}
                 aria-label={`Слайд ${i + 1}`}
               />
             ))}
           </div>
-        </>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={scrollPrev}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-accent transition-colors hover:bg-muted"
+              aria-label="Предыдущий слайд"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={scrollNext}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-accent transition-colors hover:bg-muted"
+              aria-label="Следующий слайд"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
       )}
     </section>
     </div>

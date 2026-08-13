@@ -149,7 +149,7 @@ export default function NewsListPage() {
               <Link
                 key={item.id}
                 href={`/news/${item.id}`}
-                className="group rounded-lg border border-border bg-card p-5 transition-all duration-200 hover:border-accent/30"
+                className="rounded-lg border border-border bg-card p-5 transition-colors duration-200 hover:border-accent/30"
               >
                 {item.imageUrl && (
                   <div className="mb-3 overflow-hidden rounded-md">
@@ -159,7 +159,7 @@ export default function NewsListPage() {
                       width={0}
                       height={0}
                       sizes="100vw"
-                      className="h-40 w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      className="h-40 w-full object-cover"
                       style={{ width: '100%', height: 'auto' }}
                     />
                   </div>

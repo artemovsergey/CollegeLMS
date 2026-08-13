@@ -26,7 +26,7 @@ export default function SpecialtiesPage() {
               <Link
                 key={s.code}
                 href={`/specialties/${s.slug}`}
-                className="group relative flex flex-col rounded-xl border border-border bg-card transition-all duration-200 hover:border-accent/30 hover:-translate-y-0.5 overflow-hidden"
+                className="group relative flex flex-col rounded-xl border border-border bg-card transition-colors duration-200 hover:border-accent/30 overflow-hidden"
               >
                 <div className="h-1 w-full bg-gradient-to-r from-accent to-accent/60" />
 
@@ -62,7 +62,7 @@ export default function SpecialtiesPage() {
 
                   <div className="flex items-center gap-1 text-sm font-medium text-accent">
                     Подробнее
-                    <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight size={15} />
                   </div>
                 </div>
               </Link>

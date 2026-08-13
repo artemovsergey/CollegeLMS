@@ -18,7 +18,7 @@ export default function MediaSection() {
         <div className="mx-auto max-w-2xl">
           <button
             onClick={() => setOpen(true)}
-            className="group flex w-full gap-5 rounded-lg border border-border bg-card p-5 text-left transition-all duration-200 hover:border-accent/30"
+            className="group flex w-full gap-5 rounded-lg border border-border bg-card p-5 text-left transition-colors duration-200 hover:border-accent/30"
           >
             <div className="relative flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
               <Image
@@ -30,7 +30,7 @@ export default function MediaSection() {
                 unoptimized
               />
               <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-primary shadow-sm transition-transform group-hover:scale-110">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-primary shadow-sm">
                   <Play size={20} className="ml-0.5" />
                 </span>
               </span>

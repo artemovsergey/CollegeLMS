@@ -166,7 +166,7 @@ export default function NewsDetailPage() {
           </div>
           <button
             onClick={() => { setGalleryIndex(0); setGalleryOpen(true) }}
-            className="group lg:col-span-2 lg:min-h-[320px] overflow-hidden rounded-r-xl text-left"
+            className="lg:col-span-2 lg:min-h-[320px] overflow-hidden rounded-r-xl text-left"
             aria-label="Открыть фотографию"
           >
             <Image
@@ -175,7 +175,7 @@ export default function NewsDetailPage() {
               width={0}
               height={0}
               sizes="(min-width: 1024px) 66vw, 100vw"
-              className="h-full max-h-[420px] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              className="h-full max-h-[420px] w-full object-cover"
               style={{ width: "100%", height: "100%", maxHeight: "420px" }}
             />
           </button>

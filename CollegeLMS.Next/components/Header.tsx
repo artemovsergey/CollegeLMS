@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, Search, ChevronDown, User, LogIn } from "lucide-react"
+import { Menu, X, Search, ChevronDown, LogIn } from "lucide-react"
 import ThemeToggle from "./ThemeToggle"
 import AccessibilityToggle from "./AccessibilityToggle"
 import { siteNavigation } from "@/data/site-content"
@@ -90,19 +90,21 @@ export default function Header() {
         {/* Row 1: Top bar — hides on scroll */}
         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${scrolled ? "max-h-0 opacity-0 py-0 border-transparent" : "max-h-14 opacity-100"}`}>
           <div className="flex h-12 items-center justify-between px-4 lg:px-6">
-            <div className="flex items-center gap-2">
-              {socialLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center h-7 w-7 rounded text-white/60 hover:text-white transition-colors"
-                  aria-label={link.label}
-                >
-                  <SocialIcon icon={link.icon} className="h-4 w-4" />
-                </a>
-              ))}
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex items-center gap-2 max-[400px]:hidden">
+                {socialLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center h-7 w-7 rounded text-white/60 hover:text-white transition-colors"
+                    aria-label={link.label}
+                  >
+                    <SocialIcon icon={link.icon} className="h-4 w-4" />
+                  </a>
+                ))}
+              </div>
               <span className="mx-1 hidden text-white/20 sm:inline">|</span>
               <Link href="/contacts" className="hidden text-xs text-white/70 hover:text-white transition-colors sm:inline">Контакты</Link>
               <span className="mx-1 hidden text-white/20 sm:inline">|</span>
@@ -111,12 +113,20 @@ export default function Header() {
                 <span className="sm:hidden">Приёмная 2026</span>
               </Link>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1.5">
               <Link href="/search" className="flex items-center justify-center h-8 w-8 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-label="Поиск"><Search size={16} /></Link>
-              <div className="flex items-center [&_button]:text-white/80 [&_button]:hover:text-white [&_button]:hover:bg-white/10 [&_button]:rounded-md [&_button]:p-1.5">
+              <div className="flex items-center gap-1.5 [&_button]:flex [&_button]:h-8 [&_button]:w-8 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-md [&_button]:text-white/80 [&_button]:transition-colors [&_button]:hover:bg-white/10 [&_button]:hover:text-white">
                 <AccessibilityToggle />
                 <ThemeToggle />
               </div>
+              <Link
+                href="/login"
+                className="ml-1 inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-white/20 px-2.5 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <LogIn size={14} />
+                <span className="hidden sm:inline">Войти</span>
+                <span className="sm:hidden sr-only">Войти</span>
+              </Link>
             </div>
           </div>
         </div>
@@ -186,14 +196,6 @@ export default function Header() {
           </nav>
 
           <div className="flex shrink-0 items-center justify-end gap-2">
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-white/20 px-3 py-1.5 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              <LogIn size={16} />
-              <span className="hidden sm:inline">Войти</span>
-              <span className="sm:hidden sr-only">Войти</span>
-            </Link>
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="lg:hidden rounded-md p-2 text-white/80 hover:bg-white/10"
@@ -258,18 +260,6 @@ export default function Header() {
                 </div>
               )
             })}
-
-            <Link
-              href="/login"
-              onClick={() => {
-                setMobileOpen(false)
-                setOpenMobileSection(null)
-              }}
-              className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-accent"
-            >
-              <User size={16} />
-              Войти
-            </Link>
           </nav>
         </div>
       )}
