@@ -8,25 +8,24 @@ import type {
   Result,
   ProfileResponse,
   UpdateProfileRequest,
-  ChangePasswordRequest,
+  TeacherCategory,
 } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Save, Lock, ArrowLeft } from "lucide-react"
+import { Save, ArrowLeft } from "lucide-react"
 
 export default function ProfilePage() {
-  const { user, token, isLoading: authLoading } = useAuth()
+  const { user, token, isLoading: authLoading, updateUser } = useAuth()
   const router = useRouter()
   const [profile, setProfile] = useState<ProfileResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [changingPassword, setChangingPassword] = useState(false)
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
-  const [oldPassword, setOldPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
+  const [cyclicalCommission, setCyclicalCommission] = useState("")
+  const [category, setCategory] = useState<TeacherCategory | "">("")
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -36,6 +35,8 @@ export default function ProfilePage() {
         setProfile(body.data)
         setFullName(body.data.fullName)
         setEmail(body.data.email)
+        setCyclicalCommission(body.data.teacherData?.cyclicalCommission ?? "")
+        setCategory(body.data.teacherData?.category ? (body.data.teacherData.category as TeacherCategory) : "")
       }
     } catch {
       toast.error("Не удалось загрузить профиль")
@@ -59,7 +60,12 @@ export default function ProfilePage() {
     }
     setSaving(true)
     try {
-      const request: UpdateProfileRequest = { fullName, email }
+      const request: UpdateProfileRequest = {
+        fullName,
+        email,
+        cyclicalCommission: profile?.teacherData ? cyclicalCommission : undefined,
+        category: profile?.teacherData && category ? category : undefined,
+      }
       const res = await api.put<Result<ProfileResponse>>(
         "/api/auth/profile",
         request
@@ -67,7 +73,11 @@ export default function ProfilePage() {
       const body = res.data
       if (body.isSuccess) {
         toast.success("Профиль сохранён")
-        if (body.data) setProfile(body.data)
+        if (body.data) {
+          setProfile(body.data)
+          setCyclicalCommission(body.data.teacherData?.cyclicalCommission ?? "")
+          setCategory(body.data.teacherData?.category ? (body.data.teacherData.category as TeacherCategory) : "")
+        }
       } else {
         toast.error(body.errorMessage || "Ошибка сохранения")
       }
@@ -78,37 +88,26 @@ export default function ProfilePage() {
     }
   }
 
-  const handleChangePassword = async () => {
-    if (!oldPassword || !newPassword) {
-      toast.error("Заполните все поля")
-      return
-    }
-    if (newPassword.length < 6) {
-      toast.error("Новый пароль должен содержать минимум 6 символов")
-      return
-    }
-    setChangingPassword(true)
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const formData = new FormData()
+    formData.append("file", file)
+    setSaving(true)
     try {
-      const request: ChangePasswordRequest = {
-        oldPassword,
-        newPassword,
-      }
-      const res = await api.post<Result<null>>(
-        "/api/auth/change-password",
-        request
-      )
+      const res = await api.post<Result<ProfileResponse>>("/api/auth/avatar", formData)
       const body = res.data
-      if (body.isSuccess) {
-        toast.success("Пароль изменён")
-        setOldPassword("")
-        setNewPassword("")
+      if (body.isSuccess && body.data) {
+        setProfile(body.data)
+        updateUser({ avatarUrl: body.data.avatarUrl })
+        toast.success("Аватар обновлён")
       } else {
-        toast.error(body.errorMessage || "Ошибка смены пароля")
+        toast.error(body.errorMessage ?? "Ошибка загрузки")
       }
     } catch {
       toast.error("Ошибка сети")
     } finally {
-      setChangingPassword(false)
+      setSaving(false)
     }
   }
 
@@ -145,6 +144,27 @@ export default function ProfilePage() {
           Основные данные
         </h2>
         <div className="space-y-4">
+          {user?.role !== "Student" && (
+            <div className="flex items-center gap-4">
+              {profile.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatarUrl} alt="Аватар" className="h-16 w-16 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/20 text-xl font-bold text-accent">
+                  {profile.fullName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
+                </span>
+              )}
+              <div className="flex flex-col gap-1">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  onChange={handleAvatarChange}
+                  className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:text-white"
+                />
+                <p className="text-xs text-muted-foreground">JPEG или PNG, до 5 МБ</p>
+              </div>
+            </div>
+          )}
           <div>
             <Label htmlFor="fullName">ФИО</Label>
             <Input
@@ -182,12 +202,24 @@ export default function ProfilePage() {
           <h2 className="mb-4 text-lg font-medium text-foreground">
             Данные преподавателя
           </h2>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Цикловая комиссия</span>
-              <span className="font-medium text-foreground">
-                {profile.teacherData.cyclicalCommission}
-              </span>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="cyclicalCommission">Цикловая комиссия</Label>
+              <Input id="cyclicalCommission" value={cyclicalCommission} onChange={e => setCyclicalCommission(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="category">Категория</Label>
+              <select
+                id="category"
+                value={category}
+                onChange={e => setCategory(e.target.value as TeacherCategory | "")}
+                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              >
+                <option value="">Не выбрана</option>
+                <option value="None">Без категории</option>
+                <option value="First">Первая</option>
+                <option value="Higher">Высшая</option>
+              </select>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Должность</span>
@@ -221,41 +253,15 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="mb-4 text-lg font-medium text-foreground">
-          <Lock size={16} className="mr-2 inline" />
-          Смена пароля
-        </h2>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="oldPassword">Старый пароль</Label>
-            <Input
-              id="oldPassword"
-              type="password"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="newPassword">Новый пароль</Label>
-            <Input
-              id="newPassword"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-          </div>
-        </div>
-        <Button
-          onClick={handleChangePassword}
-          disabled={changingPassword}
-          variant="outline"
-          className="mt-4"
-        >
-          <Lock size={16} className="mr-2" />
-          {changingPassword ? "Смена..." : "Сменить пароль"}
-        </Button>
-      </div>
+      <Button
+        onClick={handleSave}
+        disabled={saving}
+        variant="outline"
+        className="mt-4 w-full"
+      >
+        <Save size={16} className="mr-2" />
+        {saving ? "Сохранение..." : "Сохранить изменения"}
+      </Button>
     </div>
   )
 }
