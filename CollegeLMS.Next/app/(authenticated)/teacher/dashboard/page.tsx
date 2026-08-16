@@ -41,7 +41,9 @@ export default function TeacherDashboardPage() {
 
   if (loading) return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-      <LoadingSpinner size="lg" className="py-20" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
     </div>
   )
 

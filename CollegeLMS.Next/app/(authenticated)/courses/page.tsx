@@ -81,7 +81,9 @@ export default function CoursesPage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner size="lg" className="py-20" />
+        <div className="flex min-h-[60vh] items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
       ) : courses.length === 0 ? (
         <p className="text-muted-foreground">Нет курсов</p>
       ) : (

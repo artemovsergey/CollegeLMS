@@ -202,7 +202,9 @@ export default function SchedulePage() {
       {error && <ErrorBanner message={error} />}
 
       {loading ? (
-        <LoadingSpinner size="lg" className="py-20" />
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
       ) : (
         <ScheduleTable
           entries={entries}

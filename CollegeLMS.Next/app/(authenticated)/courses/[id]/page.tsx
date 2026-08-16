@@ -216,7 +216,11 @@ export default function CourseDetailPage() {
     }
   }
 
-  if (loading) return <LoadingSpinner size="lg" className="py-20" />
+  if (loading) return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <LoadingSpinner size="lg" />
+    </div>
+  )
   if (error) {
     return (
       <div className="flex flex-col gap-4 p-6 max-w-5xl mx-auto">
