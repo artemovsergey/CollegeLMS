@@ -111,6 +111,45 @@ public class AuthController(IAuthService authService) : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Загрузить аватар текущего пользователя.</summary>
+    /// <remarks>Доступно преподавателям, администраторам и диспетчерам. Студенты аватар менять не могут — фотографии загружает администратор.</remarks>
+    /// <param name="file">Изображение JPEG или PNG (до 5 МБ), будет обрезано и уменьшено до 256×256</param>
+    /// <param name="ct">Токен отмены</param>
+    /// <response code="200">Аватар обновлён — возвращает профиль</response>
+    /// <response code="400">Некорректный файл</response>
+    /// <response code="401">Не авторизован</response>
+    /// <response code="403">Студент не может менять аватар</response>
+    /// <response code="404">Пользователь не найден</response>
+    /// <response code="500">Внутренняя ошибка сервера</response>
+    [HttpPost("avatar")]
+    [Authorize(Roles = "Teacher,Admin,Dispatcher")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    [SwaggerOperation(Summary = "Загрузить аватар")]
+    [SwaggerResponse(200, "Аватар обновлён", typeof(Result<ProfileResponse>))]
+    [SwaggerResponse(400, "Некорректный файл")]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Студент не может менять аватар")]
+    [SwaggerResponse(404, "Пользователь не найден")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<ProfileResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<ProfileResponse>>> UploadAvatar(
+        [FromForm] IFormFile file,
+        CancellationToken ct
+    )
+    {
+        var userId = User.GetUserId();
+        var result = await authService.UploadAvatarAsync(userId, file, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
     [HttpPost("change-password")]
     [Authorize]
     [SwaggerOperation(Summary = "Сменить пароль")]

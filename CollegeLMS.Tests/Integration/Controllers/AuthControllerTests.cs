@@ -8,6 +8,10 @@ using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
 using CollegeLMS.Tests.Integration;
 using Microsoft.Extensions.DependencyInjection;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace CollegeLMS.Tests.Integration.Controllers;
 
@@ -215,5 +219,84 @@ public class AuthControllerTests : BaseIntegrationTest
         }
 
         Assert.Equal(HttpStatusCode.TooManyRequests, last!.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadAvatar_ReturnsForbidden_ForStudent()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+        var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Login = "avatarstudent",
+            Email = "avatarstudent@test.ru",
+            FullName = "Avatar Student",
+            PasswordHash = "hash",
+            Role = UserRole.Student,
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var token = tokenService.GenerateAccessToken(user);
+        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var content = new MultipartFormDataContent();
+        var part = new ByteArrayContent(CreateJpegBytes());
+        part.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+        content.Add(part, "file", "avatar.jpg");
+
+        var response = await Client.PostAsync("/api/auth/avatar", content);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadAvatar_ReturnsOkWithAvatarUrl_ForTeacher()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+        var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Login = "avatarteacher",
+            Email = "avatarteacher@test.ru",
+            FullName = "Avatar Teacher",
+            PasswordHash = "hash",
+            Role = UserRole.Teacher,
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var token = tokenService.GenerateAccessToken(user);
+        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var content = new MultipartFormDataContent();
+        var part = new ByteArrayContent(CreateJpegBytes());
+        part.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+        content.Add(part, "file", "avatar.jpg");
+
+        var response = await Client.PostAsync("/api/auth/avatar", content);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await DeserializeAsync<Result<ProfileResponse>>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+        Assert.NotNull(body.Data);
+        Assert.Contains("/uploads/avatars/", body.Data.AvatarUrl);
+    }
+
+    private static byte[] CreateJpegBytes()
+    {
+        using var image = new Image<Rgba32>(4, 4);
+        image.Mutate(x => x.BackgroundColor(Color.Red));
+        using var ms = new MemoryStream();
+        image.Save(ms, new JpegEncoder { Quality = 80 });
+        return ms.ToArray();
     }
 }
