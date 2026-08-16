@@ -15,6 +15,7 @@ public class TeacherConfiguration : IEntityTypeConfiguration<Teacher>
         builder.HasIndex(x => x.UserId).IsUnique().HasDatabaseName("ix_teachers_user_id");
         builder.Property(x => x.CyclicalCommission).HasMaxLength(200);
         builder.Property(x => x.Position).HasMaxLength(200);
+        builder.Property(x => x.Category).HasConversion<string>().HasMaxLength(20);
         builder
             .HasOne(x => x.User)
             .WithMany()

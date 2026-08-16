@@ -22,6 +22,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(x => x.PasswordHash).HasMaxLength(512);
         builder.Property(x => x.FullName).HasMaxLength(200);
+        builder.Property(x => x.AvatarPath).HasMaxLength(512);
 
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(50);
 
