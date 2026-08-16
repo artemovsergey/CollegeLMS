@@ -65,6 +65,13 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
     ? user.fullName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
     : "?"
 
+  const homeByRole: Record<string, string> = {
+    Admin: "/admin",
+    Dispatcher: "/schedule",
+    Teacher: "/teacher/dashboard",
+    Student: "/my/dashboard",
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -78,12 +85,9 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
             >
               <Menu size={20} />
             </button>
-            <Link href={user?.role === "Admin" ? "/admin" : user?.role === "Dispatcher" ? "/schedule" : "/my/dashboard"} className="flex items-center gap-2 ml-2">
-              <Image src="/logo.svg" alt="" width={0} height={0} sizes="100vw" className="object-contain h-auto w-auto" style={{ maxHeight: "40px", width: 'auto', height: '100%' }} unoptimized />
-              <div className="flex flex-col leading-tight">
-                <span className="text-xs font-semibold text-fg leading-tight">Ставропольский колледж связи</span>
-                <span className="text-[10px] text-muted-fg leading-tight">имени В.А. Петрова</span>
-              </div>
+            <Link href={homeByRole[user?.role ?? ""] ?? "/my/dashboard"} className="flex items-center gap-2 ml-2">
+              <Image src="/logo.svg" alt="" width={0} height={0} sizes="100vw" className="object-contain" style={{ maxHeight: "40px", width: 'auto', height: 'auto' }} unoptimized />
+              <span className="text-xs font-semibold text-fg leading-tight">Колледж связи</span>
             </Link>
           </div>
 
@@ -92,8 +96,13 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
             className="flex items-center gap-2 rounded-md p-1.5 text-sm font-medium text-muted-fg hover:bg-muted transition-colors"
             aria-label="Профиль"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent">
-              {initials}
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent overflow-hidden">
+              {user?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatarUrl} alt="Аватар" className="h-8 w-8 rounded-full object-cover" />
+              ) : (
+                initials
+              )}
             </span>
           </button>
         </div>
@@ -151,11 +160,16 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
             </div>
             <div className="p-4">
               <div className="flex flex-col items-center text-center mb-6">
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/20 text-xl font-bold text-accent mb-3">
-                  {initials}
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/20 text-xl font-bold text-accent mb-3 overflow-hidden">
+                  {user?.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.avatarUrl} alt="Аватар" className="h-16 w-16 rounded-full object-cover" />
+                  ) : (
+                    initials
+                  )}
                 </span>
                 <h3 className="text-sm font-semibold text-fg">{user?.fullName}</h3>
-                <p className="text-xs text-muted-fg mt-0.5">{user?.login}</p>
+                <p className="text-xs text-muted-fg mt-0.5">{user?.email}</p>
                 {user?.role && (
                   <Badge variant={roleVariants[user.role] ?? "secondary"} className="mt-2">
                     {roleLabels[user.role] ?? user.role}

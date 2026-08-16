@@ -13,3 +13,9 @@ export const roleVariants: Record<string, "default" | "secondary" | "outline" | 
 }
 
 export const CAN_MANAGE_ROLES = ["Admin", "Dispatcher"]
+
+export const categoryLabels: Record<string, string> = {
+  None: "Без категории",
+  First: "Первая",
+  Higher: "Высшая",
+}

@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth"
 import AuthenticatedShell from "@/components/AuthenticatedShell"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import { adminMenuSections, type MenuSection } from "@/lib/menus"
-import { LayoutDashboard, BookOpen, FileCheck, CalendarDays, Settings, GraduationCap } from "lucide-react"
+import { LayoutDashboard, BookOpen, FileCheck, CalendarDays, GraduationCap } from "lucide-react"
 
 const studentMenu = [
   { label: "Обучение", items: [
@@ -15,19 +15,13 @@ const studentMenu = [
     { href: "/my/submissions", label: "Мои работы", icon: FileCheck },
     { href: "/schedule", label: "Расписание", icon: CalendarDays },
   ]},
-  { label: "Профиль", items: [
-    { href: "/my/profile", label: "Настройки", icon: Settings },
-  ]},
 ]
 
 const teacherMenu = [
   { label: "Обучение", items: [
     { href: "/teacher/dashboard", label: "Панель преподавателя", icon: GraduationCap },
-    { href: "/courses", label: "Курсы", icon: BookOpen },
+    { href: "/courses", label: "Мои курсы", icon: BookOpen },
     { href: "/schedule", label: "Расписание", icon: CalendarDays },
-  ]},
-  { label: "Профиль", items: [
-    { href: "/my/profile", label: "Настройки", icon: Settings },
   ]},
 ]
 
@@ -35,9 +29,6 @@ const dispatcherMenu = [
   { label: "Расписание", items: [
     { href: "/dispatcher/dashboard", label: "Дашборд", icon: LayoutDashboard },
     { href: "/schedule", label: "Расписание", icon: CalendarDays },
-  ]},
-  { label: "Профиль", items: [
-    { href: "/my/profile", label: "Настройки", icon: Settings },
   ]},
 ]
 
