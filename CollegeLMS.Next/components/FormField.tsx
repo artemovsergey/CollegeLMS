@@ -11,17 +11,18 @@ interface FormFieldProps {
   error?: string
   hint?: string
   required?: boolean
+  showAsterisk?: boolean
   children: ReactNode
 }
 
-export default function FormField({ id, label, error, hint, required, children }: FormFieldProps) {
+export default function FormField({ id, label, error, hint, required, showAsterisk = true, children }: FormFieldProps) {
   const [focused, setFocused] = useState(false)
 
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>
         {label}
-        {required && <span className="text-destructive"> *</span>}
+        {required && showAsterisk && <span className="text-destructive"> *</span>}
         {hint && (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>

@@ -5,6 +5,7 @@ export interface User {
   fullName: string
   role: string
   teacherId?: string | null
+  avatarUrl?: string | null
 }
 
 export interface LoginRequest {
@@ -382,6 +383,7 @@ export interface SearchResult {
 export interface TeacherProfileData {
   cyclicalCommission: string
   position: string
+  category?: string
 }
 
 export interface StudentProfileData {
@@ -396,13 +398,18 @@ export interface ProfileResponse {
   email: string
   fullName: string
   role: string
+  avatarUrl?: string | null
   teacherData: TeacherProfileData | null
   studentData: StudentProfileData | null
 }
 
+export type TeacherCategory = "None" | "First" | "Higher"
+
 export interface UpdateProfileRequest {
   fullName: string
   email: string
+  cyclicalCommission?: string
+  category?: string
 }
 
 export interface ChangePasswordRequest {

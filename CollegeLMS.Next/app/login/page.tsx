@@ -96,7 +96,7 @@ export default function LoginPage() {
                 height={0}
                 sizes="100vw"
                 className="mx-auto h-auto"
-                style={{ maxHeight: "4rem", width: 'auto', height: '100%' }}
+                style={{ maxHeight: "6rem", width: 'auto', height: '100%' }}
                 unoptimized
               />
             </Link>
@@ -132,7 +132,7 @@ export default function LoginPage() {
             <FormField
               id="login"
               label="Логин"
-              required
+              showAsterisk={false}
               error={fieldErrors.login?.[0]}
             >
               <Input
@@ -149,7 +149,7 @@ export default function LoginPage() {
             <FormField
               id="password"
               label="Пароль"
-              required
+              showAsterisk={false}
               error={fieldErrors.password?.[0]}
             >
               <Input
