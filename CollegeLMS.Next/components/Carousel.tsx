@@ -68,7 +68,7 @@ export default function Carousel() {
   return (
     <div className="mx-auto max-w-7xl">
       <section
-        className="mt-6"
+        className="relative mt-6"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -111,14 +111,15 @@ export default function Carousel() {
                   </div>
                 </div>
                 <div className="relative order-first h-48 sm:h-56 lg:order-none lg:col-span-2 lg:h-full">
-                  <div className="absolute left-3 top-3 z-10 rounded-lg bg-white/85 p-1.5 lg:hidden">
+                  <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
                     <Image
                       src="/logo.svg"
                       alt="Ставропольский колледж связи"
                       width={2048}
                       height={1359}
-                      sizes="0px"
-                      className="h-10 w-auto object-contain"
+                      sizes="100vw"
+                      className="object-contain h-auto w-auto drop-shadow-md"
+                      style={{ maxHeight: "64px" }}
                       unoptimized
                     />
                   </div>
@@ -140,36 +141,35 @@ export default function Carousel() {
       </div>
 
       {slides.length > 1 && (
-        <div className="mt-4 flex items-center justify-between px-1">
-          <div className="flex items-center gap-2" role="group" aria-label="Выбор слайда">
+        <>
+          <button
+            onClick={scrollPrev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+            aria-label="Предыдущий"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <button
+            onClick={scrollNext}
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+            aria-label="Следующий"
+          >
+            <ChevronRight size={24} />
+          </button>
+
+          <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
             {slides.map((_, i) => (
               <button
                 key={i}
                 onClick={() => scrollTo(i)}
                 className={`h-2 rounded-full transition-all ${
-                  i === selectedIndex ? "w-6 bg-accent" : "w-2 bg-accent-lighter hover:bg-accent/60"
+                  i === selectedIndex ? "w-6 bg-white" : "w-2 bg-white/50"
                 }`}
                 aria-label={`Слайд ${i + 1}`}
               />
             ))}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={scrollPrev}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-accent transition-colors hover:bg-muted"
-              aria-label="Предыдущий слайд"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={scrollNext}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-accent transition-colors hover:bg-muted"
-              aria-label="Следующий слайд"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-        </div>
+        </>
       )}
     </section>
     </div>
