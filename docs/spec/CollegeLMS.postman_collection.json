@@ -92,6 +92,34 @@
               ]
             }
           }
+        },
+        {
+          "name": "Upload avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/путь/к/avatar.jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "avatar"
+              ]
+            }
+          }
         }
       ]
     },
