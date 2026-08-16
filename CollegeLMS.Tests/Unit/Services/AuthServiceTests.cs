@@ -154,6 +154,43 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateProfileAsync_UpdatesTeacherCommissionAndCategory()
+    {
+        var user = UserFixture.CreateFaker().Generate();
+        user.Role = API.Entities.Enums.UserRole.Teacher;
+        _db.Users.Add(user);
+
+        var teacher = new API.Entities.Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            CyclicalCommission = "Информационных технологий",
+            Position = "Преподаватель",
+            Category = API.Entities.Enums.TeacherCategory.None,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        _db.Teachers.Add(teacher);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.UpdateProfileAsync(
+            user.Id,
+            new UpdateProfileRequest
+            {
+                FullName = user.FullName,
+                Email = user.Email,
+                CyclicalCommission = "Программирования",
+                Category = "Higher",
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.TeacherData!.CyclicalCommission.Should().Be("Программирования");
+        result.Data.TeacherData.Category.Should().Be("Higher");
+    }
+
+    [Fact]
     public async Task ChangePasswordAsync_ChangesPassword_WhenOldPasswordCorrect()
     {
         var user = UserFixture.CreateFaker().Generate();

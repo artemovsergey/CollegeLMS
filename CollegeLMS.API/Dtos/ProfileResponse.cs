@@ -7,6 +7,7 @@ public class ProfileResponse
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
 
     public TeacherProfileData? TeacherData { get; set; }
     public StudentProfileData? StudentData { get; set; }
@@ -16,6 +17,7 @@ public class TeacherProfileData
 {
     public string CyclicalCommission { get; set; } = string.Empty;
     public string Position { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
 }
 
 public class StudentProfileData

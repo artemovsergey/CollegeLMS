@@ -15,6 +15,7 @@ public static class UserMapper
             FullName = entity.FullName,
             Role = entity.Role.ToString(),
             TeacherId = teacherId,
+            AvatarUrl = entity.AvatarPath,
         };
     }
 
@@ -27,6 +28,7 @@ public static class UserMapper
             Email = entity.Email,
             FullName = entity.FullName,
             Role = entity.Role.ToString(),
+            AvatarUrl = entity.AvatarPath,
         };
 
         if (roleData is Teacher teacher)
@@ -35,6 +37,7 @@ public static class UserMapper
             {
                 CyclicalCommission = teacher.CyclicalCommission,
                 Position = teacher.Position,
+                Category = teacher.Category.ToString(),
             };
         }
         else if (roleData is Student student)

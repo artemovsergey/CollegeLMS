@@ -10,4 +10,6 @@ public class UserResponse
 
     /// <summary>Id сущности Teacher, если пользователь — преподаватель.</summary>
     public Guid? TeacherId { get; set; }
+
+    public string? AvatarUrl { get; set; }
 }

@@ -79,6 +79,22 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         user.Email = request.Email;
         user.UpdatedAt = DateTime.UtcNow;
 
+        if (user.Role == Entities.Enums.UserRole.Teacher)
+        {
+            var teacher = await db.Teachers.FirstOrDefaultAsync(t => t.UserId == userId, ct);
+            if (teacher is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(request.CyclicalCommission))
+                    teacher.CyclicalCommission = request.CyclicalCommission;
+                if (!string.IsNullOrWhiteSpace(request.Category))
+                {
+                    if (Enum.TryParse<Entities.Enums.TeacherCategory>(request.Category, out var category))
+                        teacher.Category = category;
+                }
+                teacher.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
         await db.SaveChangesAsync(ct);
 
         object? roleData = null;
