@@ -96,6 +96,7 @@ public static class DataSeeder
                 UserId = user.Id,
                 CyclicalCommission = "Информационных технологий",
                 Position = "Преподаватель высшей категории",
+                Category = Entities.Enums.TeacherCategory.Higher,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             }

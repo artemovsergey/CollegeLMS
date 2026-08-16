@@ -126,6 +126,7 @@ public class UserService(AppDbContext db) : IUserService
                         UserId = user.Id,
                         CyclicalCommission = "Не назначена",
                         Position = "Преподаватель",
+                        Category = Entities.Enums.TeacherCategory.None,
                     }
                 );
             }
