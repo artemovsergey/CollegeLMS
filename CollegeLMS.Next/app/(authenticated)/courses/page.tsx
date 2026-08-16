@@ -47,7 +47,7 @@ export default function CoursesPage() {
     setLoading(true)
     setError(null)
     try {
-      const params = isTeacher && user ? `?teacherId=${user.id}` : ""
+      const params = ""
       const res = await api.get<Result<CourseResponse[]>>(`/api/courses${params}`)
       const body = res.data
       if (body.isSuccess && body.data) {
@@ -72,7 +72,7 @@ export default function CoursesPage() {
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
 
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Курсы</h2>
+        <h2 className="text-xl font-semibold">{isTeacher ? "Мои курсы" : "Курсы"}</h2>
         {canCreate && (
           <Button size="sm" onClick={() => router.push("/courses/new")}>+ Создать</Button>
         )}
