@@ -88,8 +88,9 @@
 - `CourseAuthor` (Guid Id, CourseId, TeacherId; UNIQUE(CourseId, TeacherId)) — соавторы. Владелец курса (`Course.TeacherId`) — автор по умолчанию, в CourseAuthors не дублируется.
 - Helper `CanManageCourse(course, teacherId)` / `GetManagedCourseIds(teacherId)` в `CourseService` (или отдельном `CourseAccessService`): все проверки `course.TeacherId != teacher.Id` в LectureService, MaterialService, TestingService, (SubmissionService удаляется в M3) заменяются на проверку владельца ИЛИ соавтора.
 - `GET /api/courses` — для роли Teacher: `TeacherId == teacher.Id OR Author в CourseAuthors`. Параметр `teacherId` убираем из фронта.
-- `POST /api/courses/{id}/duplicate` — копирует: Title (+ « (копия)»), Description, занятия (Title, Content, Type, Order), материалы курса, документацию (файлы физически копируются в новую папку). НЕ копирует: группы (CourseGroup), тесты, IsCurrent-метку занятия, связки TestId (обнуляются). Автор = текущий пользователь. `IsActive=false` (черновик для правки).
-- `PATCH /api/courses/{id}/active` `{ isActive: bool }`.
+- `POST /api/courses/{id}/duplicate` — копирует: Title (+ « (копия)»), Description, занятия (Title, Content, Type, Order), материалы курса. НЕ копирует: группы (CourseGroup), тесты, IsCurrent-метку занятия, связки TestId (обнуляются). Автор = текущий пользователь. `IsActive=false` (черновик для правки). Документация (CourseDocument) появится в M3 — тогда же добавится в duplicate.
+- `PATCH /api/courses/{id}/active` `{ isActive: bool }` — **только владелец** курса.
+- Удаление курса (`DELETE /api/courses/{id}`) — **только владелец**; соавторы управляют занятиями/материалами, но не удаляют курс и не меняют активность. Менять активность/удалять может и администратор.
 
 ### Frontend
 
