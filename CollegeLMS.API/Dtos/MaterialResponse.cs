@@ -4,7 +4,7 @@ public class MaterialResponse
 {
     public Guid Id { get; set; }
     public Guid CourseId { get; set; }
-    public Guid? LectureId { get; set; }
+    public Guid? LessonId { get; set; }
     public Guid? AssignmentId { get; set; }
     public string FileName { get; set; } = string.Empty;
     public long FileSize { get; set; }

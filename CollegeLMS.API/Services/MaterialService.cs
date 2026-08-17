@@ -15,7 +15,7 @@ public class MaterialService(AppDbContext db, IFileService fileService, ICourseA
     public async Task<Result<MaterialResponse>> UploadAsync(
         Guid courseId,
         IFormFile file,
-        Guid? lectureId,
+        Guid? lessonId,
         Guid currentUserId,
         string currentUserRole,
         CancellationToken ct
@@ -44,7 +44,7 @@ public class MaterialService(AppDbContext db, IFileService fileService, ICourseA
         {
             Id = Guid.NewGuid(),
             CourseId = courseId,
-            LectureId = lectureId,
+            LessonId = lessonId,
             FileName = file.FileName,
             FilePath = filePath,
             FileSize = file.Length,

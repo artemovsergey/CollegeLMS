@@ -24,6 +24,6 @@ public static class CourseMapper
                 ", ",
                 course.CourseAuthors?.Select(a => a.Teacher?.User?.FullName ?? "") ?? []
             ),
-            LectureCount = course.Lectures?.Count ?? 0,
+            LessonCount = course.Lessons?.Count ?? 0,
         };
 }

@@ -12,5 +12,5 @@ public class CourseResponse
     public bool IsActive { get; set; }
     public List<Guid> AuthorIds { get; set; } = new();
     public string AuthorNames { get; set; } = string.Empty;
-    public int LectureCount { get; set; }
+    public int LessonCount { get; set; }
 }

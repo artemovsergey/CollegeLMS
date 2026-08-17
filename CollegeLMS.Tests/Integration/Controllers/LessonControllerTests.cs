@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CollegeLMS.Tests.Integration.Controllers;
 
-public class LectureControllerTests : BaseIntegrationTest
+public class LessonControllerTests : BaseIntegrationTest
 {
     private string GetAdminToken()
     {
@@ -35,7 +35,7 @@ public class LectureControllerTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task GetAll_ReturnsLectures_WhenAuthenticated()
+    public async Task GetAll_ReturnsLessons_WhenAuthenticated()
     {
         SetAuthHeader(GetAdminToken());
 
@@ -49,16 +49,16 @@ public class LectureControllerTests : BaseIntegrationTest
             Status = CourseStatus.Draft,
         };
         db.Courses.Add(course);
-        var lectures = LectureFixture.CreateFaker().Generate(3);
-        foreach (var l in lectures)
+        var lessons = LessonFixture.CreateFaker().Generate(3);
+        foreach (var l in lessons)
             l.CourseId = course.Id;
-        db.Lectures.AddRange(lectures);
+        db.Lessons.AddRange(lessons);
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync($"/api/courses/{course.Id}/lectures");
+        var response = await Client.GetAsync($"/api/courses/{course.Id}/lessons");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await DeserializeAsync<Result<List<LectureResponse>>>(response);
+        var body = await DeserializeAsync<Result<List<LessonResponse>>>(response);
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
         Assert.Equal(3, body.Data!.Count);
@@ -82,21 +82,26 @@ public class LectureControllerTests : BaseIntegrationTest
         await db.SaveChangesAsync();
 
         var response = await Client.PostAsJsonAsync(
-            $"/api/courses/{course.Id}/lectures",
-            new CreateLectureRequest { Title = "Новая лекция", Content = "Контент" }
+            $"/api/courses/{course.Id}/lessons",
+            new CreateLessonRequest
+            {
+                Title = "Новое занятие",
+                Content = "Контент",
+                Kind = "Lecture",
+            }
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await DeserializeAsync<Result<LectureResponse>>(response);
+        var body = await DeserializeAsync<Result<LessonResponse>>(response);
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
-        Assert.Equal("Новая лекция", body.Data!.Title);
+        Assert.Equal("Новое занятие", body.Data!.Title);
     }
 
     [Fact]
     public async Task GetAll_ReturnsUnauthorized_WhenNoToken()
     {
-        var response = await Client.GetAsync($"/api/courses/{Guid.NewGuid()}/lectures");
+        var response = await Client.GetAsync($"/api/courses/{Guid.NewGuid()}/lessons");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

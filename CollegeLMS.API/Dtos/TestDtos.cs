@@ -9,7 +9,7 @@ public class CreateTestRequest
     public string Type { get; set; } = "SelfStudy";
     public int PassingScore { get; set; } = 60;
     public Guid CourseId { get; set; }
-    public Guid? LectureId { get; set; }
+    public Guid? LessonId { get; set; }
 }
 
 public class UpdateTestRequest

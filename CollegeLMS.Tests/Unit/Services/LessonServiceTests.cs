@@ -10,13 +10,13 @@ using Moq;
 
 namespace CollegeLMS.Tests.Unit.Services;
 
-public class LectureServiceTests : IDisposable
+public class LessonServiceTests : IDisposable
 {
     private readonly API.Data.AppDbContext _db;
     private readonly Mock<ICourseAccessService> _accessMock;
-    private readonly LectureService _sut;
+    private readonly LessonService _sut;
 
-    public LectureServiceTests()
+    public LessonServiceTests()
     {
         _db = TestDbContextFactory.Create();
         _accessMock = new Mock<ICourseAccessService>();
@@ -26,13 +26,13 @@ public class LectureServiceTests : IDisposable
         _accessMock
             .Setup(x => x.CanManageCourseAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        _sut = new LectureService(_db, _accessMock.Object);
+        _sut = new LessonService(_db, _accessMock.Object);
     }
 
     public void Dispose() => _db.Dispose();
 
     [Fact]
-    public async Task GetAll_ReturnsEmptyList_WhenNoLectures()
+    public async Task GetAll_ReturnsEmptyList_WhenNoLessons()
     {
         var courseId = Guid.NewGuid();
         _db.Courses.Add(
@@ -53,7 +53,7 @@ public class LectureServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAll_ReturnsLectures_WhenExist()
+    public async Task GetAll_ReturnsLessons_WhenExist()
     {
         var courseId = Guid.NewGuid();
         _db.Courses.Add(
@@ -65,10 +65,10 @@ public class LectureServiceTests : IDisposable
                 Status = CourseStatus.Draft,
             }
         );
-        var lectures = LectureFixture.CreateFaker().Generate(3);
-        foreach (var l in lectures)
+        var lessons = LessonFixture.CreateFaker().Generate(3);
+        foreach (var l in lessons)
             l.CourseId = courseId;
-        _db.Lectures.AddRange(lectures);
+        _db.Lessons.AddRange(lessons);
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetAllAsync(courseId, default);
@@ -78,7 +78,7 @@ public class LectureServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetById_ReturnsLecture_WhenFound()
+    public async Task GetById_ReturnsLesson_WhenFound()
     {
         var courseId = Guid.NewGuid();
         _db.Courses.Add(
@@ -90,15 +90,15 @@ public class LectureServiceTests : IDisposable
                 Status = CourseStatus.Draft,
             }
         );
-        var lecture = LectureFixture.CreateFaker().Generate();
-        lecture.CourseId = courseId;
-        _db.Lectures.Add(lecture);
+        var lesson = LessonFixture.CreateFaker().Generate();
+        lesson.CourseId = courseId;
+        _db.Lessons.Add(lesson);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GetByIdAsync(courseId, lecture.Id, default);
+        var result = await _sut.GetByIdAsync(courseId, lesson.Id, default);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.Id.Should().Be(lecture.Id);
+        result.Data!.Id.Should().Be(lesson.Id);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class LectureServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Create_CreatesLecture_WhenAdmin()
+    public async Task Create_CreatesLesson_WhenAdmin()
     {
         var adminId = Guid.NewGuid();
         _db.Users.Add(
@@ -138,14 +138,20 @@ public class LectureServiceTests : IDisposable
 
         var result = await _sut.CreateAsync(
             courseId,
-            new CreateLectureRequest { Title = "Новая лекция", Content = "Содержание лекции" },
+            new CreateLessonRequest
+            {
+                Title = "Новое занятие",
+                Content = "Содержание занятия",
+                Kind = "Practice",
+            },
             adminId,
             "Admin",
             default
         );
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.Title.Should().Be("Новая лекция");
+        result.Data!.Title.Should().Be("Новое занятие");
+        result.Data!.Kind.Should().Be("Practice");
         result.Data.Order.Should().Be(1);
     }
 
@@ -173,8 +179,8 @@ public class LectureServiceTests : IDisposable
                 Status = CourseStatus.Draft,
             }
         );
-        _db.Lectures.Add(
-            new Lecture
+        _db.Lessons.Add(
+            new Lesson
             {
                 Id = Guid.NewGuid(),
                 CourseId = courseId,
@@ -187,7 +193,7 @@ public class LectureServiceTests : IDisposable
 
         var result = await _sut.CreateAsync(
             courseId,
-            new CreateLectureRequest { Title = "Новая", Content = "Контент" },
+            new CreateLessonRequest { Title = "Новая", Content = "Контент" },
             adminId,
             "Admin",
             default
@@ -198,7 +204,7 @@ public class LectureServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Delete_RemovesLecture_WhenAdmin()
+    public async Task Update_UpdatesLesson_WhenAdmin()
     {
         var adminId = Guid.NewGuid();
         _db.Users.Add(
@@ -221,15 +227,63 @@ public class LectureServiceTests : IDisposable
                 Status = CourseStatus.Draft,
             }
         );
-        var lecture = LectureFixture.CreateFaker().Generate();
-        lecture.CourseId = courseId;
-        _db.Lectures.Add(lecture);
+        var lesson = LessonFixture.CreateFaker().Generate();
+        lesson.CourseId = courseId;
+        _db.Lessons.Add(lesson);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.DeleteAsync(courseId, lecture.Id, adminId, "Admin", default);
+        var result = await _sut.UpdateAsync(
+            courseId,
+            lesson.Id,
+            new UpdateLessonRequest
+            {
+                Title = "Обновлённое занятие",
+                Content = "Контент",
+                Kind = "SelfStudy",
+            },
+            adminId,
+            "Admin",
+            default
+        );
 
         result.IsSuccess.Should().BeTrue();
-        var exists = await _db.Lectures.AnyAsync(l => l.Id == lecture.Id);
+        result.Data!.Title.Should().Be("Обновлённое занятие");
+        result.Data!.Kind.Should().Be("SelfStudy");
+    }
+
+    [Fact]
+    public async Task Delete_RemovesLesson_WhenAdmin()
+    {
+        var adminId = Guid.NewGuid();
+        _db.Users.Add(
+            new User
+            {
+                Id = adminId,
+                Email = "admin@test.ru",
+                FullName = "Admin",
+                PasswordHash = "hash",
+                Role = UserRole.Admin,
+            }
+        );
+        var courseId = Guid.NewGuid();
+        _db.Courses.Add(
+            new Course
+            {
+                Id = courseId,
+                Title = "Test",
+                TeacherId = Guid.NewGuid(),
+                Status = CourseStatus.Draft,
+            }
+        );
+        var lesson = LessonFixture.CreateFaker().Generate();
+        lesson.CourseId = courseId;
+        _db.Lessons.Add(lesson);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.DeleteAsync(courseId, lesson.Id, adminId, "Admin", default);
+
+        result.IsSuccess.Should().BeTrue();
+        var exists = await _db.Lessons.AnyAsync(l => l.Id == lesson.Id);
         exists.Should().BeFalse();
     }
 }

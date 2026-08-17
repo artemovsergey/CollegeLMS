@@ -16,7 +16,7 @@ public static class CourseResponseExample
             isActive = true,
             authorIds = new List<Guid> { Guid.NewGuid() },
             authorNames = "Петров Пётр Петрович",
-            lectureCount = 0,
+            lessonCount = 0,
             assignmentCount = 0,
         };
 }

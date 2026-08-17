@@ -15,7 +15,7 @@ public class Course : Entity
     public Teacher Teacher { get; set; } = null!;
 
     [JsonIgnore]
-    public ICollection<Lecture> Lectures { get; set; } = new List<Lecture>();
+    public ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
 
     [JsonIgnore]
     public ICollection<CourseMaterial> Materials { get; set; } = new List<CourseMaterial>();

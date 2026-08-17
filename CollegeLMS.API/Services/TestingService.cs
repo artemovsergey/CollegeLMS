@@ -82,19 +82,19 @@ public class TestingService(AppDbContext db, ICourseAccessService access) : ITes
                 );
         }
 
-        Lecture? lecture = null;
-        if (request.LectureId.HasValue)
+        Lesson? lesson = null;
+        if (request.LessonId.HasValue)
         {
-            lecture = await db.Lectures.FirstOrDefaultAsync(
-                l => l.Id == request.LectureId.Value,
+            lesson = await db.Lessons.FirstOrDefaultAsync(
+                l => l.Id == request.LessonId.Value,
                 ct
             );
-            if (lecture is null)
-                return Result<TestResponse>.Fail("Лекция не найдена", 404);
-            if (lecture.CourseId != request.CourseId)
-                return Result<TestResponse>.Fail("Лекция не принадлежит этому курсу", 400);
-            if (lecture.TestId.HasValue)
-                return Result<TestResponse>.Fail("У лекции уже есть тест", 400);
+            if (lesson is null)
+                return Result<TestResponse>.Fail("Занятие не найдено", 404);
+            if (lesson.CourseId != request.CourseId)
+                return Result<TestResponse>.Fail("Занятие не принадлежит этому курсу", 400);
+            if (lesson.TestId.HasValue)
+                return Result<TestResponse>.Fail("У занятия уже есть тест", 400);
         }
 
         var test = new Test
@@ -109,8 +109,8 @@ public class TestingService(AppDbContext db, ICourseAccessService access) : ITes
             CourseId = request.CourseId,
         };
         db.Tests.Add(test);
-        if (lecture is not null)
-            lecture.TestId = test.Id;
+        if (lesson is not null)
+            lesson.TestId = test.Id;
         await db.SaveChangesAsync(ct);
 
         test = await db
@@ -458,13 +458,13 @@ public class TestingService(AppDbContext db, ICourseAccessService access) : ITes
                 && a.CloseDate >= DateTime.UtcNow,
             ct
         );
-        var lecture = await db.Lectures.AsNoTracking().FirstOrDefaultAsync(
+        var lesson = await db.Lessons.AsNoTracking().FirstOrDefaultAsync(
             l => l.TestId == testId,
             ct
         );
-        var enrolled = lecture is not null
+        var enrolled = lesson is not null
             && await db.CourseGroups.AsNoTracking().AnyAsync(
-                cg => cg.CourseId == lecture.CourseId && cg.GroupId == student.GroupId,
+                cg => cg.CourseId == lesson.CourseId && cg.GroupId == student.GroupId,
                 ct
             );
         if (!hasAssignment && !enrolled)

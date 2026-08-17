@@ -25,7 +25,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
                 .ThenInclude(t => t.User)
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
-            .Include(c => c.Lectures)
+            .Include(c => c.Lessons)
             .Include(c => c.CourseAuthors)
                 .ThenInclude(a => a.Teacher)
                     .ThenInclude(t => t.User)
@@ -72,7 +72,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
                 .ThenInclude(t => t.User)
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
-            .Include(c => c.Lectures)
+            .Include(c => c.Lessons)
             .Include(c => c.CourseAuthors)
                 .ThenInclude(a => a.Teacher)
                     .ThenInclude(t => t.User)
@@ -161,7 +161,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
                 .ThenInclude(t => t.User)
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
-            .Include(c => c.Lectures)
+            .Include(c => c.Lessons)
             .FirstAsync(c => c.Id == course.Id, ct);
 
         return Result<CourseResponse>.Ok(course.ToDto());
@@ -180,7 +180,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
                 .ThenInclude(t => t.User)
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
-            .Include(c => c.Lectures)
+            .Include(c => c.Lessons)
             .Include(c => c.CourseAuthors)
                 .ThenInclude(a => a.Teacher)
                     .ThenInclude(t => t.User)
@@ -247,7 +247,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
     )
     {
         var course = await db
-            .Courses.Include(c => c.Lectures)
+            .Courses.Include(c => c.Lessons)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (course is null)
@@ -418,7 +418,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
     {
         var source = await db
             .Courses
-            .Include(c => c.Lectures)
+            .Include(c => c.Lessons)
             .Include(c => c.Materials)
             .Include(c => c.CourseAuthors)
             .Include(c => c.Teacher)
@@ -458,17 +458,17 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
         };
         db.Courses.Add(copy);
 
-        foreach (var lecture in source.Lectures)
+        foreach (var lesson in source.Lessons)
         {
-            db.Lectures.Add(
-                new Lecture
+            db.Lessons.Add(
+                new Lesson
                 {
                     Id = Guid.NewGuid(),
                     CourseId = copy.Id,
-                    Title = lecture.Title,
-                    Content = lecture.Content,
-                    Order = lecture.Order,
-                    LectureType = lecture.LectureType,
+                    Title = lesson.Title,
+                    Content = lesson.Content,
+                    Order = lesson.Order,
+                    Kind = lesson.Kind,
                     TestId = null,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -484,7 +484,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
                 {
                     Id = Guid.NewGuid(),
                     CourseId = copy.Id,
-                    LectureId = null,
+                    LessonId = null,
                     FileName = material.FileName,
                     FilePath = newPath,
                     FileSize = material.FileSize,

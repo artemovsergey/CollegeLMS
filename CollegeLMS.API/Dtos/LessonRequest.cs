@@ -1,17 +1,17 @@
 namespace CollegeLMS.API.Dtos;
 
-public class CreateLectureRequest
+public class CreateLessonRequest
 {
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
-    public string LectureType { get; set; } = "Lecture";
+    public string Kind { get; set; } = "Lecture";
     public Guid? TestId { get; set; }
 }
 
-public class UpdateLectureRequest
+public class UpdateLessonRequest
 {
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
-    public string LectureType { get; set; } = "Lecture";
+    public string Kind { get; set; } = "Lecture";
     public Guid? TestId { get; set; }
 }

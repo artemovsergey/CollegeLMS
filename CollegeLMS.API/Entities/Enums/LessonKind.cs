@@ -1,6 +1,6 @@
 namespace CollegeLMS.API.Entities.Enums;
 
-public enum LectureType
+public enum LessonKind
 {
     Lecture,
     Practice,

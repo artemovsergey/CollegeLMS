@@ -3,13 +3,13 @@ using FluentValidation;
 
 namespace CollegeLMS.API.Validators;
 
-public class CreateLectureRequestValidator : AbstractValidator<CreateLectureRequest>
+public class CreateLessonRequestValidator : AbstractValidator<CreateLessonRequest>
 {
-    public CreateLectureRequestValidator()
+    public CreateLessonRequestValidator()
     {
         RuleFor(x => x.Title)
             .NotEmpty()
-            .WithMessage("Название лекции обязательно")
+            .WithMessage("Название занятия обязательно")
             .MaximumLength(255)
             .WithMessage("Название не должно превышать 255 символов");
 
@@ -17,19 +17,19 @@ public class CreateLectureRequestValidator : AbstractValidator<CreateLectureRequ
             .MaximumLength(65535)
             .WithMessage("Содержание не должно превышать 65535 символов");
 
-        RuleFor(x => x.LectureType)
+        RuleFor(x => x.Kind)
             .Must(t => t is "Lecture" or "Practice" or "SelfStudy")
             .WithMessage("Недопустимый тип занятия");
     }
 }
 
-public class UpdateLectureRequestValidator : AbstractValidator<UpdateLectureRequest>
+public class UpdateLessonRequestValidator : AbstractValidator<UpdateLessonRequest>
 {
-    public UpdateLectureRequestValidator()
+    public UpdateLessonRequestValidator()
     {
         RuleFor(x => x.Title)
             .NotEmpty()
-            .WithMessage("Название лекции обязательно")
+            .WithMessage("Название занятия обязательно")
             .MaximumLength(255)
             .WithMessage("Название не должно превышать 255 символов");
 
@@ -37,7 +37,7 @@ public class UpdateLectureRequestValidator : AbstractValidator<UpdateLectureRequ
             .MaximumLength(65535)
             .WithMessage("Содержание не должно превышать 65535 символов");
 
-        RuleFor(x => x.LectureType)
+        RuleFor(x => x.Kind)
             .Must(t => t is "Lecture" or "Practice" or "SelfStudy")
             .WithMessage("Недопустимый тип занятия");
     }

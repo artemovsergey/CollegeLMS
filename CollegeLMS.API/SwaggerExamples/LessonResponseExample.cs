@@ -1,6 +1,6 @@
 namespace CollegeLMS.API.SwaggerExamples;
 
-public static class LectureResponseExample
+public static class LessonResponseExample
 {
     public static object Create() =>
         new
@@ -10,5 +10,9 @@ public static class LectureResponseExample
             title = "Введение в C#",
             content = "Лекция по основам языка C#",
             order = 1,
+            kind = "Lecture",
+            isCurrent = false,
+            testId = (Guid?)null,
+            testTitle = (string?)null,
         };
 }

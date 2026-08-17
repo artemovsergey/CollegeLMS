@@ -5,7 +5,7 @@ namespace CollegeLMS.API.Entities;
 public class CourseMaterial : Entity
 {
     public Guid CourseId { get; set; }
-    public Guid? LectureId { get; set; }
+    public Guid? LessonId { get; set; }
     public string FileName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
     public long FileSize { get; set; }

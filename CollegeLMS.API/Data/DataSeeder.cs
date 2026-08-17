@@ -639,29 +639,29 @@ public static class DataSeeder
             db.Courses.Add(course);
             await db.SaveChangesAsync();
 
-            if (!root.TryGetProperty("lectures", out var lecturesEl))
+            if (!root.TryGetProperty("lessons", out var lessonsEl))
                 return;
 
-            foreach (var item in lecturesEl.EnumerateArray())
+            foreach (var item in lessonsEl.EnumerateArray())
             {
                 var title = item.GetProperty("title").GetString() ?? "";
                 var content = item.GetProperty("content").GetString() ?? "";
                 var order = item.GetProperty("order").GetInt32();
-                var typeStr = item.GetProperty("lectureType").GetString() ?? "Lecture";
+                var kindStr = item.GetProperty("kind").GetString() ?? "Lecture";
 
-                var lectureType = Enum.TryParse<LectureType>(typeStr, out var parsed)
+                var kind = Enum.TryParse<LessonKind>(kindStr, out var parsed)
                     ? parsed
-                    : LectureType.Lecture;
+                    : LessonKind.Lecture;
 
-                db.Lectures.Add(
-                    new Lecture
+                db.Lessons.Add(
+                    new Lesson
                     {
                         Id = Guid.NewGuid(),
                         CourseId = course.Id,
                         Title = title,
                         Content = content,
                         Order = order,
-                        LectureType = lectureType,
+                        Kind = kind,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow,
                     }

@@ -1027,7 +1027,7 @@ public class TestingServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateAsync_LinksTestToLecture_WhenLectureIdProvided()
+    public async Task CreateAsync_LinksTestToLesson_WhenLessonIdProvided()
     {
         var course = new Course
         {
@@ -1037,25 +1037,25 @@ public class TestingServiceTests : IDisposable
             Status = CourseStatus.Draft,
         };
         _db.Courses.Add(course);
-        var lecture = new Lecture
+        var lecture = new Lesson
         {
             Id = Guid.NewGuid(),
             CourseId = course.Id,
-            Title = "Лекция 1",
+            Title = "Занятие 1",
             Order = 1,
-            LectureType = LectureType.Lecture,
+            Kind = LessonKind.Lecture,
         };
-        _db.Lectures.Add(lecture);
+        _db.Lessons.Add(lecture);
         await _db.SaveChangesAsync();
 
         var result = await _sut.CreateAsync(
             new CreateTestRequest
             {
-                Title = "Тест к лекции",
+                Title = "Тест к занятию",
                 Description = "Описание",
                 CourseId = course.Id,
                 Type = "SelfStudy",
-                LectureId = lecture.Id,
+                LessonId = lecture.Id,
             },
             Guid.NewGuid(),
             "Admin",
@@ -1063,12 +1063,12 @@ public class TestingServiceTests : IDisposable
         );
 
         result.IsSuccess.Should().BeTrue();
-        var linked = await _db.Lectures.FindAsync([lecture.Id]);
+        var linked = await _db.Lessons.FindAsync([lecture.Id]);
         linked!.TestId.Should().Be(result.Data!.Id);
     }
 
     [Fact]
-    public async Task CreateAsync_ReturnsFail_WhenLectureBelongsToAnotherCourse()
+    public async Task CreateAsync_ReturnsFail_WhenLessonBelongsToAnotherCourse()
     {
         var course = new Course
         {
@@ -1085,15 +1085,15 @@ public class TestingServiceTests : IDisposable
             Status = CourseStatus.Draft,
         };
         _db.Courses.AddRange(course, otherCourse);
-        var lecture = new Lecture
+        var lecture = new Lesson
         {
             Id = Guid.NewGuid(),
             CourseId = otherCourse.Id,
-            Title = "Лекция",
+            Title = "Занятие",
             Order = 1,
-            LectureType = LectureType.Lecture,
+            Kind = LessonKind.Lecture,
         };
-        _db.Lectures.Add(lecture);
+        _db.Lessons.Add(lecture);
         await _db.SaveChangesAsync();
 
         var result = await _sut.CreateAsync(
@@ -1102,7 +1102,7 @@ public class TestingServiceTests : IDisposable
                 Title = "Тест",
                 CourseId = course.Id,
                 Type = "SelfStudy",
-                LectureId = lecture.Id,
+                LessonId = lecture.Id,
             },
             Guid.NewGuid(),
             "Admin",
@@ -1114,7 +1114,7 @@ public class TestingServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateAsync_ReturnsFail_WhenLectureAlreadyHasTest()
+    public async Task CreateAsync_ReturnsFail_WhenLessonAlreadyHasTest()
     {
         var course = new Course
         {
@@ -1128,16 +1128,16 @@ public class TestingServiceTests : IDisposable
         existingTest.CourseId = course.Id;
         existingTest.Course = course;
         _db.Tests.Add(existingTest);
-        var lecture = new Lecture
+        var lecture = new Lesson
         {
             Id = Guid.NewGuid(),
             CourseId = course.Id,
-            Title = "Лекция",
+            Title = "Занятие",
             Order = 1,
-            LectureType = LectureType.Lecture,
+            Kind = LessonKind.Lecture,
             TestId = existingTest.Id,
         };
-        _db.Lectures.Add(lecture);
+        _db.Lessons.Add(lecture);
         await _db.SaveChangesAsync();
 
         var result = await _sut.CreateAsync(
@@ -1146,7 +1146,7 @@ public class TestingServiceTests : IDisposable
                 Title = "Тест",
                 CourseId = course.Id,
                 Type = "SelfStudy",
-                LectureId = lecture.Id,
+                LessonId = lecture.Id,
             },
             Guid.NewGuid(),
             "Admin",
@@ -1209,14 +1209,14 @@ public class TestingServiceTests : IDisposable
                 TestId = test.Id,
             }
         );
-        _db.Lectures.Add(
-            new Lecture
+        _db.Lessons.Add(
+            new Lesson
             {
                 Id = Guid.NewGuid(),
                 CourseId = courseId,
-                Title = "Лекция",
+                Title = "Занятие",
                 Order = 1,
-                LectureType = LectureType.Lecture,
+                Kind = LessonKind.Lecture,
                 TestId = test.Id,
             }
         );
@@ -1270,14 +1270,14 @@ public class TestingServiceTests : IDisposable
                 TestId = test.Id,
             }
         );
-        _db.Lectures.Add(
-            new Lecture
+        _db.Lessons.Add(
+            new Lesson
             {
                 Id = Guid.NewGuid(),
                 CourseId = test.CourseId,
-                Title = "Лекция",
+                Title = "Занятие",
                 Order = 1,
-                LectureType = LectureType.Lecture,
+                Kind = LessonKind.Lecture,
                 TestId = test.Id,
             }
         );

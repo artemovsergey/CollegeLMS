@@ -7,8 +7,7 @@ public static class MaterialResponseExample
         {
             id = Guid.NewGuid(),
             courseId = Guid.NewGuid(),
-            lectureId = (Guid?)null,
-            assignmentId = (Guid?)null,
+            lessonId = (Guid?)null,
             fileName = "Лекция_1.pdf",
             fileSize = 102400,
             mimeType = "application/pdf",

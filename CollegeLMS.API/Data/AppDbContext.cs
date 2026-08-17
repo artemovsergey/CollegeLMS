@@ -15,7 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Teacher> Teachers => Set<Teacher>();
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Course> Courses => Set<Course>();
-    public DbSet<Lecture> Lectures => Set<Lecture>();
+    public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<CourseMaterial> CourseMaterials => Set<CourseMaterial>();
     public DbSet<News> News => Set<News>();
     public DbSet<NewsCategory> NewsCategories => Set<NewsCategory>();

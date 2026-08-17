@@ -9,7 +9,7 @@ public interface IMaterialService
     Task<Result<MaterialResponse>> UploadAsync(
         Guid courseId,
         IFormFile file,
-        Guid? lectureId,
+        Guid? lessonId,
         Guid currentUserId,
         string currentUserRole,
         CancellationToken ct = default

@@ -19,7 +19,7 @@ public class MaterialController(IMaterialService service) : ControllerBase
     /// Файл сохраняется на сервере, а информация о нём — в базе данных.</remarks>
     /// <param name="courseId">Идентификатор курса</param>
     /// <param name="file">Файл для загрузки</param>
-    /// <param name="lectureId">Идентификатор лекции (опционально)</param>
+    /// <param name="lessonId">Идентификатор занятия (опционально)</param>
     /// <param name="ct">Токен отмены</param>
     /// <response code="200">Материал загружен</response>
     /// <response code="400">Файл не выбран</response>
@@ -46,7 +46,7 @@ public class MaterialController(IMaterialService service) : ControllerBase
     public async Task<ActionResult<Result<MaterialResponse>>> Upload(
         Guid courseId,
         IFormFile file,
-        [FromQuery] Guid? lectureId,
+        [FromQuery] Guid? lessonId,
         CancellationToken ct
     )
     {
@@ -58,7 +58,7 @@ public class MaterialController(IMaterialService service) : ControllerBase
         var result = await service.UploadAsync(
             courseId,
             file,
-            lectureId,
+            lessonId,
             userId,
             role,
             ct

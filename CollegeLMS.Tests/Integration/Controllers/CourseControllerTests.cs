@@ -55,15 +55,15 @@ public class CourseControllerTests : BaseIntegrationTest
         db.Users.Add(user);
         db.Teachers.Add(teacher);
         db.Courses.Add(course);
-        db.Lectures.Add(
-            new Lecture
+        db.Lessons.Add(
+            new Lesson
             {
                 Id = Guid.NewGuid(),
                 CourseId = course.Id,
                 Title = "Занятие 1",
                 Content = "Текст",
                 Order = 1,
-                LectureType = LectureType.Lecture,
+                Kind = LessonKind.Lecture,
             }
         );
         await db.SaveChangesAsync();
@@ -86,7 +86,7 @@ public class CourseControllerTests : BaseIntegrationTest
 
         var copy = await db.Courses.FirstAsync(c => c.Id == body.Data.Id);
         Assert.Equal(CourseStatus.Draft, copy.Status);
-        Assert.Equal(1, await db.Lectures.CountAsync(l => l.CourseId == copy.Id));
+        Assert.Equal(1, await db.Lessons.CountAsync(l => l.CourseId == copy.Id));
     }
 
     [Fact]
