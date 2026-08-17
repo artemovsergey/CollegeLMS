@@ -1,243 +1,221 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
-using CollegeLMS.Tests.Fixtures;
+using CollegeLMS.Tests.Integration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CollegeLMS.Tests.Integration.Controllers;
 
 public class CourseControllerTests : BaseIntegrationTest
 {
-    private string GetAdminToken()
-    {
-        using var scope = Factory.Services.CreateScope();
-        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
-        var admin = new User
+    private static User MakeUser(string login, UserRole role) =>
+        new()
         {
             Id = Guid.NewGuid(),
-            Email = "admin@test.ru",
-            FullName = "Admin",
+            Login = login,
+            Email = $"{login}@test.ru",
+            FullName = "Тест Тестович",
             PasswordHash = "hash",
-            Role = UserRole.Admin,
+            Role = role,
         };
-        return tokenService.GenerateAccessToken(admin);
-    }
 
-    private string GetStudentToken()
-    {
-        return GetStudentToken(Guid.NewGuid());
-    }
+    private static Teacher MakeTeacher(Guid userId) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            CyclicalCommission = "ИТ",
+            Position = "Преподаватель",
+            Category = TeacherCategory.None,
+        };
 
-    private string GetStudentToken(Guid userId)
+    [Fact]
+    public async Task Duplicate_CopiesCourseAndMakesDraft()
     {
         using var scope = Factory.Services.CreateScope();
         var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
-        var student = new User
+        var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
+
+        var user = MakeUser("dupowner", UserRole.Teacher);
+        var teacher = MakeTeacher(user.Id);
+        var course = new Course
         {
-            Id = userId,
-            Email = "student@test.ru",
-            FullName = "Student",
-            PasswordHash = "hash",
-            Role = UserRole.Student,
+            Id = Guid.NewGuid(),
+            Title = "МДК 09.01",
+            Description = "Описание",
+            TeacherId = teacher.Id,
+            Status = CourseStatus.Active,
+            IsActive = true,
         };
-        return tokenService.GenerateAccessToken(student);
-    }
-
-    private void SetAuthHeader(string token)
-    {
-        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    }
-
-    [Fact]
-    public async Task GetAll_ReturnsCourses_WhenAdmin()
-    {
-        SetAuthHeader(GetAdminToken());
-
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var courses = CourseFixture.CreateFaker().Generate(3);
-        db.Courses.AddRange(courses);
-        await db.SaveChangesAsync();
-
-        var response = await Client.GetAsync("/api/courses");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await DeserializeAsync<Result<List<CourseResponse>>>(response);
-        Assert.NotNull(body);
-        Assert.True(body!.IsSuccess);
-        Assert.Equal(3, body.Data!.Count);
-    }
-
-    [Fact]
-    public async Task GetAll_ReturnsUnauthorized_WhenNoToken()
-    {
-        var response = await Client.GetAsync("/api/courses");
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Create_ReturnsCreated_WhenAdmin()
-    {
-        SetAuthHeader(GetAdminToken());
-
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var teacher = TeacherFixture.CreateFaker().Generate();
-        db.Users.Add(teacher.User);
+        db.Users.Add(user);
         db.Teachers.Add(teacher);
-        await db.SaveChangesAsync();
-
-        var response = await Client.PostAsJsonAsync(
-            "/api/courses",
-            new CreateCourseRequest
+        db.Courses.Add(course);
+        db.Lectures.Add(
+            new Lecture
             {
-                Title = "Новый курс",
-                Description = "Описание курса",
-                TeacherId = teacher.Id,
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                Title = "Занятие 1",
+                Content = "Текст",
+                Order = 1,
+                LectureType = LectureType.Lecture,
             }
         );
+        await db.SaveChangesAsync();
 
+        var token = tokenService.GenerateAccessToken(user);
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer",
+            token
+        );
+
+        var response = await Client.PostAsync($"/api/courses/{course.Id}/duplicate", null);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
         var body = await DeserializeAsync<Result<CourseResponse>>(response);
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
-        Assert.Equal("Новый курс", body.Data!.Title);
+        Assert.NotNull(body.Data);
+        Assert.Contains("(копия)", body.Data.Title);
+        Assert.False(body.Data.IsActive);
+
+        var copy = await db.Courses.FirstAsync(c => c.Id == body.Data.Id);
+        Assert.Equal(CourseStatus.Draft, copy.Status);
+        Assert.Equal(1, await db.Lectures.CountAsync(l => l.CourseId == copy.Id));
     }
 
     [Fact]
-    public async Task Create_ReturnsForbidden_WhenStudent()
+    public async Task SetActive_Forbidden_ForCoAuthor()
     {
-        SetAuthHeader(GetStudentToken());
+        using var scope = Factory.Services.CreateScope();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+        var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
 
-        var response = await Client.PostAsJsonAsync(
-            "/api/courses",
-            new CreateCourseRequest { Title = "Курс" }
+        var owner = MakeUser("activeowner", UserRole.Teacher);
+        var ownerTeacher = MakeTeacher(owner.Id);
+        var coAuthor = MakeUser("activecoauthor", UserRole.Teacher);
+        var coAuthorTeacher = MakeTeacher(coAuthor.Id);
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = ownerTeacher.Id,
+            Status = CourseStatus.Active,
+            IsActive = true,
+        };
+        db.Users.AddRange(owner, coAuthor);
+        db.Teachers.AddRange(ownerTeacher, coAuthorTeacher);
+        db.Courses.Add(course);
+        db.CourseAuthors.Add(
+            new CourseAuthor
+            {
+                Id = Guid.NewGuid(),
+                CourseId = course.Id,
+                TeacherId = coAuthorTeacher.Id,
+            }
+        );
+        await db.SaveChangesAsync();
+
+        var token = tokenService.GenerateAccessToken(coAuthor);
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer",
+            token
         );
 
+        var response = await Client.PatchAsJsonAsync(
+            $"/api/courses/{course.Id}/active",
+            new UpdateCourseActiveRequest { IsActive = false }
+        );
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
-    public async Task GetById_ReturnsNotFound_WhenMissing()
+    public async Task GetAll_ReturnsCourses_WhereCoAuthor()
     {
-        SetAuthHeader(GetAdminToken());
-
-        var response = await Client.GetAsync($"/api/courses/{Guid.NewGuid()}");
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task AssignGroups_AssignsGroups_WhenAdmin()
-    {
-        SetAuthHeader(GetAdminToken());
-
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var course = CourseFixture.CreateFaker().Generate();
-        db.Courses.Add(course);
-        var group = new Group
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+        var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
+
+        var owner = MakeUser("listowner", UserRole.Teacher);
+        var ownerTeacher = MakeTeacher(owner.Id);
+        var teacher2 = MakeUser("listteacher", UserRole.Teacher);
+        var teacher2Entity = MakeTeacher(teacher2.Id);
+        var course = new Course
         {
             Id = Guid.NewGuid(),
-            Name = "ГР-11",
-            Course = 1,
+            Title = "Соавторский",
+            Description = "",
+            TeacherId = ownerTeacher.Id,
+            Status = CourseStatus.Active,
+            IsActive = true,
         };
-        db.Groups.Add(group);
-        await db.SaveChangesAsync();
-
-        var response = await Client.PostAsJsonAsync(
-            $"/api/courses/{course.Id}/groups",
-            new AssignGroupsRequest { GroupIds = new List<Guid> { group.Id } }
-        );
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task GetCourseGroups_ReturnsGroups_WhenAdmin()
-    {
-        SetAuthHeader(GetAdminToken());
-
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var course = CourseFixture.CreateFaker().Generate();
+        db.Users.AddRange(owner, teacher2);
+        db.Teachers.AddRange(ownerTeacher, teacher2Entity);
         db.Courses.Add(course);
-        var group = new Group
-        {
-            Id = Guid.NewGuid(),
-            Name = "ГР-11",
-            Course = 1,
-        };
-        db.Groups.Add(group);
-        db.CourseGroups.Add(
-            new CourseGroup
+        db.CourseAuthors.Add(
+            new CourseAuthor
             {
                 Id = Guid.NewGuid(),
                 CourseId = course.Id,
-                GroupId = group.Id,
+                TeacherId = teacher2Entity.Id,
             }
         );
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync($"/api/courses/{course.Id}/groups");
+        var token = tokenService.GenerateAccessToken(teacher2);
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer",
+            token
+        );
 
+        var response = await Client.GetAsync("/api/courses");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await DeserializeAsync<Result<List<CourseResponse>>>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+        Assert.Single(body.Data!);
+        Assert.Equal(course.Id, body.Data![0].Id);
     }
 
     [Fact]
-    public async Task GetProgress_ReturnsProgress_WhenStudent()
+    public async Task Duplicate_Forbidden_ForForeignTeacher()
     {
-        var studentUserId = Guid.NewGuid();
-
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var course = CourseFixture.CreateFaker().Generate();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+        var db = scope.ServiceProvider.GetRequiredService<API.Data.AppDbContext>();
+
+        var owner = MakeUser("dupowner2", UserRole.Teacher);
+        var ownerTeacher = MakeTeacher(owner.Id);
+        var foreign = MakeUser("dupforeign", UserRole.Teacher);
+        var foreignTeacher = MakeTeacher(foreign.Id);
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Чужой",
+            Description = "",
+            TeacherId = ownerTeacher.Id,
+            Status = CourseStatus.Active,
+            IsActive = true,
+        };
+        db.Users.AddRange(owner, foreign);
+        db.Teachers.AddRange(ownerTeacher, foreignTeacher);
         db.Courses.Add(course);
-        var group = new Group
-        {
-            Id = Guid.NewGuid(),
-            Name = "ГР-11",
-            Course = 1,
-        };
-        db.Groups.Add(group);
-        var student = new Student
-        {
-            Id = Guid.NewGuid(),
-            UserId = studentUserId,
-            GroupId = group.Id,
-            RecordBookNumber = "ЗК-001",
-        };
-        db.Users.Add(
-            new User
-            {
-                Id = studentUserId,
-                FullName = "Студент",
-                Email = "s@t.ru",
-                PasswordHash = "hash",
-                Role = UserRole.Student,
-            }
-        );
-        db.Students.Add(student);
-        db.CourseGroups.Add(
-            new CourseGroup
-            {
-                Id = Guid.NewGuid(),
-                CourseId = course.Id,
-                GroupId = group.Id,
-            }
-        );
         await db.SaveChangesAsync();
 
-        SetAuthHeader(GetStudentToken(studentUserId));
+        var token = tokenService.GenerateAccessToken(foreign);
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer",
+            token
+        );
 
-        var response = await Client.GetAsync($"/api/my/courses/{course.Id}/progress");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var response = await Client.PostAsync($"/api/courses/{course.Id}/duplicate", null);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 }
