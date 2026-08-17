@@ -9,6 +9,7 @@ public class Course : Entity
     public string Description { get; set; } = string.Empty;
     public Guid TeacherId { get; set; }
     public CourseStatus Status { get; set; }
+    public bool IsActive { get; set; } = true;
 
     [JsonIgnore]
     public Teacher Teacher { get; set; } = null!;
@@ -27,4 +28,7 @@ public class Course : Entity
 
     [JsonIgnore]
     public ICollection<CourseGroup> CourseGroups { get; set; } = new List<CourseGroup>();
+
+    [JsonIgnore]
+    public ICollection<CourseAuthor> CourseAuthors { get; set; } = new List<CourseAuthor>();
 }
