@@ -48,7 +48,7 @@ export default function EditCoursePage() {
     setError(null)
     setSubmitting(true)
     try {
-      const body: CreateCourseRequest = { title, description }
+      const body: CreateCourseRequest = { title, description, authorIds: [] }
       const res = await api.put<Result<CourseResponse>>(`/api/courses/${courseId}`, body)
       if (res.data.isSuccess) {
         router.push(`/courses/${courseId}`)

@@ -26,7 +26,7 @@ export default function CreateCoursePage() {
     setError(null)
     setSubmitting(true)
     try {
-      const body: CreateCourseRequest = { title, description }
+      const body: CreateCourseRequest = { title, description, authorIds: [] }
       const res = await api.post<Result<{ id: string }>>("/api/courses", body)
       if (res.data.isSuccess && res.data.data) {
         router.push(`/courses/${res.data.data.id}`)

@@ -82,6 +82,9 @@ export interface CourseResponse {
   teacherName: string
   groupNames: string
   status: string
+  isActive: boolean
+  authorIds: string[]
+  authorNames: string
   lectureCount: number
   assignmentCount: number
 }
@@ -89,6 +92,7 @@ export interface CourseResponse {
 export interface CreateCourseRequest {
   title: string
   description: string
+  authorIds: string[]
 }
 
 export interface LectureResponse {
