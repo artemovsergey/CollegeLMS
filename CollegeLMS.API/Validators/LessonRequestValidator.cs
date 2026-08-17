@@ -42,3 +42,15 @@ public class UpdateLessonRequestValidator : AbstractValidator<UpdateLessonReques
             .WithMessage("Недопустимый тип занятия");
     }
 }
+
+public class ReorderLessonsRequestValidator : AbstractValidator<ReorderLessonsRequest>
+{
+    public ReorderLessonsRequestValidator()
+    {
+        RuleFor(x => x.LessonIds)
+            .NotEmpty()
+            .WithMessage("Список занятий обязателен")
+            .Must(x => x.Distinct().Count() == x.Count)
+            .WithMessage("Список занятий не должен содержать дубликаты");
+    }
+}

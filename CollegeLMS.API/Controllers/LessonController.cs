@@ -117,6 +117,35 @@ public class LessonController(ILessonService service) : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("reorder")]
+    [Authorize(Roles = "Admin,Teacher")]
+    [SwaggerOperation(Summary = "Изменить порядок занятий курса")]
+    [SwaggerResponse(200, "Порядок занятий обновлён", typeof(Result))]
+    [SwaggerResponse(400, "Ошибка валидации")]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён")]
+    [SwaggerResponse(404, "Курс не найден")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result>> Reorder(
+        Guid courseId,
+        ReorderLessonsRequest request,
+        CancellationToken ct
+    )
+    {
+        var userId = User.GetUserId();
+        var role = User.GetRole();
+        var result = await service.ReorderAsync(courseId, request, userId, role, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin,Teacher")]
     [SwaggerOperation(Summary = "Удалить занятие")]

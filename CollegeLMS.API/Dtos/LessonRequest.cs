@@ -6,6 +6,7 @@ public class CreateLessonRequest
     public string Content { get; set; } = string.Empty;
     public string Kind { get; set; } = "Lecture";
     public Guid? TestId { get; set; }
+    public Guid? AfterLessonId { get; set; }
 }
 
 public class UpdateLessonRequest
@@ -14,4 +15,9 @@ public class UpdateLessonRequest
     public string Content { get; set; } = string.Empty;
     public string Kind { get; set; } = "Lecture";
     public Guid? TestId { get; set; }
+}
+
+public class ReorderLessonsRequest
+{
+    public List<Guid> LessonIds { get; set; } = new();
 }

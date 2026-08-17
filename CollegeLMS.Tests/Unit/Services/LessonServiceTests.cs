@@ -156,7 +156,7 @@ public class LessonServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Create_AutoAssignsOrder()
+    public async Task Delete_CompactsOrders_WhenLessonRemoved()
     {
         var adminId = Guid.NewGuid();
         _db.Users.Add(
@@ -169,38 +169,26 @@ public class LessonServiceTests : IDisposable
                 Role = UserRole.Admin,
             }
         );
-        var courseId = Guid.NewGuid();
-        _db.Courses.Add(
-            new Course
-            {
-                Id = courseId,
-                Title = "Test",
-                TeacherId = Guid.NewGuid(),
-                Status = CourseStatus.Draft,
-            }
-        );
-        _db.Lessons.Add(
-            new Lesson
-            {
-                Id = Guid.NewGuid(),
-                CourseId = courseId,
-                Title = "Existing",
-                Content = "Content",
-                Order = 5,
-            }
-        );
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        var a = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "A", Order = 1 };
+        var b = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "B", Order = 2 };
+        var c = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "C", Order = 3 };
+        _db.Courses.Add(course);
+        _db.Lessons.AddRange(a, b, c);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.CreateAsync(
-            courseId,
-            new CreateLessonRequest { Title = "Новая", Content = "Контент" },
-            adminId,
-            "Admin",
-            default
-        );
+        var result = await _sut.DeleteAsync(course.Id, b.Id, adminId, "Admin", default);
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.Order.Should().Be(6);
+        (await _db.Lessons.SingleAsync(l => l.Id == a.Id)).Order.Should().Be(1);
+        (await _db.Lessons.SingleAsync(l => l.Id == c.Id)).Order.Should().Be(2);
     }
 
     [Fact]
@@ -285,5 +273,172 @@ public class LessonServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         var exists = await _db.Lessons.AnyAsync(l => l.Id == lesson.Id);
         exists.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Create_InsertsAfterGivenLesson_WhenAfterLessonIdSet()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        var first = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "Первое",
+            Order = 1,
+        };
+        var second = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "Второе",
+            Order = 2,
+        };
+        _db.Courses.Add(course);
+        _db.Lessons.AddRange(first, second);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.CreateAsync(
+            course.Id,
+            new CreateLessonRequest
+            {
+                Title = "Между",
+                Content = "",
+                Kind = "Lecture",
+                AfterLessonId = first.Id,
+            },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var lessons = await _db
+            .Lessons.Where(l => l.CourseId == course.Id)
+            .OrderBy(l => l.Order)
+            .ToListAsync();
+        lessons.Should().HaveCount(3);
+        lessons[0].Id.Should().Be(first.Id);
+        lessons[1].Id.Should().Be(result.Data!.Id);
+        lessons[0].Order.Should().Be(1);
+        lessons[1].Order.Should().Be(2);
+        lessons[2].Order.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Create_InsertsAtStart_WhenAfterLessonIdNull()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        var first = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "Первое",
+            Order = 1,
+        };
+        _db.Courses.Add(course);
+        _db.Lessons.Add(first);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.CreateAsync(
+            course.Id,
+            new CreateLessonRequest
+            {
+                Title = "В начало",
+                Content = "",
+                Kind = "Lecture",
+                AfterLessonId = null,
+            },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var lessons = await _db
+            .Lessons.Where(l => l.CourseId == course.Id)
+            .OrderBy(l => l.Order)
+            .ToListAsync();
+        lessons[0].Id.Should().Be(result.Data!.Id);
+        lessons[1].Order.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Reorder_ReassignsOrders_WhenValid()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        var a = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "A", Order = 1 };
+        var b = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "B", Order = 2 };
+        var c = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "C", Order = 3 };
+        _db.Courses.Add(course);
+        _db.Lessons.AddRange(a, b, c);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ReorderAsync(
+            course.Id,
+            new ReorderLessonsRequest { LessonIds = [c.Id, a.Id, b.Id] },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        (await _db.Lessons.SingleAsync(l => l.Id == c.Id)).Order.Should().Be(1);
+        (await _db.Lessons.SingleAsync(l => l.Id == a.Id)).Order.Should().Be(2);
+        (await _db.Lessons.SingleAsync(l => l.Id == b.Id)).Order.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Reorder_ReturnsBadRequest_WhenLessonFromAnotherCourse()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        var other = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = Guid.NewGuid(),
+            Title = "Чужое",
+            Order = 1,
+        };
+        _db.Courses.Add(course);
+        _db.Lessons.Add(other);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ReorderAsync(
+            course.Id,
+            new ReorderLessonsRequest { LessonIds = [other.Id] },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
     }
 }

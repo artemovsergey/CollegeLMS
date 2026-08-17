@@ -29,4 +29,12 @@ public interface ILessonService
         string currentUserRole,
         CancellationToken ct
     );
+
+    Task<Result> ReorderAsync(
+        Guid courseId,
+        ReorderLessonsRequest request,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    );
 }
