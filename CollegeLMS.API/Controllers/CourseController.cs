@@ -48,7 +48,9 @@ public class CourseController(ICourseService service) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result<CourseResponse>>> GetById(Guid id, CancellationToken ct)
     {
-        var result = await service.GetByIdAsync(id, ct);
+        var userId = User.GetUserId();
+        var role = User.GetRole();
+        var result = await service.GetByIdAsync(id, userId, role, ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
         return Ok(result);
@@ -127,6 +129,60 @@ public class CourseController(ICourseService service) : ControllerBase
         var userId = User.GetUserId();
         var role = User.GetRole();
         var result = await service.DeleteAsync(id, userId, role, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/duplicate")]
+    [Authorize(Roles = "Teacher,Admin")]
+    [SwaggerOperation(Summary = "Дублировать курс")]
+    [SwaggerResponse(200, "Копия курса", typeof(Result<CourseResponse>))]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Нет прав")]
+    [SwaggerResponse(404, "Курс не найден")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<CourseResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<CourseResponse>>> Duplicate(Guid id, CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        var role = User.GetRole();
+        var result = await service.DuplicateAsync(id, userId, role, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    /// <summary>Изменить активность курса. Только владелец.</summary>
+    /// <response code="200">Активность обновлена</response>
+    /// <response code="403">Только владелец</response>
+    /// <response code="404">Курс не найден</response>
+    [HttpPatch("{id:guid}/active")]
+    [Authorize(Roles = "Teacher,Admin")]
+    [SwaggerOperation(Summary = "Изменить активность курса")]
+    [SwaggerResponse(200, "Активность обновлена", typeof(Result))]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Только владелец")]
+    [SwaggerResponse(404, "Курс не найден")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result>> SetActive(
+        Guid id,
+        [FromBody] UpdateCourseActiveRequest request,
+        CancellationToken ct
+    )
+    {
+        var userId = User.GetUserId();
+        var role = User.GetRole();
+        var result = await service.SetActiveAsync(id, request.IsActive, userId, role, ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
         return Ok(result);

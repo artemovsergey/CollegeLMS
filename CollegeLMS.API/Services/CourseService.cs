@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class CourseService(AppDbContext db) : ICourseService
+public class CourseService(AppDbContext db, ICourseAccessService access) : ICourseService
 {
     public async Task<Result<List<CourseResponse>>> GetAllAsync(
         Guid? teacherId,
@@ -27,6 +27,9 @@ public class CourseService(AppDbContext db) : ICourseService
                 .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
+            .Include(c => c.CourseAuthors)
+                .ThenInclude(a => a.Teacher)
+                    .ThenInclude(t => t.User)
             .AsQueryable();
 
         if (currentUserRole == "Teacher")
@@ -38,7 +41,12 @@ public class CourseService(AppDbContext db) : ICourseService
             if (teacher is null)
                 return Result<List<CourseResponse>>.Fail("Преподаватель не найден", 404);
 
-            query = query.Where(c => c.TeacherId == teacher.Id);
+            var managedIds = await access.GetManagedCourseIdsAsync(teacher.Id, ct);
+            query = query.Where(c => managedIds.Contains(c.Id));
+        }
+        else if (currentUserRole == "Student")
+        {
+            query = query.Where(c => c.IsActive);
         }
 
         if (teacherId.HasValue)
@@ -52,7 +60,12 @@ public class CourseService(AppDbContext db) : ICourseService
         return Result<List<CourseResponse>>.Ok(courses.Select(c => c.ToDto()).ToList());
     }
 
-    public async Task<Result<CourseResponse>> GetByIdAsync(Guid id, CancellationToken ct)
+    public async Task<Result<CourseResponse>> GetByIdAsync(
+        Guid id,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
     {
         var course = await db
             .Courses.AsNoTracking()
@@ -62,10 +75,26 @@ public class CourseService(AppDbContext db) : ICourseService
                 .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
+            .Include(c => c.CourseAuthors)
+                .ThenInclude(a => a.Teacher)
+                    .ThenInclude(t => t.User)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (course is null)
             return Result<CourseResponse>.Fail("Курс не найден", 404);
+
+        if (currentUserRole == "Teacher")
+        {
+            var teacher = await db
+                .Teachers.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
+
+            if (teacher is null || !await access.CanManageCourseAsync(course, teacher.Id, ct))
+                return Result<CourseResponse>.Fail(
+                    "У вас нет прав на просмотр этого курса",
+                    403
+                );
+        }
 
         return Result<CourseResponse>.Ok(course.ToDto());
     }
@@ -105,6 +134,28 @@ public class CourseService(AppDbContext db) : ICourseService
             Status = CourseStatus.Draft,
         };
         db.Courses.Add(course);
+
+        foreach (var authorId in request.AuthorIds.Distinct())
+        {
+            if (authorId == teacherId)
+                continue;
+
+            var teacherExists = await db.Teachers.AnyAsync(t => t.Id == authorId, ct);
+            if (!teacherExists)
+                return Result<CourseResponse>.Fail($"Преподаватель не найден: {authorId}", 400);
+
+            db.CourseAuthors.Add(
+                new CourseAuthor
+                {
+                    Id = Guid.NewGuid(),
+                    CourseId = course.Id,
+                    TeacherId = authorId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
+        }
+
         await db.SaveChangesAsync(ct);
 
         course = await db
@@ -134,6 +185,9 @@ public class CourseService(AppDbContext db) : ICourseService
                 .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
             .Include(c => c.Assignments)
+            .Include(c => c.CourseAuthors)
+                .ThenInclude(a => a.Teacher)
+                    .ThenInclude(t => t.User)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (course is null)
@@ -145,7 +199,7 @@ public class CourseService(AppDbContext db) : ICourseService
                 .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
-            if (teacher is null || course.TeacherId != teacher.Id)
+            if (teacher is null || !await access.CanManageCourseAsync(course, teacher.Id, ct))
                 return Result<CourseResponse>.Fail(
                     "У вас нет прав на редактирование этого курса",
                     403
@@ -156,6 +210,34 @@ public class CourseService(AppDbContext db) : ICourseService
         course.Description = request.Description;
         course.Status = Enum.Parse<CourseStatus>(request.Status);
         course.UpdatedAt = DateTime.UtcNow;
+
+        var existingAuthorIds = course.CourseAuthors.Select(a => a.TeacherId).ToList();
+        foreach (var removed in existingAuthorIds.Where(id => !request.AuthorIds.Contains(id)))
+        {
+            var author = course.CourseAuthors.First(a => a.TeacherId == removed);
+            db.CourseAuthors.Remove(author);
+        }
+
+        var newAuthorIds = request
+            .AuthorIds.Distinct()
+            .Where(id => id != course.TeacherId && !existingAuthorIds.Contains(id));
+        foreach (var authorId in newAuthorIds)
+        {
+            var teacherExists = await db.Teachers.AnyAsync(t => t.Id == authorId, ct);
+            if (!teacherExists)
+                return Result<CourseResponse>.Fail($"Преподаватель не найден: {authorId}", 400);
+
+            db.CourseAuthors.Add(
+                new CourseAuthor
+                {
+                    Id = Guid.NewGuid(),
+                    CourseId = course.Id,
+                    TeacherId = authorId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
+        }
 
         await db.SaveChangesAsync(ct);
         return Result<CourseResponse>.Ok(course.ToDto());
@@ -356,6 +438,141 @@ public class CourseService(AppDbContext db) : ICourseService
         );
     }
 
+    public async Task<Result<CourseResponse>> DuplicateAsync(
+        Guid courseId,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
+    {
+        var source = await db
+            .Courses
+            .Include(c => c.Lectures)
+            .Include(c => c.Materials)
+            .Include(c => c.CourseAuthors)
+            .Include(c => c.Teacher)
+            .FirstOrDefaultAsync(c => c.Id == courseId, ct);
+
+        if (source is null)
+            return Result<CourseResponse>.Fail("Курс не найден", 404);
+
+        Guid authorTeacherId;
+        if (currentUserRole == "Teacher")
+        {
+            var teacher = await db.Teachers.AsNoTracking().FirstOrDefaultAsync(
+                t => t.UserId == currentUserId,
+                ct
+            );
+            if (teacher is null)
+                return Result<CourseResponse>.Fail("Преподаватель не найден", 404);
+            authorTeacherId = teacher.Id;
+            if (!await access.CanManageCourseAsync(source, teacher.Id, ct))
+                return Result<CourseResponse>.Fail("У вас нет прав на дублирование этого курса", 403);
+        }
+        else
+        {
+            authorTeacherId = source.TeacherId;
+        }
+
+        var copy = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = $"{source.Title} (копия)",
+            Description = source.Description,
+            TeacherId = authorTeacherId,
+            Status = CourseStatus.Draft,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        db.Courses.Add(copy);
+
+        foreach (var lecture in source.Lectures)
+        {
+            db.Lectures.Add(
+                new Lecture
+                {
+                    Id = Guid.NewGuid(),
+                    CourseId = copy.Id,
+                    Title = lecture.Title,
+                    Content = lecture.Content,
+                    Order = lecture.Order,
+                    LectureType = lecture.LectureType,
+                    TestId = null,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
+        }
+
+        foreach (var material in source.Materials)
+        {
+            var newPath = await CopyMaterialFileAsync(material.FilePath, copy.Id, ct);
+            db.CourseMaterials.Add(
+                new CourseMaterial
+                {
+                    Id = Guid.NewGuid(),
+                    CourseId = copy.Id,
+                    LectureId = null,
+                    AssignmentId = null,
+                    FileName = material.FileName,
+                    FilePath = newPath,
+                    FileSize = material.FileSize,
+                    MimeType = material.MimeType,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
+        }
+
+        foreach (var author in source.CourseAuthors)
+        {
+            db.CourseAuthors.Add(
+                new CourseAuthor
+                {
+                    Id = Guid.NewGuid(),
+                    CourseId = copy.Id,
+                    TeacherId = author.TeacherId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
+        }
+
+        await db.SaveChangesAsync(ct);
+        copy.CourseAuthors = source.CourseAuthors;
+        copy.Teacher = source.Teacher;
+        return Result<CourseResponse>.Ok(copy.ToDto());
+    }
+
+    public async Task<Result> SetActiveAsync(
+        Guid courseId,
+        bool isActive,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
+    {
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.Id == courseId, ct);
+        if (course is null)
+            return Result.Fail("Курс не найден", 404);
+
+        if (currentUserRole == "Teacher")
+        {
+            var teacher = await db.Teachers.AsNoTracking().FirstOrDefaultAsync(
+                t => t.UserId == currentUserId,
+                ct
+            );
+            if (teacher is null || course.TeacherId != teacher.Id)
+                return Result.Fail("Только владелец курса может менять активность", 403);
+        }
+
+        course.IsActive = isActive;
+        course.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Ok();
+    }
+
     private async Task<bool> CanManageCourse(
         Guid courseId,
         Guid currentUserId,
@@ -378,5 +595,22 @@ public class CourseService(AppDbContext db) : ICourseService
             );
         }
         return false;
+    }
+
+    private static async Task<string> CopyMaterialFileAsync(
+        string relativePath,
+        Guid newCourseId,
+        CancellationToken ct
+    )
+    {
+        var sourcePath = Path.Combine("uploads", relativePath);
+        var fileName = Path.GetFileName(relativePath);
+        var destDir = Path.Combine("uploads", "materials", newCourseId.ToString());
+        Directory.CreateDirectory(destDir);
+        var destPath = Path.Combine(destDir, fileName);
+        await using var src = new FileStream(sourcePath, FileMode.Open, FileAccess.Read);
+        await using var dst = new FileStream(destPath, FileMode.Create);
+        await src.CopyToAsync(dst, ct);
+        return Path.Combine("materials", newCourseId.ToString(), fileName).Replace('\\', '/');
     }
 }

@@ -1,22 +1,35 @@
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
+using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 
 namespace CollegeLMS.Tests.Unit.Services;
 
 public class CourseServiceTests : IDisposable
 {
     private readonly API.Data.AppDbContext _db;
+    private readonly Mock<ICourseAccessService> _accessMock;
     private readonly CourseService _sut;
 
     public CourseServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        _sut = new CourseService(_db);
+        _accessMock = new Mock<ICourseAccessService>();
+        _accessMock
+            .Setup(x => x.CanManageCourseAsync(It.IsAny<Course>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _accessMock
+            .Setup(x => x.CanManageCourseAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _accessMock
+            .Setup(x => x.GetManagedCourseIdsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Guid>());
+        _sut = new CourseService(_db, _accessMock.Object);
     }
 
     public void Dispose() => _db.Dispose();
@@ -88,6 +101,10 @@ public class CourseServiceTests : IDisposable
         _db.Courses.AddRange(ownCourse, otherCourse);
         await _db.SaveChangesAsync();
 
+        _accessMock
+            .Setup(x => x.GetManagedCourseIdsAsync(teacher.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Guid> { ownCourse.Id });
+
         var result = await _sut.GetAllAsync(null, null, teacherUserId, "Teacher", default);
 
         result.IsSuccess.Should().BeTrue();
@@ -101,7 +118,7 @@ public class CourseServiceTests : IDisposable
         _db.Courses.Add(course);
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GetByIdAsync(course.Id, default);
+        var result = await _sut.GetByIdAsync(course.Id, Guid.NewGuid(), "Admin", default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Id.Should().Be(course.Id);
@@ -110,7 +127,7 @@ public class CourseServiceTests : IDisposable
     [Fact]
     public async Task GetById_ReturnsNotFound_WhenMissing()
     {
-        var result = await _sut.GetByIdAsync(Guid.NewGuid(), default);
+        var result = await _sut.GetByIdAsync(Guid.NewGuid(), Guid.NewGuid(), "Admin", default);
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);

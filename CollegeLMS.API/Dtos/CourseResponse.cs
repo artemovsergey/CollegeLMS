@@ -9,6 +9,9 @@ public class CourseResponse
     public string TeacherName { get; set; } = string.Empty;
     public string GroupNames { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public List<Guid> AuthorIds { get; set; } = new();
+    public string AuthorNames { get; set; } = string.Empty;
     public int LectureCount { get; set; }
     public int AssignmentCount { get; set; }
 }

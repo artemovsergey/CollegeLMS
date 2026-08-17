@@ -18,6 +18,12 @@ public static class CourseMapper
                 course.CourseGroups?.Select(cg => cg.Group?.Name ?? "") ?? []
             ),
             Status = course.Status.ToString(),
+            IsActive = course.IsActive,
+            AuthorIds = course.CourseAuthors?.Select(a => a.TeacherId).ToList() ?? new(),
+            AuthorNames = string.Join(
+                ", ",
+                course.CourseAuthors?.Select(a => a.Teacher?.User?.FullName ?? "") ?? []
+            ),
             LectureCount = course.Lectures?.Count ?? 0,
             AssignmentCount = course.Assignments?.Count ?? 0,
         };

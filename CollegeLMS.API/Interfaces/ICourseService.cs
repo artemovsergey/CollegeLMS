@@ -12,7 +12,25 @@ public interface ICourseService
         string currentUserRole,
         CancellationToken ct = default
     );
-    Task<Result<CourseResponse>> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<Result<CourseResponse>> GetByIdAsync(
+        Guid id,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct = default
+    );
+    Task<Result<CourseResponse>> DuplicateAsync(
+        Guid courseId,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct = default
+    );
+    Task<Result> SetActiveAsync(
+        Guid courseId,
+        bool isActive,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct = default
+    );
     Task<Result<CourseResponse>> CreateAsync(
         CreateCourseRequest request,
         Guid currentUserId,

@@ -21,7 +21,12 @@ public class DashboardService(AppDbContext db) : IDashboardService
             .Courses.AsNoTracking()
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
-            .Where(c => c.TeacherId == teacher.Id)
+            .Include(c => c.CourseAuthors)
+            .Where(
+                c =>
+                    c.IsActive
+                    && (c.TeacherId == teacher.Id || c.CourseAuthors.Any(a => a.TeacherId == teacher.Id))
+            )
             .Select(c => new CourseBriefDto
             {
                 Id = c.Id,
@@ -55,7 +60,7 @@ public class DashboardService(AppDbContext db) : IDashboardService
             .Include(c => c.Teacher)
                 .ThenInclude(t => t.User)
             .Include(c => c.Assignments)
-            .Where(c => courseIds.Contains(c.Id))
+            .Where(c => courseIds.Contains(c.Id) && c.IsActive)
             .ToListAsync(ct);
 
         var result = new List<CourseWithProgressDto>();
