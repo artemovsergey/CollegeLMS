@@ -71,6 +71,15 @@ public static class DbConstraints
             """
         );
 
+        // Lessons (текущее занятие — одно на курс)
+        await db.Database.ExecuteSqlRawAsync(
+            """
+                CREATE UNIQUE INDEX IF NOT EXISTS ux_lessons_course_id_is_current
+                ON lessons (course_id)
+                WHERE is_current;
+            """
+        );
+
         // Schedule entries
         await db.Database.ExecuteSqlRawAsync(
             """

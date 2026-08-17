@@ -54,3 +54,11 @@ public class ReorderLessonsRequestValidator : AbstractValidator<ReorderLessonsRe
             .WithMessage("Список занятий не должен содержать дубликаты");
     }
 }
+
+public class UpdateLessonCurrentRequestValidator : AbstractValidator<UpdateLessonCurrentRequest>
+{
+    public UpdateLessonCurrentRequestValidator()
+    {
+        RuleFor(x => x.IsCurrent).NotNull().WithMessage("Поле isCurrent обязательно");
+    }
+}

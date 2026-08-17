@@ -249,4 +249,55 @@ public class LessonService(AppDbContext db, ICourseAccessService access) : ILess
         await db.SaveChangesAsync(ct);
         return Result.Ok();
     }
+
+    public async Task<Result> SetCurrentAsync(
+        Guid courseId,
+        Guid id,
+        UpdateLessonCurrentRequest request,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    )
+    {
+        var lesson = await db.Lessons.FirstOrDefaultAsync(
+            l => l.Id == id && l.CourseId == courseId,
+            ct
+        );
+
+        if (lesson is null)
+            return Result.Fail("Занятие не найдено", 404);
+
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.Id == courseId, ct);
+
+        if (currentUserRole == "Teacher" && course is not null)
+        {
+            var teacher = await db
+                .Teachers.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
+
+            if (teacher is null || !await access.CanManageCourseAsync(course, teacher.Id, ct))
+                return Result.Fail("У вас нет прав на изменение текущего занятия", 403);
+        }
+
+        if (request.IsCurrent)
+        {
+            var others = await db
+                .Lessons.Where(l => l.CourseId == courseId && l.Id != lesson.Id && l.IsCurrent)
+                .ToListAsync(ct);
+            foreach (var other in others)
+            {
+                other.IsCurrent = false;
+                other.UpdatedAt = DateTime.UtcNow;
+            }
+            lesson.IsCurrent = true;
+        }
+        else
+        {
+            lesson.IsCurrent = false;
+        }
+        lesson.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        return Result.Ok();
+    }
 }

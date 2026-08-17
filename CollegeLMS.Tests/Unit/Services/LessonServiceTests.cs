@@ -441,4 +441,105 @@ public class LessonServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(400);
     }
+
+    [Fact]
+    public async Task SetCurrent_True_SetsLessonAndResetsOthers()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        var a = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "A",
+            Order = 1,
+            IsCurrent = true,
+        };
+        var b = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "B", Order = 2 };
+        _db.Courses.Add(course);
+        _db.Lessons.AddRange(a, b);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.SetCurrentAsync(
+            course.Id,
+            b.Id,
+            new UpdateLessonCurrentRequest { IsCurrent = true },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        (await _db.Lessons.SingleAsync(l => l.Id == a.Id)).IsCurrent.Should().BeFalse();
+        (await _db.Lessons.SingleAsync(l => l.Id == b.Id)).IsCurrent.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetCurrent_False_UnsetsLesson()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        var a = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "A",
+            Order = 1,
+            IsCurrent = true,
+        };
+        _db.Courses.Add(course);
+        _db.Lessons.Add(a);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.SetCurrentAsync(
+            course.Id,
+            a.Id,
+            new UpdateLessonCurrentRequest { IsCurrent = false },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        (await _db.Lessons.SingleAsync(l => l.Id == a.Id)).IsCurrent.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetCurrent_ReturnsNotFound_WhenLessonMissing()
+    {
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        _db.Courses.Add(course);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.SetCurrentAsync(
+            course.Id,
+            Guid.NewGuid(),
+            new UpdateLessonCurrentRequest { IsCurrent = true },
+            Guid.NewGuid(),
+            "Admin",
+            default
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
 }

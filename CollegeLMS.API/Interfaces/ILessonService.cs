@@ -37,4 +37,13 @@ public interface ILessonService
         string currentUserRole,
         CancellationToken ct
     );
+
+    Task<Result> SetCurrentAsync(
+        Guid courseId,
+        Guid id,
+        UpdateLessonCurrentRequest request,
+        Guid currentUserId,
+        string currentUserRole,
+        CancellationToken ct
+    );
 }

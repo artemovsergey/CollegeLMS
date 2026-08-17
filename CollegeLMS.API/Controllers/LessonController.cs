@@ -146,6 +146,36 @@ public class LessonController(ILessonService service) : ControllerBase
         return Ok(result);
     }
 
+    [HttpPatch("{id:guid}/current")]
+    [Authorize(Roles = "Admin,Teacher")]
+    [SwaggerOperation(Summary = "Пометить занятие как текущее")]
+    [SwaggerResponse(200, "Текущее занятие обновлено", typeof(Result))]
+    [SwaggerResponse(400, "Ошибка валидации")]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён")]
+    [SwaggerResponse(404, "Занятие не найдено")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result>> SetCurrent(
+        Guid courseId,
+        Guid id,
+        UpdateLessonCurrentRequest request,
+        CancellationToken ct
+    )
+    {
+        var userId = User.GetUserId();
+        var role = User.GetRole();
+        var result = await service.SetCurrentAsync(courseId, id, request, userId, role, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin,Teacher")]
     [SwaggerOperation(Summary = "Удалить занятие")]

@@ -200,4 +200,96 @@ public class LessonControllerTests : BaseIntegrationTest
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+
+    [Fact]
+    public async Task SetCurrent_ReturnsOk_WhenOwner()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "owner2@test.ru",
+            FullName = "Owner",
+            PasswordHash = "hash",
+            Role = UserRole.Teacher,
+        };
+        db.Users.Add(user);
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            CyclicalCommission = "Цикловая комиссия",
+            Category = TeacherCategory.None,
+        };
+        db.Teachers.Add(teacher);
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Курс",
+            Description = "",
+            TeacherId = teacher.Id,
+            Status = CourseStatus.Draft,
+        };
+        var lesson = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "A",
+            Order = 1,
+        };
+        db.Courses.Add(course);
+        db.Lessons.Add(lesson);
+        await db.SaveChangesAsync();
+
+        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer",
+            tokenService.GenerateAccessToken(user)
+        );
+
+        var response = await Client.PatchAsJsonAsync(
+            $"/api/courses/{course.Id}/lessons/{lesson.Id}/current",
+            new UpdateLessonCurrentRequest { IsCurrent = true }
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeAsync<Result>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+    }
+
+    [Fact]
+    public async Task SetCurrent_ReturnsForbidden_WhenNotOwner()
+    {
+        SetAuthHeader(GetTeacherToken());
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var course = new Course
+        {
+            Id = Guid.NewGuid(),
+            Title = "Чужой курс",
+            Description = "",
+            TeacherId = Guid.NewGuid(),
+            Status = CourseStatus.Draft,
+        };
+        var lesson = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "A",
+            Order = 1,
+        };
+        db.Courses.Add(course);
+        db.Lessons.Add(lesson);
+        await db.SaveChangesAsync();
+
+        var response = await Client.PatchAsJsonAsync(
+            $"/api/courses/{course.Id}/lessons/{lesson.Id}/current",
+            new UpdateLessonCurrentRequest { IsCurrent = true }
+        );
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }

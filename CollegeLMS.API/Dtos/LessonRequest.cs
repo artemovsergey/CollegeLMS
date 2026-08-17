@@ -21,3 +21,8 @@ public class ReorderLessonsRequest
 {
     public List<Guid> LessonIds { get; set; } = new();
 }
+
+public class UpdateLessonCurrentRequest
+{
+    public bool IsCurrent { get; set; }
+}
