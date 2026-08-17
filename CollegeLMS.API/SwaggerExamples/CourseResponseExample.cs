@@ -13,6 +13,9 @@ public static class CourseResponseExample
             groupId = Guid.NewGuid(),
             groupName = "ГР-21",
             status = "Draft",
+            isActive = true,
+            authorIds = new List<Guid> { Guid.NewGuid() },
+            authorNames = "Петров Пётр Петрович",
             lectureCount = 0,
             assignmentCount = 0,
         };

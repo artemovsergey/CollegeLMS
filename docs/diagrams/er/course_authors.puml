@@ -1,0 +1,33 @@
+@startuml
+!define table(x) class x << (T,#FFAAAA) >>
+!define primary_key(x) <color:red><b><u>x</u></b></color>
+!define column(x) <color:black>x</color>
+
+table(course_authors) {
+  <color:red><b><u>id (PK)</u></b></color>
+  course_id (FK -> courses)
+  teacher_id (FK -> teachers)
+  created_at
+  updated_at
+}
+' UNIQUE (course_id, teacher_id)
+
+table(courses) {
+  <color:red><b><u>id (PK)</u></b></color>
+  title
+  description
+  teacher_id (FK -> teachers)
+  status
+  is_active
+  created_at
+  updated_at
+}
+
+table(teachers) {
+  <color:red><b><u>id (PK)</u></b></color>
+  user_id (FK -> users)
+}
+
+course_authors }o--|| courses : "соавторы"
+course_authors }o--|| teachers
+@enduml
