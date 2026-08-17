@@ -182,6 +182,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILessonService, LessonService>();
         services.AddScoped<IFileService, FileService>();
         services.AddScoped<IMaterialService, MaterialService>();
+        services.AddScoped<ICourseDocumentService, CourseDocumentService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<INewsService, NewsService>();
         services.AddScoped<IWordPressImportService, WordPressImportService>();

@@ -21,6 +21,9 @@ public class Course : Entity
     public ICollection<CourseMaterial> Materials { get; set; } = new List<CourseMaterial>();
 
     [JsonIgnore]
+    public ICollection<CourseDocument> CourseDocuments { get; set; } = new List<CourseDocument>();
+
+    [JsonIgnore]
     public ICollection<Test> Tests { get; set; } = new List<Test>();
 
     [JsonIgnore]

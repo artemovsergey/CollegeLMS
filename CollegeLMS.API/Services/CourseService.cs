@@ -420,6 +420,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
             .Courses
             .Include(c => c.Lessons)
             .Include(c => c.Materials)
+            .Include(c => c.CourseDocuments)
             .Include(c => c.CourseAuthors)
             .Include(c => c.Teacher)
             .FirstOrDefaultAsync(c => c.Id == courseId, ct);
@@ -509,6 +510,24 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
             );
         }
 
+        foreach (var doc in source.CourseDocuments)
+        {
+            var newPath = await CopyDocumentFileAsync(doc.FilePath, copy.Id, ct);
+            db.CourseDocuments.Add(
+                new CourseDocument
+                {
+                    Id = Guid.NewGuid(),
+                    CourseId = copy.Id,
+                    FileName = doc.FileName,
+                    FilePath = newPath,
+                    ContentType = doc.ContentType,
+                    SizeBytes = doc.SizeBytes,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
+        }
+
         await db.SaveChangesAsync(ct);
         copy.CourseAuthors = source.CourseAuthors;
         copy.Teacher = source.Teacher;
@@ -582,5 +601,22 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
         await using var dst = new FileStream(destPath, FileMode.Create);
         await src.CopyToAsync(dst, ct);
         return Path.Combine("materials", newCourseId.ToString(), fileName).Replace('\\', '/');
+    }
+
+    private static async Task<string> CopyDocumentFileAsync(
+        string relativePath,
+        Guid newCourseId,
+        CancellationToken ct
+    )
+    {
+        var sourcePath = Path.Combine("uploads", relativePath);
+        var fileName = Path.GetFileName(relativePath);
+        var destDir = Path.Combine("uploads", "documents", newCourseId.ToString());
+        Directory.CreateDirectory(destDir);
+        var destPath = Path.Combine(destDir, fileName);
+        await using var src = new FileStream(sourcePath, FileMode.Open, FileAccess.Read);
+        await using var dst = new FileStream(destPath, FileMode.Create);
+        await src.CopyToAsync(dst, ct);
+        return Path.Combine("documents", newCourseId.ToString(), fileName).Replace('\\', '/');
     }
 }
