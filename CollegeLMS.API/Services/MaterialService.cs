@@ -16,7 +16,6 @@ public class MaterialService(AppDbContext db, IFileService fileService, ICourseA
         Guid courseId,
         IFormFile file,
         Guid? lectureId,
-        Guid? assignmentId,
         Guid currentUserId,
         string currentUserRole,
         CancellationToken ct
@@ -46,7 +45,6 @@ public class MaterialService(AppDbContext db, IFileService fileService, ICourseA
             Id = Guid.NewGuid(),
             CourseId = courseId,
             LectureId = lectureId,
-            AssignmentId = assignmentId,
             FileName = file.FileName,
             FilePath = filePath,
             FileSize = file.Length,

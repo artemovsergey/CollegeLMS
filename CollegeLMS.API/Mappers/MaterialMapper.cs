@@ -11,7 +11,6 @@ public static class MaterialMapper
             Id = material.Id,
             CourseId = material.CourseId,
             LectureId = material.LectureId,
-            AssignmentId = material.AssignmentId,
             FileName = material.FileName,
             FileSize = material.FileSize,
             MimeType = material.MimeType,

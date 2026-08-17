@@ -71,18 +71,6 @@ public static class DbConstraints
             """
         );
 
-        // Assignments
-        await db.Database.ExecuteSqlRawAsync(
-            """
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_assignments_max_score_range') THEN
-                        ALTER TABLE assignments ADD CONSTRAINT ck_assignments_max_score_range CHECK (max_score BETWEEN 1 AND 100);
-                    END IF;
-                END $$;
-            """
-        );
-
         // Schedule entries
         await db.Database.ExecuteSqlRawAsync(
             """
@@ -135,18 +123,6 @@ public static class DbConstraints
                     END IF;
                     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_test_assignments_max_attempts_positive') THEN
                         ALTER TABLE test_assignments ADD CONSTRAINT ck_test_assignments_max_attempts_positive CHECK (max_attempts > 0);
-                    END IF;
-                END $$;
-            """
-        );
-
-        // Submissions
-        await db.Database.ExecuteSqlRawAsync(
-            """
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_assignment_submissions_score_range') THEN
-                        ALTER TABLE assignment_submissions ADD CONSTRAINT ck_assignment_submissions_score_range CHECK (score IS NULL OR (score >= 0 AND score <= 100));
                     END IF;
                 END $$;
             """

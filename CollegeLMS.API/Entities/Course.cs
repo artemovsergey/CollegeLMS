@@ -18,9 +18,6 @@ public class Course : Entity
     public ICollection<Lecture> Lectures { get; set; } = new List<Lecture>();
 
     [JsonIgnore]
-    public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
-
-    [JsonIgnore]
     public ICollection<CourseMaterial> Materials { get; set; } = new List<CourseMaterial>();
 
     [JsonIgnore]

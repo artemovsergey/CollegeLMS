@@ -180,8 +180,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStudentService, StudentService>();
         services.AddScoped<ICourseService, CourseService>();
         services.AddScoped<ILectureService, LectureService>();
-        services.AddScoped<IAssignmentService, AssignmentService>();
-        services.AddScoped<ISubmissionService, SubmissionService>();
         services.AddScoped<IFileService, FileService>();
         services.AddScoped<IMaterialService, MaterialService>();
         services.AddScoped<IDashboardService, DashboardService>();

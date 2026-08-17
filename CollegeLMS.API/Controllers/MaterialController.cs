@@ -20,7 +20,6 @@ public class MaterialController(IMaterialService service) : ControllerBase
     /// <param name="courseId">Идентификатор курса</param>
     /// <param name="file">Файл для загрузки</param>
     /// <param name="lectureId">Идентификатор лекции (опционально)</param>
-    /// <param name="assignmentId">Идентификатор задания (опционально)</param>
     /// <param name="ct">Токен отмены</param>
     /// <response code="200">Материал загружен</response>
     /// <response code="400">Файл не выбран</response>
@@ -48,7 +47,6 @@ public class MaterialController(IMaterialService service) : ControllerBase
         Guid courseId,
         IFormFile file,
         [FromQuery] Guid? lectureId,
-        [FromQuery] Guid? assignmentId,
         CancellationToken ct
     )
     {
@@ -61,7 +59,6 @@ public class MaterialController(IMaterialService service) : ControllerBase
             courseId,
             file,
             lectureId,
-            assignmentId,
             userId,
             role,
             ct

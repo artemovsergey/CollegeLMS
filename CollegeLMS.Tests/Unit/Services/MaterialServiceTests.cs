@@ -127,7 +127,7 @@ public class MaterialServiceTests : IDisposable
             ContentType = "application/pdf",
         };
 
-        var result = await _sut.UploadAsync(courseId, file, null, null, adminId, "Admin", default);
+        var result = await _sut.UploadAsync(courseId, file, null, adminId, "Admin", default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.FileName.Should().Be("test.pdf");

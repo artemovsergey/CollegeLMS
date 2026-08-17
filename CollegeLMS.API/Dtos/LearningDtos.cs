@@ -40,11 +40,8 @@ public class CourseProgressResponse
 {
     public Guid CourseId { get; set; }
     public string CourseTitle { get; set; } = string.Empty;
-    public int TotalAssignments { get; set; }
-    public int CompletedAssignments { get; set; }
     public int TotalTests { get; set; }
     public int CompletedTests { get; set; }
-    public double AverageScore { get; set; }
     public double CompletionPercent { get; set; }
 }
 

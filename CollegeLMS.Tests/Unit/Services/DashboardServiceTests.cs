@@ -36,13 +36,8 @@ public class DashboardServiceTests : IDisposable
         var group = DashboardFixture.CreateGroupFaker().Generate();
         var course = DashboardFixture.CreateCourseFaker().Generate();
         course.TeacherId = teacher.Id;
-        var assignment = DashboardFixture.CreateAssignmentFaker().Generate();
-        assignment.CourseId = course.Id;
         var student = DashboardFixture.CreateStudentFaker().Generate();
         student.GroupId = group.Id;
-        var submission = DashboardFixture.CreateSubmissionFaker().Generate();
-        submission.AssignmentId = assignment.Id;
-        submission.StudentId = student.Id;
 
         _db.Users.Add(teacher.User);
         _db.Teachers.Add(teacher);
@@ -58,8 +53,6 @@ public class DashboardServiceTests : IDisposable
                 GroupId = group.Id,
             }
         );
-        _db.Assignments.Add(assignment);
-        _db.AssignmentSubmissions.Add(submission);
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetTeacherDashboardAsync(teacher.UserId, default);
@@ -99,14 +92,25 @@ public class DashboardServiceTests : IDisposable
         var group = DashboardFixture.CreateGroupFaker().Generate();
         student.GroupId = group.Id;
         var course = DashboardFixture.CreateCourseFaker().Generate();
+        course.IsActive = true;
         var teacher = DashboardFixture.CreateTeacherFaker().Generate();
         course.TeacherId = teacher.Id;
-        var assignment = DashboardFixture.CreateAssignmentFaker().Generate();
-        assignment.CourseId = course.Id;
-        var submission = DashboardFixture.CreateSubmissionFaker().Generate();
-        submission.AssignmentId = assignment.Id;
-        submission.StudentId = student.Id;
-        submission.Score = 85;
+        var test = TestFixture.CreateFaker().Generate();
+        test.CourseId = course.Id;
+        test.Course = course;
+        var attempt = new TestAttempt
+        {
+            Id = Guid.NewGuid(),
+            TestId = test.Id,
+            StudentId = student.Id,
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            CompletedAt = DateTime.UtcNow,
+            Status = AttemptStatus.Completed,
+            Score = 80,
+            MaxScore = 100,
+            CreatedAt = DateTime.UtcNow.AddHours(-1),
+            UpdatedAt = DateTime.UtcNow,
+        };
 
         _db.Users.Add(student.User);
         _db.Students.Add(student);
@@ -114,6 +118,8 @@ public class DashboardServiceTests : IDisposable
         _db.Teachers.Add(teacher);
         _db.Groups.Add(group);
         _db.Courses.Add(course);
+        _db.Tests.Add(test);
+        _db.TestAttempts.Add(attempt);
         _db.CourseGroups.Add(
             new CourseGroup
             {
@@ -122,8 +128,6 @@ public class DashboardServiceTests : IDisposable
                 GroupId = group.Id,
             }
         );
-        _db.Assignments.Add(assignment);
-        _db.AssignmentSubmissions.Add(submission);
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetStudentDashboardAsync(student.UserId, default);
@@ -131,6 +135,7 @@ public class DashboardServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.Courses.Should().HaveCount(1);
         result.Data.Courses[0].CompletedItems.Should().Be(1);
+        result.Data.Courses[0].TotalItems.Should().Be(1);
         result.Data.Courses[0].CompletionPercent.Should().Be(100.0);
     }
 
@@ -143,9 +148,6 @@ public class DashboardServiceTests : IDisposable
         var course = DashboardFixture.CreateCourseFaker().Generate();
         var teacher = DashboardFixture.CreateTeacherFaker().Generate();
         course.TeacherId = teacher.Id;
-        var assignment = DashboardFixture.CreateAssignmentFaker().Generate();
-        assignment.CourseId = course.Id;
-        assignment.DueDate = DateTime.UtcNow.AddDays(7);
 
         _db.Users.Add(student.User);
         _db.Students.Add(student);
@@ -153,7 +155,6 @@ public class DashboardServiceTests : IDisposable
         _db.Teachers.Add(teacher);
         _db.Groups.Add(group);
         _db.Courses.Add(course);
-        _db.Assignments.Add(assignment);
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetStudentDashboardAsync(student.UserId, default);

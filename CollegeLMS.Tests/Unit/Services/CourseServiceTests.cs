@@ -364,7 +364,6 @@ public class CourseServiceTests : IDisposable
     public async Task GetProgressAsync_ReturnsProgress_WhenStudentInCourse()
     {
         var course = CourseFixture.CreateFaker().Generate();
-        course.Assignments = new List<Assignment>();
         _db.Courses.Add(course);
 
         var studentUserId = Guid.NewGuid();
@@ -401,12 +400,32 @@ public class CourseServiceTests : IDisposable
                 GroupId = group.Id,
             }
         );
+        var test = TestFixture.CreateFaker().Generate();
+        test.CourseId = course.Id;
+        test.Course = course;
+        _db.Tests.Add(test);
+        _db.TestAttempts.Add(
+            new TestAttempt
+            {
+                Id = Guid.NewGuid(),
+                TestId = test.Id,
+                StudentId = student.Id,
+                StartedAt = DateTime.UtcNow.AddHours(-1),
+                CompletedAt = DateTime.UtcNow,
+                Status = AttemptStatus.Completed,
+                Score = 80,
+                MaxScore = 100,
+            }
+        );
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetProgressAsync(course.Id, studentUserId, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.CourseId.Should().Be(course.Id);
+        result.Data.TotalTests.Should().Be(1);
+        result.Data.CompletedTests.Should().Be(1);
+        result.Data.CompletionPercent.Should().Be(100.0);
     }
 
     [Fact]

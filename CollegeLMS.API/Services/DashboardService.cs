@@ -59,22 +59,12 @@ public class DashboardService(AppDbContext db) : IDashboardService
             .Courses.AsNoTracking()
             .Include(c => c.Teacher)
                 .ThenInclude(t => t.User)
-            .Include(c => c.Assignments)
             .Where(c => courseIds.Contains(c.Id) && c.IsActive)
             .ToListAsync(ct);
 
         var result = new List<CourseWithProgressDto>();
         foreach (var course in courses)
         {
-            var totalAssignments = course.Assignments.Count;
-            var completedAssignments = await db.AssignmentSubmissions.CountAsync(
-                s =>
-                    course.Assignments.Select(a => a.Id).Contains(s.AssignmentId)
-                    && s.StudentId == student.Id
-                    && s.Score.HasValue,
-                ct
-            );
-
             var totalTests = await db.Tests.CountAsync(t => t.CourseId == course.Id, ct);
             var completedTests = await db.TestAttempts.CountAsync(
                 a =>
@@ -84,8 +74,8 @@ public class DashboardService(AppDbContext db) : IDashboardService
                 ct
             );
 
-            var total = totalAssignments + totalTests;
-            var completed = completedAssignments + completedTests;
+            var total = totalTests;
+            var completed = completedTests;
             var percent = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
 
             result.Add(

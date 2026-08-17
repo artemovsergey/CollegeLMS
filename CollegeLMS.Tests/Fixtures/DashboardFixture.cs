@@ -69,25 +69,4 @@ public static class DashboardFixture
             .RuleFor(c => c.Status, CourseStatus.Active)
             .RuleFor(c => c.CreatedAt, f => f.Date.Past())
             .RuleFor(c => c.UpdatedAt, f => f.Date.Recent());
-
-    public static Faker<Assignment> CreateAssignmentFaker() =>
-        new Faker<Assignment>()
-            .RuleFor(a => a.Id, f => f.Random.Guid())
-            .RuleFor(a => a.Title, f => f.Lorem.Sentence(3))
-            .RuleFor(a => a.Description, f => f.Lorem.Paragraph())
-            .RuleFor(a => a.MaxScore, f => f.Random.Number(5, 100))
-            .RuleFor(a => a.Order, f => f.Random.Number(1, 10))
-            .RuleFor(a => a.DueDate, f => f.Date.Future())
-            .RuleFor(a => a.CreatedAt, f => f.Date.Past())
-            .RuleFor(a => a.UpdatedAt, f => f.Date.Recent());
-
-    public static Faker<AssignmentSubmission> CreateSubmissionFaker() =>
-        new Faker<AssignmentSubmission>()
-            .RuleFor(s => s.Id, f => f.Random.Guid())
-            .RuleFor(s => s.FilePath, f => f.System.FilePath())
-            .RuleFor(s => s.Comment, f => f.Lorem.Sentence())
-            .RuleFor(s => s.Score, (f, s) => f.Random.Bool() ? null : f.Random.Number(0, 100))
-            .RuleFor(s => s.SubmittedAt, f => f.Date.Recent())
-            .RuleFor(s => s.CreatedAt, f => f.Date.Past())
-            .RuleFor(s => s.UpdatedAt, f => f.Date.Recent());
 }

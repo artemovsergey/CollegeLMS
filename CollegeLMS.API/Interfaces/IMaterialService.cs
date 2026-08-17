@@ -10,7 +10,6 @@ public interface IMaterialService
         Guid courseId,
         IFormFile file,
         Guid? lectureId,
-        Guid? assignmentId,
         Guid currentUserId,
         string currentUserRole,
         CancellationToken ct = default

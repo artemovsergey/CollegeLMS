@@ -26,7 +26,6 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
-            .Include(c => c.Assignments)
             .Include(c => c.CourseAuthors)
                 .ThenInclude(a => a.Teacher)
                     .ThenInclude(t => t.User)
@@ -74,7 +73,6 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
-            .Include(c => c.Assignments)
             .Include(c => c.CourseAuthors)
                 .ThenInclude(a => a.Teacher)
                     .ThenInclude(t => t.User)
@@ -164,7 +162,6 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
-            .Include(c => c.Assignments)
             .FirstAsync(c => c.Id == course.Id, ct);
 
         return Result<CourseResponse>.Ok(course.ToDto());
@@ -184,7 +181,6 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
             .Include(c => c.Lectures)
-            .Include(c => c.Assignments)
             .Include(c => c.CourseAuthors)
                 .ThenInclude(a => a.Teacher)
                     .ThenInclude(t => t.User)
@@ -252,7 +248,6 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
     {
         var course = await db
             .Courses.Include(c => c.Lectures)
-            .Include(c => c.Assignments)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (course is null)
@@ -374,7 +369,6 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
     {
         var course = await db
             .Courses.AsNoTracking()
-            .Include(c => c.Assignments)
             .FirstOrDefaultAsync(c => c.Id == courseId, ct);
         if (course is null)
             return Result<CourseProgressResponse>.Fail("Курс не найден", 404);
@@ -392,15 +386,6 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
         if (!inGroup)
             return Result<CourseProgressResponse>.Fail("Вы не привязаны к этому курсу", 403);
 
-        var totalAssignments = course.Assignments.Count;
-        var completedAssignments = await db.AssignmentSubmissions.CountAsync(
-            s =>
-                s.StudentId == student.Id
-                && course.Assignments.Select(a => a.Id).Contains(s.AssignmentId)
-                && s.Score.HasValue,
-            ct
-        );
-
         var totalTests = await db.Tests.CountAsync(t => t.CourseId == courseId, ct);
         var completedTests = await db.TestAttempts.CountAsync(
             a =>
@@ -410,30 +395,16 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
             ct
         );
 
-        var scoreSubmissions = await db
-            .AssignmentSubmissions.Where(s =>
-                s.StudentId == student.Id
-                && course.Assignments.Select(a => a.Id).Contains(s.AssignmentId)
-                && s.Score.HasValue
-            )
-            .Select(s => s.Score!.Value)
-            .ToListAsync(ct);
-        var avgScore = scoreSubmissions.Count > 0 ? scoreSubmissions.Average() : 0;
-
-        var total = totalAssignments + totalTests;
-        var completed = completedAssignments + completedTests;
-
         return Result<CourseProgressResponse>.Ok(
             new CourseProgressResponse
             {
                 CourseId = courseId,
                 CourseTitle = course.Title,
-                TotalAssignments = totalAssignments,
-                CompletedAssignments = completedAssignments,
                 TotalTests = totalTests,
                 CompletedTests = completedTests,
-                AverageScore = totalAssignments > 0 ? Math.Round(avgScore, 1) : 0,
-                CompletionPercent = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0,
+                CompletionPercent = totalTests > 0
+                    ? Math.Round((double)completedTests / totalTests * 100, 1)
+                    : 0,
             }
         );
     }
@@ -514,7 +485,6 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
                     Id = Guid.NewGuid(),
                     CourseId = copy.Id,
                     LectureId = null,
-                    AssignmentId = null,
                     FileName = material.FileName,
                     FilePath = newPath,
                     FileSize = material.FileSize,
