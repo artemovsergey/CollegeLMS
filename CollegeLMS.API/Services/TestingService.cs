@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class TestingService(AppDbContext db) : ITestingService
+public class TestingService(AppDbContext db, ICourseAccessService access) : ITestingService
 {
     public async Task<Result<List<TestResponse>>> GetAllAsync(
         Guid? courseId,
@@ -31,7 +31,8 @@ public class TestingService(AppDbContext db) : ITestingService
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
             if (teacher is null)
                 return Result<List<TestResponse>>.Fail("Преподаватель не найден", 404);
-            query = query.Where(t => t.Course.TeacherId == teacher.Id);
+            var managedIds = await access.GetManagedCourseIdsAsync(teacher.Id, ct);
+            query = query.Where(t => managedIds.Contains(t.CourseId));
         }
 
         if (courseId.HasValue)
@@ -74,7 +75,7 @@ public class TestingService(AppDbContext db) : ITestingService
             var teacher = await db
                 .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
-            if (teacher is null || course.TeacherId != teacher.Id)
+            if (teacher is null || !await access.CanManageCourseAsync(course, teacher.Id, ct))
                 return Result<TestResponse>.Fail(
                     "У вас нет прав на создание теста в этом курсе",
                     403
@@ -794,10 +795,7 @@ public class TestingService(AppDbContext db) : ITestingService
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
             return teacher is not null
                 && test.CourseId != Guid.Empty
-                && await db.Courses.AnyAsync(
-                    c => c.Id == test.CourseId && c.TeacherId == teacher.Id,
-                    ct
-                );
+                && await access.CanManageCourseAsync(test.CourseId, teacher.Id, ct);
         }
         return false;
     }

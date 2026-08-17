@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class LectureService(AppDbContext db) : ILectureService
+public class LectureService(AppDbContext db, ICourseAccessService access) : ILectureService
 {
     public async Task<Result<List<LectureResponse>>> GetAllAsync(
         Guid courseId,
@@ -64,7 +64,7 @@ public class LectureService(AppDbContext db) : ILectureService
                 .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
-            if (teacher is null || course.TeacherId != teacher.Id)
+            if (teacher is null || !await access.CanManageCourseAsync(course, teacher.Id, ct))
                 return Result<LectureResponse>.Fail(
                     "У вас нет прав на добавление лекций в этот курс",
                     403
@@ -118,7 +118,7 @@ public class LectureService(AppDbContext db) : ILectureService
                 .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
-            if (teacher is null || course.TeacherId != teacher.Id)
+            if (teacher is null || !await access.CanManageCourseAsync(course, teacher.Id, ct))
                 return Result<LectureResponse>.Fail(
                     "У вас нет прав на редактирование лекций в этом курсе",
                     403
@@ -164,7 +164,7 @@ public class LectureService(AppDbContext db) : ILectureService
                 .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
-            if (teacher is null || course.TeacherId != teacher.Id)
+            if (teacher is null || !await access.CanManageCourseAsync(course, teacher.Id, ct))
                 return Result.Fail("У вас нет прав на удаление лекций из этого курса", 403);
         }
 

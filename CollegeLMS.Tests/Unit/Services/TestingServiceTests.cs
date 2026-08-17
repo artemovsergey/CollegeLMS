@@ -1,22 +1,35 @@
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
+using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 
 namespace CollegeLMS.Tests.Unit.Services;
 
 public class TestingServiceTests : IDisposable
 {
     private readonly API.Data.AppDbContext _db;
+    private readonly Mock<ICourseAccessService> _accessMock;
     private readonly TestingService _sut;
 
     public TestingServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        _sut = new TestingService(_db);
+        _accessMock = new Mock<ICourseAccessService>();
+        _accessMock
+            .Setup(x => x.CanManageCourseAsync(It.IsAny<Course>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _accessMock
+            .Setup(x => x.CanManageCourseAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _accessMock
+            .Setup(x => x.GetManagedCourseIdsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Guid>());
+        _sut = new TestingService(_db, _accessMock.Object);
     }
 
     public void Dispose() => _db.Dispose();

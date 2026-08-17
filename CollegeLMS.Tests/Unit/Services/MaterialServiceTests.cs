@@ -16,13 +16,21 @@ public class MaterialServiceTests : IDisposable
 {
     private readonly AppDbContext _db;
     private readonly Mock<IFileService> _fileServiceMock;
+    private readonly Mock<ICourseAccessService> _accessMock;
     private readonly MaterialService _sut;
 
     public MaterialServiceTests()
     {
         _db = TestDbContextFactory.Create();
         _fileServiceMock = new Mock<IFileService>();
-        _sut = new MaterialService(_db, _fileServiceMock.Object);
+        _accessMock = new Mock<ICourseAccessService>();
+        _accessMock
+            .Setup(x => x.CanManageCourseAsync(It.IsAny<Course>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _accessMock
+            .Setup(x => x.CanManageCourseAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _sut = new MaterialService(_db, _fileServiceMock.Object, _accessMock.Object);
     }
 
     public void Dispose() => _db.Dispose();

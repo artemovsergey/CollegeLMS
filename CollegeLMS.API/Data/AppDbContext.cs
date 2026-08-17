@@ -30,6 +30,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TestAnswer> TestAnswers => Set<TestAnswer>();
     public DbSet<Specialty> Specialties => Set<Specialty>();
     public DbSet<CourseGroup> CourseGroups => Set<CourseGroup>();
+    public DbSet<CourseAuthor> CourseAuthors => Set<CourseAuthor>();
     public DbSet<TransferRecord> TransferRecords => Set<TransferRecord>();
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
 

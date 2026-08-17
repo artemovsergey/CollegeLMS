@@ -200,6 +200,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<ITestingService, TestingService>();
+        services.AddScoped<ICourseAccessService, CourseAccessService>();
         services.AddScoped<ISpecialtyService, SpecialtyService>();
         services.AddScoped<ScheduleExportService>();
         services.AddScoped<ScheduleImportService>();

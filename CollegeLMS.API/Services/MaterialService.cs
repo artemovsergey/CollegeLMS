@@ -9,7 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class MaterialService(AppDbContext db, IFileService fileService) : IMaterialService
+public class MaterialService(AppDbContext db, IFileService fileService, ICourseAccessService access)
+    : IMaterialService
 {
     public async Task<Result<MaterialResponse>> UploadAsync(
         Guid courseId,
@@ -31,7 +32,7 @@ public class MaterialService(AppDbContext db, IFileService fileService) : IMater
                 .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
-            if (teacher is null || course.TeacherId != teacher.Id)
+            if (teacher is null || !await access.CanManageCourseAsync(course, teacher.Id, ct))
                 return Result<MaterialResponse>.Fail(
                     "У вас нет прав на добавление материалов в этот курс",
                     403
@@ -115,7 +116,7 @@ public class MaterialService(AppDbContext db, IFileService fileService) : IMater
                 .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
-            if (teacher is null || material.Course.TeacherId != teacher.Id)
+            if (teacher is null || !await access.CanManageCourseAsync(material.Course, teacher.Id, ct))
                 return Result.Fail("У вас нет прав на удаление этого материала", 403);
         }
 
