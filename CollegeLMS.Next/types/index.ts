@@ -95,6 +95,13 @@ export interface CreateCourseRequest {
   authorIds: string[]
 }
 
+export interface UpdateCourseRequest {
+  title: string
+  description: string
+  status: string
+  authorIds: string[]
+}
+
 export interface LectureResponse {
   id: string
   courseId: string
