@@ -139,7 +139,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result<ProfileResponse>>> UploadAvatar(
-        [FromForm] IFormFile file,
+        IFormFile file,
         CancellationToken ct
     )
     {

@@ -34,7 +34,7 @@ public class UploadController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     [RequestSizeLimit(MaxFileSize)]
     public async Task<ActionResult<Result<UploadResponse>>> Upload(
-        [FromForm] IFormFile file,
+        IFormFile file,
         CancellationToken ct
     )
     {
