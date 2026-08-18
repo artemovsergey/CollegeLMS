@@ -51,7 +51,7 @@
 - Consumes: текущая модель `AppDbContext` (DbSets `Assignments`, `AssignmentSubmissions`)
 - Produces: модель без следов заданий; `CourseProgressResponse` пока остаётся с полями (поправка — в Task 6); `DashboardService` считает прогресс только по тестам
 
-- [ ] **Step 1: Удалить файлы заданий/ответов**
+- [x] **Step 1: Удалить файлы заданий/ответов**
 
 ```bash
 rm CollegeLMS.API/Entities/Assignment.cs CollegeLMS.API/Entities/AssignmentSubmission.cs \
@@ -69,7 +69,7 @@ rm CollegeLMS.API/Entities/Assignment.cs CollegeLMS.API/Entities/AssignmentSubmi
    CollegeLMS.Tests/Fixtures/AssignmentFixture.cs CollegeLMS.Tests/Fixtures/SubmissionFixture.cs
 ```
 
-- [ ] **Step 2: Убрать связи в сущностях**
+- [x] **Step 2: Убрать связи в сущностях**
 
 `CollegeLMS.API/Entities/Course.cs` — удалить строки 20–21 (свойство `Assignments`):
 
@@ -88,7 +88,7 @@ rm CollegeLMS.API/Entities/Assignment.cs CollegeLMS.API/Entities/AssignmentSubmi
     public string FileName { get; set; } = string.Empty;
 ```
 
-- [ ] **Step 3: Убрать DbSet из AppDbContext**
+- [x] **Step 3: Убрать DbSet из AppDbContext**
 
 `CollegeLMS.API/Data/AppDbContext.cs` — удалить строки 19–20:
 
@@ -97,11 +97,11 @@ rm CollegeLMS.API/Entities/Assignment.cs CollegeLMS.API/Entities/AssignmentSubmi
     public DbSet<AssignmentSubmission> AssignmentSubmissions => Set<AssignmentSubmission>();
 ```
 
-- [ ] **Step 4: Убрать CHECK-секции из DbConstraints**
+- [x] **Step 4: Убрать CHECK-секции из DbConstraints**
 
 `CollegeLMS.API/Data/DbConstraints.cs` — удалить блок «Assignments» (строки 74–84) и блок «Submissions» (строки 143–153) целиком.
 
-- [ ] **Step 5: Убрать регистрации DI**
+- [x] **Step 5: Убрать регистрации DI**
 
 `CollegeLMS.API/Extensions/ServiceCollectionExtensions.cs` — удалить строки 183–184:
 
@@ -110,7 +110,7 @@ rm CollegeLMS.API/Entities/Assignment.cs CollegeLMS.API/Entities/AssignmentSubmi
         services.AddScoped<ISubmissionService, SubmissionService>();
 ```
 
-- [ ] **Step 6: Поправить MaterialService / MaterialController**
+- [x] **Step 6: Поправить MaterialService / MaterialController**
 
 `CollegeLMS.API/Services/MaterialService.cs`:
 - Сигнатура `UploadAsync`: убрать параметр `Guid? assignmentId` (строка 19), `AssignmentId = null` из объекта `CourseMaterial` (строка 49)
@@ -119,7 +119,7 @@ rm CollegeLMS.API/Entities/Assignment.cs CollegeLMS.API/Entities/AssignmentSubmi
 `CollegeLMS.API/Controllers/MaterialController.cs`:
 - Убрать `[FromQuery] Guid? assignmentId` (строка 51) и передачу `assignmentId` в вызов сервиса (строка 64)
 
-- [ ] **Step 7: Поправить CourseService — убрать Assignments**
+- [x] **Step 7: Поправить CourseService — убрать Assignments**
 
 `CollegeLMS.API/Services/CourseService.cs` — во всех местах убрать `.Include(c => c.Assignments)`:
 - строки 29, 77, 167, 187 (в `GetAllAsync`, `GetByIdAsync`, `CreateAsync` (re-query), `UpdateAsync`)
@@ -128,7 +128,7 @@ rm CollegeLMS.API/Entities/Assignment.cs CollegeLMS.API/Entities/AssignmentSubmi
 `CollegeLMS.API/Mappers/CourseMapper.cs` — удалить строку 28 (`AssignmentCount`).
 `CollegeLMS.API/Dtos/CourseResponse.cs` — удалить строку 16 (`AssignmentCount`).
 
-- [ ] **Step 8: Поправить DashboardService — прогресс по тестам**
+- [x] **Step 8: Поправить DashboardService — прогресс по тестам**
 
 `CollegeLMS.API/Services/DashboardService.cs` (GetStudentDashboardAsync, строки 58–88):
 
@@ -157,13 +157,13 @@ rm CollegeLMS.API/Entities/Assignment.cs CollegeLMS.API/Entities/AssignmentSubmi
             var percent = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
 ```
 
-- [ ] **Step 9: Поправить тесты**
+- [x] **Step 9: Поправить тесты**
 
 `CollegeLMS.Tests/Unit/Services/DashboardServiceTests.cs` — удалить тесты/части, использующие `DashboardFixture.CreateAssignmentFaker()` / `CreateSubmissionFaker()` и `AssignmentSubmission`; прогресс-ассерты пересчитать только по тестам. Если тест проверял «смешанный прогресс» — переписать на «прогресс по тестам» (пример: 1 тест пройден из 2 → 50%).
 
 `CollegeLMS.Tests/Unit/Services/CourseServiceTests.cs` — тесты `GetProgress*` переписать: убрать setup с `Assignments`/`AssignmentSubmissions`, ожидать прогресс только по тестам.
 
-- [ ] **Step 10: Собрать проект и проверить отсутствие ссылок**
+- [x] **Step 10: Собрать проект и проверить отсутствие ссылок**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -178,7 +178,7 @@ grep -rn "Assignments\|AssignmentSubmission\|SubmissionService\|AssignmentServic
 ```
 Ожидается: только совпадения в `Migrations/` (история — не трогаем).
 
-- [ ] **Step 11: Прогнать тесты**
+- [x] **Step 11: Прогнать тесты**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -188,7 +188,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Expected: все тесты PASS (~305, без удалённых ~18).
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add -A
@@ -207,7 +207,7 @@ git commit -m "refactor: удалены задания и ответы на за
 **Interfaces:**
 - Produces: `ILessonService` с методами `GetAllAsync(Guid courseId, CancellationToken ct)`, `GetByIdAsync(Guid courseId, Guid id, CancellationToken ct)`, `CreateAsync(Guid courseId, CreateLessonRequest request, Guid currentUserId, string currentUserRole, CancellationToken ct)`, `UpdateAsync(...)`, `DeleteAsync(...)` (сигнатуры как у старого LectureService, типы DTO новые)
 
-- [ ] **Step 1: git mv файлов**
+- [x] **Step 1: git mv файлов**
 
 ```bash
 git mv CollegeLMS.API/Entities/Lecture.cs CollegeLMS.API/Entities/Lesson.cs
@@ -226,7 +226,7 @@ git mv CollegeLMS.Tests/Integration/Controllers/LectureControllerTests.cs Colleg
 git mv CollegeLMS.Tests/Fixtures/LectureFixture.cs CollegeLMS.Tests/Fixtures/LessonFixture.cs
 ```
 
-- [ ] **Step 2: LessonKind enum**
+- [x] **Step 2: LessonKind enum**
 
 `CollegeLMS.API/Entities/Enums/LessonKind.cs`:
 
@@ -241,7 +241,7 @@ public enum LessonKind
 }
 ```
 
-- [ ] **Step 3: Lesson entity**
+- [x] **Step 3: Lesson entity**
 
 `CollegeLMS.API/Entities/Lesson.cs` (полностью):
 
@@ -269,7 +269,7 @@ public class Lesson : Entity
 }
 ```
 
-- [ ] **Step 4: LessonConfiguration**
+- [x] **Step 4: LessonConfiguration**
 
 `CollegeLMS.API/Data/Configurations/LessonConfiguration.cs` (полностью):
 
@@ -314,13 +314,13 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
 
 > Примечание: `HasColumnName("kind")` зафиксирует имя колонки `kind`, а миграция (Task 7) переименует `lecture_type` → `kind` через `RenameColumn`, сохранив данные.
 
-- [ ] **Step 5: AppDbContext, Course, CourseMaterial**
+- [x] **Step 5: AppDbContext, Course, CourseMaterial**
 
 `Data/AppDbContext.cs`: `DbSet<Lecture> Lectures` → `DbSet<Lesson> Lessons` (строка 18).
 `Entities/Course.cs`: `ICollection<Lecture> Lectures` → `ICollection<Lesson> Lessons` (строки 17–18).
 `Entities/CourseMaterial.cs`: `Guid? LectureId` → `Guid? LessonId` (строка 8).
 
-- [ ] **Step 6: DTO**
+- [x] **Step 6: DTO**
 
 `CollegeLMS.API/Dtos/LessonRequest.cs` (полностью):
 
@@ -367,7 +367,7 @@ public class LessonResponse
 `CollegeLMS.API/Dtos/TestDtos.cs` — строка 12: `Guid? LectureId` → `Guid? LessonId` (в `CreateTestRequest`).
 `CollegeLMS.API/Dtos/MaterialResponse.cs` — строка 7: `Guid? LectureId` → `Guid? LessonId`.
 
-- [ ] **Step 7: LessonMapper**
+- [x] **Step 7: LessonMapper**
 
 `CollegeLMS.API/Mappers/LessonMapper.cs` (полностью):
 
@@ -398,7 +398,7 @@ public static class LessonMapper
 `CollegeLMS.API/Mappers/CourseMapper.cs` — строка 27: `course.Lectures?.Count` → `course.Lessons?.Count`.
 `CollegeLMS.API/Mappers/MaterialMapper.cs` — строка 13: `LectureId` → `LessonId`.
 
-- [ ] **Step 8: LessonService**
+- [x] **Step 8: LessonService**
 
 `CollegeLMS.API/Services/LessonService.cs` — переименовать класс/типы, заменить:
 - `db.Lectures` → `db.Lessons`
@@ -436,11 +436,11 @@ public static class LessonMapper
 
 `CollegeLMS.API/Interfaces/ILessonService.cs` — переименовать `ILectureService` → `ILessonService`, типы в сигнатурах заменить на `Lesson*`.
 
-- [ ] **Step 9: LessonController**
+- [x] **Step 9: LessonController**
 
 `CollegeLMS.API/Controllers/LessonController.cs` — переименовать класс/типы, `[Route("api/courses/{courseId:guid}/lectures")]` → `[Route("api/courses/{courseId:guid}/lessons")]`, summary «Получить список лекций курса» → «Получить список занятий курса», «Получить лекцию по ID» → «Получить занятие по ID», «Создать лекцию» → «Создать занятие», «Обновить лекцию» → «Обновить занятие», «Удалить лекцию» → «Удалить занятие», «Лекция найдена/не найдена/создана/обновлена/удалена» → «Занятие …», 404 «Лекция не найдена» → «Занятие не найдено».
 
-- [ ] **Step 10: Validator и SwaggerExample**
+- [x] **Step 10: Validator и SwaggerExample**
 
 `CollegeLMS.API/Validators/LessonRequestValidator.cs` — переименовать классы `CreateLectureRequestValidator` → `CreateLessonRequestValidator`, `UpdateLectureRequestValidator` → `UpdateLessonRequestValidator`, типы `CreateLectureRequest` → `CreateLessonRequest`, поле `x.LectureType` → `x.Kind`, сообщения «Название лекции обязательно» → «Название занятия обязательно», «Недопустимый тип занятия» остаётся.
 
@@ -467,7 +467,7 @@ public static class LessonResponseExample
 }
 ```
 
-- [ ] **Step 11: Правки зависимых сервисов/контроллеров**
+- [x] **Step 11: Правки зависимых сервисов/контроллеров**
 
 `CollegeLMS.API/Services/TestingService.cs`:
 - строка 85: `Lecture? lecture = null;` → `Lesson? lesson = null;`
@@ -505,13 +505,13 @@ public static class LessonResponseExample
 
 `CollegeLMS.API/Extensions/ServiceCollectionExtensions.cs` — строка 182: `ILectureService, LectureService` → `ILessonService, LessonService`.
 
-- [ ] **Step 12: Переименовать тесты**
+- [x] **Step 12: Переименовать тесты**
 
 `CollegeLMS.Tests/Fixtures/LessonFixture.cs` — класс `LectureFixture` → `LessonFixture`, `Faker<Lecture>` → `Faker<Lesson>`, все упоминания Lecture → Lesson внутри.
 `CollegeLMS.Tests/Unit/Services/LessonServiceTests.cs` — `LectureService` → `LessonService`, `ILectureService` → `ILessonService`, `LectureFixture` → `LessonFixture`, `CreateLectureRequest` → `CreateLessonRequest`, `new Lecture` → `new Lesson`, `LectureResponse` → `LessonResponse`, поле `LectureType` → `Kind`.
 `CollegeLMS.Tests/Integration/Controllers/LessonControllerTests.cs` — аналогичный rename, URL `lectures` → `lessons`, тело `CreateLectureRequest` → `CreateLessonRequest` + поле `kind`.
 
-- [ ] **Step 13: Собрать и прогнать тесты**
+- [x] **Step 13: Собрать и прогнать тесты**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -526,7 +526,7 @@ grep -rn "Lecture" CollegeLMS.API CollegeLMS.Tests --include=*.cs | grep -v Migr
 ```
 Ожидается: пусто (кроме `Migrations/` и строк, где "Lecture" входит в `LessonKind`-значения enum — их не должно быть, значение enum — `Lecture`).
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 git add -A
@@ -545,7 +545,7 @@ git commit -m "refactor: переименование Lecture в Lesson (сущ�
 - Consumes: `CreateLessonRequest` (Task 2)
 - Produces: `ReorderLessonsRequest { List<Guid> LessonIds }`; `ILessonService.ReorderAsync(Guid courseId, ReorderLessonsRequest request, Guid currentUserId, string currentUserRole, CancellationToken ct) → Task<Result>`
 
-- [ ] **Step 1: TDD — написать падающие юнит-тесты**
+- [x] **Step 1: TDD — написать падающие юнит-тесты**
 
 В `CollegeLMS.Tests/Unit/Services/LessonServiceTests.cs` добавить:
 
@@ -676,7 +676,7 @@ git commit -m "refactor: переименование Lecture в Lesson (сущ�
     }
 ```
 
-- [ ] **Step 2: Прогнать — убедиться, что падают**
+- [x] **Step 2: Прогнать — убедиться, что падают**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -686,7 +686,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Expected: 4 FAIL (нет `AfterLessonId`, `ReorderAsync`, `ReorderLessonsRequest`).
 
-- [ ] **Step 3: DTO + валидатор**
+- [x] **Step 3: DTO + валидатор**
 
 `CollegeLMS.API/Dtos/LessonRequest.cs` — добавить в `CreateLessonRequest`:
 
@@ -719,7 +719,7 @@ public class ReorderLessonsRequestValidator : AbstractValidator<ReorderLessonsRe
 }
 ```
 
-- [ ] **Step 4: Реализация в LessonService**
+- [x] **Step 4: Реализация в LessonService**
 
 В `CollegeLMS.API/Services/LessonService.cs` `CreateAsync` заменить вычисление позиции (блоки строк 74–93):
 
@@ -829,7 +829,7 @@ public class ReorderLessonsRequestValidator : AbstractValidator<ReorderLessonsRe
     }
 ```
 
-- [ ] **Step 5: Интерфейс**
+- [x] **Step 5: Интерфейс**
 
 `CollegeLMS.API/Interfaces/ILessonService.cs` — добавить:
 
@@ -843,7 +843,7 @@ public class ReorderLessonsRequestValidator : AbstractValidator<ReorderLessonsRe
     );
 ```
 
-- [ ] **Step 6: Контроллер — PUT reorder**
+- [x] **Step 6: Контроллер — PUT reorder**
 
 `CollegeLMS.API/Controllers/LessonController.cs` — добавить метод (перед `Delete`):
 
@@ -878,7 +878,7 @@ public class ReorderLessonsRequestValidator : AbstractValidator<ReorderLessonsRe
     }
 ```
 
-- [ ] **Step 7: Прогнать юнит-тесты — зелёные**
+- [x] **Step 7: Прогнать юнит-тесты — зелёные**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -888,7 +888,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Expected: PASS.
 
-- [ ] **Step 8: Интеграционный тест reorder**
+- [x] **Step 8: Интеграционный тест reorder**
 
 В `CollegeLMS.Tests/Integration/Controllers/LessonControllerTests.cs` добавить (по образцу существующих тестов этого файла — хелперы `AuthenticateAs*`, `DeserializeAsync` из `BaseIntegrationTest`):
 
@@ -948,7 +948,7 @@ Expected: PASS.
 
 (Названия хелперов сверить с существующими в файле — использовать реально существующие методы файла `LessonControllerTests.cs`.)
 
-- [ ] **Step 9: Прогнать все тесты**
+- [x] **Step 9: Прогнать все тесты**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -958,7 +958,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Expected: PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add -A
@@ -977,7 +977,7 @@ git commit -m "feat: позиция занятия (вставка в начал
 - Consumes: `Lesson.IsCurrent` (Task 2, шаг 3)
 - Produces: `ILessonService.SetCurrentAsync(Guid courseId, Guid id, UpdateLessonCurrentRequest request, Guid currentUserId, string currentUserRole, CancellationToken ct) → Task<Result>`
 
-- [ ] **Step 1: TDD — падающие юнит-тесты**
+- [x] **Step 1: TDD — падающие юнит-тесты**
 
 В `CollegeLMS.Tests/Unit/Services/LessonServiceTests.cs` добавить:
 
@@ -1070,7 +1070,7 @@ git commit -m "feat: позиция занятия (вставка в начал
     }
 ```
 
-- [ ] **Step 2: Прогнать — падают**
+- [x] **Step 2: Прогнать — падают**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -1080,7 +1080,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Expected: 3 новых FAIL.
 
-- [ ] **Step 3: DTO + валидатор**
+- [x] **Step 3: DTO + валидатор**
 
 `CollegeLMS.API/Dtos/LessonRequest.cs` — в конец файла:
 
@@ -1103,7 +1103,7 @@ public class UpdateLessonCurrentRequestValidator : AbstractValidator<UpdateLesso
 }
 ```
 
-- [ ] **Step 4: Реализация в LessonService**
+- [x] **Step 4: Реализация в LessonService**
 
 Добавить метод (в конец класса `LessonService`):
 
@@ -1163,7 +1163,7 @@ public class UpdateLessonCurrentRequestValidator : AbstractValidator<UpdateLesso
     }
 ```
 
-- [ ] **Step 5: Интерфейс**
+- [x] **Step 5: Интерфейс**
 
 `CollegeLMS.API/Interfaces/ILessonService.cs` — добавить:
 
@@ -1178,7 +1178,7 @@ public class UpdateLessonCurrentRequestValidator : AbstractValidator<UpdateLesso
     );
 ```
 
-- [ ] **Step 6: Контроллер — PATCH {id}/current**
+- [x] **Step 6: Контроллер — PATCH {id}/current**
 
 `CollegeLMS.API/Controllers/LessonController.cs` — добавить (после `Update`):
 
@@ -1214,7 +1214,7 @@ public class UpdateLessonCurrentRequestValidator : AbstractValidator<UpdateLesso
     }
 ```
 
-- [ ] **Step 7: Частичный уникальный индекс в DbConstraints**
+- [x] **Step 7: Частичный уникальный индекс в DbConstraints**
 
 `CollegeLMS.API/Data/DbConstraints.cs` — добавить блок (после секции Courses):
 
@@ -1229,7 +1229,7 @@ public class UpdateLessonCurrentRequestValidator : AbstractValidator<UpdateLesso
         );
 ```
 
-- [ ] **Step 8: Юнит-тесты зелёные + интеграционные**
+- [x] **Step 8: Юнит-тесты зелёные + интеграционные**
 
 Прогнать юнит-тесты (`--filter LessonServiceTests`) — PASS.
 
@@ -1289,7 +1289,7 @@ public class UpdateLessonCurrentRequestValidator : AbstractValidator<UpdateLesso
 
 Прогнать все тесты — PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add -A
@@ -1312,7 +1312,7 @@ git commit -m "feat: текущее занятие (isCurrent, частичны�
   - `DownloadAsync(Guid id, CancellationToken ct) → Task<Result<(Stream Stream, string FileName, string MimeType)>>`
   - `DeleteAsync(Guid id, Guid currentUserId, string currentUserRole, CancellationToken ct) → Task<Result>`
 
-- [ ] **Step 1: TDD — падающие юнит-тесты**
+- [x] **Step 1: TDD — падающие юнит-тесты**
 
 `CollegeLMS.Tests/Unit/Services/CourseDocumentServiceTests.cs` (создать, образец структуры — `MaterialServiceTests.cs`):
 
@@ -1444,7 +1444,7 @@ public class CourseDocumentServiceTests : IDisposable
 
 > Примечание: если `IFileService`/`ICourseAccessService` — public интерфейсы в `CollegeLMS.API.Interfaces` (да, судя по `MaterialServiceTests.cs`), `Mock<IFileService>` работает. Имена свойств `Teacher` (FullName/CyclicalCommission/Position) сверить с `TeacherFixture`/реальной сущностью `Teacher.cs` — поправить под фактические.
 
-- [ ] **Step 2: Прогнать — падают**
+- [x] **Step 2: Прогнать — падают**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -1454,7 +1454,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Expected: FAIL (нет типов).
 
-- [ ] **Step 3: Entity + Configuration + DbSet**
+- [x] **Step 3: Entity + Configuration + DbSet**
 
 `CollegeLMS.API/Entities/CourseDocument.cs`:
 
@@ -1511,7 +1511,7 @@ public class CourseDocumentConfiguration : IEntityTypeConfiguration<CourseDocume
     public DbSet<CourseDocument> CourseDocuments => Set<CourseDocument>();
 ```
 
-- [ ] **Step 4: DTO + Mapper**
+- [x] **Step 4: DTO + Mapper**
 
 `CollegeLMS.API/Dtos/CourseDocumentResponse.cs`:
 
@@ -1552,7 +1552,7 @@ public static class CourseDocumentMapper
 }
 ```
 
-- [ ] **Step 5: Интерфейс + сервис**
+- [x] **Step 5: Интерфейс + сервис**
 
 `CollegeLMS.API/Interfaces/ICourseDocumentService.cs`:
 
@@ -1724,7 +1724,7 @@ public class CourseDocumentService(
 }
 ```
 
-- [ ] **Step 6: DI**
+- [x] **Step 6: DI**
 
 `CollegeLMS.API/Extensions/ServiceCollectionExtensions.cs` — добавить после `IMaterialService`:
 
@@ -1732,7 +1732,7 @@ public class CourseDocumentService(
         services.AddScoped<ICourseDocumentService, CourseDocumentService>();
 ```
 
-- [ ] **Step 7: Контроллер**
+- [x] **Step 7: Контроллер**
 
 `CollegeLMS.API/Controllers/CourseDocumentController.cs` (образец — `MaterialController.cs`):
 
@@ -1887,7 +1887,7 @@ public class CourseDocumentController(ICourseDocumentService service) : Controll
 }
 ```
 
-- [ ] **Step 8: SwaggerExample**
+- [x] **Step 8: SwaggerExample**
 
 `CollegeLMS.API/SwaggerExamples/CourseDocumentResponseExample.cs`:
 
@@ -1909,7 +1909,7 @@ public static class CourseDocumentResponseExample
 }
 ```
 
-- [ ] **Step 9: Duplicate — копирование документов**
+- [x] **Step 9: Duplicate — копирование документов**
 
 `CollegeLMS.API/Services/CourseService.cs`:
 - В `DuplicateAsync` цепочку `.Include` дополнить: `.Include(c => c.CourseDocuments)` (после `.Include(c => c.Materials)`, строка 451)
@@ -1956,7 +1956,7 @@ public static class CourseDocumentResponseExample
     }
 ```
 
-- [ ] **Step 10: Юнит-тесты зелёные + интеграционные**
+- [x] **Step 10: Юнит-тесты зелёные + интеграционные**
 
 Прогнать `--filter CourseDocumentServiceTests` — PASS.
 
@@ -1996,7 +1996,7 @@ public async Task GetByCourse_ReturnsOk_WhenAuthenticated()
 
 Прогнать все тесты — PASS.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add -A
@@ -2015,7 +2015,7 @@ git commit -m "feat: документация курса CourseDocument (upload/
 - Consumes: `CourseProgressResponse` (существующее)
 - Produces: `CourseProgressResponse { CourseId, CourseTitle, TotalTests, CompletedTests, CompletionPercent }` (без `TotalAssignments`, `CompletedAssignments`, `AverageScore`)
 
-- [ ] **Step 1: DTO**
+- [x] **Step 1: DTO**
 
 `CollegeLMS.API/Dtos/LearningDtos.cs` — класс `CourseProgressResponse` (строки 39–48) заменить:
 
@@ -2030,7 +2030,7 @@ public class CourseProgressResponse
 }
 ```
 
-- [ ] **Step 2: GetProgressAsync**
+- [x] **Step 2: GetProgressAsync**
 
 `CollegeLMS.API/Services/CourseService.cs` — метод `GetProgressAsync` (строки 369–439) заменить:
 
@@ -2084,11 +2084,11 @@ public class CourseProgressResponse
     }
 ```
 
-- [ ] **Step 3: Тесты**
+- [x] **Step 3: Тесты**
 
 `CollegeLMS.Tests/Unit/Services/CourseServiceTests.cs` — тесты `GetProgress*`: убрать setup `Assignments`/`AssignmentSubmissions`/`Submissions`, использовать только `Tests`/`TestAttempts`; ассерты на `TotalTests`/`CompletedTests`/`CompletionPercent` (пример: 2 теста, 1 пройден → `TotalTests == 2`, `CompletedTests == 1`, `CompletionPercent == 50.0`).
 
-- [ ] **Step 4: Собрать + прогнать**
+- [x] **Step 4: Собрать + прогнать**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -2098,7 +2098,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Expected: Build succeeded + PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -2116,7 +2116,7 @@ git commit -m "feat: прогресс студента считается тол
 - Consumes: модель из Task 1–6
 - Produces: миграция, применяемая автоматически при старте API (см. `Program.cs`/`ApplicationBuilderExtensions` — миграции применяются при старте)
 
-- [ ] **Step 1: Сгенерировать миграцию**
+- [x] **Step 1: Сгенерировать миграцию**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -2130,7 +2130,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 sudo chown -R user1:user1 CollegeLMS.API/Migrations
 ```
 
-- [ ] **Step 2: Проверить и поправить миграцию вручную**
+- [x] **Step 2: Проверить и поправить миграцию вручную**
 
 Открыть `CollegeLMS.API/Migrations/<timestamp>_AddLessonsRemoveAssignments.cs`. Ожидаемые операции:
 
@@ -2145,7 +2145,7 @@ sudo chown -R user1:user1 CollegeLMS.API/Migrations
 
 > Критично: НЕ терять данные при переименованиях. Проверить, что EF не делает `DropColumn("lecture_type")` — иначе данные типа занятий пропадут (значения "Lecture"/"Practice"/"SelfStudy" нужны).
 
-- [ ] **Step 3: Собрать**
+- [x] **Step 3: Собрать**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -2155,7 +2155,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Expected: Build succeeded.
 
-- [ ] **Step 4: Применить миграцию к локальной БД и проверить данные**
+- [x] **Step 4: Применить миграцию к локальной БД и проверить данные**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -2175,7 +2175,7 @@ docker exec -i collegelms-postgres psql -U postgres -d collegelms -c "SELECT cou
 
 Expected: таблицы `lessons`, `course_documents` есть; `assignments` нет; `lessons.kind` содержит значения без потерь; `course_materials.lesson_id` переименован, `assignment_id` отсутствует.
 
-- [ ] **Step 5: Проверить DbConstraints на чистой БД (свежая)**
+- [x] **Step 5: Проверить DbConstraints на чистой БД (свежая)**
 
 Создать временную БД и проверить, что API стартует и индексы создаются:
 
@@ -2193,7 +2193,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 docker exec -i collegelms-postgres psql -U postgres -c "DROP DATABASE collegelms_m3a_check;"
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -2208,7 +2208,7 @@ git commit -m "feat: миграция AddLessonsRemoveAssignments (lessons, is_c
 - Modify: `docs/spec/CollegeLMS.postman_collection.json`, `docs/diagrams/er/*.puml` (lessons, course_documents), `docs/diagrams/class/*.puml`, `docs/diagrams/sequence/*.puml`
 - Create: при необходимости новые `.puml`
 
-- [ ] **Step 1: Проверить Swagger-комментарии**
+- [x] **Step 1: Проверить Swagger-комментарии**
 
 `CollegeLMS.API/SwaggerExamples/LessonResponseExample.cs` и `CourseDocumentResponseExample.cs` созданы (Task 2/5). Убедиться, что в `CourseResponseExample.cs` поле `lessonCount` (было `lectureCount`), `assignmentCount` удалён:
 
@@ -2217,7 +2217,7 @@ grep -n "lectureCount\|assignmentCount\|lessonCount" CollegeLMS.API/SwaggerExamp
 ```
 Ожидается: `lessonCount` присутствует, остального нет. Если `assignmentCount` есть — удалить строку, `lectureCount` → `lessonCount`.
 
-- [ ] **Step 2: Postman-коллекция**
+- [x] **Step 2: Postman-коллекция**
 
 `docs/spec/CollegeLMS.postman_collection.json`:
 - В папке Tests: запрос «Create test with lecture» → переименовать в «Create test with lesson», в теле запроса поле `lectureId` → `lessonId`, URL `/api/courses/.../tests` (сверить фактический URL)
@@ -2237,7 +2237,7 @@ grep -n "lectureCount\|assignmentCount\|lessonCount" CollegeLMS.API/SwaggerExamp
 - В папке Courses: если есть запросы с `/assignments` или `/submissions` — удалить
 - Убедиться, что в переменных коллекции есть `courseId`, `lessonId`, `documentId`
 
-- [ ] **Step 3: PlantUML**
+- [x] **Step 3: PlantUML**
 
 `docs/diagrams/er/` — обновить ER-диаграммы:
 - `lectures` → `lessons` (поля: id, course_id, title, content, order, kind, is_current, test_id), отметить unique partial index `ux_lessons_course_id_is_current` на (course_id)
@@ -2245,14 +2245,14 @@ grep -n "lectureCount\|assignmentCount\|lessonCount" CollegeLMS.API/SwaggerExamp
 - Убрать `assignments`, `assignment_submissions` из всех диаграмм; `course_materials.lesson_id` (вместо lecture_id), без `assignment_id`
 - Проверить остальные `.puml` (sequence/class) на упоминания Lecture/Assignment — переименовать/удалить
 
-- [ ] **Step 4: Проверить отсутствие старых названий в доках**
+- [x] **Step 4: Проверить отсутствие старых названий в доках**
 
 ```bash
 grep -rn "assignments\|Assignments\|lecture" docs/diagrams --include=*.puml | grep -iv "lecture\b.*введение\|Lesson" || echo "ЧИСТО"
 ```
 Правила: в диаграммах не должно быть `assignments`; `lectures` не должно быть (только `lessons`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -2263,7 +2263,7 @@ git commit -m "docs: swagger-примеры, Postman (Lessons/Documents), PlantU
 
 ### Task 9: Полная проверка и финальный прогон
 
-- [ ] **Step 1: dotnet build + все тесты**
+- [x] **Step 1: dotnet build + все тесты**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -2273,7 +2273,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Expected: Build succeeded, все тесты PASS.
 
-- [ ] **Step 2: Проверка старых маршрутов**
+- [x] **Step 2: Проверка старых маршрутов**
 
 Убедиться, что в коде нет `/lectures` и `/assignments` (кроме Migrations):
 
@@ -2281,7 +2281,7 @@ Expected: Build succeeded, все тесты PASS.
 grep -rn "api/courses/{courseId:guid}/lectures\|/assignments\|/submissions\|lectures" CollegeLMS.API --include=*.cs | grep -v Migrations || echo "ЧИСТО"
 ```
 
-- [ ] **Step 3: Проверка грита (формат CSharpier)**
+- [x] **Step 3: Проверка грита (формат CSharpier)**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.nuget/packages \
@@ -2289,7 +2289,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src -v nuget_packages:/root/.
 ```
 Если есть ошибки форматирования: `dotnet csharpier format .` (тот же контейнер), затем пересобрать и перепрогнать тесты.
 
-- [ ] **Step 4: Финальный коммит (если были правки)**
+- [x] **Step 4: Финальный коммит (если были правки)**
 
 ```bash
 git add -A
@@ -2300,7 +2300,7 @@ git commit -m "chore: финальные правки M3a"   # только ес
 
 ### Task 10: Merge и деплой
 
-- [ ] **Step 1: Ветка и синхронизация**
+- [x] **Step 1: Ветка и синхронизация**
 
 Ветка `feature/m3a-lessons-backend` уже создана от актуального master (всё коммитится в неё с Task 1). Перед merge:
 
@@ -2309,7 +2309,7 @@ git fetch origin
 git pull --rebase origin master
 ```
 
-- [ ] **Step 2: Merge + push (CD деплоит на VPS)**
+- [x] **Step 2: Merge + push (CD деплоит на VPS)**
 
 ```bash
 git checkout master
@@ -2319,7 +2319,7 @@ git push origin master
 
 > После деплоя на VPS миграция применится автоматически при старте API. Фронтенд в этот момент ещё обращается к `/lectures` и `/assignments` — страницы курсов будут частично нерабочими до деплоя M3b. Это ожидаемо (решение пользователя — полный переход без redirect).
 
-- [ ] **Step 3: Smoke на проде**
+- [x] **Step 3: Smoke на проде**
 
 Проверить, что CD прошёл (gh run list / действия на GitHub), и:
 
