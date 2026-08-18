@@ -151,16 +151,29 @@ public class LessonControllerTests : BaseIntegrationTest
             TeacherId = teacher.Id,
             Status = CourseStatus.Draft,
         };
-        var a = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "A", Order = 1 };
-        var b = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "B", Order = 2 };
+        var a = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "A",
+            Order = 1,
+        };
+        var b = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "B",
+            Order = 2,
+        };
         db.Courses.Add(course);
         db.Lessons.AddRange(a, b);
         await db.SaveChangesAsync();
 
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
-            "Bearer",
-            tokenService.GenerateAccessToken(user)
-        );
+        Client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer",
+                tokenService.GenerateAccessToken(user)
+            );
 
         var response = await Client.PutAsJsonAsync(
             $"/api/courses/{course.Id}/lessons/reorder",
@@ -188,7 +201,13 @@ public class LessonControllerTests : BaseIntegrationTest
             TeacherId = Guid.NewGuid(),
             Status = CourseStatus.Draft,
         };
-        var a = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "A", Order = 1 };
+        var a = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "A",
+            Order = 1,
+        };
         db.Courses.Add(course);
         db.Lessons.Add(a);
         await db.SaveChangesAsync();
@@ -243,10 +262,11 @@ public class LessonControllerTests : BaseIntegrationTest
         db.Lessons.Add(lesson);
         await db.SaveChangesAsync();
 
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
-            "Bearer",
-            tokenService.GenerateAccessToken(user)
-        );
+        Client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer",
+                tokenService.GenerateAccessToken(user)
+            );
 
         var response = await Client.PatchAsJsonAsync(
             $"/api/courses/{course.Id}/lessons/{lesson.Id}/current",

@@ -88,10 +88,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
             if (teacher is null || !await access.CanManageCourseAsync(course, teacher.Id, ct))
-                return Result<CourseResponse>.Fail(
-                    "У вас нет прав на просмотр этого курса",
-                    403
-                );
+                return Result<CourseResponse>.Fail("У вас нет прав на просмотр этого курса", 403);
         }
 
         return Result<CourseResponse>.Ok(course.ToDto());
@@ -367,9 +364,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
         CancellationToken ct
     )
     {
-        var course = await db
-            .Courses.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == courseId, ct);
+        var course = await db.Courses.AsNoTracking().FirstOrDefaultAsync(c => c.Id == courseId, ct);
         if (course is null)
             return Result<CourseProgressResponse>.Fail("Курс не найден", 404);
 
@@ -402,9 +397,8 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
                 CourseTitle = course.Title,
                 TotalTests = totalTests,
                 CompletedTests = completedTests,
-                CompletionPercent = totalTests > 0
-                    ? Math.Round((double)completedTests / totalTests * 100, 1)
-                    : 0,
+                CompletionPercent =
+                    totalTests > 0 ? Math.Round((double)completedTests / totalTests * 100, 1) : 0,
             }
         );
     }
@@ -417,8 +411,7 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
     )
     {
         var source = await db
-            .Courses
-            .Include(c => c.Lessons)
+            .Courses.Include(c => c.Lessons)
             .Include(c => c.Materials)
             .Include(c => c.CourseDocuments)
             .Include(c => c.CourseAuthors)
@@ -431,15 +424,17 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
         Guid authorTeacherId;
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers.AsNoTracking().FirstOrDefaultAsync(
-                t => t.UserId == currentUserId,
-                ct
-            );
+            var teacher = await db
+                .Teachers.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
             if (teacher is null)
                 return Result<CourseResponse>.Fail("Преподаватель не найден", 404);
             authorTeacherId = teacher.Id;
             if (!await access.CanManageCourseAsync(source, teacher.Id, ct))
-                return Result<CourseResponse>.Fail("У вас нет прав на дублирование этого курса", 403);
+                return Result<CourseResponse>.Fail(
+                    "У вас нет прав на дублирование этого курса",
+                    403
+                );
         }
         else
         {
@@ -548,10 +543,9 @@ public class CourseService(AppDbContext db, ICourseAccessService access) : ICour
 
         if (currentUserRole == "Teacher")
         {
-            var teacher = await db.Teachers.AsNoTracking().FirstOrDefaultAsync(
-                t => t.UserId == currentUserId,
-                ct
-            );
+            var teacher = await db
+                .Teachers.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
             if (teacher is null || course.TeacherId != teacher.Id)
                 return Result.Fail("Только владелец курса может менять активность", 403);
         }

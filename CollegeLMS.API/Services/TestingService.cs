@@ -85,10 +85,7 @@ public class TestingService(AppDbContext db, ICourseAccessService access) : ITes
         Lesson? lesson = null;
         if (request.LessonId.HasValue)
         {
-            lesson = await db.Lessons.FirstOrDefaultAsync(
-                l => l.Id == request.LessonId.Value,
-                ct
-            );
+            lesson = await db.Lessons.FirstOrDefaultAsync(l => l.Id == request.LessonId.Value, ct);
             if (lesson is null)
                 return Result<TestResponse>.Fail("Занятие не найдено", 404);
             if (lesson.CourseId != request.CourseId)
@@ -450,23 +447,27 @@ public class TestingService(AppDbContext db, ICourseAccessService access) : ITes
         if (student is null)
             return Result<StartTestResponse>.Fail("Студент не найден", 404);
 
-        var hasAssignment = await db.TestAssignments.AsNoTracking().AnyAsync(
-            a =>
-                a.TestId == testId
-                && a.GroupId == student.GroupId
-                && a.OpenDate <= DateTime.UtcNow
-                && a.CloseDate >= DateTime.UtcNow,
-            ct
-        );
-        var lesson = await db.Lessons.AsNoTracking().FirstOrDefaultAsync(
-            l => l.TestId == testId,
-            ct
-        );
-        var enrolled = lesson is not null
-            && await db.CourseGroups.AsNoTracking().AnyAsync(
-                cg => cg.CourseId == lesson.CourseId && cg.GroupId == student.GroupId,
+        var hasAssignment = await db
+            .TestAssignments.AsNoTracking()
+            .AnyAsync(
+                a =>
+                    a.TestId == testId
+                    && a.GroupId == student.GroupId
+                    && a.OpenDate <= DateTime.UtcNow
+                    && a.CloseDate >= DateTime.UtcNow,
                 ct
             );
+        var lesson = await db
+            .Lessons.AsNoTracking()
+            .FirstOrDefaultAsync(l => l.TestId == testId, ct);
+        var enrolled =
+            lesson is not null
+            && await db
+                .CourseGroups.AsNoTracking()
+                .AnyAsync(
+                    cg => cg.CourseId == lesson.CourseId && cg.GroupId == student.GroupId,
+                    ct
+                );
         if (!hasAssignment && !enrolled)
             return Result<StartTestResponse>.Fail("Тест не доступен для вашей группы", 403);
 
@@ -638,11 +639,10 @@ public class TestingService(AppDbContext db, ICourseAccessService access) : ITes
             .Include(a => a.Answers)
                 .ThenInclude(a => a.Question)
             .Include(a => a.Test)
-            .Where(
-                a =>
-                    a.TestId == testId
-                    && a.StudentId == student.Id
-                    && a.Status == AttemptStatus.Completed
+            .Where(a =>
+                a.TestId == testId
+                && a.StudentId == student.Id
+                && a.Status == AttemptStatus.Completed
             )
             .OrderByDescending(a => a.CompletedAt)
             .FirstOrDefaultAsync(ct);

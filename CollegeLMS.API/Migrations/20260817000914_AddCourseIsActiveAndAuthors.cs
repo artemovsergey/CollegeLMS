@@ -16,7 +16,8 @@ namespace CollegeLMS.Migrations
                 table: "courses",
                 type: "boolean",
                 nullable: false,
-                defaultValue: true);
+                defaultValue: true
+            );
 
             migrationBuilder.CreateTable(
                 name: "course_authors",
@@ -25,8 +26,16 @@ namespace CollegeLMS.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     course_id = table.Column<Guid>(type: "uuid", nullable: false),
                     teacher_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                    created_at = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false,
+                        defaultValueSql: "CURRENT_TIMESTAMP"
+                    ),
+                    updated_at = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false,
+                        defaultValueSql: "CURRENT_TIMESTAMP"
+                    ),
                 },
                 constraints: table =>
                 {
@@ -36,36 +45,38 @@ namespace CollegeLMS.Migrations
                         column: x => x.course_id,
                         principalTable: "courses",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Cascade
+                    );
                     table.ForeignKey(
                         name: "fk_course_authors_teachers_teacher_id",
                         column: x => x.teacher_id,
                         principalTable: "teachers",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_course_authors_course_id_teacher_id",
                 table: "course_authors",
                 columns: new[] { "course_id", "teacher_id" },
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_course_authors_teacher_id",
                 table: "course_authors",
-                column: "teacher_id");
+                column: "teacher_id"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "course_authors");
+            migrationBuilder.DropTable(name: "course_authors");
 
-            migrationBuilder.DropColumn(
-                name: "is_active",
-                table: "courses");
+            migrationBuilder.DropColumn(name: "is_active", table: "courses");
         }
     }
 }

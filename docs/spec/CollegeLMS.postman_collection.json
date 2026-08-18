@@ -28,7 +28,7 @@
       "value": "c1000000-0000-0000-0000-000000000001"
     },
     {
-      "key": "lectureId",
+      "key": "lessonId",
       "value": ""
     },
     {
@@ -41,6 +41,10 @@
     },
     {
       "key": "attemptId",
+      "value": ""
+    },
+    {
+      "key": "documentId",
       "value": ""
     }
   ],
@@ -285,7 +289,7 @@
       "name": "Tests",
       "item": [
         {
-          "name": "Create test with lecture",
+          "name": "Create test with lesson",
           "request": {
             "method": "POST",
             "header": [
@@ -296,7 +300,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Тест к лекции 1\",\n  \"description\": \"Проверка усвоения материала лекции\",\n  \"timeLimitMinutes\": 30,\n  \"maxAttempts\": 2,\n  \"type\": \"SelfStudy\",\n  \"passingScore\": 60,\n  \"courseId\": \"{{courseId}}\",\n  \"lectureId\": \"{{lectureId}}\"\n}"
+              "raw": "{\n  \"title\": \"Тест к занятию 1\",\n  \"description\": \"Проверка усвоения материала занятия\",\n  \"timeLimitMinutes\": 30,\n  \"maxAttempts\": 2,\n  \"type\": \"SelfStudy\",\n  \"passingScore\": 60,\n  \"courseId\": \"{{courseId}}\",\n  \"lessonId\": \"{{lessonId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/tests",
@@ -489,6 +493,271 @@
               ]
             }
           }
+        },
+        {
+          "name": "Lessons",
+          "item": [
+            {
+              "name": "Get lessons",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/lessons",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "lessons"
+                  ]
+                }
+              },
+              "description": "Список занятий курса"
+            },
+            {
+              "name": "Get lesson by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/lessons/{{lessonId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "lessons",
+                    "{{lessonId}}"
+                  ]
+                }
+              },
+              "description": "Занятие по ID"
+            },
+            {
+              "name": "Create lesson",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/lessons",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "lessons"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Введение\",\n  \"content\": \"Описание занятия\",\n  \"kind\": \"Lecture\",\n  \"testId\": null,\n  \"afterLessonId\": null\n}"
+                }
+              },
+              "description": "Создать занятие (после занятия или в начало)"
+            },
+            {
+              "name": "Update lesson",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/lessons/{{lessonId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "lessons",
+                    "{{lessonId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Введение\",\n  \"content\": \"Обновлённое содержание\",\n  \"kind\": \"Practice\",\n  \"testId\": null\n}"
+                }
+              },
+              "description": "Обновить занятие"
+            },
+            {
+              "name": "Reorder lessons",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/lessons/reorder",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "lessons",
+                    "reorder"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lessonIds\": []\n}"
+                }
+              },
+              "description": "Переупорядочивание занятий"
+            },
+            {
+              "name": "Set current lesson",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/lessons/{{lessonId}}/current",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "lessons",
+                    "{{lessonId}}",
+                    "current"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isCurrent\": true\n}"
+                }
+              },
+              "description": "Пометить занятие как текущее"
+            },
+            {
+              "name": "Delete lesson",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/lessons/{{lessonId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "lessons",
+                    "{{lessonId}}"
+                  ]
+                }
+              },
+              "description": "Удалить занятие"
+            }
+          ]
+        },
+        {
+          "name": "Documents",
+          "item": [
+            {
+              "name": "Upload document",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/documents",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "documents"
+                  ]
+                }
+              },
+              "description": "Загрузить документ в курс (form-data, file)"
+            },
+            {
+              "name": "Get documents",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/documents",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "documents"
+                  ]
+                }
+              },
+              "description": "Список документов курса"
+            },
+            {
+              "name": "Download document",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/documents/{{documentId}}/download",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "documents",
+                    "{{documentId}}",
+                    "download"
+                  ]
+                }
+              },
+              "description": "Скачать файл документа"
+            },
+            {
+              "name": "Delete document",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/documents/{{documentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}",
+                    "documents",
+                    "{{documentId}}"
+                  ]
+                }
+              },
+              "description": "Удалить документ"
+            }
+          ]
         }
       ]
     }

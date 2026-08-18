@@ -111,9 +111,7 @@ public class SubmitAnswersRequestValidator : AbstractValidator<SubmitAnswersRequ
 {
     public SubmitAnswersRequestValidator()
     {
-        RuleFor(x => x.Answers)
-            .NotNull()
-            .WithMessage("Ответы обязательны");
+        RuleFor(x => x.Answers).NotNull().WithMessage("Ответы обязательны");
         RuleForEach(x => x.Answers)
             .ChildRules(answers =>
             {

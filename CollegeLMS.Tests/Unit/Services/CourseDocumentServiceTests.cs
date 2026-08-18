@@ -38,7 +38,11 @@ public class CourseDocumentServiceTests : IDisposable
         _accessMock = new Mock<ICourseAccessService>();
         _accessMock
             .Setup(x =>
-                x.CanManageCourseAsync(It.IsAny<Course>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())
+                x.CanManageCourseAsync(
+                    It.IsAny<Course>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
             .ReturnsAsync(true);
         _sut = new CourseDocumentService(_db, _fileServiceMock.Object, _accessMock.Object);
@@ -168,7 +172,11 @@ public class CourseDocumentServiceTests : IDisposable
 
         _accessMock
             .Setup(x =>
-                x.CanManageCourseAsync(It.IsAny<Course>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>())
+                x.CanManageCourseAsync(
+                    It.IsAny<Course>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
             .ReturnsAsync(false);
 

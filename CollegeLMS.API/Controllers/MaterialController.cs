@@ -55,14 +55,7 @@ public class MaterialController(IMaterialService service) : ControllerBase
 
         var userId = User.GetUserId();
         var role = User.GetRole();
-        var result = await service.UploadAsync(
-            courseId,
-            file,
-            lessonId,
-            userId,
-            role,
-            ct
-        );
+        var result = await service.UploadAsync(courseId, file, lessonId, userId, role, ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
         return Ok(result);

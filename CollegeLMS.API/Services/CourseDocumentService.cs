@@ -80,7 +80,9 @@ public class CourseDocumentService(
         CancellationToken ct
     )
     {
-        var document = await db.CourseDocuments.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
+        var document = await db
+            .CourseDocuments.AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == id, ct);
 
         if (document is null)
             return Result<(Stream, string, string)>.Fail("Документ не найден", 404);

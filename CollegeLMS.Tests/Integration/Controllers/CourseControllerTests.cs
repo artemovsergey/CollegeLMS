@@ -69,10 +69,8 @@ public class CourseControllerTests : BaseIntegrationTest
         await db.SaveChangesAsync();
 
         var token = tokenService.GenerateAccessToken(user);
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
-            "Bearer",
-            token
-        );
+        Client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
         var response = await Client.PostAsync($"/api/courses/{course.Id}/duplicate", null);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -123,10 +121,8 @@ public class CourseControllerTests : BaseIntegrationTest
         await db.SaveChangesAsync();
 
         var token = tokenService.GenerateAccessToken(coAuthor);
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
-            "Bearer",
-            token
-        );
+        Client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
         var response = await Client.PatchAsJsonAsync(
             $"/api/courses/{course.Id}/active",
@@ -169,10 +165,8 @@ public class CourseControllerTests : BaseIntegrationTest
         await db.SaveChangesAsync();
 
         var token = tokenService.GenerateAccessToken(teacher2);
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
-            "Bearer",
-            token
-        );
+        Client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
         var response = await Client.GetAsync("/api/courses");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -210,10 +204,8 @@ public class CourseControllerTests : BaseIntegrationTest
         await db.SaveChangesAsync();
 
         var token = tokenService.GenerateAccessToken(foreign);
-        Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
-            "Bearer",
-            token
-        );
+        Client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
         var response = await Client.PostAsync($"/api/courses/{course.Id}/duplicate", null);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);

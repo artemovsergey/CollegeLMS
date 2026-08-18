@@ -14,7 +14,11 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
         builder.Property(x => x.Title).HasMaxLength(255);
         builder.Property(x => x.Content).HasMaxLength(65535);
         builder.Property(x => x.Order).HasDefaultValue(0);
-        builder.Property(x => x.Kind).HasColumnName("kind").HasConversion<string>().HasMaxLength(20);
+        builder
+            .Property(x => x.Kind)
+            .HasColumnName("kind")
+            .HasConversion<string>()
+            .HasMaxLength(20);
         builder.Property(x => x.IsCurrent).HasDefaultValue(false);
         builder
             .HasOne(x => x.Course)

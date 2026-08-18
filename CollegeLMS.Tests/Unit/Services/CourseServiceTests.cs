@@ -21,10 +21,22 @@ public class CourseServiceTests : IDisposable
         _db = TestDbContextFactory.Create();
         _accessMock = new Mock<ICourseAccessService>();
         _accessMock
-            .Setup(x => x.CanManageCourseAsync(It.IsAny<Course>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.CanManageCourseAsync(
+                    It.IsAny<Course>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(true);
         _accessMock
-            .Setup(x => x.CanManageCourseAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.CanManageCourseAsync(
+                    It.IsAny<Guid>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(true);
         _accessMock
             .Setup(x => x.GetManagedCourseIdsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))

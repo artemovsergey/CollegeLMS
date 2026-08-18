@@ -69,7 +69,11 @@ public class CourseDocumentController(ICourseDocumentService service) : Controll
     /// <response code="500">Ошибка сервера</response>
     [HttpGet]
     [SwaggerOperation(Summary = "Получить список документов курса")]
-    [SwaggerResponse(200, "Список документов получен", typeof(Result<List<CourseDocumentResponse>>))]
+    [SwaggerResponse(
+        200,
+        "Список документов получен",
+        typeof(Result<List<CourseDocumentResponse>>)
+    )]
     [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(404, "Курс не найден")]
     [SwaggerResponse(500, "Ошибка сервера")]

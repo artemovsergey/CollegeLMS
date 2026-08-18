@@ -136,39 +136,28 @@ entity CourseGroup {
   * group_id: GUID (FK)
 }
 
-entity Lecture {
-  * id: GUID
-  --
-  * course_id: GUID (FK)
-  * topic: string
-  * content: text
-  * order: int
-  created_at: datetime
-  updated_at: datetime
-}
-
-entity Assignment {
+entity Lesson {
   * id: GUID
   --
   * course_id: GUID (FK)
   * title: string
-  * description: text
-  * due_date: datetime
-  * max_score: int
+  * content: text
   * order: int
+  * kind: string (Lecture|Practice|SelfStudy)
+  is_current: bool (partial unique index ux_lessons_course_id_is_current)
+  test_id: GUID (FK, nullable)
   created_at: datetime
   updated_at: datetime
 }
 
-entity AssignmentSubmission {
+entity CourseDocument {
   * id: GUID
   --
-  * assignment_id: GUID (FK)
-  * student_id: GUID (FK)
-  * comment: text
+  * course_id: GUID (FK)
+  * file_name: string
   * file_path: string
-  * score: int
-  * version: int
+  * content_type: string
+  * size_bytes: long
   created_at: datetime
   updated_at: datetime
 }
@@ -177,6 +166,7 @@ entity CourseMaterial {
   * id: GUID
   --
   * course_id: GUID (FK)
+  * lesson_id: GUID (FK, nullable)
   * file_name: string
   * file_size: long
   * mime_type: string
@@ -314,13 +304,10 @@ Course ||--o{ CourseGroup : assigned_to
 CourseGroup }o--|| Group : references
 
 User ||--o{ Course : creates
-Course ||--o{ Lecture : has
-Course ||--o{ Assignment : has
+Course ||--o{ Lesson : has
+Course ||--o{ CourseDocument : has
 Course ||--o{ CourseMaterial : has
 Course ||--o{ Test : includes
-
-Student ||--o{ AssignmentSubmission : submits
-Assignment ||--o{ AssignmentSubmission : receives
 
 Exam ||--o{ Retake : has
 Student ||--o{ Retake : takes

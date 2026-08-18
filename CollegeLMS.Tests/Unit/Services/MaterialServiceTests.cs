@@ -25,10 +25,22 @@ public class MaterialServiceTests : IDisposable
         _fileServiceMock = new Mock<IFileService>();
         _accessMock = new Mock<ICourseAccessService>();
         _accessMock
-            .Setup(x => x.CanManageCourseAsync(It.IsAny<Course>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.CanManageCourseAsync(
+                    It.IsAny<Course>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(true);
         _accessMock
-            .Setup(x => x.CanManageCourseAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.CanManageCourseAsync(
+                    It.IsAny<Guid>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(true);
         _sut = new MaterialService(_db, _fileServiceMock.Object, _accessMock.Object);
     }

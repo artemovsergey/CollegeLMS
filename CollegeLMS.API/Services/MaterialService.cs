@@ -114,7 +114,10 @@ public class MaterialService(AppDbContext db, IFileService fileService, ICourseA
                 .Teachers.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.UserId == currentUserId, ct);
 
-            if (teacher is null || !await access.CanManageCourseAsync(material.Course, teacher.Id, ct))
+            if (
+                teacher is null
+                || !await access.CanManageCourseAsync(material.Course, teacher.Id, ct)
+            )
                 return Result.Fail("У вас нет прав на удаление этого материала", 403);
         }
 

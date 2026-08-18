@@ -63,3 +63,6 @@ output
 import/wp_data_full.json
 # Generated reports
 scripts/content-links-report.json
+
+# Unknown binaries (do not commit)
+roots/

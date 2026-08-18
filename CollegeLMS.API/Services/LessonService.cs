@@ -11,10 +11,7 @@ namespace CollegeLMS.API.Services;
 
 public class LessonService(AppDbContext db, ICourseAccessService access) : ILessonService
 {
-    public async Task<Result<List<LessonResponse>>> GetAllAsync(
-        Guid courseId,
-        CancellationToken ct
-    )
+    public async Task<Result<List<LessonResponse>>> GetAllAsync(Guid courseId, CancellationToken ct)
     {
         var courseExists = await db.Courses.AnyAsync(c => c.Id == courseId, ct);
         if (!courseExists)
@@ -108,9 +105,7 @@ public class LessonService(AppDbContext db, ICourseAccessService access) : ILess
             Title = request.Title,
             Content = request.Content,
             Order = newOrder,
-            Kind = Enum.TryParse<LessonKind>(request.Kind, out var lk)
-                ? lk
-                : LessonKind.Lecture,
+            Kind = Enum.TryParse<LessonKind>(request.Kind, out var lk) ? lk : LessonKind.Lecture,
             TestId = request.TestId,
         };
         db.Lessons.Add(lesson);
@@ -153,9 +148,7 @@ public class LessonService(AppDbContext db, ICourseAccessService access) : ILess
 
         lesson.Title = request.Title;
         lesson.Content = request.Content;
-        lesson.Kind = Enum.TryParse<LessonKind>(request.Kind, out var lk)
-            ? lk
-            : LessonKind.Lecture;
+        lesson.Kind = Enum.TryParse<LessonKind>(request.Kind, out var lk) ? lk : LessonKind.Lecture;
         lesson.TestId = request.TestId;
         lesson.UpdatedAt = DateTime.UtcNow;
 

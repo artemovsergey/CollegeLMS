@@ -23,15 +23,11 @@ CourseCtrl --> Teacher: 200 OK
 
 Student -> CourseCtrl: GET /api/my/courses/{id}/progress
 CourseCtrl -> CourseSvc: GetProgressAsync(courseId, studentId, ct)
-CourseSvc -> DB: SELECT * FROM assignments\nWHERE course_id = @courseId
-DB --> CourseSvc: List<Assignment>
-CourseSvc -> DB: SELECT * FROM assignment_submissions\nWHERE student_id = @studentId\nAND assignment_id IN (...)
-DB --> CourseSvc: List<Submission>
 CourseSvc -> DB: SELECT * FROM tests WHERE course_id = @courseId
 DB --> CourseSvc: List<Test>
-CourseSvc -> DB: SELECT * FROM test_attempts\nWHERE student_id = @studentId AND test_id IN (...)
+CourseSvc -> DB: SELECT * FROM test_attempts\nWHERE student_id = @studentId\nAND test_id IN (...) AND status = 'Completed'
 DB --> CourseSvc: List<TestAttempt>
-CourseSvc -> CourseSvc: Calculate: completed/total, average score
-CourseSvc --> CourseCtrl: Result.Ok({ completionPercent, assignmentsProgress, testsProgress, averageScore })
+CourseSvc -> CourseSvc: Calculate: completed/total, completionPercent
+CourseSvc --> CourseCtrl: Result.Ok({ courseId, courseTitle, totalTests, completedTests, completionPercent })
 CourseCtrl --> Student: 200 JSON
 @enduml

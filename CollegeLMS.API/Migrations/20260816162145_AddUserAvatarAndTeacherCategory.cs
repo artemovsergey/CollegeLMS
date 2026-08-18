@@ -15,7 +15,8 @@ namespace CollegeLMS.Migrations
                 table: "users",
                 type: "character varying(512)",
                 maxLength: 512,
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<string>(
                 name: "category",
@@ -23,19 +24,16 @@ namespace CollegeLMS.Migrations
                 type: "character varying(20)",
                 maxLength: 20,
                 nullable: false,
-                defaultValue: "");
+                defaultValue: ""
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "avatar_path",
-                table: "users");
+            migrationBuilder.DropColumn(name: "avatar_path", table: "users");
 
-            migrationBuilder.DropColumn(
-                name: "category",
-                table: "teachers");
+            migrationBuilder.DropColumn(name: "category", table: "teachers");
         }
     }
 }

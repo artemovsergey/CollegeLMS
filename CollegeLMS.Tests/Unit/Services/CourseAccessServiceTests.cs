@@ -34,7 +34,11 @@ public class CourseAccessServiceTests
         await db.SaveChangesAsync();
 
         var service = new CourseAccessService(db);
-        var result = await service.CanManageCourseAsync(course.Id, course.TeacherId, CancellationToken.None);
+        var result = await service.CanManageCourseAsync(
+            course.Id,
+            course.TeacherId,
+            CancellationToken.None
+        );
 
         Assert.True(result);
     }
@@ -57,7 +61,12 @@ public class CourseAccessServiceTests
             }
         );
         db.CourseAuthors.Add(
-            new CourseAuthor { Id = Guid.NewGuid(), CourseId = courseId, TeacherId = coAuthor }
+            new CourseAuthor
+            {
+                Id = Guid.NewGuid(),
+                CourseId = courseId,
+                TeacherId = coAuthor,
+            }
         );
         await db.SaveChangesAsync();
 
@@ -84,7 +93,11 @@ public class CourseAccessServiceTests
         await db.SaveChangesAsync();
 
         var service = new CourseAccessService(db);
-        var result = await service.CanManageCourseAsync(course.Id, Guid.NewGuid(), CancellationToken.None);
+        var result = await service.CanManageCourseAsync(
+            course.Id,
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
 
         Assert.False(result);
     }
@@ -129,7 +142,12 @@ public class CourseAccessServiceTests
         };
         db.Courses.Add(coCourse);
         db.CourseAuthors.Add(
-            new CourseAuthor { Id = Guid.NewGuid(), CourseId = coOwnedId, TeacherId = teacherId }
+            new CourseAuthor
+            {
+                Id = Guid.NewGuid(),
+                CourseId = coOwnedId,
+                TeacherId = teacherId,
+            }
         );
         await db.SaveChangesAsync();
 

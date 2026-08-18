@@ -21,10 +21,22 @@ public class TestingServiceTests : IDisposable
         _db = TestDbContextFactory.Create();
         _accessMock = new Mock<ICourseAccessService>();
         _accessMock
-            .Setup(x => x.CanManageCourseAsync(It.IsAny<Course>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.CanManageCourseAsync(
+                    It.IsAny<Course>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(true);
         _accessMock
-            .Setup(x => x.CanManageCourseAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.CanManageCourseAsync(
+                    It.IsAny<Guid>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(true);
         _accessMock
             .Setup(x => x.GetManagedCourseIdsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
@@ -1221,7 +1233,12 @@ public class TestingServiceTests : IDisposable
             }
         );
         _db.CourseGroups.Add(
-            new CourseGroup { Id = Guid.NewGuid(), CourseId = courseId, GroupId = groupId }
+            new CourseGroup
+            {
+                Id = Guid.NewGuid(),
+                CourseId = courseId,
+                GroupId = groupId,
+            }
         );
         await _db.SaveChangesAsync();
 

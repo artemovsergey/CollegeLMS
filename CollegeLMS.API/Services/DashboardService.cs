@@ -22,10 +22,11 @@ public class DashboardService(AppDbContext db) : IDashboardService
             .Include(c => c.CourseGroups)
                 .ThenInclude(cg => cg.Group)
             .Include(c => c.CourseAuthors)
-            .Where(
-                c =>
-                    c.IsActive
-                    && (c.TeacherId == teacher.Id || c.CourseAuthors.Any(a => a.TeacherId == teacher.Id))
+            .Where(c =>
+                c.IsActive
+                && (
+                    c.TeacherId == teacher.Id || c.CourseAuthors.Any(a => a.TeacherId == teacher.Id)
+                )
             )
             .Select(c => new CourseBriefDto
             {

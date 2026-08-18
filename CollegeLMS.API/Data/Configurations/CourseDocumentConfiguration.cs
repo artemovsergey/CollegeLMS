@@ -16,7 +16,7 @@ public class CourseDocumentConfiguration : IEntityTypeConfiguration<CourseDocume
         builder.Property(x => x.ContentType).HasMaxLength(100);
         builder
             .HasOne(x => x.Course)
-            .WithMany()
+            .WithMany(c => c.CourseDocuments)
             .HasForeignKey(x => x.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => x.CourseId).HasDatabaseName("ix_course_documents_course_id");

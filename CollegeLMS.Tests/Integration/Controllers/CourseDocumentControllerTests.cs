@@ -121,7 +121,9 @@ public class CourseDocumentControllerTests : BaseIntegrationTest
     public async Task Download_ReturnsNotFound_WhenMissing()
     {
         SetAuthHeader(GetAdminToken());
-        var response = await Client.GetAsync($"/api/courses/{Guid.NewGuid()}/documents/{Guid.NewGuid()}/download");
+        var response = await Client.GetAsync(
+            $"/api/courses/{Guid.NewGuid()}/documents/{Guid.NewGuid()}/download"
+        );
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }

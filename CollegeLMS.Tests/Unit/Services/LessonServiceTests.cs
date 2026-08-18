@@ -21,10 +21,22 @@ public class LessonServiceTests : IDisposable
         _db = TestDbContextFactory.Create();
         _accessMock = new Mock<ICourseAccessService>();
         _accessMock
-            .Setup(x => x.CanManageCourseAsync(It.IsAny<Course>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.CanManageCourseAsync(
+                    It.IsAny<Course>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(true);
         _accessMock
-            .Setup(x => x.CanManageCourseAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.CanManageCourseAsync(
+                    It.IsAny<Guid>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .ReturnsAsync(true);
         _sut = new LessonService(_db, _accessMock.Object);
     }
@@ -177,9 +189,27 @@ public class LessonServiceTests : IDisposable
             TeacherId = Guid.NewGuid(),
             Status = CourseStatus.Draft,
         };
-        var a = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "A", Order = 1 };
-        var b = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "B", Order = 2 };
-        var c = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "C", Order = 3 };
+        var a = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "A",
+            Order = 1,
+        };
+        var b = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "B",
+            Order = 2,
+        };
+        var c = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "C",
+            Order = 3,
+        };
         _db.Courses.Add(course);
         _db.Lessons.AddRange(a, b, c);
         await _db.SaveChangesAsync();
@@ -387,9 +417,27 @@ public class LessonServiceTests : IDisposable
             TeacherId = Guid.NewGuid(),
             Status = CourseStatus.Draft,
         };
-        var a = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "A", Order = 1 };
-        var b = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "B", Order = 2 };
-        var c = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "C", Order = 3 };
+        var a = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "A",
+            Order = 1,
+        };
+        var b = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "B",
+            Order = 2,
+        };
+        var c = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "C",
+            Order = 3,
+        };
         _db.Courses.Add(course);
         _db.Lessons.AddRange(a, b, c);
         await _db.SaveChangesAsync();
@@ -461,7 +509,13 @@ public class LessonServiceTests : IDisposable
             Order = 1,
             IsCurrent = true,
         };
-        var b = new Lesson { Id = Guid.NewGuid(), CourseId = course.Id, Title = "B", Order = 2 };
+        var b = new Lesson
+        {
+            Id = Guid.NewGuid(),
+            CourseId = course.Id,
+            Title = "B",
+            Order = 2,
+        };
         _db.Courses.Add(course);
         _db.Lessons.AddRange(a, b);
         await _db.SaveChangesAsync();

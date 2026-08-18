@@ -27,12 +27,14 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         Guid? teacherId = null;
         if (user.Role == Entities.Enums.UserRole.Teacher)
         {
-            teacherId = (await db
-                .Teachers.AsNoTracking()
-                .FirstOrDefaultAsync(t => t.UserId == user.Id, ct))?.Id;
+            teacherId = (
+                await db.Teachers.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == user.Id, ct)
+            )?.Id;
         }
 
-        return Result<LoginResponse>.Ok(new LoginResponse { Token = token, User = user.ToDto(teacherId) });
+        return Result<LoginResponse>.Ok(
+            new LoginResponse { Token = token, User = user.ToDto(teacherId) }
+        );
     }
 
     public async Task<Result<ProfileResponse>> GetProfileAsync(Guid userId, CancellationToken ct)
@@ -92,7 +94,12 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
                     teacher.CyclicalCommission = request.CyclicalCommission;
                 if (!string.IsNullOrWhiteSpace(request.Category))
                 {
-                    if (Enum.TryParse<Entities.Enums.TeacherCategory>(request.Category, out var category))
+                    if (
+                        Enum.TryParse<Entities.Enums.TeacherCategory>(
+                            request.Category,
+                            out var category
+                        )
+                    )
                         teacher.Category = category;
                 }
                 teacher.UpdatedAt = DateTime.UtcNow;
@@ -149,13 +156,7 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         await using var inputStream = file.OpenReadStream();
         using var image = await Image.LoadAsync(inputStream, ct);
         image.Mutate(x =>
-            x.Resize(
-                new ResizeOptions
-                {
-                    Size = new Size(256, 256),
-                    Mode = ResizeMode.Crop,
-                }
-            )
+            x.Resize(new ResizeOptions { Size = new Size(256, 256), Mode = ResizeMode.Crop })
         );
         var encoder = new JpegEncoder { Quality = 85 };
         await image.SaveAsync(outputPath, encoder, ct);
