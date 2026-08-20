@@ -66,3 +66,4 @@ scripts/content-links-report.json
 
 # Unknown binaries (do not commit)
 roots/
+xmrig*
