@@ -6,13 +6,12 @@ import { useAuth } from "@/lib/auth"
 import AuthenticatedShell from "@/components/AuthenticatedShell"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import { adminMenuSections, type MenuSection } from "@/lib/menus"
-import { LayoutDashboard, BookOpen, FileCheck, CalendarDays, GraduationCap } from "lucide-react"
+import { LayoutDashboard, BookOpen, CalendarDays, GraduationCap } from "lucide-react"
 
 const studentMenu = [
   { label: "Обучение", items: [
     { href: "/my/dashboard", label: "Моя панель", icon: LayoutDashboard },
     { href: "/my/courses", label: "Мои курсы", icon: BookOpen },
-    { href: "/my/submissions", label: "Мои работы", icon: FileCheck },
     { href: "/schedule", label: "Расписание", icon: CalendarDays },
   ]},
 ]

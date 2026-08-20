@@ -81,7 +81,7 @@ export default function MyCoursesPage() {
                   <TableCell className="font-medium">{c.title}</TableCell>
                   <TableCell>{c.teacherName}</TableCell>
                   <TableCell>
-                    {c.lectureCount > 0 ? `${c.lectureCount} лекций, ${c.assignmentCount} заданий` : "—"}
+                    {c.lessonCount > 0 ? `${c.lessonCount} занятий, ${c.documentCount} документов` : "—"}
                   </TableCell>
                 </TableRow>
               ))}

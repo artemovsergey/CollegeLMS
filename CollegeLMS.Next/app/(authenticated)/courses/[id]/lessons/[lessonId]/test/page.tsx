@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import type {
   Result,
-  LectureResponse,
+  LessonResponse,
   StartTestResponse,
   TestQuestionDto,
   TestResultResponse,
@@ -22,14 +22,14 @@ const questionTypeLabels: Record<string, string> = {
   MultipleChoice: "Несколько вариантов",
 }
 
-export default function LectureTestPage() {
+export default function LessonTestPage() {
   const { user } = useAuth()
   const router = useRouter()
   const params = useParams()
   const courseId = params.id as string
-  const lectureId = params.lectureId as string
+  const lessonId = params.lessonId as string
 
-  const [lecture, setLecture] = useState<LectureResponse | null>(null)
+  const [lesson, setLesson] = useState<LessonResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [test, setTest] = useState<StartTestResponse | null>(null)
@@ -41,40 +41,40 @@ export default function LectureTestPage() {
 
   useEffect(() => {
     if (user?.role !== "Student") {
-      router.replace(`/courses/${courseId}/lectures/${lectureId}`)
+      router.replace(`/courses/${courseId}/lessons/${lessonId}`)
     }
-  }, [user, courseId, lectureId, router])
+  }, [user, courseId, lessonId, router])
 
-  const fetchLecture = useCallback(async () => {
+  const fetchLesson = useCallback(async () => {
     try {
-      const res = await api.get<Result<LectureResponse>>(`/api/courses/${courseId}/lectures/${lectureId}`)
+      const res = await api.get<Result<LessonResponse>>(`/api/courses/${courseId}/lessons/${lessonId}`)
       const body = res.data
       if (body.isSuccess && body.data) {
-        setLecture(body.data)
+        setLesson(body.data)
         setLoading(false)
         if (!body.data.testId) {
-          setError("У этой лекции нет теста")
+          setError("У этого занятия нет теста")
         }
       } else {
         setError(body.errorMessage ?? "Ошибка загрузки")
         setLoading(false)
       }
     } catch {
-      setError("Ошибка загрузки лекции")
+      setError("Ошибка загрузки занятия")
       setLoading(false)
     }
-  }, [courseId, lectureId])
+  }, [courseId, lessonId])
 
   useEffect(() => {
-    fetchLecture()
-  }, [fetchLecture])
+    fetchLesson()
+  }, [fetchLesson])
 
   const handleStart = async () => {
-    if (!lecture?.testId) return
+    if (!lesson?.testId) return
     setStarting(true)
     setError(null)
     try {
-      const res = await api.get<Result<StartTestResponse>>(`/api/tests/${lecture.testId}/start`)
+      const res = await api.get<Result<StartTestResponse>>(`/api/tests/${lesson.testId}/start`)
       if (res.data.isSuccess && res.data.data) {
         setTest(res.data.data)
         setSecondsLeft(res.data.data.timeLimitMinutes * 60)
@@ -102,7 +102,7 @@ export default function LectureTestPage() {
   }
 
   const doSubmit = useCallback(async () => {
-    if (!test || !lecture?.testId) return
+    if (!test || !lesson?.testId) return
     setSubmitting(true)
     try {
       const body = {
@@ -111,13 +111,13 @@ export default function LectureTestPage() {
           givenAnswer: options.join("\n"),
         })),
       }
-      const subRes = await api.post(`/api/tests/${lecture.testId}/attempt/${test.attemptId}/submit`, body)
+      const subRes = await api.post(`/api/tests/${lesson.testId}/attempt/${test.attemptId}/submit`, body)
       if (!subRes.data.isSuccess) {
         toast.error(subRes.data.errorMessage ?? "Ошибка отправки")
         setSubmitting(false)
         return
       }
-      const res = await api.get<Result<TestResultResponse>>(`/api/tests/${lecture.testId}/results`)
+      const res = await api.get<Result<TestResultResponse>>(`/api/tests/${lesson.testId}/results`)
       if (res.data.isSuccess && res.data.data) {
         setResult(res.data.data)
         setTest(null)
@@ -130,7 +130,7 @@ export default function LectureTestPage() {
       toast.error("Ошибка отправки ответов")
       setSubmitting(false)
     }
-  }, [test, lecture?.testId, answers])
+  }, [test, lesson?.testId, answers])
 
   useEffect(() => {
     if (secondsLeft === null) return
@@ -148,8 +148,8 @@ export default function LectureTestPage() {
     return (
       <div className="flex flex-col gap-4 p-6 max-w-3xl mx-auto">
         <ErrorBanner message={error} />
-        <Button variant="ghost" onClick={() => router.push(`/courses/${courseId}/lectures/${lectureId}`)}>
-          &larr; Назад к лекции
+        <Button variant="ghost" onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}`)}>
+          &larr; Назад к занятию
         </Button>
       </div>
     )
@@ -158,8 +158,8 @@ export default function LectureTestPage() {
   if (result) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
-        <Button variant="ghost" size="sm" className="self-start" onClick={() => router.push(`/courses/${courseId}/lectures/${lectureId}`)}>
-          &larr; Назад к лекции
+        <Button variant="ghost" size="sm" className="self-start" onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}`)}>
+          &larr; Назад к занятию
         </Button>
         <div className="rounded-lg border bg-card p-6 flex flex-col items-center gap-3">
           <Badge variant={result.passed ? "default" : "destructive"} className="text-base px-4 py-1">
@@ -198,13 +198,13 @@ export default function LectureTestPage() {
   if (!test) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
-        <Button variant="ghost" size="sm" className="self-start" onClick={() => router.push(`/courses/${courseId}/lectures/${lectureId}`)}>
-          &larr; Назад к лекции
+        <Button variant="ghost" size="sm" className="self-start" onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}`)}>
+          &larr; Назад к занятию
         </Button>
         <div className="rounded-lg border bg-card p-8 flex flex-col items-center gap-4">
-          <h2 className="text-xl font-semibold">Тест по лекции «{lecture?.title ?? ""}»</h2>
+          <h2 className="text-xl font-semibold">Тест по занятию «{lesson?.title ?? ""}»</h2>
           <p className="text-sm text-muted-foreground">
-            Отвечайте на вопросы по материалу лекции. После отправки вы увидите результат.
+            Отвечайте на вопросы по материалу занятия. После отправки вы увидите результат.
           </p>
           {error && <ErrorBanner message={error} />}
           <Button onClick={handleStart} disabled={starting}>
@@ -218,8 +218,8 @@ export default function LectureTestPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => router.push(`/courses/${courseId}/lectures/${lectureId}`)}>
-          &larr; Назад к лекции
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}`)}>
+          &larr; Назад к занятию
         </Button>
         {secondsLeft !== null && (
           <Badge variant="outline" className="tabular-nums">

@@ -19,8 +19,8 @@ test.describe("Courses page", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 5, assignmentCount: 3 },
-            { id: "c2", title: "Физика", description: "Курс физики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа Б", status: "Draft", lectureCount: 0, assignmentCount: 1 },
+            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lessonCount: 5, documentCount: 3 },
+            { id: "c2", title: "Физика", description: "Курс физики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа Б", status: "Draft", lessonCount: 0, documentCount: 1 },
           ],
           errorMessage: null,
           statusCode: 200,
@@ -42,7 +42,7 @@ test.describe("Courses page", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 5, assignmentCount: 3 },
+            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lessonCount: 5, documentCount: 3 },
           ],
           errorMessage: null,
           statusCode: 200,
@@ -62,7 +62,7 @@ test.describe("Courses page", () => {
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 5, assignmentCount: 3 },
+            { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lessonCount: 5, documentCount: 3 },
           ],
           errorMessage: null,
           statusCode: 200,
@@ -92,8 +92,8 @@ test.describe("Course actions (duplicate, active, delete)", () => {
     teacherName: "Преподаватель",
     groupNames: "",
     status: "Active",
-    lectureCount: 2,
-    assignmentCount: 0,
+    lessonCount: 2,
+    documentCount: 0,
     isActive: true,
     authorIds: [],
     authorNames: "",

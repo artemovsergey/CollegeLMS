@@ -37,8 +37,13 @@ export default function CourseProgressPage() {
       } else {
         setError(body.errorMessage ?? "Ошибка загрузки прогресса")
       }
-    } catch {
-      setError("Ошибка загрузки прогресса")
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 404) {
+        setNotFound(true)
+      } else {
+        setError("Ошибка загрузки прогресса")
+      }
     } finally {
       setLoading(false)
     }
@@ -91,26 +96,6 @@ export default function CourseProgressPage() {
       <h1 className="text-xl font-semibold">{progress.courseTitle}</h1>
 
       <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Всего заданий
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{progress.totalAssignments}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Выполнено
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{progress.completedAssignments}</p>
-          </CardContent>
-        </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">

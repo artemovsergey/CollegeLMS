@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import type { Result, CourseResponse, LectureResponse, AssignmentResponse, MaterialResponse, SubmissionResponse, MyTestResultDto } from "@/types"
+import type { Result, CourseResponse, LessonResponse, MaterialResponse, MyTestResultDto } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { LECTURE_TYPE_LABELS, LECTURE_TYPE_VARIANTS } from "@/lib/lectureTypes"
-import { TEST_STATUS_LABELS, TEST_STATUS_VARIANTS, testStatusFor } from "@/lib/testStatus"
+import LessonList from "@/components/lesson/LessonList"
+import DocumentsTab from "@/components/course/DocumentsTab"
 
 const roleLabels: Record<string, string> = {
   Admin: "Админ",
@@ -27,7 +27,7 @@ const roleVariants: Record<string, "default" | "secondary" | "outline" | "destru
   Dispatcher: "outline",
 }
 
-type Tab = "lessons" | "materials"
+type Tab = "lessons" | "materials" | "documents"
 
 export default function MyCourseDetailPage() {
   const { user, token, logout, isLoading: authLoading } = useAuth()
@@ -36,10 +36,8 @@ export default function MyCourseDetailPage() {
   const courseId = params.id as string
 
   const [course, setCourse] = useState<CourseResponse | null>(null)
-  const [lectures, setLectures] = useState<LectureResponse[]>([])
-  const [assignments, setAssignments] = useState<AssignmentResponse[]>([])
+  const [lessons, setLessons] = useState<LessonResponse[]>([])
   const [materials, setMaterials] = useState<MaterialResponse[]>([])
-  const [submissions, setSubmissions] = useState<Record<string, SubmissionResponse | null>>({})
   const [myTestResults, setMyTestResults] = useState<Map<string, MyTestResultDto>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,40 +45,15 @@ export default function MyCourseDetailPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [courseRes, lecturesRes, assignmentsRes, materialsRes] = await Promise.all([
+      const [courseRes, lessonsRes, materialsRes, testRes] = await Promise.all([
         api.get<Result<CourseResponse>>(`/api/courses/${courseId}`),
-        api.get<Result<LectureResponse[]>>(`/api/courses/${courseId}/lectures`),
-        api.get<Result<AssignmentResponse[]>>(`/api/courses/${courseId}/assignments`),
+        api.get<Result<LessonResponse[]>>(`/api/courses/${courseId}/lessons`),
         api.get<Result<MaterialResponse[]>>(`/api/courses/${courseId}/materials`),
+        api.get<Result<MyTestResultDto[]>>("/api/my/test-results"),
       ])
-
-      if (courseRes.data.isSuccess && courseRes.data.data) {
-        setCourse(courseRes.data.data)
-      }
-      if (lecturesRes.data.isSuccess && lecturesRes.data.data) {
-        setLectures(lecturesRes.data.data)
-      }
-      if (assignmentsRes.data.isSuccess && assignmentsRes.data.data) {
-        setAssignments(assignmentsRes.data.data)
-        const subMap: Record<string, SubmissionResponse | null> = {}
-        if (user) {
-          await Promise.all(assignmentsRes.data.data.map(async a => {
-            try {
-              const subRes = await api.get<Result<SubmissionResponse[]>>(`/api/assignments/${a.id}/submissions?studentId=${user.id}`)
-              if (subRes.data.isSuccess && subRes.data.data && subRes.data.data.length > 0) {
-                subMap[a.id] = subRes.data.data[0]
-              }
-            } catch {
-              // ignore
-            }
-          }))
-        }
-        setSubmissions(subMap)
-      }
-      if (materialsRes.data.isSuccess && materialsRes.data.data) {
-        setMaterials(materialsRes.data.data)
-      }
-      const testRes = await api.get<Result<MyTestResultDto[]>>("/api/my/test-results")
+      if (courseRes.data.isSuccess && courseRes.data.data) setCourse(courseRes.data.data)
+      if (lessonsRes.data.isSuccess && lessonsRes.data.data) setLessons(lessonsRes.data.data)
+      if (materialsRes.data.isSuccess && materialsRes.data.data) setMaterials(materialsRes.data.data)
       if (testRes.data.isSuccess && testRes.data.data) {
         setMyTestResults(new Map(testRes.data.data.map(r => [r.testId, r])))
       }
@@ -89,7 +62,7 @@ export default function MyCourseDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [courseId, user])
+  }, [courseId])
 
   useEffect(() => {
     if (!authLoading && !token) {
@@ -150,7 +123,7 @@ export default function MyCourseDetailPage() {
       </div>
 
       <div className="flex gap-4 border-b">
-        {(["lessons", "materials"] as Tab[]).map(t => (
+        {(["lessons", "materials", "documents"] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -160,81 +133,18 @@ export default function MyCourseDetailPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "lessons" ? "Занятия" : "Материалы"}
+            {t === "lessons" ? "Занятия" : t === "materials" ? "Материалы" : "Документы"}
           </button>
         ))}
       </div>
 
       {tab === "lessons" && (
-        <div className="flex flex-col gap-3">
-          {lectures.length === 0 && assignments.length === 0 ? (
-            <p className="text-muted-foreground">Нет занятий</p>
-          ) : (
-            <div className="rounded-lg border bg-card divide-y">
-              {lectures.map(l => (
-                <div
-                  key={l.id}
-                  className="flex items-center gap-2 p-4 cursor-pointer hover:bg-muted/50"
-                  onClick={() => router.push(`/courses/${courseId}/lectures/${l.id}`)}
-                >
-                  <span className="text-sm text-muted-foreground w-6 shrink-0">{l.order}</span>
-                  <span className="font-medium min-w-0 flex-1">{l.title}</span>
-                  <Badge className="shrink-0" variant={LECTURE_TYPE_VARIANTS[l.lectureType] ?? "outline"}>
-                    {LECTURE_TYPE_LABELS[l.lectureType] ?? l.lectureType}
-                  </Badge>
-                  {l.testId && (
-                    <Badge className="shrink-0" variant={TEST_STATUS_VARIANTS[testStatusFor(l.testId, myTestResults)]}>
-                      {TEST_STATUS_LABELS[testStatusFor(l.testId, myTestResults)]}
-                    </Badge>
-                  )}
-                </div>
-              ))}
-              {assignments.map(a => {
-                const sub = submissions[a.id]
-                return (
-                  <div key={a.id} className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium">{a.title}</span>
-                        <span className="text-xs text-muted-foreground">
-                          Макс. баллов: {a.maxScore}
-                          {a.dueDate ? ` · Срок: ${new Date(a.dueDate).toLocaleDateString("ru-RU")}` : ""}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">Задание</Badge>
-                        {sub?.score !== null && sub?.score !== undefined ? (
-                          <Badge variant="default">{sub.score} / {a.maxScore}</Badge>
-                        ) : sub ? (
-                          <Badge variant="outline">На проверке</Badge>
-                        ) : (
-                          <Badge variant="outline">Не сдано</Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => router.push(`/courses/${courseId}/assignments/${a.id}`)}
-                      >
-                        Подробнее
-                      </Button>
-                      {(!sub) && (
-                        <Button
-                          size="sm"
-                          onClick={() => router.push(`/courses/${courseId}/assignments/${a.id}`)}
-                        >
-                          Сдать
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+        <LessonList
+          courseId={courseId}
+          lessons={lessons}
+          canManage={false}
+          onChanged={() => {}}
+        />
       )}
 
       {tab === "materials" && (
@@ -261,6 +171,10 @@ export default function MyCourseDetailPage() {
             </div>
           )}
         </div>
+      )}
+
+      {tab === "documents" && (
+        <DocumentsTab courseId={courseId} canManage={false} />
       )}
     </div>
   )

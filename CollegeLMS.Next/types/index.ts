@@ -85,8 +85,8 @@ export interface CourseResponse {
   isActive: boolean
   authorIds: string[]
   authorNames: string
-  lectureCount: number
-  assignmentCount: number
+  lessonCount: number
+  documentCount: number
 }
 
 export interface CreateCourseRequest {
@@ -102,37 +102,18 @@ export interface UpdateCourseRequest {
   authorIds: string[]
 }
 
-export interface LectureResponse {
+export type LessonKind = "Lecture" | "Practice" | "SelfStudy"
+
+export interface LessonResponse {
   id: string
   courseId: string
   title: string
   content: string
   order: number
-  lectureType: "Lecture" | "Practice" | "SelfStudy"
+  kind: LessonKind
+  isCurrent: boolean
   testId: string | null
   testTitle: string | null
-}
-
-export interface AssignmentResponse {
-  id: string
-  courseId: string
-  title: string
-  description: string
-  dueDate: string | null
-  maxScore: number
-  order: number
-  submissionCount: number
-}
-
-export interface SubmissionResponse {
-  id: string
-  assignmentId: string
-  studentId: string
-  studentName: string
-  filePath: string
-  comment: string | null
-  score: number | null
-  submittedAt: string
 }
 
 export interface NewsCategoryResponse {
@@ -183,11 +164,19 @@ export interface PagedResponse<T> {
 export interface MaterialResponse {
   id: string
   courseId: string
-  lectureId: string | null
-  assignmentId: string | null
+  lessonId: string | null
   fileName: string
   fileSize: number
   mimeType: string
+  createdAt: string
+}
+
+export interface CourseDocumentResponse {
+  id: string
+  courseId: string
+  fileName: string
+  contentType: string
+  sizeBytes: number
   createdAt: string
 }
 
@@ -254,7 +243,7 @@ export interface CreateTestRequest {
   timeLimitMinutes: number
   passingScore: number
   type: string
-  lectureId?: string | null
+  lessonId?: string | null
 }
 
 export interface UpdateTestRequest {
@@ -365,8 +354,6 @@ export interface CourseGroupResponse {
 export interface CourseProgressResponse {
   courseId: string
   courseTitle: string
-  totalAssignments: number
-  completedAssignments: number
   totalTests: number
   completedTests: number
   averageScore: number

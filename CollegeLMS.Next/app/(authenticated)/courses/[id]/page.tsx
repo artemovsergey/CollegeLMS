@@ -2,11 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import type { Result, CourseResponse, LectureResponse, AssignmentResponse, MaterialResponse, CourseGroupResponse, GroupResponse, MyTestResultDto } from "@/types"
+import type { Result, CourseResponse, LessonResponse, MaterialResponse, CourseGroupResponse, GroupResponse } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
-import { LECTURE_TYPE_LABELS, LECTURE_TYPE_VARIANTS } from "@/lib/lectureTypes"
-import { TEST_STATUS_LABELS, TEST_STATUS_VARIANTS, testStatusFor } from "@/lib/testStatus"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { roleLabels, roleVariants } from "@/lib/constants"
@@ -14,6 +12,8 @@ import ErrorBanner from "@/components/ErrorBanner"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import LessonList from "@/components/lesson/LessonList"
+import DocumentsTab from "@/components/course/DocumentsTab"
 import {
   Dialog,
   DialogContent,
@@ -52,7 +52,7 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
   Draft: "outline",
 }
 
-type Tab = "lessons" | "materials" | "groups"
+type Tab = "lessons" | "materials" | "groups" | "documents"
 
 export default function CourseDetailPage() {
   const { user } = useAuth()
@@ -61,8 +61,7 @@ export default function CourseDetailPage() {
   const courseId = params.id as string
 
   const [course, setCourse] = useState<CourseResponse | null>(null)
-  const [lectures, setLectures] = useState<LectureResponse[]>([])
-  const [assignments, setAssignments] = useState<AssignmentResponse[]>([])
+  const [lessons, setLessons] = useState<LessonResponse[]>([])
   const [materials, setMaterials] = useState<MaterialResponse[]>([])
   const [courseGroups, setCourseGroups] = useState<CourseGroupResponse[]>([])
   const [availableGroups, setAvailableGroups] = useState<GroupResponse[]>([])
@@ -74,7 +73,6 @@ export default function CourseDetailPage() {
   const [addGroupSelectedId, setAddGroupSelectedId] = useState("")
   const [addGroupSubmitting, setAddGroupSubmitting] = useState(false)
   const [addGroupError, setAddGroupError] = useState<string | null>(null)
-  const [myTestResults, setMyTestResults] = useState<Map<string, MyTestResultDto>>(new Map())
 
   const [removeGroupId, setRemoveGroupId] = useState<string | null>(null)
   const [removeSubmitting, setRemoveSubmitting] = useState(false)
@@ -97,24 +95,12 @@ export default function CourseDetailPage() {
     }
   }, [courseId])
 
-  const fetchLectures = useCallback(async () => {
+  const fetchLessons = useCallback(async () => {
     try {
-      const res = await api.get<Result<LectureResponse[]>>(`/api/courses/${courseId}/lectures`)
+      const res = await api.get<Result<LessonResponse[]>>(`/api/courses/${courseId}/lessons`)
       const body = res.data
       if (body.isSuccess && body.data) {
-        setLectures(body.data)
-      }
-    } catch {
-      // silently ignore
-    }
-  }, [courseId])
-
-  const fetchAssignments = useCallback(async () => {
-    try {
-      const res = await api.get<Result<AssignmentResponse[]>>(`/api/courses/${courseId}/assignments`)
-      const body = res.data
-      if (body.isSuccess && body.data) {
-        setAssignments(body.data)
+        setLessons(body.data)
       }
     } catch {
       // silently ignore
@@ -159,20 +145,9 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([fetchCourse(), fetchLectures(), fetchAssignments(), fetchMaterials(), fetchCourseGroups(), fetchAvailableGroups()])
+    Promise.all([fetchCourse(), fetchLessons(), fetchMaterials(), fetchCourseGroups(), fetchAvailableGroups()])
       .finally(() => setLoading(false))
-  }, [fetchCourse, fetchLectures, fetchAssignments, fetchMaterials, fetchCourseGroups, fetchAvailableGroups])
-
-  useEffect(() => {
-    if (user?.role !== "Student") return
-    api.get<Result<MyTestResultDto[]>>("/api/my/test-results").then(res => {
-      if (res.data.isSuccess && res.data.data) {
-        setMyTestResults(new Map(res.data.data.map(r => [r.testId, r])))
-      }
-    }).catch(() => {
-      // ignore
-    })
-  }, [user?.role])
+  }, [fetchCourse, fetchLessons, fetchMaterials, fetchCourseGroups, fetchAvailableGroups])
 
   const handleAddGroup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -257,7 +232,7 @@ export default function CourseDetailPage() {
       </div>
 
       <div className="flex gap-4 border-b">
-        {(["lessons", "materials", "groups"] as Tab[]).map(t => (
+        {(["lessons", "materials", "groups", "documents"] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -267,7 +242,7 @@ export default function CourseDetailPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "lessons" ? "Занятия" : t === "materials" ? "Материалы" : "Группы"}
+            {t === "lessons" ? "Занятия" : t === "materials" ? "Материалы" : t === "groups" ? "Группы" : "Документы"}
           </button>
         ))}
       </div>
@@ -275,59 +250,21 @@ export default function CourseDetailPage() {
       {tab === "lessons" && (
         <div className="flex flex-col gap-3">
           {canEdit && (
-            <div className="flex justify-end gap-2">
-              <Button size="sm" onClick={() => router.push(`/courses/${courseId}/lectures/new`)}>
-                + Лекция
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => router.push(`/courses/${courseId}/assignments/new`)}>
-                + Задание
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => router.push(`/courses/${courseId}/lessons/new`)}>
+                + Занятие
               </Button>
             </div>
           )}
-          {lectures.length === 0 && assignments.length === 0 ? (
-            <p className="text-muted-foreground">Нет занятий</p>
-          ) : (
-            <div className="rounded-lg border bg-card divide-y">
-              {lectures.map(l => (
-                <div
-                  key={l.id}
-                  className="flex items-center gap-2 p-4 cursor-pointer hover:bg-muted/50"
-                  onClick={() => router.push(`/courses/${courseId}/lectures/${l.id}`)}
-                >
-                  <span className="text-sm text-muted-foreground w-6 shrink-0">{l.order}</span>
-                  <span className="font-medium min-w-0 flex-1">{l.title}</span>
-                  <Badge className="shrink-0" variant={LECTURE_TYPE_VARIANTS[l.lectureType] ?? "outline"}>
-                    {LECTURE_TYPE_LABELS[l.lectureType] ?? l.lectureType}
-                  </Badge>
-                  {l.testId && (
-                    <Badge
-                      className="shrink-0"
-                      variant={
-                        user?.role === "Student"
-                          ? TEST_STATUS_VARIANTS[testStatusFor(l.testId, myTestResults)]
-                          : "outline"
-                      }
-                    >
-                      {user?.role === "Student"
-                        ? TEST_STATUS_LABELS[testStatusFor(l.testId, myTestResults)]
-                        : "Тест"}
-                    </Badge>
-                  )}
-                </div>
-              ))}
-              {assignments.map(a => (
-                <div
-                  key={a.id}
-                  className="flex items-center gap-2 p-4 cursor-pointer hover:bg-muted/50"
-                  onClick={() => router.push(`/courses/${courseId}/assignments/${a.id}`)}
-                >
-                  <span className="text-sm text-muted-foreground w-6 shrink-0">{a.order}</span>
-                  <span className="font-medium min-w-0 flex-1">{a.title}</span>
-                  <Badge className="shrink-0" variant="secondary">Задание</Badge>
-                </div>
-              ))}
-            </div>
-          )}
+          <LessonList
+            courseId={courseId}
+            lessons={lessons}
+            canManage={canEdit}
+            onChanged={() => {
+              fetchLessons()
+              fetchCourse()
+            }}
+          />
         </div>
       )}
 
@@ -355,6 +292,10 @@ export default function CourseDetailPage() {
             </div>
           )}
         </div>
+      )}
+
+      {tab === "documents" && (
+        <DocumentsTab courseId={courseId} canManage={canEdit} />
       )}
 
       {tab === "groups" && (

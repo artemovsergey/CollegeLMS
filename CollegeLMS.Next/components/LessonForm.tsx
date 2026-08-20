@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
-import type { Result, LectureResponse } from "@/types"
+import type { Result, LessonResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import FormField from "@/components/FormField"
 import FormErrorBanner from "@/components/FormErrorBanner"
-import ErrorBanner from "@/components/ErrorBanner"
 import { parseErrors } from "@/lib/errors"
+import { LESSON_KIND_LABELS } from "@/lib/lessonTypes"
 import {
   Select,
   SelectContent,
@@ -21,24 +21,22 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const LECTURE_TYPE_OPTIONS = [
-  { value: "Lecture", label: "Лекция" },
-  { value: "Practice", label: "Практика" },
-  { value: "SelfStudy", label: "Самостоятельная" },
-]
+const LESSON_KIND_OPTIONS: { value: string; label: string }[] = Object.entries(
+  LESSON_KIND_LABELS,
+).map(([value, label]) => ({ value, label }))
 
-interface LectureFormProps {
+interface LessonFormProps {
   courseId: string
-  lecture?: LectureResponse
+  lesson?: LessonResponse
 }
 
-export default function LectureForm({ courseId, lecture }: LectureFormProps) {
+export default function LessonForm({ courseId, lesson }: LessonFormProps) {
   const router = useRouter()
-  const isEdit = !!lecture
+  const isEdit = !!lesson
 
-  const [title, setTitle] = useState(lecture?.title ?? "")
-  const [content, setContent] = useState(lecture?.content ?? "")
-  const [lectureType, setLectureType] = useState<string>(lecture?.lectureType ?? "Lecture")
+  const [title, setTitle] = useState(lesson?.title ?? "")
+  const [content, setContent] = useState(lesson?.content ?? "")
+  const [kind, setKind] = useState<string>(lesson?.kind ?? "Lecture")
   const [mode, setMode] = useState<"markup" | "preview">(isEdit ? "preview" : "markup")
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -55,12 +53,13 @@ export default function LectureForm({ courseId, lecture }: LectureFormProps) {
     if (Object.keys(clientErrors).length > 0) return
     setSubmitting(true)
     try {
-      const body = { title, content, lectureType }
+      const body = { title, content, kind }
       const res = isEdit
-        ? await api.put<Result<LectureResponse>>(`/api/courses/${courseId}/lectures/${lecture.id}`, body)
-        : await api.post<Result<LectureResponse>>(`/api/courses/${courseId}/lectures`, body)
+        ? await api.put<Result<LessonResponse>>(`/api/courses/${courseId}/lessons/${lesson!.id}`, body)
+        : await api.post<Result<LessonResponse>>(`/api/courses/${courseId}/lessons`, body)
       if (res.data.isSuccess) {
-        router.push(`/courses/${courseId}`)
+        const id = res.data.data?.id
+        router.push(id ? `/courses/${courseId}/lessons/${id}` : `/courses/${courseId}`)
       } else {
         setFormError(res.data.errorMessage ?? "Ошибка сохранения")
       }
@@ -77,9 +76,9 @@ export default function LectureForm({ courseId, lecture }: LectureFormProps) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {formError && <FormErrorBanner message={formError} />}
 
-      <FormField id="lecture-title" label="Название занятия" required error={fieldErrors.title?.[0]}>
+      <FormField id="lesson-title" label="Название занятия" required error={fieldErrors.title?.[0]}>
         <Input
-          id="lecture-title"
+          id="lesson-title"
           required
           value={title}
           onChange={e => setTitle(e.target.value)}
@@ -113,9 +112,9 @@ export default function LectureForm({ courseId, lecture }: LectureFormProps) {
             </div>
           </div>
         ) : (
-          <FormField id="lecture-content" label="Содержание" required error={fieldErrors.content?.[0]}>
+          <FormField id="lesson-content" label="Содержание" required error={fieldErrors.content?.[0]}>
             <Textarea
-              id="lecture-content"
+              id="lesson-content"
               required
               className="min-h-[200px] font-mono text-sm"
               value={content}
@@ -125,13 +124,13 @@ export default function LectureForm({ courseId, lecture }: LectureFormProps) {
         )}
       </div>
 
-      <FormField id="lecture-type" label="Тип занятия">
-        <Select value={lectureType} onValueChange={setLectureType}>
-          <SelectTrigger id="lecture-type">
+      <FormField id="lesson-kind" label="Тип занятия">
+        <Select value={kind} onValueChange={setKind}>
+          <SelectTrigger id="lesson-kind">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {LECTURE_TYPE_OPTIONS.map(opt => (
+            {LESSON_KIND_OPTIONS.map(opt => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}
           </SelectContent>

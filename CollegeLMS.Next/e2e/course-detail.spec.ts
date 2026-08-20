@@ -6,7 +6,7 @@ test.describe("Course detail page", () => {
       localStorage.setItem("token", "test-jwt-token")
       localStorage.setItem(
         "user",
-        JSON.stringify({ id: "u2", email: "teacher@collegelms.ru", fullName: "Преподаватель", role: "Teacher" })
+        JSON.stringify({ id: "u2", email: "teacher@collegelms.ru", fullName: "Преподаватель", role: "Teacher", teacherId: "u2" })
       )
     })
   })
@@ -18,34 +18,34 @@ test.describe("Course detail page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 2, assignmentCount: 1 },
+          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lessonCount: 2, documentCount: 1 },
           errorMessage: null,
           statusCode: 200,
         }),
       })
     )
-    await page.route("**/api/courses/c1/lectures**", (route) =>
+    await page.route("**/api/courses/c1/lessons**", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "l1", courseId: "c1", title: "Введение", content: "Текст лекции", order: 1 },
-            { id: "l2", courseId: "c1", title: "Основы", content: "Основной материал", order: 2 },
+            { id: "l1", courseId: "c1", title: "Введение", content: "Текст лекции", order: 1, kind: "Lecture", isCurrent: false, testId: null, testTitle: null },
+            { id: "l2", courseId: "c1", title: "Основы", content: "Основной материал", order: 2, kind: "Practice", isCurrent: false, testId: null, testTitle: null },
           ],
           errorMessage: null,
           statusCode: 200,
         }),
       })
     )
-    await page.route("**/api/courses/c1/assignments**", (route) =>
+    await page.route("**/api/courses/c1/documents**", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "a1", courseId: "c1", title: "ДЗ 1", description: "Описание", dueDate: "2026-12-31T23:59:59Z", maxScore: 100, order: 1, submissionCount: 0 }],
+          data: [],
           errorMessage: null,
           statusCode: 200,
         }),
@@ -57,7 +57,7 @@ test.describe("Course detail page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "m1", courseId: "c1", lectureId: null, assignmentId: null, fileName: "lecture1.pdf", fileSize: 1024, mimeType: "application/pdf", createdAt: "2026-01-01T00:00:00Z" }],
+          data: [{ id: "m1", courseId: "c1", lessonId: null, fileName: "lecture1.pdf", fileSize: 1024, mimeType: "application/pdf", createdAt: "2026-01-01T00:00:00Z" }],
           errorMessage: null,
           statusCode: 200,
         }),
@@ -66,45 +66,44 @@ test.describe("Course detail page", () => {
 
     await page.goto("/courses/c1", { waitUntil: "networkidle" })
     await expect(page.getByRole("heading", { name: "Математика" })).toBeVisible()
-    await expect(page.getByText("Преподаватель", { exact: true })).toBeVisible()
-    await expect(page.getByText("Группа А")).toBeVisible()
+    await expect(page.getByText("Преподаватель · Группа А")).toBeVisible()
   })
 
-  test("shows lectures tab by default", async ({ page }) => {
+  test("shows lessons tab by default", async ({ page }) => {
     await page.route("**/api/courses/c1", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 2, assignmentCount: 1 },
+          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lessonCount: 2, documentCount: 1 },
           errorMessage: null,
           statusCode: 200,
         }),
       })
     )
-    await page.route("**/api/courses/c1/lectures**", (route) =>
+    await page.route("**/api/courses/c1/lessons**", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "l1", courseId: "c1", title: "Введение", content: "Текст лекции", order: 1 },
-            { id: "l2", courseId: "c1", title: "Основы", content: "Основной материал", order: 2 },
+            { id: "l1", courseId: "c1", title: "Введение", content: "Текст лекции", order: 1, kind: "Lecture", isCurrent: false, testId: null, testTitle: null },
+            { id: "l2", courseId: "c1", title: "Основы", content: "Основной материал", order: 2, kind: "Practice", isCurrent: false, testId: null, testTitle: null },
           ],
           errorMessage: null,
           statusCode: 200,
         }),
       })
     )
-    await page.route("**/api/courses/c1/assignments**", (route) =>
+    await page.route("**/api/courses/c1/documents**", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "a1", courseId: "c1", title: "ДЗ 1", description: "Описание", dueDate: "2026-12-31T23:59:59Z", maxScore: 100, order: 1, submissionCount: 0 }],
+          data: [],
           errorMessage: null,
           statusCode: 200,
         }),
@@ -116,7 +115,7 @@ test.describe("Course detail page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "m1", courseId: "c1", lectureId: null, assignmentId: null, fileName: "lecture1.pdf", fileSize: 1024, mimeType: "application/pdf", createdAt: "2026-01-01T00:00:00Z" }],
+          data: [{ id: "m1", courseId: "c1", lessonId: null, fileName: "lecture1.pdf", fileSize: 1024, mimeType: "application/pdf", createdAt: "2026-01-01T00:00:00Z" }],
           errorMessage: null,
           statusCode: 200,
         }),
@@ -128,41 +127,41 @@ test.describe("Course detail page", () => {
     await expect(page.getByText("Основы")).toBeVisible()
   })
 
-  test("shows add lecture button for teacher", async ({ page }) => {
+  test("shows add lesson button for teacher", async ({ page }) => {
     await page.route("**/api/courses/c1", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lectureCount: 2, assignmentCount: 1 },
+          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lessonCount: 2, documentCount: 1 },
           errorMessage: null,
           statusCode: 200,
         }),
       })
     )
-    await page.route("**/api/courses/c1/lectures**", (route) =>
+    await page.route("**/api/courses/c1/lessons**", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
           data: [
-            { id: "l1", courseId: "c1", title: "Введение", content: "Текст лекции", order: 1 },
-            { id: "l2", courseId: "c1", title: "Основы", content: "Основной материал", order: 2 },
+            { id: "l1", courseId: "c1", title: "Введение", content: "Текст лекции", order: 1, kind: "Lecture", isCurrent: false, testId: null, testTitle: null },
+            { id: "l2", courseId: "c1", title: "Основы", content: "Основной материал", order: 2, kind: "Practice", isCurrent: false, testId: null, testTitle: null },
           ],
           errorMessage: null,
           statusCode: 200,
         }),
       })
     )
-    await page.route("**/api/courses/c1/assignments**", (route) =>
+    await page.route("**/api/courses/c1/documents**", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "a1", courseId: "c1", title: "ДЗ 1", description: "Описание", dueDate: "2026-12-31T23:59:59Z", maxScore: 100, order: 1, submissionCount: 0 }],
+          data: [],
           errorMessage: null,
           statusCode: 200,
         }),
@@ -174,7 +173,7 @@ test.describe("Course detail page", () => {
         contentType: "application/json",
         body: JSON.stringify({
           isSuccess: true,
-          data: [{ id: "m1", courseId: "c1", lectureId: null, assignmentId: null, fileName: "lecture1.pdf", fileSize: 1024, mimeType: "application/pdf", createdAt: "2026-01-01T00:00:00Z" }],
+          data: [{ id: "m1", courseId: "c1", lessonId: null, fileName: "lecture1.pdf", fileSize: 1024, mimeType: "application/pdf", createdAt: "2026-01-01T00:00:00Z" }],
           errorMessage: null,
           statusCode: 200,
         }),
@@ -182,7 +181,56 @@ test.describe("Course detail page", () => {
     )
 
     await page.goto("/courses/c1", { waitUntil: "networkidle" })
-    await expect(page.getByRole("button", { name: "Добавить лекцию" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "+ Занятие" })).toBeVisible()
+  })
+
+  test("shows kind badge and current lesson for student", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("token", "test-jwt-token")
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ id: "u3", email: "student@collegelms.ru", fullName: "Студент", role: "Student" })
+      )
+    })
+    await page.route("**/api/courses/c1", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          isSuccess: true,
+          data: { id: "c1", title: "Математика", description: "Курс математики", teacherId: "u2", teacherName: "Преподаватель", groupNames: "Группа А", status: "Active", lessonCount: 1, documentCount: 0 },
+          errorMessage: null,
+          statusCode: 200,
+        }),
+      })
+    )
+    await page.route("**/api/courses/c1/lessons**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          isSuccess: true,
+          data: [
+            { id: "l1", courseId: "c1", title: "Введение", content: "Текст", order: 1, kind: "Lecture", isCurrent: true, testId: null, testTitle: null },
+          ],
+          errorMessage: null,
+          statusCode: 200,
+        }),
+      })
+    )
+    await page.route("**/api/courses/c1/materials**", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isSuccess: true, data: [], errorMessage: null, statusCode: 200 }) })
+    )
+    await page.route("**/api/courses/c1/documents**", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isSuccess: true, data: [], errorMessage: null, statusCode: 200 }) })
+    )
+    await page.route("**/api/my/test-results**", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ isSuccess: true, data: [], errorMessage: null, statusCode: 200 }) })
+    )
+
+    await page.goto("/courses/c1", { waitUntil: "networkidle" })
+    await expect(page.getByText("Сейчас идёт")).toBeVisible()
+    await expect(page.getByText("Лекция")).toBeVisible()
   })
 })
 

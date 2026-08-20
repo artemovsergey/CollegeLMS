@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
 import type {
   Result,
-  LectureResponse,
+  LessonResponse,
   CourseResponse,
   TestResponse,
   CreateTestRequest,
@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge"
 import ErrorBanner from "@/components/ErrorBanner"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import { toast } from "sonner"
-import { LECTURE_TYPE_LABELS, LECTURE_TYPE_VARIANTS } from "@/lib/lectureTypes"
+import { LESSON_KIND_LABELS, LESSON_KIND_VARIANTS } from "@/lib/lessonTypes"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -64,14 +64,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-export default function LectureViewPage() {
+export default function LessonViewPage() {
   const { user } = useAuth()
   const router = useRouter()
   const params = useParams()
   const courseId = params.id as string
-  const lectureId = params.lectureId as string
+  const lessonId = params.lessonId as string
 
-  const [lecture, setLecture] = useState<LectureResponse | null>(null)
+  const [lesson, setLesson] = useState<LessonResponse | null>(null)
   const [course, setCourse] = useState<CourseResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -111,21 +111,21 @@ export default function LectureViewPage() {
     user?.role === "Admin" || (user?.role === "Teacher" && course?.teacherId === user?.teacherId)
   const isStudent = user?.role === "Student"
 
-  const fetchLecture = useCallback(async () => {
+  const fetchLesson = useCallback(async () => {
     try {
-      const res = await api.get<Result<LectureResponse>>(`/api/courses/${courseId}/lectures/${lectureId}`)
+      const res = await api.get<Result<LessonResponse>>(`/api/courses/${courseId}/lessons/${lessonId}`)
       const body = res.data
       if (body.isSuccess && body.data) {
-        setLecture(body.data)
+        setLesson(body.data)
       } else {
         setError(body.errorMessage ?? "Ошибка загрузки")
       }
     } catch {
-      setError("Ошибка загрузки лекции")
+      setError("Ошибка загрузки занятия")
     } finally {
       setLoading(false)
     }
-  }, [courseId, lectureId])
+  }, [courseId, lessonId])
 
   const fetchCourse = useCallback(async () => {
     try {
@@ -138,18 +138,18 @@ export default function LectureViewPage() {
   }, [courseId])
 
   useEffect(() => {
-    Promise.all([fetchLecture(), fetchCourse()])
-  }, [fetchLecture, fetchCourse])
+    Promise.all([fetchLesson(), fetchCourse()])
+  }, [fetchLesson, fetchCourse])
 
   const fetchTest = useCallback(async () => {
-    if (!lecture?.testId) return
+    if (!lesson?.testId) return
     try {
-      const res = await api.get<Result<TestResponse>>(`/api/tests/${lecture.testId}`)
+      const res = await api.get<Result<TestResponse>>(`/api/tests/${lesson.testId}`)
       if (res.data.isSuccess && res.data.data) setTest(res.data.data)
     } catch {
       // ignore
     }
-  }, [lecture?.testId])
+  }, [lesson?.testId])
 
   const fetchQuestions = useCallback(async () => {
     if (!test) return
@@ -162,19 +162,19 @@ export default function LectureViewPage() {
   }, [test])
 
   useEffect(() => {
-    if (lecture?.testId) fetchTest()
-  }, [lecture?.testId, fetchTest])
+    if (lesson?.testId) fetchTest()
+  }, [lesson?.testId, fetchTest])
 
   useEffect(() => {
     if (test && canManage) fetchQuestions()
   }, [test, canManage, fetchQuestions])
 
   const fetchStudentData = useCallback(async () => {
-    if (!lecture?.testId || !isStudent) return
+    if (!lesson?.testId || !isStudent) return
     try {
       const [resultRes, attemptsRes] = await Promise.all([
-        api.get<Result<TestResultResponse>>(`/api/tests/${lecture.testId}/results`),
-        api.get<Result<TestAttemptResponse[]>>(`/api/tests/${lecture.testId}/attempts`),
+        api.get<Result<TestResultResponse>>(`/api/tests/${lesson.testId}/results`),
+        api.get<Result<TestAttemptResponse[]>>(`/api/tests/${lesson.testId}/attempts`),
       ])
       if (resultRes.data.isSuccess && resultRes.data.data) setStudentResult(resultRes.data.data)
       if (attemptsRes.data.isSuccess && attemptsRes.data.data) {
@@ -183,17 +183,17 @@ export default function LectureViewPage() {
     } catch {
       setStudentResult(null)
     }
-  }, [lecture?.testId, isStudent])
+  }, [lesson?.testId, isStudent])
 
   useEffect(() => {
-    if (lecture?.testId && isStudent) fetchStudentData()
-  }, [lecture?.testId, isStudent, fetchStudentData])
+    if (lesson?.testId && isStudent) fetchStudentData()
+  }, [lesson?.testId, isStudent, fetchStudentData])
 
   const handleDelete = async () => {
-    if (!lecture) return
+    if (!lesson) return
     setDeleting(true)
     try {
-      await api.delete(`/api/courses/${courseId}/lectures/${lecture.id}`)
+      await api.delete(`/api/courses/${courseId}/lessons/${lesson.id}`)
       toast.success("Занятие удалено")
       router.push(`/courses/${courseId}`)
     } catch {
@@ -216,7 +216,7 @@ export default function LectureViewPage() {
 
   const handleCreateTest = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!lecture) return
+    if (!lesson) return
     setSubmitting(true)
     setFormError(null)
     setFormFieldErrors({})
@@ -224,17 +224,17 @@ export default function LectureViewPage() {
       const body: CreateTestRequest = {
         title: formTestTitle,
         description: formTestDescription,
-        courseId: lecture.courseId,
+        courseId: lesson.courseId,
         maxAttempts: formTestMaxAttempts,
         timeLimitMinutes: formTestTimeLimit,
         passingScore: formTestPassingScore,
         type: "SelfStudy",
-        lectureId: lecture.id,
+        lessonId: lesson.id,
       }
       await api.post<Result<TestResponse>>("/api/tests", body)
       toast.success("Тест создан")
       setShowCreateTest(false)
-      await fetchLecture()
+      await fetchLesson()
       await fetchTest()
       setShowQuestions(true)
     } catch (err) {
@@ -371,7 +371,7 @@ export default function LectureViewPage() {
       </div>
     )
   }
-  if (!lecture) return null
+  if (!lesson) return null
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
@@ -383,15 +383,15 @@ export default function LectureViewPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1 min-w-0">
           <h2 className="text-xl font-semibold">
-            {lecture.order}. {lecture.title}
+            {lesson.order}. {lesson.title}
           </h2>
-          <Badge variant={LECTURE_TYPE_VARIANTS[lecture.lectureType] ?? "outline"} className="w-fit">
-            {LECTURE_TYPE_LABELS[lecture.lectureType] ?? lecture.lectureType}
+          <Badge variant={LESSON_KIND_VARIANTS[lesson.kind] ?? "outline"} className="w-fit">
+            {LESSON_KIND_LABELS[lesson.kind] ?? lesson.kind}
           </Badge>
         </div>
         {canManage && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => router.push(`/courses/${courseId}/lectures/${lecture.id}/edit`)}>
+            <Button variant="outline" size="sm" onClick={() => router.push(`/courses/${courseId}/lessons/${lesson.id}/edit`)}>
               Редактировать
             </Button>
             <Button variant="outline" size="sm" className="text-muted-foreground hover:text-fg" onClick={() => setDeleteOpen(true)}>
@@ -401,13 +401,13 @@ export default function LectureViewPage() {
         )}
       </div>
 
-      {canManage && lecture.testId && (
+      {canManage && lesson.testId && (
         <div className="rounded-lg border bg-card p-6 flex flex-col gap-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3 min-w-0">
               <ClipboardList className="h-5 w-5 text-primary shrink-0" />
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="font-medium">{test?.title ?? "Тест к лекции"}</span>
+                <span className="font-medium">{test?.title ?? "Тест к занятию"}</span>
                 <span className="text-xs text-muted-foreground">
                   Вопросов: {test?.questionCount ?? questions.length} · Проходной балл:{" "}
                   {test?.passingScore ?? "-"}%
@@ -433,17 +433,17 @@ export default function LectureViewPage() {
         </div>
       )}
 
-      {canManage && !lecture.testId && (
+      {canManage && !lesson.testId && (
         <Dialog open={showCreateTest} onOpenChange={o => { if (o) resetTestForm(); setShowCreateTest(o) }}>
           <DialogTrigger asChild>
             <Button className="self-start">
               <Plus className="size-4 mr-1" />
-              Создать тест к лекции
+              Создать тест к занятию
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Создать тест к лекции</DialogTitle>
+              <DialogTitle>Создать тест к занятию</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateTest} className="flex flex-col gap-4">
               {formError && <ErrorBanner message={formError} />}
@@ -452,7 +452,7 @@ export default function LectureViewPage() {
                   id="t-title"
                   value={formTestTitle}
                   onChange={e => setFormTestTitle(e.target.value)}
-                  placeholder="Тест по лекции 1"
+                  placeholder="Тест по занятию 1"
                 />
               </FormField>
               <FormField id="t-desc" label="Описание" error={formFieldErrors.description}>
@@ -505,12 +505,12 @@ export default function LectureViewPage() {
         </Dialog>
       )}
 
-      {isStudent && lecture.testId && (
+      {isStudent && lesson.testId && (
         <div className="rounded-lg border bg-card p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-3">
               <ClipboardList className="h-5 w-5 text-primary shrink-0" />
-              <span className="font-medium">{test?.title ?? lecture.testTitle ?? "Тест к лекции"}</span>
+              <span className="font-medium">{test?.title ?? lesson.testTitle ?? "Тест к занятию"}</span>
             </div>
             {studentResult ? (
               <p className="text-sm text-muted-foreground">
@@ -535,7 +535,7 @@ export default function LectureViewPage() {
           </div>
           {studentResult ? (
             attemptCount < (test?.maxAttempts ?? 1) ? (
-              <Button onClick={() => router.push(`/courses/${courseId}/lectures/${lecture.id}/test`)}>
+              <Button onClick={() => router.push(`/courses/${courseId}/lessons/${lesson.id}/test`)}>
                 Пересдать
               </Button>
             ) : (
@@ -544,7 +544,7 @@ export default function LectureViewPage() {
           ) : (
             <Button
               disabled={!(test?.questionCount && test.questionCount > 0)}
-              onClick={() => router.push(`/courses/${courseId}/lectures/${lecture.id}/test`)}
+              onClick={() => router.push(`/courses/${courseId}/lessons/${lesson.id}/test`)}
             >
               Пройти тест
             </Button>
@@ -554,7 +554,7 @@ export default function LectureViewPage() {
 
       <div className="rounded-lg border bg-card p-6">
         <div className="prose max-w-none">
-          <ReactMarkdown>{lecture.content}</ReactMarkdown>
+          <ReactMarkdown>{lesson.content}</ReactMarkdown>
         </div>
       </div>
 

@@ -133,8 +133,8 @@ export default function CoursesPage() {
                 <TableHead>Статус</TableHead>
                 <TableHead>Активность</TableHead>
                 {isTeacher && <TableHead>Действия</TableHead>}
-                <TableHead>Лекции</TableHead>
-                <TableHead>Задания</TableHead>
+                <TableHead>Занятия</TableHead>
+                <TableHead>Документы</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -195,8 +195,8 @@ export default function CoursesPage() {
                       </div>
                     </TableCell>
                   )}
-                  <TableCell>{c.lectureCount}</TableCell>
-                  <TableCell>{c.assignmentCount}</TableCell>
+                  <TableCell>{c.lessonCount}</TableCell>
+                  <TableCell>{c.documentCount}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

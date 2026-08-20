@@ -21,8 +21,6 @@ test.describe("Student Progress page", () => {
           data: {
             courseId: "c1",
             courseTitle: "Математика",
-            totalAssignments: 10,
-            completedAssignments: 7,
             totalTests: 4,
             completedTests: 3,
             averageScore: 84,
@@ -36,12 +34,10 @@ test.describe("Student Progress page", () => {
 
     await page.goto("/my/courses/c1/progress", { waitUntil: "networkidle" })
     await expect(page.getByText("Математика")).toBeVisible()
-    await expect(page.getByText("10")).toBeVisible()
-    await expect(page.getByText("7")).toBeVisible()
-    await expect(page.getByText("4")).toBeVisible()
-    await expect(page.getByText("3")).toBeVisible()
-    await expect(page.getByText("84")).toBeVisible()
-    await expect(page.getByText("71%")).toBeVisible()
+    await expect(page.getByText("4", { exact: true })).toBeVisible()
+    await expect(page.getByText("3", { exact: true })).toBeVisible()
+    await expect(page.getByText("84", { exact: true })).toBeVisible()
+    await expect(page.getByText("71%", { exact: true })).toBeVisible()
   })
 
   test("shows not found", async ({ page }) => {
