@@ -1119,7 +1119,7 @@ Expected: PASS.
 **Files:**
 - Modify: `CollegeLMS.Next/e2e/course-detail.spec.ts`, `CollegeLMS.Next/e2e/dashboards.spec.ts`, `CollegeLMS.Next/e2e/courses.spec.ts` (если там есть моки lectures/assignments)
 
-- [ ] **Step 1: `e2e/course-detail.spec.ts`**
+- [x] **Step 1: `e2e/course-detail.spec.ts`**
 
 Заменить во всех моках:
 - `course` mock: `lectureCount: 2, assignmentCount: 1` → `lessonCount: 2, documentCount: 1`
@@ -1191,15 +1191,15 @@ Expected: PASS.
   })
 ```
 
-- [ ] **Step 2: `e2e/dashboards.spec.ts`**
+- [x] **Step 2: `e2e/dashboards.spec.ts`**
 
 Удалить весь `test.describe("My submissions", ...)` (строки 112–142) и `test.describe("My submissions (no auth)", ...)` (строки 144–149).
 
-- [ ] **Step 3: `e2e/courses.spec.ts`**
+- [x] **Step 3: `e2e/courses.spec.ts`**
 
 Просмотреть и заменить любые моки `lectures`/`assignments` на `lessons` по образцу Step 1 (поля `lessonCount`/`documentCount`, мок `documents`).
 
-- [ ] **Step 4: Прогнать e2e**
+- [x] **Step 4: Прогнать e2e**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src/CollegeLMS.Next node:20-alpine sh -c "npx playwright test e2e/course-detail.spec.ts e2e/dashboards.spec.ts e2e/courses.spec.ts"
@@ -1209,7 +1209,7 @@ Expected: PASS (Playwright-браузеры уже установлены — с
 
 > Если в docker нет браузеров: запускать тесты на хосте через локальный node_modules нельзя (node отсутствует) — тогда проверить `docker run node:20-alpine sh -c "npx playwright install chromium"` с пробросом `~/.cache/ms-playwright` (монтировать `/root/.cache/ms-playwright`).
 
-- [ ] **Step 5: Коммит**
+- [x] **Step 5: Коммит**
 
 ```bash
 git add -A
@@ -1220,7 +1220,7 @@ git commit -m "feat: занятия — роуты /lessons, dnd-сортиро�
 
 ### Task 13: Финальная проверка и merge
 
-- [ ] **Step 1: `npm run build` (docker)**
+- [x] **Step 1: `npm run build` (docker)**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src/CollegeLMS.Next -e NEXT_PUBLIC_API_URL=http://localhost:8080 node:20-alpine sh -c "npm run build"
@@ -1228,7 +1228,7 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src/CollegeLMS.Next -e NEXT_P
 
 Expected: `Compiled successfully` / `Route (app)` список без ошибок.
 
-- [ ] **Step 2: Полный e2e-прогон**
+- [x] **Step 2: Полный e2e-прогон**
 
 ```bash
 docker run --rm -v /home/user1/CollegeLMS:/src -w /src/CollegeLMS.Next node:20-alpine sh -c "npx playwright test"
@@ -1236,22 +1236,22 @@ docker run --rm -v /home/user1/CollegeLMS:/src -w /src/CollegeLMS.Next node:20-a
 
 Expected: PASS (с учётом обновлённых спеков).
 
-- [ ] **Step 3: Smoke на compose**
+- [x] **Step 3: Smoke на compose**
 
 Поднять/пересобрать `collegelms-next` (docker compose up --build -d), открыть `http://localhost/` → войти преподавателем → курс → проверить: табы (Занятия/Материалы/Группы/Документы), dnd-перетаскивание, тумблер «Сейчас идёт», создание занятия (kind), загрузка/скачивание/удаление документа; студентом: бейдж «Сейчас идёт», документы read-only. Адаптивность 1366×768 и ~393px (DevTools).
 
-- [ ] **Step 4: Роуты 404**
+- [x] **Step 4: Роуты 404**
 
 Проверить, что `/courses/{id}/lectures/*`, `/courses/{id}/assignments/*`, `/my/submissions` отдают 404 (next not-found/страница логина).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
 git commit -m "test: e2e под новую модель занятий (M3b)"
 ```
 
-- [ ] **Step 6: Sync и merge**
+- [x] **Step 6: Sync и merge**
 
 ```bash
 git fetch origin && git pull --rebase origin master
