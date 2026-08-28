@@ -83,34 +83,72 @@ export default function Carousel() {
                   href={`/news/${item.id}`}
                   className="contents"
                 >
-                  <div className="relative flex flex-1 flex-col justify-center gap-2 overflow-y-auto p-5 text-primary-foreground sm:p-6 lg:col-span-1 lg:h-full lg:gap-3 lg:p-8">
-                    <Image
-                      src="/logo.svg"
-                      alt="Ставропольский колледж связи"
-                      width={2048}
-                      height={1359}
-                      sizes="(min-width: 1024px) 33vw, 0px"
-                      className="hidden max-h-72 w-auto max-w-full object-contain lg:block"
-                      unoptimized
-                    />
-                    <p className="text-sm text-primary-foreground/80">
-                      {new Date(item.publishedAt).toLocaleDateString("ru-RU", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                      {item.categoryName && ` · ${item.categoryName}`}
-                    </p>
-                    <h2 className="line-clamp-2 text-xl font-bold leading-tight sm:text-2xl md:text-3xl">
-                      {item.title}
-                    </h2>
-                    <p className="line-clamp-3 text-sm text-primary-foreground/90">
-                      {item.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
-                    </p>
-                    <div className="mt-2">
-                      <span className="inline-block rounded-full bg-white/20 px-6 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30">
-                        Подробнее
-                      </span>
+                  <div className="relative flex flex-1 flex-col overflow-y-auto p-5 text-primary-foreground sm:p-6 lg:col-span-1 lg:h-full lg:p-8">
+                    <div className="hidden min-h-0 flex-1 items-center justify-center lg:flex">
+                      <Image
+                        src="/logo.svg"
+                        alt="Ставропольский колледж связи"
+                        width={2048}
+                        height={1359}
+                        sizes="(min-width: 1024px) 33vw, 0px"
+                        className="max-h-72 w-auto max-w-full object-contain"
+                        unoptimized
+                      />
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-2 lg:gap-3">
+                      <h2 className="line-clamp-2 text-xl font-bold leading-tight sm:text-2xl md:text-3xl">
+                        {item.title}
+                      </h2>
+                      <p className="line-clamp-3 text-sm text-primary-foreground/90">
+                        {item.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
+                      </p>
+                      <p className="text-sm text-primary-foreground/80">
+                        {new Date(item.publishedAt).toLocaleDateString("ru-RU", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                      {slides.length > 1 && (
+                        <>
+                          <div className="mt-1 flex items-center justify-between gap-3">
+                            <span className="inline-block rounded-full bg-white/20 px-6 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30">
+                              Подробнее
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={(e) => { e.preventDefault(); scrollPrev() }}
+                                className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+                                aria-label="Предыдущий"
+                              >
+                                <ChevronLeft size={20} />
+                              </button>
+                              <span className="text-sm text-primary-foreground/70 min-w-[3rem] text-center">
+                                {selectedIndex + 1}/{slides.length}
+                              </span>
+                              <button
+                                onClick={(e) => { e.preventDefault(); scrollNext() }}
+                                className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+                                aria-label="Следующий"
+                              >
+                                <ChevronRight size={20} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex justify-center gap-2">
+                            {slides.map((_, i) => (
+                              <button
+                                key={i}
+                                onClick={(e) => { e.preventDefault(); scrollTo(i) }}
+                                className={`h-2 rounded-full transition-all ${
+                                  i === selectedIndex ? "w-6 bg-white" : "w-2 bg-white/50"
+                                }`}
+                                aria-label={`Слайд ${i + 1}`}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="relative order-first h-48 sm:h-56 lg:order-none lg:col-span-2 lg:h-full">
@@ -127,41 +165,6 @@ export default function Carousel() {
                     )}
                   </div>
                 </Link>
-                {slides.length > 1 && (
-                  <div className="relative z-10 hidden flex-col items-center gap-3 self-end pb-8 lg:flex lg:col-span-1 lg:row-span-1 lg:-mt-8">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => { e.preventDefault(); scrollPrev() }}
-                        className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-                        aria-label="Предыдущий"
-                      >
-                        <ChevronLeft size={20} />
-                      </button>
-                      <span className="text-sm text-primary-foreground/70 min-w-[3rem] text-center">
-                        {selectedIndex + 1}/{slides.length}
-                      </span>
-                      <button
-                        onClick={(e) => { e.preventDefault(); scrollNext() }}
-                        className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-                        aria-label="Следующий"
-                      >
-                        <ChevronRight size={20} />
-                      </button>
-                    </div>
-                    <div className="flex gap-2">
-                      {slides.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={(e) => { e.preventDefault(); scrollTo(i) }}
-                          className={`h-2 rounded-full transition-all ${
-                            i === selectedIndex ? "w-6 bg-white" : "w-2 bg-white/50"
-                          }`}
-                          aria-label={`Слайд ${i + 1}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ))}
         </div>
