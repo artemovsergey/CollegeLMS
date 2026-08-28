@@ -75,102 +75,97 @@ export default function Carousel() {
         <div className="overflow-hidden" ref={emblaRef}>
           <div className="flex">
             {slides.map((item, index) => (
-              <Link
+              <div
                 key={item.id}
-                href={`/news/${item.id}`}
                 className="relative flex min-h-0 flex-[0_0_100%] flex-col overflow-hidden rounded-lg bg-primary h-[400px] md:h-[550px] lg:grid lg:grid-cols-3"
               >
-                <div className="relative flex flex-1 flex-col justify-center gap-3 p-5 text-primary-foreground sm:p-6 lg:col-span-1 lg:h-full lg:p-10">
-                  <Image
-                    src="/logo.svg"
-                    alt="Ставропольский колледж связи"
-                    width={2048}
-                    height={1359}
-                    sizes="(min-width: 1024px) 33vw, 0px"
-                    className="hidden h-24 w-auto object-contain lg:block"
-                    unoptimized
-                  />
-                  <p className="text-sm text-primary-foreground/80">
-                    {new Date(item.publishedAt).toLocaleDateString("ru-RU", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                    {item.categoryName && ` · ${item.categoryName}`}
-                  </p>
-                  <h2 className="line-clamp-2 text-xl font-bold leading-tight sm:text-2xl md:text-3xl">
-                    {item.title}
-                  </h2>
-                  <p className="line-clamp-3 text-sm text-primary-foreground/90">
-                    {item.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
-                  </p>
-                  <div className="mt-2">
-                    <span className="inline-block rounded-full bg-white/20 px-6 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30">
-                      Подробнее
-                    </span>
-                  </div>
-                </div>
-                <div className="relative order-first h-48 sm:h-56 lg:order-none lg:col-span-2 lg:h-full">
-                  <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
+                <Link
+                  href={`/news/${item.id}`}
+                  className="contents"
+                >
+                  <div className="relative flex flex-1 flex-col justify-center gap-3 p-5 text-primary-foreground sm:p-6 lg:col-span-1 lg:h-full lg:p-10">
                     <Image
                       src="/logo.svg"
                       alt="Ставропольский колледж связи"
                       width={2048}
                       height={1359}
-                      sizes="100vw"
-                      className="object-contain h-auto w-auto drop-shadow-md"
-                      style={{ maxHeight: "64px" }}
+                      sizes="(min-width: 1024px) 33vw, 0px"
+                      className="hidden h-72 w-auto object-contain lg:block"
                       unoptimized
                     />
+                    <p className="text-sm text-primary-foreground/80">
+                      {new Date(item.publishedAt).toLocaleDateString("ru-RU", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                      {item.categoryName && ` · ${item.categoryName}`}
+                    </p>
+                    <h2 className="line-clamp-2 text-xl font-bold leading-tight sm:text-2xl md:text-3xl">
+                      {item.title}
+                    </h2>
+                    <p className="line-clamp-3 text-sm text-primary-foreground/90">
+                      {item.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
+                    </p>
+                    <div className="mt-2">
+                      <span className="inline-block rounded-full bg-white/20 px-6 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30">
+                        Подробнее
+                      </span>
+                    </div>
                   </div>
-                  {item.imageUrl ? (
-                    <Image
-                      src={item.imageUrl}
-                      alt=""
-                      fill
-                      sizes="(min-width: 1024px) 66vw, 100vw"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-accent/80 via-primary/60 to-accent/60" />
-                  )}
-                </div>
-              </Link>
+                  <div className="relative order-first h-48 sm:h-56 lg:order-none lg:col-span-2 lg:h-full">
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt=""
+                        fill
+                        sizes="(min-width: 1024px) 66vw, 100vw"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-accent/80 via-primary/60 to-accent/60" />
+                    )}
+                  </div>
+                </Link>
+                {slides.length > 1 && (
+                  <div className="relative z-10 hidden flex-col items-center gap-3 self-end pb-8 lg:flex lg:col-span-1 lg:row-span-1 lg:-mt-8">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => { e.preventDefault(); scrollPrev() }}
+                        className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+                        aria-label="Предыдущий"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <span className="text-sm text-primary-foreground/70 min-w-[3rem] text-center">
+                        {selectedIndex + 1}/{slides.length}
+                      </span>
+                      <button
+                        onClick={(e) => { e.preventDefault(); scrollNext() }}
+                        className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+                        aria-label="Следующий"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      {slides.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={(e) => { e.preventDefault(); scrollTo(i) }}
+                          className={`h-2 rounded-full transition-all ${
+                            i === selectedIndex ? "w-6 bg-white" : "w-2 bg-white/50"
+                          }`}
+                          aria-label={`Слайд ${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
         </div>
       </div>
-
-      {slides.length > 1 && (
-        <>
-          <button
-            onClick={scrollPrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-            aria-label="Предыдущий"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <button
-            onClick={scrollNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-            aria-label="Следующий"
-          >
-            <ChevronRight size={24} />
-          </button>
-
-          <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => scrollTo(i)}
-                className={`h-2 rounded-full transition-all ${
-                  i === selectedIndex ? "w-6 bg-white" : "w-2 bg-white/50"
-                }`}
-                aria-label={`Слайд ${i + 1}`}
-              />
-            ))}
-          </div>
-        </>
-      )}
     </section>
     </div>
   )
