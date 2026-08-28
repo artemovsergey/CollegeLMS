@@ -77,20 +77,20 @@ export default function Carousel() {
             {slides.map((item, index) => (
               <div
                 key={item.id}
-                className="relative flex min-h-0 flex-[0_0_100%] flex-col overflow-hidden rounded-lg bg-primary h-[400px] md:h-[550px] lg:grid lg:grid-cols-3"
+                className="relative flex min-h-0 flex-[0_0_100%] flex-col overflow-hidden rounded-lg bg-primary h-[480px] md:h-[550px] lg:h-[680px] lg:grid lg:grid-cols-3"
               >
                 <Link
                   href={`/news/${item.id}`}
                   className="contents"
                 >
-                  <div className="relative flex flex-1 flex-col justify-center gap-3 p-5 text-primary-foreground sm:p-6 lg:col-span-1 lg:h-full lg:p-10">
+                  <div className="relative flex flex-1 flex-col justify-center gap-2 overflow-y-auto p-5 text-primary-foreground sm:p-6 lg:col-span-1 lg:h-full lg:gap-3 lg:p-8">
                     <Image
                       src="/logo.svg"
                       alt="Ставропольский колледж связи"
                       width={2048}
                       height={1359}
                       sizes="(min-width: 1024px) 33vw, 0px"
-                      className="hidden h-72 w-auto object-contain lg:block"
+                      className="hidden max-h-72 w-auto max-w-full object-contain lg:block"
                       unoptimized
                     />
                     <p className="text-sm text-primary-foreground/80">
