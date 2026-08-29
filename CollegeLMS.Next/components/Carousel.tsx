@@ -6,7 +6,6 @@ import Link from "next/link"
 import Image from "next/image"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
 import api from "@/lib/api"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export default function Carousel() {
   const [slides, setSlides] = useState<NewsResponse[]>([])
@@ -46,8 +45,6 @@ export default function Carousel() {
     return () => clearInterval(timer)
   }, [emblaApi, slides.length, isHovered])
 
-  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi])
-  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi])
   const scrollTo = useCallback(
     (index: number) => emblaApi?.scrollTo(index),
     [emblaApi],
@@ -110,32 +107,11 @@ export default function Carousel() {
                         })}
                       </p>
                       {slides.length > 1 && (
-                        <>
-                          <div className="mt-1 flex items-center justify-between gap-3">
-                            <span className="inline-block rounded-full bg-white/20 px-6 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30">
-                              Подробнее
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={(e) => { e.preventDefault(); scrollPrev() }}
-                                className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-                                aria-label="Предыдущий"
-                              >
-                                <ChevronLeft size={20} />
-                              </button>
-                              <span className="text-sm text-primary-foreground/70 min-w-[3rem] text-center">
-                                {selectedIndex + 1}/{slides.length}
-                              </span>
-                              <button
-                                onClick={(e) => { e.preventDefault(); scrollNext() }}
-                                className="rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-                                aria-label="Следующий"
-                              >
-                                <ChevronRight size={20} />
-                              </button>
-                            </div>
-                          </div>
-                          <div className="flex justify-center gap-2">
+                        <div className="mt-1 flex items-center justify-between gap-3">
+                          <span className="inline-block rounded-full bg-white/20 px-6 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30">
+                            Подробнее
+                          </span>
+                          <div className="flex items-center gap-2">
                             {slides.map((_, i) => (
                               <button
                                 key={i}
@@ -147,7 +123,7 @@ export default function Carousel() {
                               />
                             ))}
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>

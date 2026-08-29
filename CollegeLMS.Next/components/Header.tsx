@@ -107,11 +107,6 @@ export default function Header() {
               </div>
               <span className="mx-1 hidden text-white/20 sm:inline">|</span>
               <Link href="/contacts" className="hidden text-xs text-white/70 hover:text-white transition-colors sm:inline">Контакты</Link>
-              <span className="mx-1 hidden text-white/20 sm:inline">|</span>
-              <Link href="/admissions" className="text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors">
-                <span className="hidden sm:inline">Приёмная кампания 2026</span>
-                <span className="sm:hidden">Приёмная 2026</span>
-              </Link>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
               <Link href="/search" className="flex items-center justify-center h-8 w-8 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-label="Поиск"><Search size={16} /></Link>
