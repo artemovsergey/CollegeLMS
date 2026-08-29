@@ -163,6 +163,14 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .animate-spin, .animate-spin * {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+  .animate-pulse {
+    animation-duration: 2s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 
 @layer base {
@@ -194,6 +202,13 @@
 .accessibility-mode * {
   animation: none !important;
   transition: none !important;
+}
+.accessibility-mode .animate-spin,
+.accessibility-mode .animate-spin * {
+  animation: spin 1s linear infinite !important;
+}
+.accessibility-mode .animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
 }
 
 .accessibility-mode a,
