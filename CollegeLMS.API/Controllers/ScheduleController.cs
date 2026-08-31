@@ -153,23 +153,64 @@ public class ScheduleController(IScheduleService service) : ControllerBase
         return File(result.Data!.FileContent, result.Data.ContentType, result.Data.FileName);
     }
 
-    [HttpPost("import")]
+    [HttpPost("import/preview")]
     [Authorize(Roles = "Dispatcher,Admin")]
-    [SwaggerOperation(Summary = "Импорт расписания из XLSX-файла")]
-    [SwaggerResponse(200, "Импорт выполнен", typeof(Result<ScheduleImportResult>))]
+    [SwaggerOperation(Summary = "Превью импорта расписания из XLSX")]
+    [SwaggerResponse(200, "Превью получено", typeof(Result<SchedulePreviewResponse>))]
     [SwaggerResponse(400, "Ошибка валидации файла")]
     [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(403, "Доступ запрещён")]
     [SwaggerResponse(500, "Ошибка сервера")]
-    public async Task<ActionResult<Result<ScheduleImportResult>>> Import(
+    [ProducesResponseType(typeof(Result<SchedulePreviewResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> PreviewImport(
         IFormFile file,
         CancellationToken ct
     )
     {
-        var result = await service.ImportScheduleAsync(file, ct);
-        if (!result.IsSuccess)
-            return StatusCode(result.StatusCode, result);
-        return Ok(result);
+        if (file == null || file.Length == 0)
+            return BadRequest(Result<SchedulePreviewResponse>.Fail("Файл не выбран", 400));
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (ext != ".xlsx")
+            return BadRequest(Result<SchedulePreviewResponse>.Fail(
+                "Поддерживается только формат XLSX", 400));
+
+        if (file.Length > 10 * 1024 * 1024)
+            return BadRequest(Result<SchedulePreviewResponse>.Fail(
+                "Файл слишком большой. Максимум 10MB.", 400));
+
+        using var stream = new MemoryStream();
+        await file.CopyToAsync(stream, ct);
+        stream.Seek(0, SeekOrigin.Begin);
+
+        var result = await service.PreviewScheduleAsync(stream, ct);
+        return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("import/confirm")]
+    [Authorize(Roles = "Dispatcher,Admin")]
+    [SwaggerOperation(Summary = "Подтвердить импорт расписания")]
+    [SwaggerResponse(200, "Импорт выполнен", typeof(Result<ConfirmImportResult>))]
+    [SwaggerResponse(400, "Ошибка валидации")]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<ConfirmImportResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ConfirmImport(
+        ConfirmImportRequest request,
+        CancellationToken ct
+    )
+    {
+        var result = await service.ImportScheduleConfirmAsync(request, ct);
+        return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
     [HttpDelete("{id:guid}")]

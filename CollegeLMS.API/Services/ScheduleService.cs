@@ -239,26 +239,33 @@ public class ScheduleService(
         return await exportService.ExportAsync(groupId, teacherId, room, period, format, ct);
     }
 
-    public async Task<Result<ScheduleImportResult>> ImportScheduleAsync(
-        IFormFile file,
+    public async Task<Result<SchedulePreviewResponse>> PreviewScheduleAsync(
+        Stream fileStream,
         CancellationToken ct
     )
     {
-        if (file == null || file.Length == 0)
-            return Result<ScheduleImportResult>.Fail("Файл не выбран или пуст", 400);
+        var result = await importService.PreviewAsync(fileStream, ct);
+        if (!result.IsSuccess)
+            return Result<SchedulePreviewResponse>.Fail(result.ErrorMessage!, 400);
 
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (ext != ".xlsx")
-            return Result<ScheduleImportResult>.Fail("Поддерживается только формат XLSX", 400);
+        return Result<SchedulePreviewResponse>.Ok(result.Preview!);
+    }
 
-        if (file.Length > 10 * 1024 * 1024)
-            return Result<ScheduleImportResult>.Fail("Файл слишком большой. Максимум 10MB.", 400);
+    public async Task<Result<ConfirmImportResult>> ImportScheduleConfirmAsync(
+        ConfirmImportRequest request,
+        CancellationToken ct
+    )
+    {
+        var result = await importService.ConfirmAsync(request, ct);
+        if (!result.IsSuccess)
+            return Result<ConfirmImportResult>.Fail("Ошибка импорта", 500);
 
-        using var stream = new MemoryStream();
-        await file.CopyToAsync(stream, ct);
-        stream.Seek(0, SeekOrigin.Begin);
-
-        return await importService.ImportAsync(stream, ct);
+        return Result<ConfirmImportResult>.Ok(new ConfirmImportResult
+        {
+            Imported = result.Imported,
+            Skipped = result.Skipped,
+            Errors = result.Errors,
+        });
     }
 
     public async Task<Result<CalendarResponse>> GetCalendarAsync(

@@ -47,8 +47,13 @@ public interface IScheduleService
         CancellationToken ct = default
     );
 
-    Task<Result<ScheduleImportResult>> ImportScheduleAsync(
-        IFormFile file,
+    Task<Result<SchedulePreviewResponse>> PreviewScheduleAsync(
+        Stream fileStream,
+        CancellationToken ct = default
+    );
+
+    Task<Result<ConfirmImportResult>> ImportScheduleConfirmAsync(
+        ConfirmImportRequest request,
         CancellationToken ct = default
     );
 }

@@ -37,7 +37,8 @@ export default function SchedulePage() {
   const router = useRouter()
 
   const [entries, setEntries] = useState<ScheduleResponse[]>([])
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [fetching, setFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [groups, setGroups] = useState<GroupResponse[]>([])
@@ -66,7 +67,11 @@ export default function SchedulePage() {
   }, [selectedGroupId, selectedTeacherId, selectedDayOfWeek])
 
   const loadSchedule = useCallback(async () => {
-    setLoading(true)
+    if (entries.length === 0) {
+      setInitialLoading(true)
+    } else {
+      setFetching(true)
+    }
     setError(null)
     try {
       const body = await fetchSchedule({
@@ -83,9 +88,10 @@ export default function SchedulePage() {
     } catch {
       setError("Ошибка загрузки расписания")
     } finally {
-      setLoading(false)
+      setInitialLoading(false)
+      setFetching(false)
     }
-  }, [getFilters])
+  }, [getFilters, entries.length])
 
   const loadGroups = useCallback(async () => {
     try {
@@ -201,16 +207,23 @@ export default function SchedulePage() {
 
       {error && <ErrorBanner message={error} />}
 
-      {loading ? (
+      {initialLoading ? (
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <ScheduleTable
-          entries={entries}
-          onEntryClick={canManage ? handleEdit : undefined}
-          onDeleteClick={canManage ? (id) => setDeleteConfirmId(id) : undefined}
-        />
+        <div className="relative">
+          {fetching && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+              <LoadingSpinner size="lg" />
+            </div>
+          )}
+          <ScheduleTable
+            entries={entries}
+            onEntryClick={canManage ? handleEdit : undefined}
+            onDeleteClick={canManage ? (id) => setDeleteConfirmId(id) : undefined}
+          />
+        </div>
       )}
 
       <ScheduleEntryDialog
