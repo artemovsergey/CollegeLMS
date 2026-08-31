@@ -1,0 +1,64 @@
+name: Cleanup VPS Disk
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Aggressive Docker cleanup on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+
+            echo "=== Disk before cleanup ==="
+            df -h /
+
+            echo "=== Stop all containers ==="
+            cd /home/user1/CollegeLMS
+            docker compose --profile telegram-bot down --remove-orphans || true
+
+            echo "=== Remove ALL unused images (not just dangling) ==="
+            docker image prune -af
+
+            echo "=== Remove unused volumes ==="
+            docker volume prune -f
+
+            echo "=== Remove unused networks ==="
+            docker network prune -f
+
+            echo "=== Remove build cache ==="
+            docker builder prune -af --filter "until=24h"
+
+            echo "=== Remove unused containers ==="
+            docker container prune -f
+
+            echo "=== Clean /tmp ==="
+            find /tmp -type f -atime +1 -delete 2>/dev/null || true
+
+            echo "=== Disk after cleanup ==="
+            df -h /
+
+            echo "=== Rebuild and start services ==="
+            docker compose --profile telegram-bot up --build -d --force-recreate
+
+            echo "=== Health check ==="
+            for i in $(seq 1 12); do
+              sleep 5
+              HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5026/healthz || echo "000")
+              if [ "$HEALTH" = "200" ]; then
+                echo "API health check PASSED (attempt $i)"
+                break
+              fi
+              echo "API health check attempt $i: HTTP $HEALTH"
+            done
+
+            echo "=== Final disk state ==="
+            df -h /
