@@ -53,6 +53,16 @@ public static class DataSeeder
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             },
+            new()
+            {
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000004"),
+                Email = "dispatcher@collegelms.ru",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("dispatcher"),
+                FullName = "Диспетчер Системы",
+                Role = UserRole.Dispatcher,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            },
         };
 
         foreach (var user in users)
