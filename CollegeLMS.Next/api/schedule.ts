@@ -37,6 +37,32 @@ export interface UpdateScheduleRequest {
   lessonType: string
 }
 
+export interface SchedulePreviewEntry {
+  groupName: string
+  day: string
+  pair: number
+  subject: string
+  room: string
+  teacherName: string
+  weeks: number[]
+  status: string
+  statusMessage?: string
+}
+
+export interface SchedulePreviewWarning {
+  type: string
+  value: string
+  count: number
+}
+
+export interface SchedulePreviewResult {
+  totalEntries: number
+  validEntries: number
+  warningsCount: number
+  warnings: SchedulePreviewWarning[]
+  entries: SchedulePreviewEntry[]
+}
+
 export interface ScheduleImportResult {
   imported: number
   skipped: number
@@ -122,13 +148,24 @@ export async function exportSchedule(
   window.URL.revokeObjectURL(url)
 }
 
-export async function importSchedule(
+export async function previewScheduleImport(
   file: File,
-): Promise<Result<ScheduleImportResult>> {
+): Promise<Result<SchedulePreviewResult>> {
   const formData = new FormData()
   formData.append("file", file)
-  const { data } = await api.post("/api/schedule/import", formData, {
+  const { data } = await api.post("/api/schedule/import/preview", formData, {
     headers: { "Content-Type": "multipart/form-data" },
+  })
+  return data
+}
+
+export async function confirmScheduleImport(
+  entries: SchedulePreviewEntry[],
+  options: { createMissingGroups: boolean; createMissingTeachers: boolean },
+): Promise<Result<ScheduleImportResult>> {
+  const { data } = await api.post("/api/schedule/import/confirm", {
+    entries,
+    ...options,
   })
   return data
 }
