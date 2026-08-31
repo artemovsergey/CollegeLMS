@@ -35,8 +35,14 @@ jobs:
             echo "=== Free disk space (before cleanup) ==="
             df -h /
 
-            echo "=== Free up unused images (keep build cache) ==="
-            docker image prune -f
+            echo "=== Aggressive cleanup before build ==="
+            docker image prune -af || true
+            docker volume prune -f || true
+            docker network prune -f || true
+            docker builder prune -af --filter "until=48h" || true
+
+            echo "=== Disk after cleanup ==="
+            df -h /
 
             echo "=== Store current commit for rollback ==="
             PREVIOUS_COMMIT=$(git rev-parse HEAD)
@@ -94,4 +100,4 @@ jobs:
             curl -s http://localhost:5030/health || echo "Warning: Telegram bot not responding"
 
             echo "=== Final cleanup ==="
-            docker image prune -f
+            docker image prune -af || true

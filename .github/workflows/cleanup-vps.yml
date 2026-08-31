@@ -25,23 +25,14 @@ jobs:
             cd /home/user1/CollegeLMS
             docker compose --profile telegram-bot down --remove-orphans || true
 
-            echo "=== Remove ALL unused images (not just dangling) ==="
-            docker image prune -af
+            echo "=== Remove ALL unused images ==="
+            docker image prune -af || true
 
             echo "=== Remove unused volumes ==="
-            docker volume prune -f
+            docker volume prune -f || true
 
             echo "=== Remove unused networks ==="
-            docker network prune -f
-
-            echo "=== Remove ALL build cache ==="
-            docker builder prune -af
-
-            echo "=== Remove unused containers ==="
-            docker container prune -f
-
-            echo "=== Clean /tmp ==="
-            find /tmp -type f -atime +1 -delete 2>/dev/null || true
+            docker network prune -f || true
 
             echo "=== Disk after cleanup ==="
             df -h /
