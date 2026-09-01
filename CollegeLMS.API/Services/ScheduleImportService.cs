@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
@@ -54,38 +55,57 @@ public class ScheduleImportService(AppDbContext db)
                 dayBlocks.Add((row, day));
         }
 
-        foreach (var (startRow, day) in dayBlocks)
+        for (int bi = 0; bi < dayBlocks.Count; bi++)
         {
-            for (int pair = 1; pair <= 7; pair++)
+            var (dayStart, day) = dayBlocks[bi];
+            int dayEnd = bi + 1 < dayBlocks.Count
+                ? dayBlocks[bi + 1].StartRow
+                : lastRow + 1;
+
+            var pairRows = new List<int>();
+            for (int r = dayStart; r < dayEnd; r++)
             {
-                int pairRow = startRow + (pair - 1) * 5;
+                var bVal = ws.Cell(r, 2).Value;
+                if (bVal.IsNumber)
+                {
+                    var num = bVal.GetNumber();
+                    if (num >= 1 && num <= 7)
+                        pairRows.Add(r);
+                }
+            }
+
+            for (int pi = 0; pi < pairRows.Count; pi++)
+            {
+                int pairRow = pairRows[pi];
+                int pairNum = (int)ws.Cell(pairRow, 2).GetDouble();
+                int nextPairRow = pi + 1 < pairRows.Count
+                    ? pairRows[pi + 1]
+                    : dayEnd;
 
                 foreach (var (col, groupName) in groupColumns)
                 {
-                    var cellText = ws.Cell(pairRow, col).GetString().Trim();
-                    if (string.IsNullOrEmpty(cellText))
-                        continue;
-
-                    var (room, subject) = ParseRoomSubject(cellText);
-                    if (string.IsNullOrEmpty(subject))
-                        continue;
-
-                    var weeksText = ws.Cell(pairRow + 1, col).GetString().Trim();
-                    var weeks = ParseWeeks(weeksText);
-
-                    var teacherName = ws.Cell(pairRow + 2, col).GetString().Trim();
-
-                    entries.Add(new SchedulePreviewEntry
+                    for (int r = pairRow; r < nextPairRow; r++)
                     {
-                        GroupName = groupName,
-                        Day = day.ToString(),
-                        Pair = pair,
-                        Subject = subject,
-                        Room = room,
-                        TeacherName = teacherName,
-                        Weeks = weeks,
-                        Status = "ok",
-                    });
+                        var cellText = ws.Cell(r, col).GetString().Trim();
+                        if (string.IsNullOrWhiteSpace(cellText))
+                            continue;
+
+                        var parsed = ParseSubjectCell(cellText);
+                        if (string.IsNullOrEmpty(parsed.Subject))
+                            continue;
+
+                        entries.Add(new SchedulePreviewEntry
+                        {
+                            GroupName = groupName,
+                            Day = day.ToString(),
+                            Pair = pairNum,
+                            Subject = parsed.Subject,
+                            Room = parsed.Room,
+                            TeacherName = parsed.Teacher,
+                            Weeks = parsed.Weeks,
+                            Status = "ok",
+                        });
+                    }
                 }
             }
         }
@@ -93,27 +113,53 @@ public class ScheduleImportService(AppDbContext db)
         return entries;
     }
 
-    private static (string Room, string Subject) ParseRoomSubject(string cell)
+    private static readonly Regex SubjectCellRegex = new(
+        @"^(?<room>[^\s]+)\s+(?<subject>[^(]+?)(?:\s*\((?<weeks>[^)]+)\))?\s*(?<teacher>[А-Яа-яёЁ][А-Яа-яёЁ.\s]*)?$",
+        RegexOptions.Compiled);
+
+    private static (string Room, string Subject, List<int> Weeks, string Teacher) ParseSubjectCell(string cell)
     {
         var text = cell.Trim();
+        if (string.IsNullOrEmpty(text) || text == ".")
+            return (string.Empty, string.Empty, [], string.Empty);
 
-        if (text.StartsWith("ч.з", StringComparison.OrdinalIgnoreCase))
+        if (text.StartsWith("ч.з", StringComparison.OrdinalIgnoreCase) ||
+            text.StartsWith("с.з", StringComparison.OrdinalIgnoreCase))
         {
-            var subject = text[3..].Trim();
-            return ("ч.з", subject);
+            var roomPart = text.Split(' ', 2)[0].Trim();
+            var rest = text[roomPart.Length..].Trim();
+            var weeksMatch = Regex.Match(rest, @"\(([^)]+)\)");
+            var weeks = weeksMatch.Success ? ParseWeeks(weeksMatch.Groups[1].Value) : new List<int>();
+            var subject = Regex.Replace(rest, @"\([^)]*\)", "").Trim();
+            var teacher = ExtractTrailingTeacher(subject);
+            if (!string.IsNullOrEmpty(teacher))
+                subject = subject[..^teacher.Length].TrimEnd();
+            return (roomPart, subject, weeks, teacher);
         }
 
-        var match = System.Text.RegularExpressions.Regex.Match(
-            text, @"^([\d]+[л]?)\s{2,}(.+)$");
-
+        var match = SubjectCellRegex.Match(text);
         if (match.Success)
-            return (match.Groups[1].Value, match.Groups[2].Value.Trim());
+        {
+            var room = match.Groups["room"].Value;
+            var subject = match.Groups["subject"].Value.Trim();
+            var weeks = match.Groups["weeks"].Success
+                ? ParseWeeks(match.Groups["weeks"].Value)
+                : new List<int>();
+            var teacher = match.Groups["teacher"].Value.Trim();
+            if (string.IsNullOrEmpty(teacher))
+                teacher = ExtractTrailingTeacher(subject);
+            if (!string.IsNullOrEmpty(teacher) && subject.EndsWith(teacher))
+                subject = subject[..^teacher.Length].TrimEnd();
+            return (room, subject, weeks, teacher);
+        }
 
-        var parts = text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 2)
-            return (parts[0], parts[1]);
+        return (string.Empty, text, [], string.Empty);
+    }
 
-        return (string.Empty, text);
+    private static string ExtractTrailingTeacher(string text)
+    {
+        var match = Regex.Match(text, @"([А-Яа-яёЁ][А-Яа-яёЁ]+\s+[А-Яа-яёЁ]\.[А-Яа-яёЁ]\.?)$");
+        return match.Success ? match.Groups[1].Value : string.Empty;
     }
 
     private static List<int> ParseWeeks(string text)
@@ -261,7 +307,7 @@ public class ScheduleImportService(AppDbContext db)
             {
                 if (request.CreateMissingGroups)
                 {
-                    var newGroup = new Group
+                    var newGroup = new Entities.Group
                     {
                         Id = Guid.NewGuid(),
                         Name = entry.GroupName,
