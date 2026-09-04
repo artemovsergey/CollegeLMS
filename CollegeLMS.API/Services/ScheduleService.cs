@@ -11,8 +11,7 @@ namespace CollegeLMS.API.Services;
 
 public class ScheduleService(
     AppDbContext db,
-    ScheduleExportService exportService,
-    ScheduleImportService importService
+    ScheduleExportService exportService
 ) : IScheduleService
 {
     public async Task<Result<PagedResponse<ScheduleResponse>>> GetAllAsync(
@@ -237,35 +236,6 @@ public class ScheduleService(
     )
     {
         return await exportService.ExportAsync(groupId, teacherId, room, period, format, ct);
-    }
-
-    public async Task<Result<SchedulePreviewResponse>> PreviewScheduleAsync(
-        Stream fileStream,
-        CancellationToken ct
-    )
-    {
-        var result = await importService.PreviewAsync(fileStream, ct);
-        if (!result.IsSuccess)
-            return Result<SchedulePreviewResponse>.Fail(result.ErrorMessage!, 400);
-
-        return Result<SchedulePreviewResponse>.Ok(result.Preview!);
-    }
-
-    public async Task<Result<ConfirmImportResult>> ImportScheduleConfirmAsync(
-        ConfirmImportRequest request,
-        CancellationToken ct
-    )
-    {
-        var result = await importService.ConfirmAsync(request, ct);
-        if (!result.IsSuccess)
-            return Result<ConfirmImportResult>.Fail("Ошибка импорта", 500);
-
-        return Result<ConfirmImportResult>.Ok(new ConfirmImportResult
-        {
-            Imported = result.Imported,
-            Skipped = result.Skipped,
-            Errors = result.Errors,
-        });
     }
 
     public async Task<Result<CalendarResponse>> GetCalendarAsync(

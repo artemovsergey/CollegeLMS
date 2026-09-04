@@ -94,10 +94,12 @@ public static class ServiceCollectionExtensions
                     Description = "Введите JWT токен. Пример: eyJhbGciOiJIUzI1NiIs...",
                 }
             );
-            c.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
-            {
-                { new OpenApiSecuritySchemeReference("Bearer"), [] },
-            });
+            c.AddSecurityRequirement(
+                document => new OpenApiSecurityRequirement
+                {
+                    [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+                }
+            );
         });
 
         return services;

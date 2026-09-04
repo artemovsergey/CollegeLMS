@@ -1,6 +1,7 @@
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
+using CollegeLMS.API.Services;
 using CollegeLMS.API.SwaggerExamples;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,7 @@ namespace CollegeLMS.API.Controllers;
 [ApiController]
 [Route("api/schedule")]
 [Produces("application/json")]
-public class ScheduleController(IScheduleService service) : ControllerBase
+public class ScheduleController(IScheduleService service, ScheduleImportService importService) : ControllerBase
 {
     [HttpGet]
     [AllowAnonymous]
@@ -162,7 +163,7 @@ public class ScheduleController(IScheduleService service) : ControllerBase
     [SwaggerResponse(403, "Доступ запрещён")]
     [SwaggerResponse(500, "Ошибка сервера")]
     [ProducesResponseType(typeof(Result<SchedulePreviewResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Result<SchedulePreviewResponse>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -187,19 +188,22 @@ public class ScheduleController(IScheduleService service) : ControllerBase
         await file.CopyToAsync(stream, ct);
         stream.Seek(0, SeekOrigin.Begin);
 
-        var result = await service.PreviewScheduleAsync(stream, ct);
-        return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
+        var result = await importService.PreviewAsync(stream, ct);
+        if (!result.IsSuccess)
+            return BadRequest(result);
+
+        return Ok(Result<SchedulePreviewResponse>.Ok(result.Preview!));
     }
 
     [HttpPost("import/confirm")]
     [Authorize(Roles = "Dispatcher,Admin")]
     [SwaggerOperation(Summary = "Подтвердить импорт расписания")]
-    [SwaggerResponse(200, "Импорт выполнен", typeof(Result<ConfirmImportResult>))]
+    [SwaggerResponse(200, "Импорт выполнен", typeof(Result<ConfirmResult>))]
     [SwaggerResponse(400, "Ошибка валидации")]
     [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(403, "Доступ запрещён")]
     [SwaggerResponse(500, "Ошибка сервера")]
-    [ProducesResponseType(typeof(Result<ConfirmImportResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<ConfirmResult>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
@@ -209,8 +213,8 @@ public class ScheduleController(IScheduleService service) : ControllerBase
         CancellationToken ct
     )
     {
-        var result = await service.ImportScheduleConfirmAsync(request, ct);
-        return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
+        var result = await importService.ConfirmAsync(request, ct);
+        return Ok(Result<ConfirmResult>.Ok(result));
     }
 
     [HttpDelete("{id:guid}")]

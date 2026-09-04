@@ -46,14 +46,4 @@ public interface IScheduleService
         ExportFormat format,
         CancellationToken ct = default
     );
-
-    Task<Result<SchedulePreviewResponse>> PreviewScheduleAsync(
-        Stream fileStream,
-        CancellationToken ct = default
-    );
-
-    Task<Result<ConfirmImportResult>> ImportScheduleConfirmAsync(
-        ConfirmImportRequest request,
-        CancellationToken ct = default
-    );
 }

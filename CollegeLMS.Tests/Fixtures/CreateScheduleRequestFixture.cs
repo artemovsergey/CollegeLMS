@@ -15,5 +15,5 @@ public static class CreateScheduleRequestFixture
             .RuleFor(r => r.DayOfWeek, f => f.PickRandom<DayOfWeek>())
             .RuleFor(r => r.StartTime, f => new TimeSpan(f.Random.Number(8, 12), 0, 0))
             .RuleFor(r => r.EndTime, (f, r) => r.StartTime.Add(new TimeSpan(1, 30, 0)))
-            .RuleFor(r => r.LessonType, f => f.PickRandom<LessonType>().ToString());
+            .RuleFor(r => r.LessonType, f => f.PickRandom(new[] { LessonType.Lecture, LessonType.Practice, LessonType.Lab, LessonType.Exam }).ToString());
 }

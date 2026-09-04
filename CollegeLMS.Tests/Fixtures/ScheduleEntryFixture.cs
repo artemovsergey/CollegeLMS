@@ -16,7 +16,7 @@ public static class ScheduleEntryFixture
             .RuleFor(s => s.DayOfWeek, f => f.PickRandom<DayOfWeek>())
             .RuleFor(s => s.StartTime, f => new TimeSpan(f.Random.Number(8, 12), 0, 0))
             .RuleFor(s => s.EndTime, (f, s) => s.StartTime.Add(new TimeSpan(1, 30, 0)))
-            .RuleFor(s => s.LessonType, f => f.PickRandom<LessonType>())
+            .RuleFor(s => s.LessonType, f => f.PickRandom(new[] { LessonType.Lecture, LessonType.Practice, LessonType.Lab, LessonType.Exam }))
             .RuleFor(s => s.CreatedAt, f => f.Date.Past())
             .RuleFor(s => s.UpdatedAt, f => f.Date.Recent())
             .FinishWith(

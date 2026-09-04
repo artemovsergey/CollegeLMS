@@ -69,3 +69,9 @@ public class StudentImportProgress
     public int Skipped { get; set; }
     public List<ImportError> Errors { get; set; } = new();
 }
+
+public class ImportError
+{
+    public int Row { get; set; }
+    public string Message { get; set; } = string.Empty;
+}

@@ -36,7 +36,7 @@ public class CreateScheduleRequestValidator : AbstractValidator<CreateScheduleRe
             .NotEmpty()
             .WithMessage("Тип занятия обязателен")
             .Must(BeValidLessonType)
-            .WithMessage("Тип занятия должен быть одним из: Lecture, Practice, Lab, Exam");
+            .WithMessage("Тип занятия должен быть одним из: None, Lecture, Practice, Lab, Exam");
     }
 
     private static bool BeValidLessonType(string value) => Enum.TryParse<LessonType>(value, out _);
@@ -74,7 +74,7 @@ public class UpdateScheduleRequestValidator : AbstractValidator<UpdateScheduleRe
             .NotEmpty()
             .WithMessage("Тип занятия обязателен")
             .Must(BeValidLessonType)
-            .WithMessage("Тип занятия должен быть одним из: Lecture, Practice, Lab, Exam");
+            .WithMessage("Тип занятия должен быть одним из: None, Lecture, Practice, Lab, Exam");
     }
 
     private static bool BeValidLessonType(string value) => Enum.TryParse<LessonType>(value, out _);

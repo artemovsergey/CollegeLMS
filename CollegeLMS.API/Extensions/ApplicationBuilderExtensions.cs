@@ -15,7 +15,10 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseSwaggerWithUi(this IApplicationBuilder app)
     {
         app.UseSwagger();
-        app.UseSwaggerUI();
+        app.UseSwaggerUI(o =>
+        {
+            o.ConfigObject.PersistAuthorization = true;
+        });
         return app;
     }
 

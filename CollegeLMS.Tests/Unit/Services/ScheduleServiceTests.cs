@@ -17,8 +17,7 @@ public class ScheduleServiceTests : IDisposable
     {
         _db = TestDbContextFactory.Create();
         var exportService = new ScheduleExportService(_db);
-        var importService = new ScheduleImportService(_db);
-        _sut = new ScheduleService(_db, exportService, importService);
+        _sut = new ScheduleService(_db, exportService);
     }
 
     public void Dispose() => _db.Dispose();
