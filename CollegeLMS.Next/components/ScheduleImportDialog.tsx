@@ -7,6 +7,7 @@ import {
   confirmScheduleImport,
   type SchedulePreviewResult,
   type SchedulePreviewEntry,
+  type ScheduleValidationError,
 } from "@/api/schedule"
 import { extractErrorMessage } from "@/lib/utils"
 import {
@@ -17,7 +18,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Check } from "lucide-react"
 import {
   Upload,
   FileSpreadsheet,
@@ -37,8 +37,7 @@ type Step = "upload" | "preview" | "result"
 
 interface ConfirmResult {
   imported: number
-  skipped: number
-  errors: { row: number; message: string }[]
+  schedule: unknown[]
 }
 
 export default function ScheduleImportDialog({
@@ -53,16 +52,12 @@ export default function ScheduleImportDialog({
   const [confirming, setConfirming] = useState(false)
   const [preview, setPreview] = useState<SchedulePreviewResult | null>(null)
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null)
-  const [createMissingGroups, setCreateMissingGroups] = useState(false)
-  const [createMissingTeachers, setCreateMissingTeachers] = useState(false)
 
   const reset = () => {
     setStep("upload")
     setFile(null)
     setPreview(null)
     setConfirmResult(null)
-    setCreateMissingGroups(false)
-    setCreateMissingTeachers(false)
   }
 
   const handleClose = () => {
@@ -109,10 +104,7 @@ export default function ScheduleImportDialog({
     if (!preview) return
     setConfirming(true)
     try {
-      const response = await confirmScheduleImport(preview.entries, {
-        createMissingGroups,
-        createMissingTeachers,
-      })
+      const response = await confirmScheduleImport(preview.entries)
       if (response.isSuccess && response.data) {
         setConfirmResult(response.data)
         setStep("result")
@@ -129,9 +121,6 @@ export default function ScheduleImportDialog({
       setConfirming(false)
     }
   }
-
-  const hasMissingGroups = preview?.warnings.some(w => w.type === "group_not_found") ?? false
-  const hasMissingTeachers = preview?.warnings.some(w => w.type === "teacher_not_found") ?? false
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -202,57 +191,29 @@ export default function ScheduleImportDialog({
                 <p className="text-xs text-muted-foreground">Всего записей</p>
               </div>
               <div className="rounded-lg border bg-card p-3">
-                <p className="text-2xl font-bold text-success">{preview.validEntries}</p>
+                <p className="text-2xl font-bold text-success">{preview.entries.length}</p>
                 <p className="text-xs text-muted-foreground">Валидных</p>
               </div>
               <div className="rounded-lg border bg-card p-3">
-                <p className={`text-2xl font-bold ${preview.warningsCount > 0 ? "text-warning" : "text-success"}`}>
-                  {preview.warningsCount}
+                <p className={`text-2xl font-bold ${preview.errors.length > 0 ? "text-destructive" : "text-success"}`}>
+                  {preview.errors.length}
                 </p>
-                <p className="text-xs text-muted-foreground">Предупреждений</p>
+                <p className="text-xs text-muted-foreground">Ошибок</p>
               </div>
             </div>
 
-            {preview.warnings.length > 0 && (
-              <div className="rounded-md border p-3 text-xs space-y-2">
-                <p className="font-semibold flex items-center gap-1 text-warning">
+            {preview.errors.length > 0 && (
+              <div className="max-h-40 overflow-y-auto rounded-md border p-3 text-xs space-y-2">
+                <p className="font-semibold flex items-center gap-1 text-destructive">
                   <AlertCircle className="size-3" />
-                  Предупреждения
+                  Ошибки ({preview.errors.length})
                 </p>
-                {preview.warnings.map((w, i) => (
+                {preview.errors.map((err, i) => (
                   <p key={i} className="text-muted-foreground">
-                    {w.type === "group_not_found"
-                      ? `Группы не найдены: ${w.value} (${w.count} записей)`
-                      : `Преподаватели не найдены: ${w.value} (${w.count} записей)`}
+                    Строка {err.row}, стлб. {err.column}: {err.message}
                   </p>
                 ))}
               </div>
-            )}
-
-            {hasMissingGroups && (
-              <button
-                type="button"
-                onClick={() => setCreateMissingGroups(!createMissingGroups)}
-                className="flex items-center gap-2 rounded-md border p-2 text-sm text-left hover:bg-muted/50 transition-colors"
-              >
-                <span className={`flex size-5 shrink-0 items-center justify-center rounded border ${createMissingGroups ? "bg-primary border-primary text-primary-foreground" : "border-input"}`}>
-                  {createMissingGroups && <Check className="size-3" />}
-                </span>
-                Создать отсутствующие группы
-              </button>
-            )}
-
-            {hasMissingTeachers && (
-              <button
-                type="button"
-                onClick={() => setCreateMissingTeachers(!createMissingTeachers)}
-                className="flex items-center gap-2 rounded-md border p-2 text-sm text-left hover:bg-muted/50 transition-colors"
-              >
-                <span className={`flex size-5 shrink-0 items-center justify-center rounded border ${createMissingTeachers ? "bg-primary border-primary text-primary-foreground" : "border-input"}`}>
-                  {createMissingTeachers && <Check className="size-3" />}
-                </span>
-                Создать отсутствующих преподавателей
-              </button>
             )}
 
             <div className="flex gap-2">
@@ -277,31 +238,10 @@ export default function ScheduleImportDialog({
               <CheckCircle className="size-4 shrink-0" />
               Импорт завершён
             </div>
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-lg border bg-card p-3">
-                <p className="text-2xl font-bold text-success">{confirmResult.imported}</p>
-                <p className="text-xs text-muted-foreground">Импортировано</p>
-              </div>
-              <div className="rounded-lg border bg-card p-3">
-                <p className={`text-2xl font-bold ${confirmResult.skipped > 0 ? "text-warning" : "text-success"}`}>
-                  {confirmResult.skipped}
-                </p>
-                <p className="text-xs text-muted-foreground">Пропущено</p>
-              </div>
+            <div className="rounded-lg border bg-card p-3 text-center">
+              <p className="text-2xl font-bold text-success">{confirmResult.imported}</p>
+              <p className="text-xs text-muted-foreground">Импортировано записей</p>
             </div>
-            {confirmResult.errors.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-md border p-3 text-xs">
-                <p className="mb-2 font-semibold text-destructive flex items-center gap-1">
-                  <AlertCircle className="size-3" />
-                  Ошибки ({confirmResult.errors.length})
-                </p>
-                {confirmResult.errors.map((err, i) => (
-                  <p key={i} className="text-muted-foreground">
-                    Строка {err.row}: {err.message}
-                  </p>
-                ))}
-              </div>
-            )}
             <Button variant="outline" onClick={handleClose} className="w-full">
               Закрыть
             </Button>

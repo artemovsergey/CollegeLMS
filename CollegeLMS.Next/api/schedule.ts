@@ -45,28 +45,25 @@ export interface SchedulePreviewEntry {
   room: string
   teacherName: string
   weeks: number[]
-  status: string
-  statusMessage?: string
+  startTime: string
+  endTime: string
 }
 
-export interface SchedulePreviewWarning {
-  type: string
-  value: string
-  count: number
+export interface ScheduleValidationError {
+  row: number
+  column: number
+  message: string
 }
 
 export interface SchedulePreviewResult {
   totalEntries: number
-  validEntries: number
-  warningsCount: number
-  warnings: SchedulePreviewWarning[]
   entries: SchedulePreviewEntry[]
+  errors: ScheduleValidationError[]
 }
 
 export interface ScheduleImportResult {
   imported: number
-  skipped: number
-  errors: { row: number; message: string }[]
+  schedule: ScheduleResponse[]
 }
 
 export async function fetchSchedule(
@@ -161,11 +158,7 @@ export async function previewScheduleImport(
 
 export async function confirmScheduleImport(
   entries: SchedulePreviewEntry[],
-  options: { createMissingGroups: boolean; createMissingTeachers: boolean },
 ): Promise<Result<ScheduleImportResult>> {
-  const { data } = await api.post("/api/schedule/import/confirm", {
-    entries,
-    ...options,
-  })
+  const { data } = await api.post("/api/schedule/import/confirm", { entries })
   return data
 }
