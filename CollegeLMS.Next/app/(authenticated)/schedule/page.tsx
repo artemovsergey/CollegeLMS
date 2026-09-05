@@ -50,14 +50,24 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-const SEMESTER_START = new Date(2026, 0, 12)
+const SEMESTER_START = new Date(2026, 8, 1) // 1 сентября 2026
+
+function getMondayOfWeek(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getDay()
+  const offset = day === 0 ? 6 : day - 1
+  d.setDate(d.getDate() - offset)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
 
 function getCurrentWeek(): number {
   const now = new Date()
-  const diff = Math.floor(
-    (now.getTime() - SEMESTER_START.getTime()) / (7 * 24 * 60 * 60 * 1000),
-  )
-  return Math.max(1, diff + 1)
+  const currentMonday = getMondayOfWeek(now)
+  const semesterMonday = getMondayOfWeek(SEMESTER_START)
+  const diffMs = currentMonday.getTime() - semesterMonday.getTime()
+  const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
+  return Math.max(1, diffWeeks + 1)
 }
 
 export default function SchedulePage() {
