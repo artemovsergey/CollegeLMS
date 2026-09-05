@@ -144,11 +144,13 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
         [FromQuery] string? room,
         [FromQuery] string? period,
         [FromQuery] string format = "pdf",
+        [FromQuery] string layout = "grid",
         CancellationToken ct = default
     )
     {
         var fmt = format.ToLower() == "xlsx" ? ExportFormat.Xlsx : ExportFormat.Pdf;
-        var result = await service.ExportScheduleAsync(groupId, teacherId, room, period, fmt, ct);
+        var lyt = layout.ToLower() == "daycards" ? ExportLayout.DayCards : ExportLayout.Grid;
+        var result = await service.ExportScheduleAsync(groupId, teacherId, room, period, fmt, lyt, ct);
 
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);

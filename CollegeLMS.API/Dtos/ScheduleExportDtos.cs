@@ -6,6 +6,12 @@ public enum ExportFormat
     Xlsx,
 }
 
+public enum ExportLayout
+{
+    Grid,
+    DayCards,
+}
+
 public class ExportResult
 {
     public byte[] FileContent { get; set; } = [];

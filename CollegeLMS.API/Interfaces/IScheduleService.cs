@@ -45,6 +45,7 @@ public interface IScheduleService
         string? room,
         string? period,
         ExportFormat format,
+        ExportLayout layout,
         CancellationToken ct = default
     );
 }

@@ -46,7 +46,19 @@ import {
   FileSpreadsheet,
   Upload,
   LayoutGrid,
+  ChevronDown,
+  Table,
+  Calendar,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 
 const SEMESTER_START = new Date(2026, 8, 1)
@@ -210,13 +222,13 @@ export default function SchedulePage() {
     setSelectedDay(defaultDay())
   }
 
-  const handleExport = async (format: "pdf" | "xlsx") => {
+  const handleExport = async (format: "pdf" | "xlsx", layout: "grid" | "daycards" = "grid") => {
     try {
       const params: Record<string, string | number | undefined> = {}
       if (selectedGroupId) params.groupId = selectedGroupId
       if (selectedTeacherId) params.teacherId = selectedTeacherId
       if (viewMode === "cards" && selectedWeek) params.week = selectedWeek
-      await exportSchedule(params, format)
+      await exportSchedule(params, format, layout)
       toast.success("Экспорт выполнен")
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Ошибка экспорта"
@@ -340,18 +352,49 @@ export default function SchedulePage() {
             </Button>
           </div>
 
-          <Button variant="outline" size="sm" onClick={() => handleExport("pdf")}>
-            <FileDown className="size-3.5 mr-1" />
-            PDF
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleExport("xlsx")}
-          >
-            <FileSpreadsheet className="size-3.5 mr-1" />
-            Excel
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <FileDown className="size-3.5 mr-1" />
+                Экспорт
+                <ChevronDown className="size-3.5 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FileDown className="size-3.5 mr-2" />
+                  PDF
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => handleExport("pdf", "grid")}>
+                    <Table className="size-3.5 mr-2" />
+                    Сетка
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("pdf", "daycards")}>
+                    <Calendar className="size-3.5 mr-2" />
+                    По дням
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FileSpreadsheet className="size-3.5 mr-2" />
+                  Excel
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => handleExport("xlsx", "grid")}>
+                    <Table className="size-3.5 mr-2" />
+                    Сетка
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("xlsx", "daycards")}>
+                    <Calendar className="size-3.5 mr-2" />
+                    По дням
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {canManage && (
             <>
               <Button

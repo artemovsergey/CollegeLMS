@@ -113,6 +113,7 @@ export async function deleteSchedule(
 export async function exportSchedule(
   filters: ScheduleFilters,
   format: "pdf" | "xlsx",
+  layout: "grid" | "daycards" = "grid",
 ): Promise<void> {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null
@@ -121,6 +122,7 @@ export async function exportSchedule(
   if (filters.teacherId) params.set("teacherId", filters.teacherId)
   if (filters.period) params.set("period", filters.period)
   params.set("format", format)
+  params.set("layout", layout)
 
   const response = await fetch(
     `/api/schedule/export?${params.toString()}`,

@@ -236,10 +236,11 @@ public class ScheduleService(
         string? room,
         string? period,
         ExportFormat format,
+        ExportLayout layout,
         CancellationToken ct
     )
     {
-        return await exportService.ExportAsync(groupId, teacherId, room, period, format, ct);
+        return await exportService.ExportAsync(groupId, teacherId, room, period, format, layout, ct);
     }
 
     public async Task<Result<CalendarResponse>> GetCalendarAsync(
