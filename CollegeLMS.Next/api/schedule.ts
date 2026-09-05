@@ -7,6 +7,7 @@ export interface ScheduleFilters {
   teacherId?: string
   dayOfWeek?: number
   period?: string
+  week?: number
   page?: number
   pageSize?: number
 }
@@ -75,6 +76,8 @@ export async function fetchSchedule(
   if (filters.dayOfWeek !== undefined)
     params.set("dayOfWeek", String(filters.dayOfWeek))
   if (filters.period) params.set("period", filters.period)
+  if (filters.week !== undefined)
+    params.set("week", String(filters.week))
   if (filters.page) params.set("page", String(filters.page))
   if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
 

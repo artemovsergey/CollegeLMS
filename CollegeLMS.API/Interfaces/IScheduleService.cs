@@ -11,6 +11,7 @@ public interface IScheduleService
         string? room,
         DayOfWeek? dayOfWeek,
         string? period,
+        int? week,
         string? view,
         int? page,
         int? pageSize,

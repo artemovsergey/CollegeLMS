@@ -2,15 +2,23 @@
 
 import type { ScheduleResponse } from "@/types/schedule"
 import {
-  DAYS,
   LESSON_TYPE_LABELS,
   LESSON_TYPE_STYLES,
 } from "@/types/schedule"
-import { Clock, MapPin, GraduationCap, Users, Calendar, Trash2, ListOrdered } from "lucide-react"
+import {
+  Clock,
+  MapPin,
+  GraduationCap,
+  Users,
+  Calendar,
+  Trash2,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
-interface ScheduleTableProps {
+interface ScheduleCardsProps {
   entries: ScheduleResponse[]
+  selectedDay: number | null
   onEntryClick?: (entry: ScheduleResponse) => void
   onDeleteClick?: (id: string) => void
 }
@@ -25,7 +33,8 @@ function formatTimeSlot(start: string, end: string) {
 
 function formatWeeks(weeks: number[]): string {
   if (weeks.length === 0) return ""
-  if (weeks.length === 16 && weeks[0] === 1 && weeks[weeks.length - 1] === 16) return "все"
+  if (weeks.length === 16 && weeks[0] === 1 && weeks[weeks.length - 1] === 16)
+    return "все"
   const ranges: string[] = []
   let start = weeks[0]
   let end = weeks[0]
@@ -42,26 +51,30 @@ function formatWeeks(weeks: number[]): string {
   return ranges.join(", ")
 }
 
-export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: ScheduleTableProps) {
-  const weekDays = DAYS.filter(d => d.value >= 1 && d.value <= 5)
+const DAY_COLORS: Record<number, string> = {
+  1: "from-blue-500/10 to-blue-500/5 border-l-blue-500",
+  2: "from-emerald-500/10 to-emerald-500/5 border-l-emerald-500",
+  3: "from-amber-500/10 to-amber-500/5 border-l-amber-500",
+  4: "from-purple-500/10 to-purple-500/5 border-l-purple-500",
+  5: "from-rose-500/10 to-rose-500/5 border-l-rose-500",
+}
 
-  const sorted = [...entries].sort((a, b) => a.numberPair - b.numberPair)
+export default function ScheduleCards({
+  entries,
+  selectedDay,
+  onEntryClick,
+  onDeleteClick,
+}: ScheduleCardsProps) {
+  const filtered = selectedDay
+    ? entries.filter((e) => e.dayOfWeek === selectedDay)
+    : entries
 
-  const timeSlots = [
-    ...new Set(
-      sorted.map(e => `${e.numberPair} пара · ${formatTimeSlot(e.startTime, e.endTime)}`),
-    ),
-  ].sort()
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek
+    return a.numberPair - b.numberPair
+  })
 
-  const cellMap = new Map<string, ScheduleResponse[]>()
-  for (const entry of sorted) {
-    const slot = `${entry.numberPair} пара · ${formatTimeSlot(entry.startTime, entry.endTime)}`
-    const key = `${entry.dayOfWeek}:${slot}`
-    if (!cellMap.has(key)) cellMap.set(key, [])
-    cellMap.get(key)!.push(entry)
-  }
-
-  if (entries.length === 0) {
+  if (sorted.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
         <Calendar className="size-12 opacity-40" />
@@ -72,87 +85,71 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
   }
 
   return (
-    <>
-      <div className="hidden md:block overflow-x-auto rounded-lg border bg-card">
+    <div className="flex flex-col gap-2">
+      {sorted.map((entry) => (
         <div
-          className="grid min-w-[700px]"
-          style={{
-            gridTemplateColumns: `140px repeat(${weekDays.length}, 1fr)`,
-          }}
+          key={entry.id}
+          className={cn(
+            "group relative flex items-stretch gap-3 rounded-lg border-l-[3px] bg-gradient-to-r p-3 transition-colors",
+            DAY_COLORS[entry.dayOfWeek] ?? "from-gray-500/10 to-gray-500/5 border-l-gray-400",
+            onEntryClick
+              ? "cursor-pointer hover:shadow-sm hover:border-l-4"
+              : "",
+          )}
+          onClick={() => onEntryClick?.(entry)}
         >
-          <div className="sticky top-0 z-10 border-b bg-muted/50 p-3 text-xs font-medium text-muted-foreground">
-            Время
+          <div className="flex flex-col items-center justify-center min-w-[40px]">
+            <span className="text-lg font-bold text-primary leading-none">
+              {entry.numberPair}
+            </span>
+            <span className="mt-1 text-[10px] text-muted-foreground whitespace-nowrap">
+              {formatTime(entry.startTime)}
+            </span>
           </div>
-          {weekDays.map(d => (
-            <div
-              key={d.value}
-              className="sticky top-0 z-10 border-b bg-muted/50 p-3 text-center text-xs font-semibold"
-            >
-              {d.label}
-            </div>
-          ))}
 
-          {timeSlots.map(slot => (
-            <>
-              <div
-                key={`time-${slot}`}
-                className="flex items-start gap-2 border-b border-r p-3 text-xs text-muted-foreground"
-              >
-                <Clock className="mt-0.5 size-3 shrink-0" />
-                <span>{slot}</span>
-              </div>
-              {weekDays.map(day => {
-                const dayEntries =
-                  cellMap.get(`${day.value}:${slot}`) ?? []
-                return (
-                  <div
-                    key={`${day.value}-${slot}`}
-                    className="min-h-24 border-b p-1.5"
-                  >
-                    {dayEntries.map(entry => (
-                      <div
-                        key={entry.id}
-                        className={`group relative mb-1 rounded-md border-l-[3px] p-2 text-xs last:mb-0 ${LESSON_TYPE_STYLES[entry.lessonType] ?? "border-l-gray-400 bg-gray-50 dark:bg-gray-900/20"} ${onEntryClick ? "cursor-pointer transition-colors hover:bg-accent/50" : ""}`}
-                        onClick={() => onEntryClick?.(entry)}
-                      >
-                        <p className="mb-1 font-semibold text-foreground">
-                          {entry.subject}
-                        </p>
-                        <div className="space-y-0.5 text-muted-foreground">
-                          {entry.teacherName && (
-                            <span className="flex items-center gap-1">
-                              <GraduationCap className="size-3 shrink-0" />
-                              {entry.teacherName}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <ListOrdered className="size-3 shrink-0" />
-                            №{entry.numberPair}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="size-3 shrink-0" />
-                            {entry.room}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="size-3 shrink-0" />
-                            {entry.groupName}
-                          </span>
-                          {entry.weeks && entry.weeks.length > 0 && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="size-3 shrink-0" />
-                              нед. {formatWeeks(entry.weeks)}
-                            </span>
-                          )}
-                        </div>
-                        <span className="mt-1 inline-block rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                          {LESSON_TYPE_LABELS[entry.lessonType]}
-                        </span>
-{onDeleteClick && (
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm leading-tight truncate">
+              {entry.subject}
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+              {entry.teacherName && (
+                <span className="flex items-center gap-1">
+                  <GraduationCap className="size-3 shrink-0" />
+                  {entry.teacherName}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <MapPin className="size-3 shrink-0" />
+                {entry.room}
+              </span>
+              <span className="flex items-center gap-1">
+                <Users className="size-3 shrink-0" />
+                {entry.groupName}
+              </span>
+            </div>
+            {entry.weeks && entry.weeks.length > 0 && (
+              <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Calendar className="size-3" />
+                нед. {formatWeeks(entry.weeks)}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col items-end justify-between shrink-0">
+            <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground border">
+              {LESSON_TYPE_LABELS[entry.lessonType]}
+            </span>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              {formatTimeSlot(entry.startTime, entry.endTime)}
+            </span>
+          </div>
+
+          {onDeleteClick && (
             <Button
               variant="ghost"
               size="icon"
               aria-label="Удалить занятие"
-              className="absolute right-1 top-1 size-5"
+              className="absolute right-1 top-1 size-5 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => {
                 e.stopPropagation()
                 onDeleteClick(entry.id)
@@ -161,91 +158,8 @@ export default function ScheduleTable({ entries, onEntryClick, onDeleteClick }: 
               <Trash2 className="size-3 text-destructive" />
             </Button>
           )}
-                      </div>
-                    ))}
-                  </div>
-                )
-              })}
-            </>
-          ))}
         </div>
-      </div>
-
-      <div className="md:hidden flex flex-col gap-4">
-        {weekDays.map(day => {
-          const dayEntries = entries
-            .filter(e => e.dayOfWeek === day.value)
-            .sort((a, b) => a.numberPair - b.numberPair)
-
-          if (dayEntries.length === 0) return null
-
-          return (
-            <div key={day.value} className="rounded-lg border bg-card">
-              <div className="border-b bg-muted/30 px-4 py-2.5 text-sm font-semibold">
-                {day.full}
-              </div>
-              <div className="divide-y">
-                {dayEntries.map(entry => (
-                  <div
-                    key={entry.id}
-                    className={`group relative border-l-[3px] p-3 ${LESSON_TYPE_STYLES[entry.lessonType] ?? "border-l-gray-400"} ${onEntryClick ? "cursor-pointer transition-colors hover:bg-accent/50" : ""}`}
-                    onClick={() => onEntryClick?.(entry)}
-                  >
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <ListOrdered className="size-3" />
-                      №{entry.numberPair}
-                      <Clock className="size-3" />
-                      {formatTimeSlot(entry.startTime, entry.endTime)}
-                      <span className="ml-auto rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium">
-                        {LESSON_TYPE_LABELS[entry.lessonType]}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">
-                      {entry.subject}
-                    </p>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                      {entry.teacherName && (
-                        <span className="flex items-center gap-1">
-                          <GraduationCap className="size-3" />
-                          {entry.teacherName}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <MapPin className="size-3" />
-                        {entry.room}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="size-3" />
-                        {entry.groupName}
-                      </span>
-                      {entry.weeks && entry.weeks.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Calendar className="size-3" />
-                          нед. {formatWeeks(entry.weeks)}
-                        </span>
-                      )}
-                    </div>
-                    {onDeleteClick && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Удалить занятие"
-                        className="absolute right-2 top-2 size-6"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDeleteClick(entry.id)
-                        }}
-                      >
-                        <Trash2 className="size-3.5 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </>
+      ))}
+    </div>
   )
 }

@@ -34,6 +34,7 @@ public class ScheduleServiceTests : IDisposable
             null,
             null,
             null,
+            null,
             default
         );
 
@@ -50,6 +51,7 @@ public class ScheduleServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         var result = await _sut.GetAllAsync(
+            null,
             null,
             null,
             null,
@@ -78,6 +80,7 @@ public class ScheduleServiceTests : IDisposable
 
         var result = await _sut.GetAllAsync(
             groupId,
+            null,
             null,
             null,
             null,

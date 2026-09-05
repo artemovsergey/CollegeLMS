@@ -20,6 +20,7 @@ public class ScheduleService(
         string? room,
         DayOfWeek? dayOfWeek,
         string? period,
+        int? week,
         string? view,
         int? page,
         int? pageSize,
@@ -45,6 +46,9 @@ public class ScheduleService(
         if (dayOfWeek.HasValue)
             query = query.Where(s => s.DayOfWeek == dayOfWeek.Value);
 
+        if (week.HasValue)
+            query = query.Where(s => s.Weeks.Contains(week.Value));
+
         var today = DateTime.UtcNow;
         if (period == "day")
             query = query.Where(s => s.DayOfWeek == today.DayOfWeek);
@@ -53,7 +57,7 @@ public class ScheduleService(
 
         var totalCount = await query.CountAsync(ct);
         var p = Math.Max(page ?? 1, 1);
-        var ps = Math.Clamp(pageSize ?? 20, 1, 100);
+        var ps = Math.Clamp(pageSize ?? 20, 1, 2000);
         var items = await query.Skip((p - 1) * ps).Take(ps).ToListAsync(ct);
 
         return Result<PagedResponse<ScheduleResponse>>.Ok(
