@@ -280,14 +280,14 @@ export default function SchedulePage() {
         />
       )}
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
+      <div className="flex items-center gap-3 rounded-lg border bg-card p-4">
         <Filter className="size-4 text-muted-foreground shrink-0" />
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Select
             value={selectedGroupId || "all"}
             onValueChange={(v) => setSelectedGroupId(v === "all" ? "" : v)}
           >
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-44 shrink-0">
               <SelectValue placeholder="Все группы" />
             </SelectTrigger>
             <SelectContent>
@@ -304,7 +304,7 @@ export default function SchedulePage() {
             value={selectedTeacherId || "all"}
             onValueChange={(v) => setSelectedTeacherId(v === "all" ? "" : v)}
           >
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-44 shrink-0">
               <SelectValue placeholder="Все преподаватели" />
             </SelectTrigger>
             <SelectContent>
@@ -317,15 +317,19 @@ export default function SchedulePage() {
             </SelectContent>
           </Select>
 
-          {(selectedGroupId || selectedTeacherId) && (
-            <Button variant="ghost" size="sm" onClick={handleClear}>
-              <SearchX className="size-3.5" />
-              Сбросить
-            </Button>
-          )}
+          <div className="w-20 shrink-0">
+            {(selectedGroupId || selectedTeacherId) && (
+              <Button variant="ghost" size="sm" onClick={handleClear}>
+                <SearchX className="size-3.5" />
+                Сбросить
+              </Button>
+            )}
+          </div>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="flex-1" />
+
+        <div className="flex items-center gap-2 shrink-0">
           <div className="flex rounded-md border">
             <Button
               variant={viewMode === "cards" ? "default" : "ghost"}

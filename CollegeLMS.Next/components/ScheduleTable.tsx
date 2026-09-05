@@ -2,10 +2,6 @@
 
 import type { ScheduleResponse } from "@/types/schedule"
 import {
-  LESSON_TYPE_LABELS,
-  LESSON_TYPE_STYLES,
-} from "@/types/schedule"
-import {
   Clock,
   MapPin,
   GraduationCap,
@@ -14,7 +10,6 @@ import {
   Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 
 interface ScheduleCardsProps {
   entries: ScheduleResponse[]
@@ -51,14 +46,6 @@ function formatWeeks(weeks: number[]): string {
   return ranges.join(", ")
 }
 
-const DAY_COLORS: Record<number, string> = {
-  1: "from-blue-500/10 to-blue-500/5 border-l-blue-500",
-  2: "from-emerald-500/10 to-emerald-500/5 border-l-emerald-500",
-  3: "from-amber-500/10 to-amber-500/5 border-l-amber-500",
-  4: "from-purple-500/10 to-purple-500/5 border-l-purple-500",
-  5: "from-rose-500/10 to-rose-500/5 border-l-rose-500",
-}
-
 export default function ScheduleCards({
   entries,
   selectedDay,
@@ -85,17 +72,11 @@ export default function ScheduleCards({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {sorted.map((entry) => (
         <div
           key={entry.id}
-          className={cn(
-            "group relative flex items-stretch gap-3 rounded-lg border-l-[3px] bg-gradient-to-r p-3 transition-colors",
-            DAY_COLORS[entry.dayOfWeek] ?? "from-gray-500/10 to-gray-500/5 border-l-gray-400",
-            onEntryClick
-              ? "cursor-pointer hover:shadow-sm hover:border-l-4"
-              : "",
-          )}
+          className="group relative flex items-stretch gap-3 rounded-lg border-l-[3px] border-l-border bg-card p-3 transition-colors"
           onClick={() => onEntryClick?.(entry)}
         >
           <div className="flex flex-col items-center justify-center min-w-[40px]">
@@ -135,14 +116,9 @@ export default function ScheduleCards({
             )}
           </div>
 
-          <div className="flex flex-col items-end justify-between shrink-0">
-            <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground border">
-              {LESSON_TYPE_LABELS[entry.lessonType]}
-            </span>
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-              {formatTimeSlot(entry.startTime, entry.endTime)}
-            </span>
-          </div>
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 self-center">
+            {formatTimeSlot(entry.startTime, entry.endTime)}
+          </span>
 
           {onDeleteClick && (
             <Button
