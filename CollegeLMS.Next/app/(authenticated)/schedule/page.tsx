@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import type { Result, GroupResponse, TeacherResponse } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
@@ -46,11 +46,10 @@ import {
   FileSpreadsheet,
   Upload,
   LayoutGrid,
-  Calendar,
 } from "lucide-react"
 import { toast } from "sonner"
 
-const SEMESTER_START = new Date(2026, 8, 1) // 1 сентября 2026
+const SEMESTER_START = new Date(2026, 8, 1)
 
 function getMondayOfWeek(date: Date): Date {
   const d = new Date(date)
@@ -70,6 +69,11 @@ function getCurrentWeek(): number {
   return Math.max(1, diffWeeks + 1)
 }
 
+function defaultDay(): number {
+  const day = new Date().getDay()
+  return day >= 1 && day <= 5 ? day : 1
+}
+
 export default function SchedulePage() {
   const { user, token, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -77,6 +81,7 @@ export default function SchedulePage() {
   const [entries, setEntries] = useState<ScheduleResponse[]>([])
   const [allEntries, setAllEntries] = useState<ScheduleResponse[]>([])
   const [initialLoading, setInitialLoading] = useState(true)
+  const [semesterLoading, setSemesterLoading] = useState(false)
   const [fetching, setFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -86,12 +91,7 @@ export default function SchedulePage() {
   const [selectedGroupId, setSelectedGroupId] = useState("")
   const [selectedTeacherId, setSelectedTeacherId] = useState("")
   const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek())
-  const [selectedDay, setSelectedDay] = useState<number | null>(
-    (() => {
-      const day = new Date().getDay()
-      return day >= 1 && day <= 5 ? day : 1
-    })(),
-  )
+  const [selectedDay, setSelectedDay] = useState<number | null>(defaultDay())
   const [viewMode, setViewMode] = useState<"cards" | "semester">("cards")
 
   const [entryDialogOpen, setEntryDialogOpen] = useState(false)
@@ -102,28 +102,6 @@ export default function SchedulePage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const canManage = user?.role ? CAN_MANAGE_ROLES.includes(user.role) : false
-
-  const loadAllEntries = useCallback(async () => {
-    setFetching(true)
-    setError(null)
-    try {
-      const params: Record<string, string | number | undefined> = {
-        pageSize: 2000,
-      }
-      if (selectedGroupId) params.groupId = selectedGroupId
-      if (selectedTeacherId) params.teacherId = selectedTeacherId
-      const body = await fetchSchedule(params)
-      if (body.isSuccess && body.data) {
-        setAllEntries(body.data.items)
-      } else {
-        setError(body.errorMessage ?? "Ошибка загрузки расписания")
-      }
-    } catch {
-      setError("Ошибка загрузки расписания")
-    } finally {
-      setFetching(false)
-    }
-  }, [selectedGroupId, selectedTeacherId])
 
   const loadSchedule = useCallback(async () => {
     if (entries.length === 0) {
@@ -152,6 +130,28 @@ export default function SchedulePage() {
       setFetching(false)
     }
   }, [selectedGroupId, selectedTeacherId, selectedWeek, entries.length])
+
+  const loadAllEntries = useCallback(async () => {
+    setSemesterLoading(true)
+    setError(null)
+    try {
+      const params: Record<string, string | number | undefined> = {
+        pageSize: 2000,
+      }
+      if (selectedGroupId) params.groupId = selectedGroupId
+      if (selectedTeacherId) params.teacherId = selectedTeacherId
+      const body = await fetchSchedule(params)
+      if (body.isSuccess && body.data) {
+        setAllEntries(body.data.items)
+      } else {
+        setError(body.errorMessage ?? "Ошибка загрузки расписания")
+      }
+    } catch {
+      setError("Ошибка загрузки расписания")
+    } finally {
+      setSemesterLoading(false)
+    }
+  }, [selectedGroupId, selectedTeacherId])
 
   const loadGroups = useCallback(async () => {
     try {
@@ -190,14 +190,11 @@ export default function SchedulePage() {
     }
   }, [token, viewMode, loadSchedule])
 
-  useEffect(() => {
-    if (token && viewMode === "semester") {
-      loadAllEntries()
-    }
-  }, [token, viewMode, loadAllEntries])
-
   const handleViewModeChange = (mode: "cards" | "semester") => {
     setViewMode(mode)
+    if (mode === "semester" && allEntries.length === 0) {
+      loadAllEntries()
+    }
   }
 
   const handleSemesterCellClick = (week: number, day: number) => {
@@ -210,12 +207,7 @@ export default function SchedulePage() {
     setSelectedGroupId("")
     setSelectedTeacherId("")
     setSelectedWeek(getCurrentWeek())
-    setSelectedDay(
-      (() => {
-        const day = new Date().getDay()
-        return day >= 1 && day <= 5 ? day : 1
-      })(),
-    )
+    setSelectedDay(defaultDay())
   }
 
   const handleExport = async (format: "pdf" | "xlsx") => {
@@ -264,6 +256,7 @@ export default function SchedulePage() {
   if (!token) return null
 
   const displayEntries = viewMode === "semester" ? allEntries : entries
+  const showCards = viewMode === "cards"
 
   return (
     <div className="flex flex-col gap-4 p-6 mx-auto max-w-7xl">
@@ -272,7 +265,7 @@ export default function SchedulePage() {
         <h2 className="text-xl font-semibold">Расписание</h2>
       </div>
 
-      {viewMode === "cards" && (
+      {showCards && (
         <WeekNavigation
           currentWeek={selectedWeek}
           onChange={setSelectedWeek}
@@ -280,70 +273,66 @@ export default function SchedulePage() {
         />
       )}
 
-      <div className="flex items-center gap-3 rounded-lg border bg-card p-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
         <Filter className="size-4 text-muted-foreground shrink-0" />
-        <div className="flex items-center gap-2 shrink-0">
-          <Select
-            value={selectedGroupId || "all"}
-            onValueChange={(v) => setSelectedGroupId(v === "all" ? "" : v)}
-          >
-            <SelectTrigger className="w-44 shrink-0">
+        <Select
+          value={selectedGroupId || "all"}
+          onValueChange={(v) => setSelectedGroupId(v === "all" ? "" : v)}
+        >
+            <SelectTrigger className="w-44">
               <SelectValue placeholder="Все группы" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все группы</SelectItem>
-              {groups.map((g) => (
-                <SelectItem key={g.id} value={g.id}>
-                  {g.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <SelectContent align="start">
+            <SelectItem value="all">Все группы</SelectItem>
+            {groups.map((g) => (
+              <SelectItem key={g.id} value={g.id}>
+                {g.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select
-            value={selectedTeacherId || "all"}
-            onValueChange={(v) => setSelectedTeacherId(v === "all" ? "" : v)}
-          >
-            <SelectTrigger className="w-44 shrink-0">
+        <Select
+          value={selectedTeacherId || "all"}
+          onValueChange={(v) => setSelectedTeacherId(v === "all" ? "" : v)}
+        >
+            <SelectTrigger className="w-44">
               <SelectValue placeholder="Все преподаватели" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все преподаватели</SelectItem>
-              {teachers.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.fullName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <SelectContent align="start">
+            <SelectItem value="all">Все преподаватели</SelectItem>
+            {teachers.map((t) => (
+              <SelectItem key={t.id} value={t.id}>
+                {t.fullName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <div className="w-20 shrink-0">
-            {(selectedGroupId || selectedTeacherId) && (
-              <Button variant="ghost" size="sm" onClick={handleClear}>
-                <SearchX className="size-3.5" />
-                Сбросить
-              </Button>
-            )}
-          </div>
-        </div>
+        {(selectedGroupId || selectedTeacherId) && (
+          <Button variant="ghost" size="sm" onClick={handleClear}>
+            <SearchX className="size-3.5" />
+            Сбросить
+          </Button>
+        )}
 
         <div className="flex-1" />
 
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex rounded-md border">
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border overflow-hidden">
             <Button
-              variant={viewMode === "cards" ? "default" : "ghost"}
+              variant={showCards ? "default" : "ghost"}
               size="sm"
-              className="rounded-r-none"
+              className="rounded-r-none border-0"
               onClick={() => handleViewModeChange("cards")}
             >
               <CalendarDays className="size-3.5 mr-1" />
               Карточки
             </Button>
             <Button
-              variant={viewMode === "semester" ? "default" : "ghost"}
+              variant={!showCards ? "default" : "ghost"}
               size="sm"
-              className="rounded-l-none"
+              className="rounded-l-none border-0"
               onClick={() => handleViewModeChange("semester")}
             >
               <LayoutGrid className="size-3.5 mr-1" />
@@ -381,13 +370,17 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {viewMode === "cards" && (
+      {showCards && (
         <DayTabs selectedDay={selectedDay} onChange={setSelectedDay} />
       )}
 
       {error && <ErrorBanner message={error} />}
 
-      {initialLoading && viewMode === "cards" ? (
+      {showCards && initialLoading ? (
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      ) : !showCards && semesterLoading ? (
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
@@ -398,7 +391,7 @@ export default function SchedulePage() {
               <LoadingSpinner size="lg" />
             </div>
           )}
-          {viewMode === "cards" ? (
+          {showCards ? (
             <ScheduleTable
               entries={displayEntries}
               selectedDay={selectedDay}
@@ -420,7 +413,7 @@ export default function SchedulePage() {
       <ScheduleEntryDialog
         open={entryDialogOpen}
         onOpenChange={setEntryDialogOpen}
-        onSaved={viewMode === "cards" ? loadSchedule : loadAllEntries}
+        onSaved={showCards ? loadSchedule : loadAllEntries}
         entry={editingEntry}
         groups={groups}
         teachers={teachers}
@@ -429,7 +422,7 @@ export default function SchedulePage() {
       <ScheduleImportDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        onImported={viewMode === "cards" ? loadSchedule : loadAllEntries}
+        onImported={showCards ? loadSchedule : loadAllEntries}
       />
 
       <AlertDialog
