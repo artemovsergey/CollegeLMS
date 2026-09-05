@@ -107,6 +107,11 @@ public class ScheduleImportService(AppDbContext db)
         return v;
     }
 
+    private static string NormalizeTeacherName(string name)
+    {
+        return Regex.Replace(name.Trim(), @"\s+", " ");
+    }
+
     public (List<SchedulePreviewEntry> Entries, List<ScheduleValidationError> Errors)
         ParseScheduleMatrix(IXLWorkbook workbook)
     {
@@ -294,7 +299,7 @@ public class ScheduleImportService(AppDbContext db)
             var weeks = match.Groups["weeks"].Success
                 ? ParseWeeks(match.Groups["weeks"].Value)
                 : new List<int>();
-            var teacher = match.Groups["teacher"].Value.Trim();
+            var teacher = NormalizeTeacherName(match.Groups["teacher"].Value);
             if (string.IsNullOrEmpty(teacher))
                 teacher = ExtractTrailingTeacher(subject);
             if (!string.IsNullOrEmpty(teacher) && subject.EndsWith(teacher))
@@ -308,7 +313,7 @@ public class ScheduleImportService(AppDbContext db)
     private static string ExtractTrailingTeacher(string text)
     {
         var match = Regex.Match(text, @"([А-Яа-яёЁ][А-Яа-яёЁ]+\s+[А-Яа-яёЁ]\.[А-Яа-яёЁ]\.?)$");
-        return match.Success ? match.Groups[1].Value : string.Empty;
+        return match.Success ? NormalizeTeacherName(match.Groups[1].Value) : string.Empty;
     }
 
     private static List<int> ParseWeeks(string text)
@@ -411,7 +416,7 @@ public class ScheduleImportService(AppDbContext db)
                 .Select(e => e.GroupName).Distinct().ToList();
             var uniqueTeachers = request.Entries
                 .Where(e => !string.IsNullOrEmpty(e.TeacherName))
-                .Select(e => e.TeacherName).Distinct().ToList();
+                .Select(e => e.TeacherName.Trim()).Distinct().ToList();
 
             var existingGroups = await db.Groups
                 .Where(g => uniqueGroups.Contains(g.Name))
