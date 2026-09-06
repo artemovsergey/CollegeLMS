@@ -181,7 +181,13 @@
      страница расширяется на ~15px и всё сдвигается. overflow-y:scroll на html
      принудительно показывает скроллбар всегда, даже когда body hidden. */
   html {
-    overflow-y: scroll;
+    overflow-y: scroll !important;
+  }
+  /* Radix RemoveScroll добавляет data-scroll-locked на body — блокируем */
+  body[data-scroll-locked] {
+    overflow-y: scroll !important;
+    margin-right: 0 !important;
+    width: 100% !important;
   }
   body {
     @apply bg-bg text-fg;
