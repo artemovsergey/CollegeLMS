@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { NativeDialog, NativeDialogHeader, NativeDialogTitle, NativeDialogFooter, NativeDialogClose } from "@/components/ui/native-dialog"
 import api from "@/lib/api"
 import type { Result } from "@/types"
 
@@ -207,26 +207,25 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
       )}
 
       {/* Change Password Dialog */}
-      <Dialog open={showChangePassword} onOpenChange={setShowChangePassword}>
-        <DialogContent className="bg-card">
-          <DialogHeader><DialogTitle>Сменить пароль</DialogTitle></DialogHeader>
-          <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
-            {cpError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{cpError}</p>}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cp-old">Текущий пароль</Label>
-              <Input id="cp-old" type="password" required value={cpOldPassword} onChange={e => setCpOldPassword(e.target.value)} className="bg-muted" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cp-new">Новый пароль</Label>
-              <Input id="cp-new" type="password" required value={cpNewPassword} onChange={e => setCpNewPassword(e.target.value)} className="bg-muted" />
-            </div>
-            <div className="flex gap-2 justify-end pt-2">
-              <Button type="button" variant="ghost" onClick={() => setShowChangePassword(false)}>Отмена</Button>
-              <Button type="submit" disabled={cpSubmitting}>{cpSubmitting ? "Сохранение..." : "Сохранить"}</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <NativeDialog open={showChangePassword} onOpenChange={setShowChangePassword} className="sm:max-w-sm w-full">
+        <NativeDialogClose onClick={() => setShowChangePassword(false)} />
+        <NativeDialogHeader><NativeDialogTitle>Сменить пароль</NativeDialogTitle></NativeDialogHeader>
+        <form onSubmit={handleChangePassword} className="flex flex-col gap-4 p-6">
+          {cpError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{cpError}</p>}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="cp-old">Текущий пароль</Label>
+            <Input id="cp-old" type="password" required value={cpOldPassword} onChange={e => setCpOldPassword(e.target.value)} className="bg-muted" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="cp-new">Новый пароль</Label>
+            <Input id="cp-new" type="password" required value={cpNewPassword} onChange={e => setCpNewPassword(e.target.value)} className="bg-muted" />
+          </div>
+          <NativeDialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setShowChangePassword(false)}>Отмена</Button>
+            <Button type="submit" disabled={cpSubmitting}>{cpSubmitting ? "Сохранение..." : "Сохранить"}</Button>
+          </NativeDialogFooter>
+        </form>
+      </NativeDialog>
 
       {/* Main content */}
       <main className="flex-1">{children}</main>

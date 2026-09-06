@@ -13,22 +13,16 @@ import {
 } from "@/api/schedule"
 import { Button } from "@/components/ui/button"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  NativeDialog,
+  NativeDialogHeader,
+  NativeDialogTitle,
+  NativeDialogDescription,
+  NativeDialogFooter,
+} from "@/components/ui/native-dialog"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  NativeSelect,
+  NativeSelectItem,
+} from "@/components/ui/native-select"
 import WeekNavigation from "@/components/WeekNavigation"
 import DayTabs from "@/components/DayTabs"
 import ScheduleTable from "@/components/ScheduleTable"
@@ -46,14 +40,7 @@ import {
   FileSpreadsheet,
   Upload,
   LayoutGrid,
-  ChevronDown,
 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 
 const SEMESTER_START = new Date(2026, 8, 1)
@@ -249,6 +236,11 @@ export default function SchedulePage() {
 
   const handleDelete = async () => {
     if (!deleteConfirmId) return
+    const confirmed = window.confirm("Удалить запись? Это действие нельзя отменить.")
+    if (!confirmed) {
+      setDeleteConfirmId(null)
+      return
+    }
     try {
       const result = await deleteSchedule(deleteConfirmId)
       if (result.isSuccess) {
@@ -288,39 +280,33 @@ export default function SchedulePage() {
 
       <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
         <Filter className="size-4 text-muted-foreground shrink-0" />
-        <Select
+        <NativeSelect
           value={selectedGroupId || "all"}
           onValueChange={(v) => setSelectedGroupId(v === "all" ? "" : v)}
+          placeholder="Все группы"
+          className="w-44"
         >
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="Все группы" />
-            </SelectTrigger>
-            <SelectContent align="start">
-            <SelectItem value="all">Все группы</SelectItem>
-            {groups.map((g) => (
-              <SelectItem key={g.id} value={g.id}>
-                {g.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <NativeSelectItem value="all">Все группы</NativeSelectItem>
+          {groups.map((g) => (
+            <NativeSelectItem key={g.id} value={g.id}>
+              {g.name}
+            </NativeSelectItem>
+          ))}
+        </NativeSelect>
 
-        <Select
+        <NativeSelect
           value={selectedTeacherId || "all"}
           onValueChange={(v) => setSelectedTeacherId(v === "all" ? "" : v)}
+          placeholder="Все преподаватели"
+          className="w-44"
         >
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="Все преподаватели" />
-            </SelectTrigger>
-            <SelectContent align="start">
-            <SelectItem value="all">Все преподаватели</SelectItem>
-            {teachers.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                {t.fullName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <NativeSelectItem value="all">Все преподаватели</NativeSelectItem>
+          {teachers.map((t) => (
+            <NativeSelectItem key={t.id} value={t.id}>
+              {t.fullName}
+            </NativeSelectItem>
+          ))}
+        </NativeSelect>
 
         <Button
           variant="ghost"
@@ -356,33 +342,24 @@ export default function SchedulePage() {
             </Button>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <FileDown className="size-3.5 mr-1" />
-                Экспорт
-                <ChevronDown className="size-3.5 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport("pdf", "grid")}>
-                <FileDown className="size-3.5 mr-2" />
-                PDF — Сетка
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("pdf", "daycards")}>
-                <FileDown className="size-3.5 mr-2" />
-                PDF — По дням
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("xlsx", "grid")}>
-                <FileSpreadsheet className="size-3.5 mr-2" />
-                Excel — Сетка
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("xlsx", "daycards")}>
-                <FileSpreadsheet className="size-3.5 mr-2" />
-                Excel — По дням
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <NativeSelect
+            value=""
+            onValueChange={(v) => {
+              if (v) {
+                const [format, layout] = v.split(":") as ["pdf" | "xlsx", "grid" | "daycards"]
+                handleExport(format, layout)
+              }
+            }}
+            className="w-auto"
+          >
+            <option value="" disabled>
+              Экспорт
+            </option>
+            <option value="pdf:grid">PDF — Сетка</option>
+            <option value="pdf:daycards">PDF — По дням</option>
+            <option value="xlsx:grid">Excel — Сетка</option>
+            <option value="xlsx:daycards">Excel — По дням</option>
+          </NativeSelect>
           {canManage && (
             <>
               <Button
@@ -455,29 +432,6 @@ export default function SchedulePage() {
         onOpenChange={setImportDialogOpen}
         onImported={showCards ? loadSchedule : loadAllEntries}
       />
-
-      <AlertDialog
-        open={!!deleteConfirmId}
-        onOpenChange={(o) => !o && setDeleteConfirmId(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Удалить запись?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Это действие нельзя отменить. Запись будет удалена из расписания.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Удалить
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

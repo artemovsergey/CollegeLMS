@@ -6,17 +6,16 @@ import {
   previewScheduleImport,
   confirmScheduleImport,
   type SchedulePreviewResult,
-  type SchedulePreviewEntry,
-  type ScheduleValidationError,
 } from "@/api/schedule"
 import { extractErrorMessage } from "@/lib/utils"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
+  NativeDialog,
+  NativeDialogHeader,
+  NativeDialogTitle,
+  NativeDialogDescription,
+  NativeDialogFooter,
+  NativeDialogClose,
+} from "@/components/ui/native-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Upload,
@@ -123,15 +122,16 @@ export default function ScheduleImportDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Импорт расписания</DialogTitle>
-          <DialogDescription>
-            Загрузите XLSX-файл расписания колледжа.
-          </DialogDescription>
-        </DialogHeader>
+    <NativeDialog open={open} onOpenChange={handleClose} className="sm:max-w-lg w-full">
+      <NativeDialogClose onClick={handleClose} />
+      <NativeDialogHeader>
+        <NativeDialogTitle>Импорт расписания</NativeDialogTitle>
+        <NativeDialogDescription>
+          Загрузите XLSX-файл расписания колледжа.
+        </NativeDialogDescription>
+      </NativeDialogHeader>
 
+      <div className="p-6">
         {step === "upload" && (
           <div className="grid gap-4">
             <div
@@ -247,7 +247,7 @@ export default function ScheduleImportDialog({
             </Button>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </NativeDialog>
   )
 }

@@ -13,22 +13,20 @@ import {
   type UpdateScheduleRequest,
 } from "@/api/schedule"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
+  NativeDialog,
+  NativeDialogHeader,
+  NativeDialogTitle,
+  NativeDialogDescription,
+  NativeDialogFooter,
+  NativeDialogClose,
+} from "@/components/ui/native-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import FormField from "@/components/FormField"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  NativeSelect,
+  NativeSelectItem,
+} from "@/components/ui/native-select"
 
 interface ScheduleEntryDialogProps {
   open: boolean
@@ -173,134 +171,108 @@ export default function ScheduleEntryDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Редактировать запись" : "Новая запись"}</DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? "Измените данные записи расписания"
-              : "Заполните данные для новой записи расписания"}
-          </DialogDescription>
-        </DialogHeader>
+    <NativeDialog open={open} onOpenChange={onOpenChange} className="sm:max-w-md w-full">
+      <NativeDialogClose onClick={() => onOpenChange(false)} />
+      <NativeDialogHeader>
+        <NativeDialogTitle>{isEdit ? "Редактировать запись" : "Новая запись"}</NativeDialogTitle>
+        <NativeDialogDescription>
+          {isEdit
+            ? "Измените данные записи расписания"
+            : "Заполните данные для новой записи расписания"}
+        </NativeDialogDescription>
+      </NativeDialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <FormField id="schedule-group" label="Группа" required error={fieldErrors.groupId}>
-            <Select value={groupId} onValueChange={setGroupId}>
-              <SelectTrigger id="schedule-group">
-                <SelectValue placeholder="Выберите группу" />
-              </SelectTrigger>
-              <SelectContent>
-                {groups.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <form onSubmit={handleSubmit} className="grid gap-4 p-6">
+        <FormField id="schedule-group" label="Группа" required error={fieldErrors.groupId}>
+          <NativeSelect value={groupId} onValueChange={setGroupId} placeholder="Выберите группу">
+            {groups.map((g) => (
+              <NativeSelectItem key={g.id} value={g.id}>
+                {g.name}
+              </NativeSelectItem>
+            ))}
+          </NativeSelect>
+        </FormField>
+
+        <FormField id="schedule-teacher" label="Преподаватель">
+          <NativeSelect value={teacherId || "all"} onValueChange={(v) => setTeacherId(v === "all" ? "" : v)}>
+            <NativeSelectItem value="all">Не выбрано</NativeSelectItem>
+            {teachers.map((t) => (
+              <NativeSelectItem key={t.id} value={t.id}>
+                {t.fullName}
+              </NativeSelectItem>
+            ))}
+          </NativeSelect>
+        </FormField>
+
+        <FormField id="schedule-subject" label="Предмет" required error={fieldErrors.subject}>
+          <Input id="schedule-subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Математика" />
+        </FormField>
+
+        <FormField id="schedule-room" label="Аудитория" required error={fieldErrors.room}>
+          <Input id="schedule-room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="301" />
+        </FormField>
+
+        <FormField id="schedule-day" label="День недели" required error={fieldErrors.dayOfWeek}>
+          <NativeSelect value={dayOfWeek} onValueChange={setDayOfWeek} placeholder="День">
+            {DAYS.filter((d) => d.value >= 1 && d.value <= 6).map((d) => (
+              <NativeSelectItem key={d.value} value={String(d.value)}>
+                {d.full}
+              </NativeSelectItem>
+            ))}
+          </NativeSelect>
+        </FormField>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField id="schedule-pair" label="Номер пары" required error={fieldErrors.numberPair}>
+            <NativeSelect value={numberPair} onValueChange={setNumberPair}>
+              {Array.from({ length: 8 }, (_, i) => (
+                <NativeSelectItem key={i + 1} value={String(i + 1)}>
+                  {i + 1} пара
+                </NativeSelectItem>
+              ))}
+            </NativeSelect>
           </FormField>
-
-          <FormField id="schedule-teacher" label="Преподаватель">
-            <Select value={teacherId} onValueChange={setTeacherId}>
-              <SelectTrigger id="schedule-teacher">
-                <SelectValue placeholder="Выберите преподавателя" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Не выбрано</SelectItem>
-                {teachers.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.fullName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <FormField id="schedule-lesson-type" label="Тип занятия" required error={fieldErrors.lessonType}>
+            <NativeSelect value={lessonType} onValueChange={setLessonType} placeholder="Тип">
+              {LESSON_TYPES.map((lt) => (
+                <NativeSelectItem key={lt} value={lt}>
+                  {LESSON_TYPE_LABELS[lt]}
+                </NativeSelectItem>
+              ))}
+            </NativeSelect>
           </FormField>
+        </div>
 
-          <FormField id="schedule-subject" label="Предмет" required error={fieldErrors.subject}>
-            <Input id="schedule-subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Математика" />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField id="schedule-start" label="Начало" required error={fieldErrors.startTime}>
+            <Input id="schedule-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
           </FormField>
-
-          <FormField id="schedule-room" label="Аудитория" required error={fieldErrors.room}>
-            <Input id="schedule-room" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="301" />
+          <FormField id="schedule-end" label="Конец" required error={fieldErrors.endTime}>
+            <Input id="schedule-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
           </FormField>
+        </div>
 
-          <FormField id="schedule-day" label="День недели" required error={fieldErrors.dayOfWeek}>
-            <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
-              <SelectTrigger id="schedule-day">
-                <SelectValue placeholder="День" />
-              </SelectTrigger>
-              <SelectContent>
-                {DAYS.filter((d) => d.value >= 1 && d.value <= 6).map((d) => (
-                  <SelectItem key={d.value} value={String(d.value)}>
-                    {d.full}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
+        <FormField id="schedule-weeks" label="Недели" required error={fieldErrors.weeks}>
+          <Input
+            id="schedule-weeks"
+            value={weeksInput}
+            onChange={(e) => setWeeksInput(e.target.value)}
+            placeholder="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
+          />
+          <p className="text-xs text-muted-foreground">
+            Номера недель через запятую. Например: 1,3,5,7,9,11,13,15 — нечётные
+          </p>
+        </FormField>
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField id="schedule-pair" label="Номер пары" required error={fieldErrors.numberPair}>
-              <Select value={numberPair} onValueChange={setNumberPair}>
-                <SelectTrigger id="schedule-pair">
-                  <SelectValue placeholder="Пара" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 8 }, (_, i) => (
-                    <SelectItem key={i + 1} value={String(i + 1)}>
-                      {i + 1} пара
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-            <FormField id="schedule-lesson-type" label="Тип занятия" required error={fieldErrors.lessonType}>
-              <Select value={lessonType} onValueChange={setLessonType}>
-                <SelectTrigger id="schedule-lesson-type">
-                  <SelectValue placeholder="Тип" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LESSON_TYPES.map((lt) => (
-                    <SelectItem key={lt} value={lt}>
-                      {LESSON_TYPE_LABELS[lt]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormField id="schedule-start" label="Начало" required error={fieldErrors.startTime}>
-              <Input id="schedule-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-            </FormField>
-            <FormField id="schedule-end" label="Конец" required error={fieldErrors.endTime}>
-              <Input id="schedule-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-            </FormField>
-          </div>
-
-          <FormField id="schedule-weeks" label="Недели" required error={fieldErrors.weeks}>
-            <Input
-              id="schedule-weeks"
-              value={weeksInput}
-              onChange={(e) => setWeeksInput(e.target.value)}
-              placeholder="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
-            />
-            <p className="text-xs text-muted-foreground">
-              Номера недель через запятую. Например: 1,3,5,7,9,11,13,15 — нечётные
-            </p>
-          </FormField>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Отмена
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <NativeDialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Отмена
+          </Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
+          </Button>
+        </NativeDialogFooter>
+      </form>
+    </NativeDialog>
   )
 }
