@@ -278,13 +278,13 @@ export default function SchedulePage() {
         <h2 className="text-xl font-semibold">Расписание</h2>
       </div>
 
-      {showCards && (
+      <div className={`transition-opacity ${showCards ? "opacity-100" : "opacity-0 h-0 overflow-hidden pointer-events-none"}`}>
         <WeekNavigation
           currentWeek={selectedWeek}
           onChange={setSelectedWeek}
           totalWeeks={52}
         />
-      )}
+      </div>
 
       <div className="flex items-center gap-3 rounded-lg border bg-card p-4 overflow-x-auto">
         <Filter className="size-4 text-muted-foreground shrink-0" />
@@ -401,9 +401,9 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {showCards && (
+      <div className={`transition-opacity ${showCards ? "opacity-100" : "opacity-0 h-0 overflow-hidden pointer-events-none"}`}>
         <DayTabs selectedDay={selectedDay} onChange={setSelectedDay} />
-      )}
+      </div>
 
       {error && <ErrorBanner message={error} />}
 
