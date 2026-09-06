@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """
-Сравнение пофамильного расписания (docx) с данными в PostgreSQL (VPS dump).
+Сравнение расписания преподавателей: docx vs PostgreSQL (VPS dump).
+
+Логика:
+1. Из БД: для каждого преподавателя собираем {группа: {недели}} (с учётом предметов)
+2. Из docx: для каждого преподавателя собираем {группа: {недели}}
+3. Сравниваем по фамилии → группе → неделям
 """
 import re
 import sys
 from pathlib import Path
 from collections import defaultdict
-from dataclasses import dataclass
 
 try:
     from docx import Document
 except ImportError:
-    print("Установка python-docx...")
     import subprocess
     subprocess.check_call([sys.executable, "-m", "pip", "install", "python-docx", "-q"])
     from docx import Document
@@ -20,70 +23,77 @@ except ImportError:
 DUMP_FILE = Path(__file__).parent / "schedule" / "vps_dump.txt"
 DOCX_FILE = Path(__file__).parent / "schedule" / "Пофамильное расписание 1 полугодие.docx"
 
-DAY_MAP_DB = {1: "Пн", 2: "Вт", 3: "Ср", 4: "Чт", 5: "Пт", 6: "Сб", 0: "Вс"}
 
-
-@dataclass
-class DbEntry:
-    group: str
-    teacher: str
-    subject: str
-    room: str
-    day_of_week: int
-    number_pair: int
-    weeks: list[int]
-    lesson_type: str
-
-
-def parse_pg_array(s: str) -> list[int]:
-    """Парсит PostgreSQL-массив: '{1,4,8,10,12}' -> [1, 4, 8, 10, 12]"""
+def parse_weeks(s: str) -> list[int]:
     s = s.strip().strip("{}")
     if not s:
         return []
     return [int(x.strip()) for x in s.split(",") if x.strip()]
 
 
-def normalize_name(name: str) -> str:
+def parse_range(s: str) -> list[int]:
+    """'1-7,12-15,17' -> [1,2,...,7,12,...,15,17]"""
+    weeks = set()
+    for part in s.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            a, b = part.split("-", 1)
+            try:
+                weeks.update(range(int(a), int(b) + 1))
+            except ValueError:
+                pass
+        else:
+            try:
+                weeks.add(int(part))
+            except ValueError:
+                pass
+    return sorted(weeks)
+
+
+def norm(name: str) -> str:
     return re.sub(r"\s+", " ", name.upper().strip())
 
 
-def get_last_name(full_name: str) -> str:
-    """Извлекает фамилию (первое слово) из полного имени."""
-    return normalize_name(full_name).split()[0] if full_name.strip() else ""
+def last_name(full: str) -> str:
+    return norm(full).split()[0] if full.strip() else ""
 
 
-def load_dump(filepath: Path) -> list[DbEntry]:
-    entries = []
+# ── Загрузка БД ──────────────────────────────────────────────
+
+def load_db(filepath: Path) -> dict[str, dict[str, dict[str, set[int]]]]:
+    """
+    Возвращает: {фамилия: {группа: {предмет: {недели}}}}
+    """
+    result: dict[str, dict[str, dict[str, set[int]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(set))
+    )
     with open(filepath, "r", encoding="utf-8") as f:
-        header = f.readline()  # пропускаем заголовок
+        f.readline()  # заголовок
         for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            parts = line.split("|")
+            parts = line.strip().split("|")
             if len(parts) < 8:
                 continue
-            group, teacher, subject, room, day_s, pair_s, weeks_s, ltype = parts[:8]
-            try:
-                day = int(day_s)
-                pair = int(pair_s)
-            except ValueError:
+            group, teacher, subject, *_ = parts
+            weeks_s = parts[6]
+            if not teacher:
                 continue
-            weeks = parse_pg_array(weeks_s)
-            entries.append(DbEntry(
-                group=group, teacher=teacher, subject=subject, room=room,
-                day_of_week=day, number_pair=pair, weeks=weeks,
-                lesson_type=ltype,
-            ))
-    return entries
+            ln = last_name(teacher)
+            for w in parse_weeks(weeks_s):
+                result[ln][group][subject].add(w)
+    return result
 
 
-def parse_docx(filepath: Path) -> dict:
+# ── Парсинг docx ─────────────────────────────────────────────
+
+def load_docx(filepath: Path) -> dict[str, dict[str, set[int]]]:
     """
-    {teacher_upper: {pair: {day: [(group, weeks)]}}}
+    Возвращает: {фамилия: {группа: {недели}}}
+    (docx не содержит предметов — только группы и недели)
     """
     doc = Document(str(filepath))
-    result: dict[str, dict[int, dict[int, list[tuple[str, list[int]]]]]] = {}
+    result: dict[str, dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
     current_teacher = None
 
     for table in doc.tables:
@@ -92,175 +102,105 @@ def parse_docx(filepath: Path) -> dict:
             if all(not c for c in cells):
                 continue
 
-            first_cell = cells[0] if cells else ""
+            first = cells[0] if cells else ""
 
-            if (first_cell
-                and first_cell.isupper()
-                and len(first_cell) > 5
-                and not first_cell.isdigit()
-                and any(c.isalpha() for c in first_cell)):
-                current_teacher = normalize_name(first_cell)
-                if current_teacher not in result:
-                    result[current_teacher] = {}
+            # Имя преподавателя — заглавные, длинные, не цифра
+            if (first and first.isupper() and len(first) > 5
+                    and not first.isdigit() and any(c.isalpha() for c in first)):
+                current_teacher = last_name(first)
                 continue
 
             if not current_teacher:
                 continue
 
-            if not first_cell or not first_cell.isdigit():
+            if not first or not first.isdigit():
                 continue
-            pair_num = int(first_cell)
-            if pair_num < 1 or pair_num > 8:
+            pair = int(first)
+            if pair < 1 or pair > 8:
                 continue
 
-            if pair_num not in result[current_teacher]:
-                result[current_teacher][pair_num] = {}
-
-            for day_idx in range(5):
-                cell_idx = day_idx + 1
-                if cell_idx >= len(cells):
+            for day_idx in range(1, 6):  # 1=Пн..5=Пт
+                if day_idx >= len(cells):
                     break
-                cell_text = cells[cell_idx]
-                if not cell_text:
+                cell = cells[day_idx]
+                if not cell:
                     continue
 
-                entries = []
                 for m in re.finditer(
                     r"([А-Яа-яёЁ\-]+(?:\d+)(?:-[А-Яа-яёЁ\-]*\d+)?)\(([^)]+)\)",
-                    cell_text,
+                    cell,
                 ):
                     group = m.group(1)
-                    weeks = []
-                    for part in m.group(2).split(","):
-                        part = part.strip()
-                        if "-" in part:
-                            a, b = part.split("-", 1)
-                            try:
-                                weeks.extend(range(int(a), int(b) + 1))
-                            except ValueError:
-                                pass
-                        else:
-                            try:
-                                weeks.append(int(part))
-                            except ValueError:
-                                pass
-                    entries.append((group, sorted(weeks)))
-
-                if entries:
-                    result[current_teacher][pair_num][day_idx + 1] = entries
+                    weeks = parse_range(m.group(2))
+                    for w in weeks:
+                        result[current_teacher][group].add(w)
 
     return result
 
 
-def compare(db_entries: list[DbEntry], docx_data: dict) -> list[dict]:
+# ── Сравнение ────────────────────────────────────────────────
+
+def compare(
+    db: dict[str, dict[str, dict[str, set[int]]]],
+    docx: dict[str, dict[str, set[int]]],
+) -> list[dict]:
     diffs = []
+    all_teachers = sorted(set(list(db.keys()) + list(docx.keys())))
 
-    # Группируем БД по фамилии преподавателя
-    db_by_teacher: dict[str, dict[str, dict[tuple[int, int], list[int]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(list))
-    )
-    # Маппинг фамилия -> полное имя из БД
-    db_full_names: dict[str, str] = {}
-    for e in db_entries:
-        full = normalize_name(e.teacher)
-        last = get_last_name(e.teacher)
-        db_by_teacher[last][e.group][(e.day_of_week, e.number_pair)].extend(e.weeks)
-        if last not in db_full_names:
-            db_full_names[last] = full
+    for ln in all_teachers:
+        db_groups = db.get(ln, {})
+        docx_groups = docx.get(ln, {})
 
-    # Группируем docx по фамилии преподавателя
-    docx_by_last: dict[str, dict[int, dict[int, list[tuple[str, list[int]]]]]] = defaultdict(dict)
-    docx_full_names: dict[str, str] = {}
-    for teacher_full, pairs in docx_data.items():
-        last = teacher_full.split()[0] if teacher_full else ""
-        if last:
-            docx_by_last[last] = pairs
-            docx_full_names[last] = teacher_full
-
-    all_last_names = sorted(set(list(db_by_teacher.keys()) + list(docx_by_last.keys())))
-
-    for last_name in all_last_names:
-        db_groups = db_by_teacher.get(last_name, {})
-        docx_teacher = docx_by_last.get(last_name, {})
-
-        docx_groups_data: dict[str, dict[tuple[int, int], list[int]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
-        for pair_num, days in docx_teacher.items():
-            for day_idx, entries in days.items():
-                for group, weeks in entries:
-                    for w in weeks:
-                        docx_groups_data[group][(day_idx, pair_num)].append(w)
-
-        db_name = db_full_names.get(last_name, last_name)
-        docx_name = docx_full_names.get(last_name, last_name)
-
-        if last_name not in db_by_teacher:
-            groups_list = list(docx_groups_data.keys())[:5]
-            diffs.append({
-                "type": "ONLY_DOCX",
-                "teacher": last_name,
-                "message": f"  {docx_name}: ТОЛЬКО в docx (группы: {', '.join(groups_list)})",
-            })
+        if not db_groups:
+            groups = list(docx_groups.keys())[:5]
+            diffs.append(("ONLY_DOCX", ln, f"  {ln}: ТОЛЬКО в docx (группы: {', '.join(groups)})"))
             continue
-        if last_name not in docx_by_last:
-            groups_list = list(db_groups.keys())[:5]
-            diffs.append({
-                "type": "ONLY_DB",
-                "teacher": last_name,
-                "message": f"  {db_name}: ТОЛЬКО в БД (группы: {', '.join(groups_list)})",
-            })
+        if not docx_groups:
+            groups = list(db_groups.keys())[:5]
+            diffs.append(("ONLY_DB", ln, f"  {ln}: ТОЛЬКО в БД (группы: {', '.join(groups)})"))
             continue
 
-        db_group_set = set(db_groups.keys())
-        docx_group_set = set(docx_groups_data.keys())
+        all_groups = sorted(set(list(db_groups.keys()) + list(docx_groups.keys())))
 
-        for g in sorted(db_group_set - docx_group_set):
-            keys = sorted(db_groups[g].keys())[:3]
-            details = [f"{DAY_MAP_DB.get(d, '?')} п.{p}" for d, p in keys]
-            diffs.append({
-                "type": "GROUP_ONLY_DB",
-                "teacher": last_name,
-                "group": g,
-                "message": f"  {db_name}: группа {g} ТОЛЬКО в БД ({'; '.join(details)})",
-            })
+        for g in all_groups:
+            db_subjects = db_groups.get(g, {})
+            docx_weeks = docx_groups.get(g, set())
 
-        for g in sorted(docx_group_set - db_group_set):
-            keys = sorted(docx_groups_data[g].keys())[:3]
-            details = [f"день {d} п.{p}" for d, p in keys]
-            diffs.append({
-                "type": "GROUP_ONLY_DOCX",
-                "teacher": last_name,
-                "group": g,
-                "message": f"  {docx_name}: группа {g} ТОЛЬКО в docx ({'; '.join(details)})",
-            })
+            if not db_subjects:
+                diffs.append(("GROUP_ONLY_DOCX", ln,
+                              f"  {ln}, {g}: ТОЛЬКО в docx (нед. {sorted(docx_weeks)[:6]}...)"))
+                continue
 
-        for g in sorted(db_group_set & docx_group_set):
-            all_keys = set(db_groups[g].keys()) | set(docx_groups_data[g].keys())
-            for key in sorted(all_keys):
-                db_weeks = set(db_groups[g].get(key, []))
-                docx_weeks = set(docx_groups_data[g].get(key, []))
+            # Собираем все недели из БД по всем предметам для этой группы
+            db_all_weeks: set[int] = set()
+            db_subject_list: list[str] = []
+            for subj, weeks in db_subjects.items():
+                db_all_weeks |= weeks
+                db_subject_list.append(subj)
 
-                only_db = sorted(db_weeks - docx_weeks)
-                only_docx = sorted(docx_weeks - db_weeks)
+            if not docx_weeks:
+                diffs.append(("GROUP_ONLY_DB", ln,
+                              f"  {ln}, {g}: ТОЛЬКО в БД (предметы: {', '.join(db_subject_list[:3])})"))
+                continue
 
-                if only_db or only_docx:
-                    d, p = key
-                    day_name = DAY_MAP_DB.get(d, f"д{d}")
-                    parts = []
-                    if only_docx:
-                        parts.append(f"docx: {only_docx}")
-                    if only_db:
-                        parts.append(f"БД: {only_db}")
-                    diffs.append({
-                        "type": "WEEKS_DIFF",
-                        "teacher": last_name,
-                        "group": g,
-                        "message": f"  {db_name}, {g}, {day_name} п.{p}: {'; '.join(parts)}",
-                    })
+            # Сравниваем недели
+            only_db = sorted(db_all_weeks - docx_weeks)
+            only_docx = sorted(docx_weeks - db_all_weeks)
+
+            if only_db or only_docx:
+                parts = []
+                if only_docx:
+                    parts.append(f"docx: {only_docx}")
+                if only_db:
+                    parts.append(f"БД: {only_db}")
+                subj_str = ", ".join(db_subject_list[:2])
+                diffs.append(("WEEKS_DIFF", ln,
+                              f"  {ln}, {g} ({subj_str}): {'; '.join(parts)}"))
 
     return diffs
 
+
+# ── Main ─────────────────────────────────────────────────────
 
 def main():
     if not DUMP_FILE.exists():
@@ -271,39 +211,32 @@ def main():
         print(f"ОШИБКА: {DOCX_FILE}")
         sys.exit(1)
 
-    print("=== Сравнение docx vs БД (VPS) ===\n")
+    print("=== Сравнение: docx vs БД (VPS) ===\n")
 
-    print(f"Загрузка дампа: {DUMP_FILE.name}")
-    db_entries = load_dump(DUMP_FILE)
-    db_teachers = set(get_last_name(e.teacher) for e in db_entries if e.teacher)
-    print(f"  Записей: {len(db_entries)}")
-    print(f"  Преподавателей: {len(db_teachers)}")
+    db = load_db(DUMP_FILE)
+    db_teachers = set(db.keys())
+    print(f"БД: {len(db_teachers)} преподавателей")
 
-    print(f"\nПарсинг docx: {DOCX_FILE.name}")
-    docx_data = parse_docx(DOCX_FILE)
-    docx_teachers = set(k.split()[0] for k in docx_data.keys() if k)
-    print(f"  Преподавателей: {len(docx_teachers)}")
+    docx = load_docx(DOCX_FILE)
+    docx_teachers = set(docx.keys())
+    print(f"Docx: {len(docx_teachers)} преподавателей")
 
-    # Общие преподаватели
     common = db_teachers & docx_teachers
-    only_db = db_teachers - docx_teachers
-    only_docx = docx_teachers - db_teachers
-    print(f"\nПересечение: {len(common)}")
-    print(f"Только в БД: {len(only_db)}")
-    print(f"Только в docx: {len(only_docx)}")
+    print(f"Совпадают: {len(common)}")
+    print(f"Только в БД: {len(db_teachers - docx_teachers)}")
+    print(f"Только в docx: {len(docx_teachers - db_teachers)}")
 
-    print(f"\nСравнение...")
-    diffs = compare(db_entries, docx_data)
+    diffs = compare(db, docx)
 
     if not diffs:
-        print("\nРасписания совпадают!")
+        print("\n✅ Расписания совпадают!")
         return
 
     print(f"\nРасхождений: {len(diffs)}\n")
 
-    by_type: dict[str, list[dict]] = defaultdict(list)
-    for d in diffs:
-        by_type[d["type"]].append(d)
+    by_type = defaultdict(list)
+    for t, ln, msg in diffs:
+        by_type[t].append(msg)
 
     sections = [
         ("ONLY_DOCX", "Только в docx"),
@@ -317,8 +250,8 @@ def main():
         items = by_type.get(key, [])
         if items:
             print(f"{title} ({len(items)}):")
-            for d in items:
-                print(d["message"])
+            for m in items:
+                print(m)
             print()
 
 
