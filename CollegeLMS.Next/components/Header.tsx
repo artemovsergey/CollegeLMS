@@ -87,8 +87,8 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-accent">
       <div className="flex flex-col">
-        {/* Row 1: Top bar — hides on scroll */}
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${scrolled ? "max-h-0 opacity-0 py-0 border-transparent" : "max-h-14 opacity-100"}`}>
+        {/* Row 1: Top bar — hides on scroll via transform (no layout shift) */}
+        <div className={`transition-transform duration-300 ease-in-out ${scrolled ? "-translate-y-full pointer-events-none h-0" : "translate-y-0"}`}>
           <div className="flex h-12 items-center justify-between px-4 lg:px-6">
             <div className="flex min-w-0 items-center gap-2">
               <div className="flex items-center gap-2 max-[400px]:hidden">
@@ -234,7 +234,7 @@ export default function Header() {
                     )}
                   </div>
                   {hasSubs && (
-                    <div className={`overflow-hidden transition-all duration-200 ease-out ${isOpen ? "max-h-96" : "max-h-0"}`}>
+                    <div className={`transition-all duration-200 ease-out ${isOpen ? "opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
                       <div className="ml-4 border-l border-white/20 pl-3">
                         {section.subsections.map((sub) => (
                           <Link

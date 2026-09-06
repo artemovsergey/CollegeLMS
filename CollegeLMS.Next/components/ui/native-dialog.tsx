@@ -54,7 +54,6 @@ export function NativeDialog({
       className={cn(
         "backdrop:bg-black/50 rounded-lg border bg-background p-0 shadow-lg",
         "open:animate-in open:fade-in-0 open:zoom-in-95",
-        "closed:animate-out closed:fade-out-0 closed:zoom-out-95",
         className
       )}
     >
