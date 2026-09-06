@@ -286,7 +286,7 @@ export default function SchedulePage() {
         />
       </div>
 
-      <div className="flex items-center gap-3 rounded-lg border bg-card p-4 overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
         <Filter className="size-4 text-muted-foreground shrink-0" />
         <Select
           value={selectedGroupId || "all"}
