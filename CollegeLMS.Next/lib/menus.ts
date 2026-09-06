@@ -63,4 +63,7 @@ export const adminRoleMap: Record<string, string[]> = {
   "/admin/specialties": ["Admin"],
   "/admin/testing": ["Admin"],
   "/schedule": ["Admin", "Dispatcher", "Teacher"],
+  "/dispatcher/correction": ["Dispatcher"],
+  "/dispatcher/documents": ["Dispatcher"],
+  "/dispatcher/practices": ["Dispatcher"],
 }

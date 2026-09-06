@@ -92,12 +92,15 @@ export default function WeekNavigation({
         <ChevronRight className="size-4" />
       </Button>
 
-      {!isCurrentWeek && (
-        <Button variant="outline" size="sm" onClick={goToToday} className="ml-1">
-          <CalendarDays className="size-3.5 mr-1" />
-          Сегодня
-        </Button>
-      )}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={goToToday}
+        className={`ml-1 transition-opacity ${isCurrentWeek ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+      >
+        <CalendarDays className="size-3.5 mr-1" />
+        Сегодня
+      </Button>
     </div>
   )
 }

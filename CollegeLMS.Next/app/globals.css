@@ -180,7 +180,7 @@
   /* Место под скроллбар резервируется всегда (viewport): Radix Select/Dialog
      прячет скроллбар через body{overflow:hidden}, что сдвигает всю страницу. */
   html {
-    overflow-y: scroll;
+    scrollbar-gutter: stable;
   }
   body {
     @apply bg-bg text-fg;

@@ -47,17 +47,12 @@ import {
   Upload,
   LayoutGrid,
   ChevronDown,
-  Table,
-  Calendar,
 } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 
@@ -202,6 +197,12 @@ export default function SchedulePage() {
     }
   }, [token, viewMode, loadSchedule])
 
+  useEffect(() => {
+    if (token && allEntries.length === 0) {
+      loadAllEntries()
+    }
+  }, [token, allEntries.length, loadAllEntries])
+
   const handleViewModeChange = (mode: "cards" | "semester") => {
     setViewMode(mode)
     if (mode === "semester" && allEntries.length === 0) {
@@ -285,7 +286,7 @@ export default function SchedulePage() {
         />
       )}
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
+      <div className="flex items-center gap-3 rounded-lg border bg-card p-4 overflow-x-auto">
         <Filter className="size-4 text-muted-foreground shrink-0" />
         <Select
           value={selectedGroupId || "all"}
@@ -321,16 +322,19 @@ export default function SchedulePage() {
           </SelectContent>
         </Select>
 
-        {(selectedGroupId || selectedTeacherId) && (
-          <Button variant="ghost" size="sm" onClick={handleClear}>
-            <SearchX className="size-3.5" />
-            Сбросить
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClear}
+          className={`shrink-0 transition-opacity ${!selectedGroupId && !selectedTeacherId ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        >
+          <SearchX className="size-3.5" />
+          Сбросить
+        </Button>
 
         <div className="flex-1" />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="flex rounded-md border overflow-hidden">
             <Button
               variant={showCards ? "default" : "ghost"}
@@ -361,38 +365,22 @@ export default function SchedulePage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <FileDown className="size-3.5 mr-2" />
-                  PDF
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem onClick={() => handleExport("pdf", "grid")}>
-                    <Table className="size-3.5 mr-2" />
-                    Сетка
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport("pdf", "daycards")}>
-                    <Calendar className="size-3.5 mr-2" />
-                    По дням
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <FileSpreadsheet className="size-3.5 mr-2" />
-                  Excel
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem onClick={() => handleExport("xlsx", "grid")}>
-                    <Table className="size-3.5 mr-2" />
-                    Сетка
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport("xlsx", "daycards")}>
-                    <Calendar className="size-3.5 mr-2" />
-                    По дням
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+              <DropdownMenuItem onClick={() => handleExport("pdf", "grid")}>
+                <FileDown className="size-3.5 mr-2" />
+                PDF — Сетка
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("pdf", "daycards")}>
+                <FileDown className="size-3.5 mr-2" />
+                PDF — По дням
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("xlsx", "grid")}>
+                <FileSpreadsheet className="size-3.5 mr-2" />
+                Excel — Сетка
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("xlsx", "daycards")}>
+                <FileSpreadsheet className="size-3.5 mr-2" />
+                Excel — По дням
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           {canManage && (

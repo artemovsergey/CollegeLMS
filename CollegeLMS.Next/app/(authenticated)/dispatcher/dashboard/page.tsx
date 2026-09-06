@@ -1,108 +1,216 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { CalendarDays, UsersRound } from "lucide-react"
-import type { Result, CalendarResponse, GroupResponse } from "@/types"
+import { useEffect, useState, useMemo } from "react"
+import { Loader2, AlertTriangle } from "lucide-react"
+import type { Result } from "@/types"
+import type { ScheduleResponse } from "@/types/schedule"
 import api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import ErrorBanner from "@/components/ErrorBanner"
-import LoadingSpinner from "@/components/LoadingSpinner"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { LESSON_TYPE_LABELS, type LessonType } from "@/types/schedule"
 
-const DAY_LABELS = ["", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+const LESSON_COLORS: Record<LessonType, string> = {
+  Lecture: "#3b82f6",
+  Practice: "#10b981",
+  Lab: "#f59e0b",
+  Exam: "#ef4444",
+}
+
+const SEMESTER_START = new Date(2026, 8, 1) // Sep 1 2026
+
+function getMondayOfWeek(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = (day === 0 ? -6 : 1) - day
+  d.setDate(d.getDate() + diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function weekNumber(date: Date): number {
+  const monday = getMondayOfWeek(date)
+  const semesterMonday = getMondayOfWeek(SEMESTER_START)
+  return Math.floor((monday.getTime() - semesterMonday.getTime()) / 604800000) + 1
+}
+
+interface GanttBar {
+  id: string
+  subject: string
+  teacherName: string | null
+  room: string
+  weeks: number[]
+  lessonType: LessonType
+  groupName: string
+}
 
 export default function DispatcherDashboardPage() {
-  const [calendar, setCalendar] = useState<CalendarResponse | null>(null)
-  const [groups, setGroups] = useState<GroupResponse[]>([])
+  const [entries, setEntries] = useState<ScheduleResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([
-      api.get<Result<CalendarResponse>>("/api/schedule", { params: { view: "calendar" } }),
-      api.get<Result<GroupResponse[]>>("/api/groups"),
-    ])
-      .then(([calRes, groupsRes]) => {
-        if (calRes.data.isSuccess && calRes.data.data) setCalendar(calRes.data.data)
-        if (groupsRes.data.isSuccess && groupsRes.data.data) setGroups(groupsRes.data.data)
+    api
+      .get<Result<ScheduleResponse[]>>("/api/schedule", {
+        params: { pageSize: 2000 },
       })
-      .catch(() => setError("Ошибка загрузки данных"))
+      .then((res) => {
+        if (res.data.isSuccess && res.data.data)
+          setEntries(res.data.data as ScheduleResponse[])
+      })
+      .catch(() => setError("Ошибка загрузки расписания"))
       .finally(() => setLoading(false))
   }, [])
 
+  const bars = useMemo(() => {
+    const map = new Map<string, GanttBar>()
+    for (const e of entries) {
+      const key = `${e.groupId}|${e.subject}|${e.teacherId}`
+      if (map.has(key)) {
+        const existing = map.get(key)!
+        const merged = [...new Set([...existing.weeks, ...e.weeks])].sort(
+          (a, b) => a - b,
+        )
+        existing.weeks = merged
+      } else {
+        map.set(key, {
+          id: e.id,
+          subject: e.subject,
+          teacherName: e.teacherName,
+          room: e.room,
+          weeks: [...e.weeks].sort((a, b) => a - b),
+          lessonType: e.lessonType,
+          groupName: e.groupName,
+        })
+      }
+    }
+    return Array.from(map.values())
+  }, [entries])
+
+  const groups = useMemo(() => {
+    const nameMap = new Map<string, string>()
+    for (const e of entries) nameMap.set(e.groupId, e.groupName)
+    return Array.from(nameMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [entries])
+
+  const allWeeks = useMemo(() => {
+    const w = new Set<number>()
+    for (const b of bars) for (const wk of b.weeks) w.add(wk)
+    return w.size > 0 ? Array.from(w).sort((a, b) => a - b) : Array.from({ length: 52 }, (_, i) => i + 1)
+  }, [bars])
+
+  const weeksRange = useMemo(() => {
+    if (allWeeks.length === 0) return { min: 1, max: 52 }
+    return { min: allWeeks[0], max: allWeeks[allWeeks.length - 1] }
+  }, [allWeeks])
+
+  const totalWeeks = weeksRange.max - weeksRange.min + 1
+
   if (loading) {
     return (
-      <div className="flex flex-col gap-4 p-6 max-w-5xl mx-auto">
-        <LoadingSpinner size="lg" className="py-20" />
+      <div className="flex flex-col gap-4 p-6 max-w-7xl mx-auto">
+        <Loader2 className="size-6 animate-spin text-muted-foreground mx-auto py-20" />
       </div>
     )
   }
 
-  const today = new Date().getDay()
-
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
       <h2 className="text-xl font-semibold">Панель диспетчера</h2>
 
-      {error && <ErrorBanner message={error} />}
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertTriangle className="size-4 shrink-0" />
+          {error}
+        </div>
+      )}
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarDays size={16} /> Расписание на неделю
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between text-base">
+            <span>Расписание по группам (Gantt)</span>
+            <span className="text-xs text-muted-foreground font-normal">
+              {weeksRange.min}–{weeksRange.max} нед. · {groups.length} групп · {bars.length} записей
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {!calendar || calendar.days.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Расписание пусто</p>
+          {bars.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-10 text-center">Расписание пусто</p>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {calendar.days.map(day => (
-                <div
-                  key={day.dayOfWeek}
-                  className={`rounded-md border p-3 ${day.dayOfWeek === today ? "border-primary bg-primary/5" : "border-border"}`}
-                >
-                  <p className="mb-2 text-sm font-medium">{day.day}</p>
-                  {day.entries.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Нет занятий</p>
-                  ) : (
-                    <ul className="flex flex-col gap-1.5">
-                      {day.entries.map(e => (
-                        <li key={e.id} className="text-xs">
-                          <span className="font-medium">{e.numberPair} пара</span> — {e.subject}
-                          <span className="text-muted-foreground"> · {e.groupName}</span>
-                          <span className="text-muted-foreground"> · {e.room}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+            <div className="overflow-x-auto">
+              <div className="min-w-[800px]">
+                {/* Header: week numbers */}
+                <div className="flex items-end border-b pb-1 mb-1">
+                  <div className="w-36 shrink-0 text-xs font-medium text-muted-foreground">Группа</div>
+                  <div className="flex-1 flex">
+                    {Array.from({ length: totalWeeks }, (_, i) => weeksRange.min + i).map((wk) => (
+                      <div
+                        key={wk}
+                        className="flex-1 text-center text-[10px] text-muted-foreground leading-none"
+                      >
+                        {wk}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <UsersRound size={16} /> Группы
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {groups.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Нет групп</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {groups.map(g => (
-                <Link
-                  key={g.id}
-                  href={`/schedule?groupId=${g.id}`}
-                  className="rounded-md border border-border px-3 py-1.5 text-sm hover:border-primary hover:text-primary"
-                >
-                  {g.name} ({g.studentCount})
-                </Link>
-              ))}
+                {/* Rows: one per group */}
+                <TooltipProvider delayDuration={200}>
+                  {groups.map((g) => {
+                    const groupBars = bars.filter((b) => b.groupName === g.name)
+                    return (
+                      <div
+                        key={g.id}
+                        className="flex items-center border-b border-border/50 last:border-0 min-h-[36px]"
+                      >
+                        <div className="w-36 shrink-0 text-xs font-medium truncate pr-2" title={g.name}>
+                          {g.name}
+                        </div>
+                        <div className="flex-1 relative h-7">
+                          {groupBars.map((bar) => (
+                            <Tooltip key={bar.id}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute top-1 h-5 rounded-sm opacity-90 cursor-pointer hover:opacity-100 hover:ring-1 hover:ring-foreground/20 transition-opacity"
+                                  style={{
+                                    left: `${((bar.weeks[0] - weeksRange.min) / totalWeeks) * 100}%`,
+                                    width: `${((bar.weeks[bar.weeks.length - 1] - bar.weeks[0] + 1) / totalWeeks) * 100}%`,
+                                    minWidth: "6px",
+                                    backgroundColor: LESSON_COLORS[bar.lessonType],
+                                  }}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <div className="text-xs space-y-1">
+                                  <p className="font-medium">{bar.subject}</p>
+                                  <p className="text-muted-foreground">
+                                    {bar.teacherName ?? "—"} · {bar.room}
+                                  </p>
+                                  <p className="text-muted-foreground">
+                                    {LESSON_TYPE_LABELS[bar.lessonType]} · нед. {bar.weeks[0]}–{bar.weeks[bar.weeks.length - 1]}
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </TooltipProvider>
+
+                {/* Legend */}
+                <div className="flex items-center gap-4 mt-3 pt-2">
+                  {Object.entries(LESSON_COLORS).map(([type, color]) => (
+                    <div key={type} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
+                      {LESSON_TYPE_LABELS[type as LessonType]}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
