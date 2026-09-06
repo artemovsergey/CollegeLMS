@@ -178,16 +178,15 @@
     @apply border-border;
   }
   /* Radix Select/Dialog ставит body{overflow:hidden} — скроллбар пропадает,
-     страница расширяется на ~15px и всё сдвигается. overflow-y:scroll на html
-     принудительно показывает скроллбар всегда, даже когда body hidden. */
+     страница расширяется на ~15px и всё сдвигается.
+     Фикс: резервируем место под скроллбар через padding-right. */
   html {
-    overflow-y: scroll !important;
+    scrollbar-gutter: stable;
   }
-  /* Radix RemoveScroll добавляет data-scroll-locked на body — блокируем */
+  /* Когда Radix блокирует скролл — компенсируем потерю скроллбара */
   body[data-scroll-locked] {
-    overflow-y: scroll !important;
-    margin-right: 0 !important;
-    width: 100% !important;
+    overflow: hidden !important;
+    padding-right: var(--radix-scroll-lock-size, 0px) !important;
   }
   body {
     @apply bg-bg text-fg;
