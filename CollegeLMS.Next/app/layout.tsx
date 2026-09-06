@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import ThemeSwitcher from "@/components/ThemeSwitcher"
 import CookieConsent from "@/components/CookieConsent"
+import { ScrollBarFix } from "@/components/ScrollBarFix"
 import "@fontsource/inter"
 import "@fontsource/inter/500.css"
 import "@fontsource/inter/600.css"
@@ -43,6 +44,7 @@ export default function RootLayout({
             <AuthProvider>
               <TooltipProvider delayDuration={300}>
                 {children}
+                <ScrollBarFix />
                 <ThemeSwitcher />
                 <CookieConsent />
                 <Toaster />
