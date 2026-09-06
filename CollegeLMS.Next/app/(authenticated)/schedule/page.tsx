@@ -76,7 +76,6 @@ export default function SchedulePage() {
   const [allEntries, setAllEntries] = useState<ScheduleResponse[]>([])
   const [initialLoading, setInitialLoading] = useState(true)
   const [semesterLoading, setSemesterLoading] = useState(false)
-  const [fetching, setFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [groups, setGroups] = useState<GroupResponse[]>([])
@@ -100,8 +99,6 @@ export default function SchedulePage() {
   const loadSchedule = useCallback(async () => {
     if (entries.length === 0) {
       setInitialLoading(true)
-    } else {
-      setFetching(true)
     }
     setError(null)
     try {
@@ -121,7 +118,6 @@ export default function SchedulePage() {
       setError("Ошибка загрузки расписания")
     } finally {
       setInitialLoading(false)
-      setFetching(false)
     }
   }, [selectedGroupId, selectedTeacherId, selectedWeek, entries.length])
 
@@ -394,11 +390,6 @@ export default function SchedulePage() {
         </div>
       ) : (
         <div className="relative">
-          {fetching && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
-              <LoadingSpinner size="lg" />
-            </div>
-          )}
           {showCards ? (
             <ScheduleTable
               entries={displayEntries}
