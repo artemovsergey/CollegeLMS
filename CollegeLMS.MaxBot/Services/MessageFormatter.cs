@@ -106,7 +106,8 @@ public static class MessageFormatter
     public static string FormatDaySchedule(
         List<ScheduleResponse> entries,
         DateTime date,
-        string entityName
+        string entityName,
+        bool showGroup = false
     )
     {
         var header = $"📋 *{FormatLongDate(date)}* — {entityName}";
@@ -131,6 +132,9 @@ public static class MessageFormatter
             sb.AppendLine($"*{e.NumberPair}.* {type} {e.Subject}");
             sb.AppendLine($"    🕐 {e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}  📍 {e.Room}");
 
+            if (showGroup && e.GroupName.Length > 0)
+                sb.AppendLine($"    🏫 {e.GroupName}");
+
             if (e.TeacherName is not null)
                 sb.AppendLine($"    👨‍🏫 {e.TeacherName}");
 
@@ -143,7 +147,8 @@ public static class MessageFormatter
     public static string FormatWeekSchedule(
         List<ScheduleResponse> entries,
         DateTime weekStart,
-        string entityName
+        string entityName,
+        bool showGroup = false
     )
     {
         var weekEnd = weekStart.AddDays(6);
@@ -169,9 +174,11 @@ public static class MessageFormatter
                     "Exam" => "📝",
                     _ => "📚",
                 };
-                sb.AppendLine(
-                    $"  {e.NumberPair}. {type} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})"
-                );
+                var pairLine =
+                    $"  {e.NumberPair}. {type} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})";
+                if (showGroup && e.GroupName.Length > 0)
+                    pairLine += $" — {e.GroupName}";
+                sb.AppendLine(pairLine);
             }
             sb.AppendLine();
         }
