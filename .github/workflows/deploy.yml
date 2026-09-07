@@ -10,6 +10,7 @@ env:
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_ALLOWED_USER_ID: ${{ secrets.TELEGRAM_ALLOWED_USER_ID }}
   JWT_KEY: ${{ secrets.JWT_KEY }}
+  MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
 
 concurrency:
   group: deploy-vps
@@ -26,7 +27,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DB_PASSWORD,TELEGRAM_BOT_TOKEN,TELEGRAM_ALLOWED_USER_ID,JWT_KEY
+          envs: DB_PASSWORD,TELEGRAM_BOT_TOKEN,TELEGRAM_ALLOWED_USER_ID,JWT_KEY,MAX_BOT_TOKEN
           command_timeout: 30m
           script: |
             set -e
@@ -66,6 +67,7 @@ jobs:
               echo "TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}"
               echo "TELEGRAM_ALLOWED_USER_ID=${TELEGRAM_ALLOWED_USER_ID}"
               echo "JWT_KEY=${JWT_KEY}"
+              echo "MAX_BOT_TOKEN=${MAX_BOT_TOKEN}"
               echo "OPENCODE_SERVER_URL=http://host.docker.internal:4096"
               echo "OPENCODE_USERNAME=opencode"
               echo "OPENCODE_PASSWORD="
@@ -73,10 +75,10 @@ jobs:
             } > .env
 
             echo "=== Stop old containers ==="
-            docker compose --profile telegram-bot down --remove-orphans || true
+            docker compose --profile telegram-bot --profile max-bot down --remove-orphans || true
 
             echo "=== Build & start all services ==="
-            docker compose --profile telegram-bot up --build -d --force-recreate
+            docker compose --profile telegram-bot --profile max-bot up --build -d --force-recreate
 
             echo "=== Health check (retry up to 60s) ==="
             API_HEALTH="000"
@@ -92,12 +94,23 @@ jobs:
             if [ "$API_HEALTH" != "200" ]; then
               echo "API health check FAILED after 12 attempts. Starting rollback..."
               git reset --hard "$PREVIOUS_COMMIT"
-              docker compose --profile telegram-bot up --build -d --force-recreate
+              docker compose --profile telegram-bot --profile max-bot up --build -d --force-recreate
               echo "Rollback complete."
               exit 1
             fi
 
             curl -s http://localhost:5030/health || echo "Warning: Telegram bot not responding"
+
+            echo "=== MaxBot verification ==="
+            sleep 20
+            MAXBOT_ID=$(docker ps -q -f name=collegelms-maxbot -f status=running)
+            echo "MaxBot container id: ${MAXBOT_ID:-missing}"
+            if [ -z "$MAXBOT_ID" ]; then
+              echo "MaxBot is not running. Logs:"
+              docker compose logs maxbot --tail 100 || true
+              exit 1
+            fi
+            docker compose logs --since 20s maxbot 2>&1 | grep -q "Fetching updates" && echo "MaxBot polling MAX API: OK" || echo "Warning: polling logs not found yet"
 
             echo "=== Final cleanup ==="
             docker image prune -af || true
