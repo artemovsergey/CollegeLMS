@@ -18,6 +18,9 @@ public static class StudyWeek
         return Math.Max(1, diffWeeks + 1);
     }
 
+    public static DateTime Now(TimeZoneInfo tz) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).Date;
+
     public static int Current(TimeZoneInfo tz)
     {
         var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);

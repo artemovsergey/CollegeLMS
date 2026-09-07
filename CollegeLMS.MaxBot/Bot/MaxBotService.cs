@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using CollegeLMS.MaxBot.Clients;
 using CollegeLMS.MaxBot.Data;
 using CollegeLMS.MaxBot.Models;
@@ -18,8 +17,6 @@ public class MaxBotService : BackgroundService
 
     private const int PageSize = 5;
     private const int PollTimeoutSeconds = 30;
-
-    private readonly ConcurrentDictionary<long, InteractionState> _states = new();
 
     public MaxBotService(
         MaxApiClient max,
@@ -60,12 +57,6 @@ public class MaxBotService : BackgroundService
                                 Name = "start",
                                 Description = "Регистрация и настройка",
                             },
-                            new BotCommand
-                            {
-                                Name = "schedule",
-                                Description = "Расписание на сегодня",
-                            },
-                            new BotCommand { Name = "week", Description = "Расписание на неделю" },
                             new BotCommand { Name = "settings", Description = "Настройки" },
                             new BotCommand { Name = "help", Description = "Справка" },
                         ],
@@ -227,9 +218,8 @@ public class MaxBotService : BackgroundService
             await _max.SendMessageAsync(
                 chatId,
                 "🤖 *Бот расписания*\n\n"
-                    + "/schedule — расписание на сегодня\n"
-                    + "/schedule пн — расписание на понедельник\n"
-                    + "/week — расписание на неделю\n"
+                    + "Всё управление — кнопками под сообщениями.\n"
+                    + "/start — начать заново\n"
                     + "/settings — настройки\n"
                     + "/help — справка",
                 ct: ct
@@ -243,31 +233,12 @@ public class MaxBotService : BackgroundService
             return;
         }
 
-        if (lower == "/schedule" || lower.StartsWith("/schedule "))
-        {
-            var dayPart = lower == "/schedule" ? null : text["/schedule ".Length..].Trim();
-            await SendScheduleAsync(chatId, userId, dayPart, ct);
-            return;
-        }
-
-        if (lower == "/week")
-        {
-            await SendWeekScheduleAsync(chatId, userId, ct);
-            return;
-        }
-
-        if (_states.TryGetValue(userId, out _))
-        {
-            _states.TryRemove(userId, out _);
-            await _max.SendMessageAsync(chatId, "Ок.", ct: ct);
-            return;
-        }
-
         await _max.SendMessageAsync(
             chatId,
-            "Не понял команду. Используй /help для справки.",
+            "Используй кнопки меню — команды писать не нужно.",
             ct: ct
         );
+        await ShowMainMenuAsync(chatId, userId, ct);
     }
 
     private async Task HandleCallbackAsync(
@@ -296,52 +267,89 @@ public class MaxBotService : BackgroundService
 
         _logger.LogInformation("Callback from user {UserId}: {Payload}", userId, payload);
 
-        var parts = payload.Split(':');
-        var action = parts[0];
-        var param = parts.Length > 1 ? parts[1] : null;
-
-        switch (action)
+        var p = CallbackPayload.Parse(payload);
+        if (p is null)
         {
-            case "role":
-                await HandleRoleSelectionAsync(chatId, userId, param!, ct);
+            await ShowMainMenuAsync(chatId, userId, ct);
+            return;
+        }
+
+        switch (p.Action)
+        {
+            case "menu":
+                await ShowMainMenuAsync(chatId, userId, ct);
                 break;
-            case "group":
-                await HandleGroupSelectionAsync(chatId, userId, param!, ct);
-                break;
-            case "teacher":
-                await HandleTeacherSelectionAsync(chatId, userId, param!, ct);
+            case "today":
+                await ShowDayAsync(chatId, userId, StudyWeek.Now(_tz), ct);
                 break;
             case "day":
-                await SendScheduleAsync(
-                    chatId,
-                    userId,
-                    MessageFormatter.GetMinDayLabel(int.Parse(param!)),
-                    ct
-                );
+                var day = CallbackPayload.TryParseDate(p.Param1);
+                if (day is not null)
+                    await ShowDayAsync(chatId, userId, day.Value, ct);
+                else
+                    await ShowMainMenuAsync(chatId, userId, ct);
+                break;
+            case "dayprev":
+                await ShowDayAfterParse(chatId, userId, p.Param1, -1, ct);
+                break;
+            case "daynext":
+                await ShowDayAfterParse(chatId, userId, p.Param1, +1, ct);
                 break;
             case "week":
-                await SendWeekScheduleAsync(chatId, userId, ct);
+                await ShowWeekAfterParse(chatId, userId, p.Param1, 0, ct);
+                break;
+            case "weekprev":
+                await ShowWeekAfterParse(chatId, userId, p.Param1, -1, ct);
+                break;
+            case "weeknext":
+                await ShowWeekAfterParse(chatId, userId, p.Param1, +1, ct);
+                break;
+            case "cal":
+                var month = CallbackPayload.TryParseMonth(p.Param1);
+                if (month is not null)
+                    await ShowCalendarAsync(chatId, userId, month.Value, ct);
+                else
+                    await ShowMainMenuAsync(chatId, userId, ct);
+                break;
+            case "calprev":
+                await ShowCalendarAfterParse(chatId, userId, p.Param1, -1, ct);
+                break;
+            case "calnext":
+                await ShowCalendarAfterParse(chatId, userId, p.Param1, +1, ct);
+                break;
+            case "role":
+                await HandleRoleSelectionAsync(chatId, userId, p.Param1!, ct);
+                break;
+            case "group":
+                await HandleGroupSelectionAsync(chatId, userId, p.Param1!, ct);
+                break;
+            case "teacher":
+                await HandleTeacherSelectionAsync(chatId, userId, p.Param1!, ct);
+                break;
+            case "page":
+                if (p.Param1 == "groups")
+                    await ShowGroupSelectionAsync(chatId, userId, int.Parse(p.Param2!), ct);
+                if (p.Param1 == "teachers")
+                    await ShowTeacherSelectionAsync(chatId, userId, int.Parse(p.Param2!), ct);
+                break;
+            case "settings":
+                if (p.Param1 == "group")
+                    await ShowGroupSelectionAsync(chatId, userId, 0, ct);
+                if (p.Param1 == "teacher")
+                    await ShowTeacherSelectionAsync(chatId, userId, 0, ct);
                 break;
             case "notify":
                 await HandleNotifyToggleAsync(chatId, userId, ct);
                 break;
             case "notifyday":
-                await HandleNotifyDayToggleAsync(chatId, userId, int.Parse(param!), ct);
+                await HandleNotifyDayToggleAsync(chatId, userId, int.Parse(p.Param1!), ct);
                 break;
             case "notifysave":
                 await _max.SendMessageAsync(chatId, "✅ Настройки уведомлений сохранены!", ct: ct);
                 break;
-            case "settings":
-                if (param == "group")
-                    await ShowGroupSelectionAsync(chatId, userId, 0, ct);
-                if (param == "teacher")
-                    await ShowTeacherSelectionAsync(chatId, userId, 0, ct);
-                break;
-            case "page":
-                if (param == "groups")
-                    await ShowGroupSelectionAsync(chatId, userId, int.Parse(parts[2]), ct);
-                if (param == "teachers")
-                    await ShowTeacherSelectionAsync(chatId, userId, int.Parse(parts[2]), ct);
+            default:
+                _logger.LogWarning("Unknown callback action {Action}", p.Action);
+                await ShowMainMenuAsync(chatId, userId, ct);
                 break;
         }
     }
@@ -449,14 +457,7 @@ public class MaxBotService : BackgroundService
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        await _max.SendMessageAsync(
-            chatId,
-            "✅ Группа выбрана!\n\n"
-                + "/schedule — расписание на сегодня\n"
-                + "/week — расписание на неделю\n"
-                + "/settings — настройки",
-            ct: ct
-        );
+        await ShowMainMenuAsync(chatId, userId, ct);
     }
 
     private async Task ShowTeacherSelectionAsync(
@@ -538,54 +539,32 @@ public class MaxBotService : BackgroundService
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        await _max.SendMessageAsync(
-            chatId,
-            "✅ Преподаватель выбран!\n\n"
-                + "/schedule — расписание на сегодня\n"
-                + "/week — расписание на неделю\n"
-                + "/settings — настройки",
-            ct: ct
-        );
+        await ShowMainMenuAsync(chatId, userId, ct);
     }
 
-    private async Task SendScheduleAsync(
-        long chatId,
-        long userId,
-        string? dayText,
-        CancellationToken ct
-    )
+    private async Task<UserSettings?> GetSettingsAsync(long userId, CancellationToken ct)
     {
         using var scope = _sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
+        return await db.UserSettings.FirstOrDefaultAsync(x => x.MaxUserId == userId, ct);
+    }
 
-        var settings = await db.UserSettings.FirstOrDefaultAsync(x => x.MaxUserId == userId, ct);
-        if (settings is null || (settings.GroupId is null && settings.TeacherId is null))
+    private async Task ShowMainMenuAsync(long chatId, long userId, CancellationToken ct)
+    {
+        var settings = await GetSettingsAsync(userId, ct);
+        if (settings is null)
         {
-            await _max.SendMessageAsync(chatId, "⚠️ Сначала настрой профиль: /settings", ct: ct);
+            await HandleBotStartedAsync(chatId, userId, ct);
             return;
         }
 
-        var dayOfWeek = MessageFormatter.ParseDayOfWeek(dayText);
-        if (dayOfWeek == 0)
-            dayOfWeek = MessageFormatter.ToApiDay(
-                TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _tz).DayOfWeek
-            );
-        if (dayOfWeek == 0)
-        {
-            await _max.SendMessageAsync(chatId, MessageFormatter.SundayMessage, ct: ct);
-            return;
-        }
+        var roleLabel = settings.Role == "student" ? "Студент" : "Преподаватель";
+        var entity =
+            settings.GroupId.HasValue ? "группа"
+            : settings.TeacherId.HasValue ? "преподаватель"
+            : "не выбран";
 
-        var entries = await _api.GetScheduleAsync(
-            groupId: settings.GroupId,
-            teacherId: settings.TeacherId,
-            dayOfWeek: dayOfWeek,
-            ct: ct
-        );
-
-        var entityName = settings.GroupId.HasValue ? "Группа" : "Преподаватель";
-        var text = MessageFormatter.FormatDaySchedule(entries, dayOfWeek, entityName);
-
+        var today = StudyWeek.Now(_tz);
         var buttons = new List<List<MaxButton>>
         {
             new List<MaxButton>
@@ -593,14 +572,8 @@ public class MaxBotService : BackgroundService
                 new()
                 {
                     Type = "callback",
-                    Text = "← Пред. день",
-                    Payload = $"day:{Math.Max(1, dayOfWeek - 1)}",
-                },
-                new()
-                {
-                    Type = "callback",
-                    Text = "След. день →",
-                    Payload = $"day:{Math.Min(6, dayOfWeek + 1)}",
+                    Text = "📅 Сегодня",
+                    Payload = "today",
                 },
             },
             new List<MaxButton>
@@ -608,56 +581,328 @@ public class MaxBotService : BackgroundService
                 new()
                 {
                     Type = "callback",
-                    Text = "📅 На неделю",
-                    Payload = "week:current",
+                    Text = "📆 Неделя",
+                    Payload = CallbackPayload.Week(today),
+                },
+                new()
+                {
+                    Type = "callback",
+                    Text = "🗓 Дата",
+                    Payload = CallbackPayload.Cal(today),
+                },
+            },
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "⚙️ Настройки",
+                    Payload = "settings",
                 },
             },
         };
 
+        var text =
+            $"🏠 *Главное меню*\n\n" + $"Роль: {roleLabel}\n" + $"Группа/Преподаватель: {entity}";
+
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
 
-    private async Task SendWeekScheduleAsync(long chatId, long userId, CancellationToken ct)
+    private async Task ShowDayAsync(long chatId, long userId, DateTime date, CancellationToken ct)
     {
-        using var scope = _sp.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
-
-        var settings = await db.UserSettings.FirstOrDefaultAsync(x => x.MaxUserId == userId, ct);
+        var settings = await GetSettingsAsync(userId, ct);
         if (settings is null || (settings.GroupId is null && settings.TeacherId is null))
         {
-            await _max.SendMessageAsync(chatId, "⚠️ Сначала настрой профиль: /settings", ct: ct);
+            await ShowMainMenuAsync(chatId, userId, ct);
+            return;
+        }
+
+        var entityName = settings.GroupId.HasValue ? "Группа" : "Преподаватель";
+        var buttons = DayNavButtons(date, entityName);
+
+        if (date.DayOfWeek == DayOfWeek.Sunday)
+        {
+            await _max.SendInlineKeyboardAsync(
+                chatId,
+                MessageFormatter.FormatDaySchedule([], date, entityName),
+                buttons,
+                ct: ct
+            );
             return;
         }
 
         var entries = await _api.GetScheduleAsync(
             groupId: settings.GroupId,
             teacherId: settings.TeacherId,
-            period: "week",
-            week: StudyWeek.Current(_tz),
+            week: StudyWeek.ForDate(date),
+            dayOfWeek: MessageFormatter.ToApiDay(date.DayOfWeek),
             ct: ct
         );
 
+        var text = MessageFormatter.FormatDaySchedule(entries, date, entityName);
+        await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
+    }
+
+    private static List<List<MaxButton>> DayNavButtons(DateTime date, string entityName)
+    {
+        return
+        [
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "← Пред. день",
+                    Payload = CallbackPayload.DayPrev(date),
+                },
+                new()
+                {
+                    Type = "callback",
+                    Text = "След. день →",
+                    Payload = CallbackPayload.DayNext(date),
+                },
+            },
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "📆 Неделя",
+                    Payload = CallbackPayload.Week(date),
+                },
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔙 Меню",
+                    Payload = "menu",
+                },
+            },
+        ];
+    }
+
+    private async Task ShowWeekAsync(
+        long chatId,
+        long userId,
+        DateTime weekStart,
+        CancellationToken ct
+    )
+    {
+        var settings = await GetSettingsAsync(userId, ct);
+        if (settings is null || (settings.GroupId is null && settings.TeacherId is null))
+        {
+            await ShowMainMenuAsync(chatId, userId, ct);
+            return;
+        }
+
         var entityName = settings.GroupId.HasValue ? "Группа" : "Преподаватель";
-        var text = MessageFormatter.FormatWeekSchedule(entries, entityName);
+        var entries = await _api.GetScheduleAsync(
+            groupId: settings.GroupId,
+            teacherId: settings.TeacherId,
+            period: "week",
+            week: StudyWeek.ForDate(weekStart),
+            ct: ct
+        );
+
+        var text = MessageFormatter.FormatWeekSchedule(entries, weekStart, entityName);
+        var buttons = WeekNavButtons(weekStart);
 
         if (text.Length > 4000)
         {
-            var grouped = entries.GroupBy(x => x.DayOfWeek).OrderBy(x => x.Key);
-            foreach (var group in grouped)
+            var header =
+                $"📅 *Неделя {MessageFormatter.FormatShortDate(weekStart)}–{MessageFormatter.FormatShortDate(weekStart.AddDays(6))}*";
+            await _max.SendInlineKeyboardAsync(chatId, header, buttons, ct: ct);
+
+            foreach (var group in entries.GroupBy(x => x.DayOfWeek).OrderBy(x => x.Key))
             {
-                var dayText = MessageFormatter.FormatDaySchedule(
-                    group.ToList(),
-                    group.Key,
-                    entityName
-                );
+                var date = MessageFormatter.DateForWeekDay(weekStart, group.Key);
+                var dayText = MessageFormatter.FormatDaySchedule(group.ToList(), date, entityName);
                 await _max.SendMessageAsync(chatId, dayText, ct: ct);
                 await Task.Delay(500, ct);
             }
+            return;
         }
-        else
+
+        await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
+    }
+
+    private static List<List<MaxButton>> WeekNavButtons(DateTime weekStart)
+    {
+        var firstRow = new List<MaxButton>();
+        for (var i = 0; i < 7; i++)
         {
-            await _max.SendMessageAsync(chatId, text, ct: ct);
+            var date = weekStart.AddDays(i);
+            firstRow.Add(
+                new MaxButton
+                {
+                    Type = "callback",
+                    Text =
+                        $"{MessageFormatter.DayAbbrForDate(date)} {MessageFormatter.FormatShortDate(date)}",
+                    Payload = CallbackPayload.Day(date),
+                }
+            );
         }
+
+        var navRow = new List<MaxButton>
+        {
+            new()
+            {
+                Type = "callback",
+                Text = "← Неделя",
+                Payload = CallbackPayload.WeekPrev(weekStart),
+            },
+            new()
+            {
+                Type = "callback",
+                Text = "Неделя →",
+                Payload = CallbackPayload.WeekNext(weekStart),
+            },
+        };
+
+        var actionRow = new List<MaxButton>
+        {
+            new()
+            {
+                Type = "callback",
+                Text = "🗓 Дата",
+                Payload = CallbackPayload.Cal(weekStart),
+            },
+            new()
+            {
+                Type = "callback",
+                Text = "📅 Сегодня",
+                Payload = "today",
+            },
+            new()
+            {
+                Type = "callback",
+                Text = "🔙 Меню",
+                Payload = "menu",
+            },
+        };
+
+        return [firstRow, navRow, actionRow];
+    }
+
+    private async Task ShowCalendarAsync(
+        long chatId,
+        long userId,
+        DateTime month,
+        CancellationToken ct
+    )
+    {
+        var settings = await GetSettingsAsync(userId, ct);
+        if (settings is null || (settings.GroupId is null && settings.TeacherId is null))
+        {
+            await ShowMainMenuAsync(chatId, userId, ct);
+            return;
+        }
+
+        var maxMonth = StudyWeek.MondayOf(StudyWeek.SemesterStart).AddDays(16 * 7);
+        var rows = CalendarFormatter.BuildGrid(month);
+
+        var navRow = new List<MaxButton>();
+        if (CalendarFormatter.CanGoPrev(month))
+            navRow.Add(
+                new MaxButton
+                {
+                    Type = "callback",
+                    Text = "← Пред. месяц",
+                    Payload = CallbackPayload.CalPrev(month),
+                }
+            );
+        if (CalendarFormatter.CanGoNext(month, maxMonth))
+            navRow.Add(
+                new MaxButton
+                {
+                    Type = "callback",
+                    Text = "След. месяц →",
+                    Payload = CallbackPayload.CalNext(month),
+                }
+            );
+
+        var actionRow = new List<MaxButton>
+        {
+            new()
+            {
+                Type = "callback",
+                Text = "📅 Сегодня",
+                Payload = "today",
+            },
+            new()
+            {
+                Type = "callback",
+                Text = "🔙 Меню",
+                Payload = "menu",
+            },
+        };
+
+        var buttons = new List<List<MaxButton>>();
+        buttons.AddRange(rows);
+        if (navRow.Count > 0)
+            buttons.Add(navRow);
+        buttons.Add(actionRow);
+
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            $"🗓 *{CalendarFormatter.MonthTitle(month)}*",
+            buttons,
+            ct: ct
+        );
+    }
+
+    private async Task ShowDayAfterParse(
+        long chatId,
+        long userId,
+        string? dateText,
+        int deltaDays,
+        CancellationToken ct
+    )
+    {
+        var date = CallbackPayload.TryParseDate(dateText);
+        if (date is null)
+        {
+            await ShowMainMenuAsync(chatId, userId, ct);
+            return;
+        }
+
+        await ShowDayAsync(chatId, userId, date.Value.AddDays(deltaDays), ct);
+    }
+
+    private async Task ShowWeekAfterParse(
+        long chatId,
+        long userId,
+        string? dateText,
+        int deltaWeeks,
+        CancellationToken ct
+    )
+    {
+        var date = CallbackPayload.TryParseDate(dateText);
+        if (date is null)
+        {
+            await ShowMainMenuAsync(chatId, userId, ct);
+            return;
+        }
+
+        var anchor = StudyWeek.MondayOf(date.Value).AddDays(deltaWeeks * 7);
+        await ShowWeekAsync(chatId, userId, anchor, ct);
+    }
+
+    private async Task ShowCalendarAfterParse(
+        long chatId,
+        long userId,
+        string? monthText,
+        int deltaMonths,
+        CancellationToken ct
+    )
+    {
+        var month = CallbackPayload.TryParseMonth(monthText);
+        if (month is null)
+        {
+            await ShowMainMenuAsync(chatId, userId, ct);
+            return;
+        }
+
+        await ShowCalendarAsync(chatId, userId, month.Value.AddMonths(deltaMonths), ct);
     }
 
     private async Task ShowSettingsAsync(long chatId, long userId, CancellationToken ct)
@@ -732,6 +977,18 @@ public class MaxBotService : BackgroundService
                     Type = "callback",
                     Text = "🔔 Уведомления",
                     Payload = "notify:toggle",
+                },
+            }
+        );
+
+        buttons.Add(
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔙 Меню",
+                    Payload = "menu",
                 },
             }
         );
@@ -833,6 +1090,4 @@ public class MaxBotService : BackgroundService
 
         await _max.SendInlineKeyboardAsync(chatId, "🔔 Выбери дни уведомлений:", buttons, ct: ct);
     }
-
-    private record InteractionState(string Step, Dictionary<string, string> Data);
 }
