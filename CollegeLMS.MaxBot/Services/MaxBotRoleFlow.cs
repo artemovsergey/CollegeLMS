@@ -27,10 +27,4 @@ public static class MaxBotRoleFlow
         settings.TeacherId = teacherId;
         settings.GroupId = null;
     }
-
-    public static string RoleTogglePayload(string role) =>
-        role == "student" ? "role:teacher" : "role:student";
-
-    public static string RoleToggleLabel(string role) =>
-        role == "student" ? "🔄 Стать преподавателем" : "🔄 Стать студентом";
 }

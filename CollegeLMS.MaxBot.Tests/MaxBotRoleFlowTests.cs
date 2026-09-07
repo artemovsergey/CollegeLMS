@@ -62,12 +62,4 @@ public class MaxBotRoleFlowTests
         settings.Role.Should().Be("teacher");
         settings.GroupId.Should().BeNull();
     }
-
-    [Theory]
-    [InlineData("student", "role:teacher")]
-    [InlineData("teacher", "role:student")]
-    public void RoleTogglePayload_SwitchesRole(string role, string expected)
-    {
-        MaxBotRoleFlow.RoleTogglePayload(role).Should().Be(expected);
-    }
 }

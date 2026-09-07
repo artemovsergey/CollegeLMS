@@ -168,6 +168,11 @@ public class MaxBotService : BackgroundService
             await db.SaveChangesAsync(ct);
         }
 
+        await ShowRoleSelectionAsync(chatId, ct);
+    }
+
+    private async Task ShowRoleSelectionAsync(long chatId, CancellationToken ct)
+    {
         var keyboard = new List<List<MaxButton>>
         {
             new List<MaxButton>
@@ -335,8 +340,13 @@ public class MaxBotService : BackgroundService
             case "settings":
                 if (p.Param1 == "group")
                     await ShowGroupSelectionAsync(chatId, userId, 0, ct);
-                if (p.Param1 == "teacher")
+                else if (p.Param1 == "teacher")
                     await ShowTeacherSelectionAsync(chatId, userId, 0, ct);
+                else
+                    await ShowSettingsAsync(chatId, userId, ct);
+                break;
+            case "role-choice":
+                await ShowRoleSelectionAsync(chatId, ct);
                 break;
             case "notify":
                 await HandleNotifyToggleAsync(chatId, userId, ct);
@@ -953,8 +963,8 @@ public class MaxBotService : BackgroundService
                 new()
                 {
                     Type = "callback",
-                    Text = MaxBotRoleFlow.RoleToggleLabel(settings.Role),
-                    Payload = MaxBotRoleFlow.RoleTogglePayload(settings.Role),
+                    Text = "🎓 Сменить роль",
+                    Payload = "role-choice",
                 },
             },
         };
