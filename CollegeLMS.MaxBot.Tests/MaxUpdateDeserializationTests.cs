@@ -85,4 +85,37 @@ public class MaxUpdateDeserializationTests
         update.ChatId.Should().Be(777);
         update.User!.UserId.Should().Be(42);
     }
+
+    [Fact]
+    public void DeserializesMessageCallbackWithBotSenderMessage()
+    {
+        // В message_callback поле message — это исходящее сообщение бота,
+        // поэтому sender = сам бот, а настоящий пользователь — в callback.user.
+        var json = """
+            {
+              "update_type": "message_callback",
+              "timestamp": 1725777000000,
+              "callback": {
+                "timestamp": 1725777000000,
+                "callback_id": "cb-999",
+                "payload": "role:student",
+                "user": { "user_id": 42, "first_name": "Иван", "is_bot": false }
+              },
+              "message": {
+                "sender": { "user_id": 211141964, "first_name": "Бот", "is_bot": true },
+                "recipient": { "chat_type": "dialog", "chat_id": 777, "user_id": 42 },
+                "body": { "mid": "mid-1", "seq": 1, "text": "Выбери роль" }
+              }
+            }
+            """;
+
+        var update = JsonSerializer.Deserialize<MaxUpdate>(json, JsonOpts);
+
+        Assert.NotNull(update);
+        update.UpdateType.Should().Be("message_callback");
+        Assert.NotNull(update.Callback);
+        update.Callback!.User!.UserId.Should().Be(42);
+        Assert.NotNull(update.Message);
+        update.Message!.Sender!.UserId.Should().Be(211141964);
+    }
 }

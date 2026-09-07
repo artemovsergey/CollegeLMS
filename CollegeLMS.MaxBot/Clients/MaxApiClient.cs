@@ -102,18 +102,17 @@ public class MaxApiClient
     public async Task AnswerCallbackAsync(
         string callbackId,
         string? text = null,
-        string format = "markdown",
         CancellationToken ct = default
     )
     {
-        var body = text is null
-            ? new Dictionary<string, object>()
+        Dictionary<string, object> body = text is null
+            ? new Dictionary<string, object> { ["notification"] = true }
             : new Dictionary<string, object>
             {
                 ["message"] = new Dictionary<string, object>
                 {
                     ["text"] = text,
-                    ["format"] = format,
+                    ["attachments"] = Array.Empty<object>(),
                 },
             };
 

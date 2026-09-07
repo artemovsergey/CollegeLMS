@@ -119,25 +119,12 @@ public class MaxBotService : BackgroundService
         }
     }
 
-    private long ResolveUserId(MaxUpdate update)
-    {
-        return update.Message?.Sender?.UserId
-            ?? update.Callback?.User?.UserId
-            ?? update.User?.UserId
-            ?? 0;
-    }
-
-    private long ResolveChatId(MaxUpdate update)
-    {
-        return update.Message?.Recipient?.ChatId ?? update.ChatId ?? 0;
-    }
-
     private async Task HandleUpdateAsync(MaxUpdate update, CancellationToken ct)
     {
         try
         {
-            var userId = ResolveUserId(update);
-            var chatId = ResolveChatId(update);
+            var userId = MaxUserResolver.ResolveUserId(update);
+            var chatId = MaxUserResolver.ResolveChatId(update);
 
             switch (update.UpdateType)
             {
