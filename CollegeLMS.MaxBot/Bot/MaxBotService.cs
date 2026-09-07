@@ -368,7 +368,7 @@ public class MaxBotService : BackgroundService
         if (settings is null)
             return;
 
-        settings.Role = role;
+        MaxBotRoleFlow.ApplyRole(settings, role);
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
@@ -453,7 +453,7 @@ public class MaxBotService : BackgroundService
         if (settings is null)
             return;
 
-        settings.GroupId = Guid.Parse(groupId);
+        MaxBotRoleFlow.SelectGroup(settings, Guid.Parse(groupId));
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
@@ -535,7 +535,7 @@ public class MaxBotService : BackgroundService
         if (settings is null)
             return;
 
-        settings.TeacherId = Guid.Parse(teacherId);
+        MaxBotRoleFlow.SelectTeacher(settings, Guid.Parse(teacherId));
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
@@ -617,7 +617,7 @@ public class MaxBotService : BackgroundService
             return;
         }
 
-        var entityName = settings.GroupId.HasValue ? "Группа" : "Преподаватель";
+        var entityName = settings.Role == "student" ? "Группа" : "Преподаватель";
         var buttons = DayNavButtons(date, entityName);
 
         if (date.DayOfWeek == DayOfWeek.Sunday)
@@ -639,7 +639,12 @@ public class MaxBotService : BackgroundService
             ct: ct
         );
 
-        var text = MessageFormatter.FormatDaySchedule(entries, date, entityName);
+        var text = MessageFormatter.FormatDaySchedule(
+            entries,
+            date,
+            entityName,
+            showGroup: settings.Role == "teacher"
+        );
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
 
@@ -694,7 +699,7 @@ public class MaxBotService : BackgroundService
             return;
         }
 
-        var entityName = settings.GroupId.HasValue ? "Группа" : "Преподаватель";
+        var entityName = settings.Role == "student" ? "Группа" : "Преподаватель";
         var entries = await _api.GetScheduleAsync(
             groupId: settings.GroupId,
             teacherId: settings.TeacherId,
@@ -703,7 +708,12 @@ public class MaxBotService : BackgroundService
             ct: ct
         );
 
-        var text = MessageFormatter.FormatWeekSchedule(entries, weekStart, entityName);
+        var text = MessageFormatter.FormatWeekSchedule(
+            entries,
+            weekStart,
+            entityName,
+            showGroup: settings.Role == "teacher"
+        );
         var buttons = WeekNavButtons(weekStart);
 
         if (text.Length > 4000)
@@ -715,7 +725,12 @@ public class MaxBotService : BackgroundService
             foreach (var group in entries.GroupBy(x => x.DayOfWeek).OrderBy(x => x.Key))
             {
                 var date = MessageFormatter.DateForWeekDay(weekStart, group.Key);
-                var dayText = MessageFormatter.FormatDaySchedule(group.ToList(), date, entityName);
+                var dayText = MessageFormatter.FormatDaySchedule(
+                    group.ToList(),
+                    date,
+                    entityName,
+                    showGroup: settings.Role == "teacher"
+                );
                 await _max.SendMessageAsync(chatId, dayText, ct: ct);
                 await Task.Delay(500, ct);
             }
@@ -938,8 +953,8 @@ public class MaxBotService : BackgroundService
                 new()
                 {
                     Type = "callback",
-                    Text = "🔄 Сменить роль",
-                    Payload = "role:student",
+                    Text = MaxBotRoleFlow.RoleToggleLabel(settings.Role),
+                    Payload = MaxBotRoleFlow.RoleTogglePayload(settings.Role),
                 },
             },
         };

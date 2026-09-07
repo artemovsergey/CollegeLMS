@@ -35,6 +35,50 @@ public class MessageFormatterTests
     }
 
     [Fact]
+    public void FormatDaySchedule_ShowGroup_IncludesGroupName()
+    {
+        var entries = new List<ScheduleResponse> { Entries()[0] with { GroupName = "ИС-21" } };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            entries,
+            new DateTime(2026, 9, 7),
+            "Иванов И.И.",
+            showGroup: true
+        );
+
+        text.Should().Contain("ИС-21");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_WithoutShowGroup_OmitsGroupName()
+    {
+        var entries = new List<ScheduleResponse> { Entries()[0] with { GroupName = "ИС-21" } };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            entries,
+            new DateTime(2026, 9, 7),
+            "Иванов И.И."
+        );
+
+        text.Should().NotContain("ИС-21");
+    }
+
+    [Fact]
+    public void FormatWeekSchedule_ShowGroup_IncludesGroupName()
+    {
+        var entries = new List<ScheduleResponse> { Entries()[0] with { GroupName = "ИС-21" } };
+
+        var text = MessageFormatter.FormatWeekSchedule(
+            entries,
+            new DateTime(2026, 9, 7),
+            "Иванов И.И.",
+            showGroup: true
+        );
+
+        text.Should().Contain("ИС-21");
+    }
+
+    [Fact]
     public void FormatDaySchedule_Empty_ShowsHoliday()
     {
         var text = MessageFormatter.FormatDaySchedule([], new DateTime(2026, 9, 7), "Группа 101");
