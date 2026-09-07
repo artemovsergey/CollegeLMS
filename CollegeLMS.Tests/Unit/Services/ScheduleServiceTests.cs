@@ -362,6 +362,7 @@ public class ScheduleServiceTests : IDisposable
             null,
             null,
             ExportFormat.Pdf,
+            ExportLayout.Grid,
             default
         );
 
@@ -384,6 +385,7 @@ public class ScheduleServiceTests : IDisposable
             null,
             null,
             ExportFormat.Xlsx,
+            ExportLayout.Grid,
             default
         );
 
@@ -404,6 +406,7 @@ public class ScheduleServiceTests : IDisposable
             null,
             null,
             ExportFormat.Pdf,
+            ExportLayout.Grid,
             default
         );
 
