@@ -1,34 +1,85 @@
+using CollegeLMS.MaxBot.Clients;
 using CollegeLMS.MaxBot.Services;
 
 namespace CollegeLMS.MaxBot.Tests;
 
 public class MessageFormatterTests
 {
-    [Theory]
-    [InlineData("пн", 1)]
-    [InlineData("ПОНЕДЕЛЬНИК", 1)]
-    [InlineData("вт", 2)]
-    [InlineData("ср", 3)]
-    [InlineData("чт", 4)]
-    [InlineData("пт", 5)]
-    [InlineData("сб", 6)]
-    [InlineData("вс", 0)]
-    [InlineData("неизвестно", 0)]
-    public void ParseDayOfWeekMapsToApiConvention(string input, int expected)
+    private static List<ScheduleResponse> Entries() =>
+    [
+        new ScheduleResponse
+        {
+            DayOfWeek = 1,
+            NumberPair = 1,
+            Subject = "Математика",
+            Room = "405",
+            StartTime = new TimeSpan(9, 0, 0),
+            EndTime = new TimeSpan(10, 30, 0),
+            TeacherName = "Иванов И.И.",
+            LessonType = "Lecture",
+        },
+    ];
+
+    [Fact]
+    public void FormatDaySchedule_IncludesDateInHeader()
     {
-        MessageFormatter.ParseDayOfWeek(input).Should().Be(expected);
+        var text = MessageFormatter.FormatDaySchedule(
+            Entries(),
+            new DateTime(2026, 9, 7),
+            "Группа 101"
+        );
+
+        text.Should().Contain("Понедельник, 07.09");
+        text.Should().Contain("Группа 101");
+        text.Should().Contain("Математика");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_Empty_ShowsHoliday()
+    {
+        var text = MessageFormatter.FormatDaySchedule([], new DateTime(2026, 9, 7), "Группа 101");
+
+        text.Should().Contain("Расписания нет — выходной!");
+    }
+
+    [Fact]
+    public void FormatWeekSchedule_HeaderHasDateRange()
+    {
+        var weekStart = new DateTime(2026, 9, 7);
+
+        var text = MessageFormatter.FormatWeekSchedule(Entries(), weekStart, "Группа 101");
+
+        text.Should().Contain("07.09–13.09");
+        text.Should().Contain("Понедельник, 07.09");
+        text.Should().Contain("Группа 101");
+    }
+
+    [Fact]
+    public void FormatWeekSchedule_SundayEntries_HeaderUsesIndex7()
+    {
+        var weekStart = new DateTime(2026, 9, 7);
+        var entries = new List<ScheduleResponse> { Entries()[0] with { DayOfWeek = 0 } };
+
+        var text = MessageFormatter.FormatWeekSchedule(entries, weekStart, "Группа 101");
+
+        text.Should().Contain("Воскресенье, 13.09");
     }
 
     [Theory]
-    [InlineData(DayOfWeek.Monday, 1)]
-    [InlineData(DayOfWeek.Tuesday, 2)]
-    [InlineData(DayOfWeek.Wednesday, 3)]
-    [InlineData(DayOfWeek.Thursday, 4)]
-    [InlineData(DayOfWeek.Friday, 5)]
-    [InlineData(DayOfWeek.Saturday, 6)]
-    [InlineData(DayOfWeek.Sunday, 0)]
-    public void ToApiDayMatchesCSharpDayOfWeek(DayOfWeek day, int expected)
+    [InlineData(0, 7)]
+    [InlineData(1, 1)]
+    [InlineData(6, 6)]
+    public void DayIndex_MapsApiDayToLabelIndex(int apiDay, int expected)
     {
-        MessageFormatter.ToApiDay(day).Should().Be(expected);
+        MessageFormatter.DayIndex(apiDay).Should().Be(expected);
+    }
+
+    [Fact]
+    public void DateForWeekDay_MapsApiDayToDate()
+    {
+        var weekStart = new DateTime(2026, 9, 7);
+
+        MessageFormatter.DateForWeekDay(weekStart, 1).Should().Be(new DateTime(2026, 9, 7));
+        MessageFormatter.DateForWeekDay(weekStart, 0).Should().Be(new DateTime(2026, 9, 13));
     }
 }
