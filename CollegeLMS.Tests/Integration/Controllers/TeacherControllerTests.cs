@@ -105,9 +105,9 @@ public class TeacherControllerTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task GetAll_ReturnsUnauthorized_WhenNoToken()
+    public async Task GetAll_ReturnsOk_WhenNoToken()
     {
         var response = await Client.GetAsync("/api/teachers");
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }

@@ -15,7 +15,7 @@ namespace CollegeLMS.API.Controllers;
 public class TeacherController(ITeacherService service) : ControllerBase
 {
     [HttpGet]
-    [Authorize(Roles = "Admin,Teacher,Student,Dispatcher")]
+    [AllowAnonymous]
     [SwaggerOperation(Summary = "Получить список преподавателей")]
     [SwaggerResponse(200, "Список преподавателей получен", typeof(Result<List<TeacherResponse>>))]
     [SwaggerResponse(401, "Не авторизован")]

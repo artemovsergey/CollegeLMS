@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af"/>
+      <stop offset="100%" style="stop-color:#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(255,255,255,0.15)"/>
+      <stop offset="100%" style="stop-color:rgba(255,255,255,0)"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#bg)" filter="url(#shadow)"/>
+  <circle cx="256" cy="256" r="240" fill="url(#shine)"/>
+
+  <!-- Inner ring -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+
+  <!-- Book icon -->
+  <g transform="translate(256, 170)" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left page -->
+    <path d="M-60,0 L-60,-50 Q-30,-60 0,-50 L0,0 Q-30,-10 -60,0 Z" fill="rgba(255,255,255,0.15)"/>
+    <!-- Right page -->
+    <path d="M60,0 L60,-50 Q30,-60 0,-50 L0,0 Q30,-10 60,0 Z" fill="rgba(255,255,255,0.15)"/>
+    <!-- Spine -->
+    <line x1="0" y1="-55" x2="0" y2="5"/>
+    <!-- Pages lines -->
+    <line x1="-45" y1="-25" x2="-10" y2="-30" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+    <line x1="-45" y1="-15" x2="-10" y2="-20" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+    <line x1="45" y1="-25" x2="10" y2="-30" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+    <line x1="45" y1="-15" x2="10" y2="-20" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+  </g>
+
+  <!-- Main text: ГБПОУ СКС -->
+  <text x="256" y="290" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="72" fill="white" letter-spacing="6">ГБПОУ СКС</text>
+
+  <!-- Subtitle -->
+  <text x="256" y="330" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="400" font-size="24" fill="rgba(255,255,255,0.7)" letter-spacing="3">БОТ РАСПИСАНИЯ</text>
+
+  <!-- Decorative dots -->
+  <circle cx="140" cy="360" r="4" fill="rgba(255,255,255,0.4)"/>
+  <circle cx="256" cy="360" r="4" fill="rgba(255,255,255,0.4)"/>
+  <circle cx="372" cy="360" r="4" fill="rgba(255,255,255,0.4)"/>
+</svg>

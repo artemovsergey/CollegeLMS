@@ -116,6 +116,32 @@ services:
     networks:
       - collegelms-net
 
+  maxbot:
+    profiles:
+      - max-bot
+    build:
+      context: .
+      dockerfile: CollegeLMS.MaxBot/Dockerfile
+    container_name: collegelms-maxbot
+    mem_limit: 256m
+    memswap_limit: 512m
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      MaxBot__AccessToken: ${MAX_BOT_TOKEN:-}
+      MaxBot__NotifyHour: 7
+      MaxBot__NotifyMinute: 30
+      MaxBot__TimeZone: Europe/Moscow
+      CollegeLmsApi__BaseUrl: http://api:8080
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${MAX_BOT_DB_NAME:-collegelms_maxbot};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - collegelms-net
+
   telegram-bot:
     profiles:
       - telegram-bot
