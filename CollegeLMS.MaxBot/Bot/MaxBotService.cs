@@ -559,18 +559,22 @@ public class MaxBotService : BackgroundService
         }
 
         var roleLabel = settings.Role == "student" ? "Студент" : "Преподаватель";
-        var entity = settings.GroupId.HasValue
-            ? "группа"
-            : settings.TeacherId.HasValue
-                ? "преподаватель"
-                : "не выбран";
+        var entity =
+            settings.GroupId.HasValue ? "группа"
+            : settings.TeacherId.HasValue ? "преподаватель"
+            : "не выбран";
 
         var today = StudyWeek.Now(_tz);
         var buttons = new List<List<MaxButton>>
         {
             new List<MaxButton>
             {
-                new() { Type = "callback", Text = "📅 Сегодня", Payload = "today" },
+                new()
+                {
+                    Type = "callback",
+                    Text = "📅 Сегодня",
+                    Payload = "today",
+                },
             },
             new List<MaxButton>
             {
@@ -589,14 +593,17 @@ public class MaxBotService : BackgroundService
             },
             new List<MaxButton>
             {
-                new() { Type = "callback", Text = "⚙️ Настройки", Payload = "settings" },
+                new()
+                {
+                    Type = "callback",
+                    Text = "⚙️ Настройки",
+                    Payload = "settings",
+                },
             },
         };
 
         var text =
-            $"🏠 *Главное меню*\n\n"
-            + $"Роль: {roleLabel}\n"
-            + $"Группа/Преподаватель: {entity}";
+            $"🏠 *Главное меню*\n\n" + $"Роль: {roleLabel}\n" + $"Группа/Преподаватель: {entity}";
 
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
@@ -663,7 +670,12 @@ public class MaxBotService : BackgroundService
                     Text = "📆 Неделя",
                     Payload = CallbackPayload.Week(date),
                 },
-                new() { Type = "callback", Text = "🔙 Меню", Payload = "menu" },
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔙 Меню",
+                    Payload = "menu",
+                },
             },
         ];
     }
@@ -723,7 +735,8 @@ public class MaxBotService : BackgroundService
                 new MaxButton
                 {
                     Type = "callback",
-                    Text = $"{MessageFormatter.DayAbbrForDate(date)} {MessageFormatter.FormatShortDate(date)}",
+                    Text =
+                        $"{MessageFormatter.DayAbbrForDate(date)} {MessageFormatter.FormatShortDate(date)}",
                     Payload = CallbackPayload.Day(date),
                 }
             );
@@ -753,8 +766,18 @@ public class MaxBotService : BackgroundService
                 Text = "🗓 Дата",
                 Payload = CallbackPayload.Cal(weekStart),
             },
-            new() { Type = "callback", Text = "📅 Сегодня", Payload = "today" },
-            new() { Type = "callback", Text = "🔙 Меню", Payload = "menu" },
+            new()
+            {
+                Type = "callback",
+                Text = "📅 Сегодня",
+                Payload = "today",
+            },
+            new()
+            {
+                Type = "callback",
+                Text = "🔙 Меню",
+                Payload = "menu",
+            },
         };
 
         return [firstRow, navRow, actionRow];
@@ -799,8 +822,18 @@ public class MaxBotService : BackgroundService
 
         var actionRow = new List<MaxButton>
         {
-            new() { Type = "callback", Text = "📅 Сегодня", Payload = "today" },
-            new() { Type = "callback", Text = "🔙 Меню", Payload = "menu" },
+            new()
+            {
+                Type = "callback",
+                Text = "📅 Сегодня",
+                Payload = "today",
+            },
+            new()
+            {
+                Type = "callback",
+                Text = "🔙 Меню",
+                Payload = "menu",
+            },
         };
 
         var buttons = new List<List<MaxButton>>();
@@ -951,7 +984,12 @@ public class MaxBotService : BackgroundService
         buttons.Add(
             new List<MaxButton>
             {
-                new() { Type = "callback", Text = "🔙 Меню", Payload = "menu" },
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔙 Меню",
+                    Payload = "menu",
+                },
             }
         );
 

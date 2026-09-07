@@ -6,19 +6,19 @@ namespace CollegeLMS.MaxBot.Tests;
 public class MessageFormatterTests
 {
     private static List<ScheduleResponse> Entries() =>
-    [
-        new ScheduleResponse
-        {
-            DayOfWeek = 1,
-            NumberPair = 1,
-            Subject = "Математика",
-            Room = "405",
-            StartTime = new TimeSpan(9, 0, 0),
-            EndTime = new TimeSpan(10, 30, 0),
-            TeacherName = "Иванов И.И.",
-            LessonType = "Lecture",
-        },
-    ];
+        [
+            new ScheduleResponse
+            {
+                DayOfWeek = 1,
+                NumberPair = 1,
+                Subject = "Математика",
+                Room = "405",
+                StartTime = new TimeSpan(9, 0, 0),
+                EndTime = new TimeSpan(10, 30, 0),
+                TeacherName = "Иванов И.И.",
+                LessonType = "Lecture",
+            },
+        ];
 
     [Fact]
     public void FormatDaySchedule_IncludesDateInHeader()

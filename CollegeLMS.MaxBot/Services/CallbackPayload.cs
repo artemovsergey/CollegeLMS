@@ -18,13 +18,21 @@ public sealed record CallbackPayload(string Action, string? Param1, string? Para
     }
 
     public static string Day(DateTime date) => $"day:{date:yyyy-MM-dd}";
+
     public static string DayPrev(DateTime date) => $"dayprev:{date:yyyy-MM-dd}";
+
     public static string DayNext(DateTime date) => $"daynext:{date:yyyy-MM-dd}";
+
     public static string Week(DateTime date) => $"week:{date:yyyy-MM-dd}";
+
     public static string WeekPrev(DateTime date) => $"weekprev:{date:yyyy-MM-dd}";
+
     public static string WeekNext(DateTime date) => $"weeknext:{date:yyyy-MM-dd}";
+
     public static string Cal(DateTime month) => $"cal:{month:yyyy-MM}";
+
     public static string CalPrev(DateTime month) => $"calprev:{month:yyyy-MM}";
+
     public static string CalNext(DateTime month) => $"calnext:{month:yyyy-MM}";
 
     public static DateTime? TryParseDate(string? text)

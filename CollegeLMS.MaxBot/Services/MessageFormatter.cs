@@ -99,11 +99,9 @@ public static class MessageFormatter
     public static string FormatLongDate(DateTime date) =>
         $"{DayNames[DayIndex((int)date.DayOfWeek)]}, {FormatShortDate(date)}";
 
-    public static string DayLabelForDate(DateTime date) =>
-        DayNames[DayIndex((int)date.DayOfWeek)];
+    public static string DayLabelForDate(DateTime date) => DayNames[DayIndex((int)date.DayOfWeek)];
 
-    public static string DayAbbrForDate(DateTime date) =>
-        DayAbbr[DayIndex((int)date.DayOfWeek)];
+    public static string DayAbbrForDate(DateTime date) => DayAbbr[DayIndex((int)date.DayOfWeek)];
 
     public static string FormatDaySchedule(
         List<ScheduleResponse> entries,
