@@ -208,6 +208,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISpecialtyService, SpecialtyService>();
         services.AddScoped<ScheduleExportService>();
         services.AddScoped<ScheduleImportService>();
+        services.AddScoped<ScheduleCorrectionService>();
         services.AddHttpClient<MaxBotHttpClient>(c =>
         {
             c.BaseAddress = new Uri(config["MaxBot:BaseUrl"] ?? "http://localhost:8080");
