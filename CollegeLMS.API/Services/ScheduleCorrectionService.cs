@@ -466,4 +466,328 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
         return await query.AnyAsync(ct);
     }
+
+    public async Task<Result<CorrectionConfirmResult>> ConfirmAsync(
+        CorrectionConfirmRequest request,
+        Guid appliedByUserId,
+        CancellationToken ct
+    )
+    {
+        if (request.Entries.Count == 0)
+            return Result<CorrectionConfirmResult>.Ok(
+                new CorrectionConfirmResult { Applied = 0, History = [] }
+            );
+
+        var history = new List<ScheduleHistory>();
+        var notifChanges = new List<ScheduleChangeDto>();
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+        try
+        {
+            foreach (var entry in request.Entries)
+            {
+                var applied = await ApplyEntryAsync(entry, appliedByUserId, ct);
+                history.Add(applied.History);
+                if (applied.Change is not null)
+                    notifChanges.Add(applied.Change);
+            }
+
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+
+        // Оповещение MaxBot — fail-safe, после фиксации транзакции
+        await maxBot.SendChangesAsync(notifChanges, ct);
+
+        var ids = history.Select(h => h.Id).ToList();
+        var saved = await db
+            .ScheduleHistory.AsNoTracking()
+            .Include(h => h.Group)
+            .Include(h => h.Teacher!)
+            .ThenInclude(t => t.User)
+            .Where(h => ids.Contains(h.Id))
+            .OrderBy(h => h.AppliedAt)
+            .ToListAsync(ct);
+
+        return Result<CorrectionConfirmResult>.Ok(
+            new CorrectionConfirmResult
+            {
+                Applied = history.Count,
+                History = saved.Select(h => h.ToDto()).ToList(),
+            }
+        );
+    }
+
+    public async Task<Result<PagedResponse<ScheduleHistoryResponse>>> GetHistoryAsync(
+        Guid? groupId,
+        Guid? teacherId,
+        int? week,
+        int? page,
+        int? pageSize,
+        CancellationToken ct
+    )
+    {
+        var query = db.ScheduleHistory.AsNoTracking()
+            .Include(h => h.Group)
+            .Include(h => h.Teacher!)
+            .ThenInclude(t => t.User)
+            .AsQueryable();
+
+        if (groupId.HasValue)
+            query = query.Where(h => h.GroupId == groupId.Value);
+
+        if (teacherId.HasValue)
+            query = query.Where(
+                h => h.TeacherId == teacherId.Value || h.RemovedTeacherId == teacherId.Value
+            );
+
+        if (week.HasValue)
+            query = query.Where(h => h.Week == week.Value);
+
+        query = query.OrderByDescending(h => h.AppliedAt).ThenByDescending(h => h.CreatedAt);
+
+        var total = await query.CountAsync(ct);
+        var p = Math.Max(page ?? 1, 1);
+        var ps = Math.Clamp(pageSize ?? 20, 1, 200);
+        var items = await query
+            .Skip((p - 1) * ps)
+            .Take(ps)
+            .ToListAsync(ct);
+
+        return Result<PagedResponse<ScheduleHistoryResponse>>.Ok(
+            new PagedResponse<ScheduleHistoryResponse>(
+                items.Select(h => h.ToDto()).ToList(),
+                total,
+                p,
+                ps
+            )
+        );
+    }
+
+    private record AppliedEntry(ScheduleHistory History, ScheduleChangeDto? Change);
+
+    private async Task<AppliedEntry> ApplyEntryAsync(
+        CorrectionPreviewEntry entry,
+        Guid appliedByUserId,
+        CancellationToken ct
+    )
+    {
+        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == entry.GroupId, ct);
+        if (group is null)
+            throw new InvalidOperationException($"Группа {entry.GroupId} не найдена.");
+
+        var day = (DayOfWeek)entry.DayOfWeek;
+        var utcNow = DateTime.UtcNow;
+
+        switch (entry.ChangeType)
+        {
+            case ScheduleChangeType.Add:
+            {
+                var entity = CreateEntry(group.Id, entry, day, utcNow);
+                db.ScheduleEntries.Add(entity);
+
+                var history = new ScheduleHistory
+                {
+                    Id = Guid.NewGuid(),
+                    ChangeType = ScheduleChangeType.Add,
+                    AppliedAt = utcNow,
+                    AppliedByUserId = appliedByUserId,
+                    GroupId = group.Id,
+                    TeacherId = entry.TeacherId,
+                    Subject = entry.Subject ?? string.Empty,
+                    Room = entity.Room,
+                    DayOfWeek = day,
+                    NumberPair = entry.NumberPair,
+                    Week = entry.Week,
+                    Note = entry.Note,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                };
+                db.ScheduleHistory.Add(history);
+
+                var change = new ScheduleChangeDto
+                {
+                    ChangeType = "Add",
+                    GroupId = group.Id,
+                    GroupName = group.Name,
+                    TeacherId = entry.TeacherId,
+                    TeacherName = entry.TeacherName,
+                    DayOfWeek = entry.DayOfWeek,
+                    Week = entry.Week,
+                    NumberPair = entry.NumberPair,
+                    Subject = entry.Subject ?? string.Empty,
+                    Note = entry.Note,
+                };
+
+                return new AppliedEntry(history, change);
+            }
+
+            case ScheduleChangeType.Remove:
+            {
+                var target = await db.ScheduleEntries.FirstOrDefaultAsync(
+                    e =>
+                        e.GroupId == group.Id
+                        && e.DayOfWeek == day
+                        && e.NumberPair == entry.NumberPair
+                        && e.Weeks.Contains(entry.Week),
+                    ct
+                );
+                if (target is null)
+                    throw new InvalidOperationException(
+                        $"Занятие на {day} {entry.Week}-й неделе, пара {entry.NumberPair} не найдено."
+                    );
+
+                target.Weeks = target.Weeks.Where(w => w != entry.Week).ToList();
+                if (target.Weeks.Count == 0)
+                    db.ScheduleEntries.Remove(target);
+                else
+                    target.UpdatedAt = utcNow;
+
+                var history = new ScheduleHistory
+                {
+                    Id = Guid.NewGuid(),
+                    ChangeType = ScheduleChangeType.Remove,
+                    AppliedAt = utcNow,
+                    AppliedByUserId = appliedByUserId,
+                    GroupId = group.Id,
+                    TeacherId = target.TeacherId,
+                    Subject = target.Subject,
+                    Room = target.Room,
+                    DayOfWeek = day,
+                    NumberPair = target.NumberPair,
+                    Week = entry.Week,
+                    Note = entry.Note,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                };
+                db.ScheduleHistory.Add(history);
+
+                var change = new ScheduleChangeDto
+                {
+                    ChangeType = "Remove",
+                    GroupId = group.Id,
+                    GroupName = group.Name,
+                    TeacherId = target.TeacherId,
+                    TeacherName = entry.RemovedTeacherName,
+                    DayOfWeek = entry.DayOfWeek,
+                    Week = entry.Week,
+                    NumberPair = target.NumberPair,
+                    Subject = target.Subject,
+                    Note = entry.Note,
+                };
+
+                return new AppliedEntry(history, change);
+            }
+
+            default: // Replace
+            {
+                var removed = await db.ScheduleEntries.FirstOrDefaultAsync(
+                    e =>
+                        e.GroupId == group.Id
+                        && e.DayOfWeek == day
+                        && e.Weeks.Contains(entry.Week)
+                        && (
+                            entry.RemovedTeacherId.HasValue
+                                ? e.TeacherId == entry.RemovedTeacherId.Value
+                                : e.TeacherId == null
+                        )
+                        && e.Subject == (entry.RemovedSubject ?? string.Empty),
+                    ct
+                );
+                if (removed is null)
+                    throw new InvalidOperationException(
+                        $"Занятие на {day} {entry.Week}-й неделе не найдено."
+                    );
+
+                if (removed.NumberPair == entry.NumberPair)
+                    throw new InvalidOperationException("Пара снятия и ввода одинакова.");
+
+                removed.Weeks = removed.Weeks.Where(w => w != entry.Week).ToList();
+                if (removed.Weeks.Count == 0)
+                    db.ScheduleEntries.Remove(removed);
+                else
+                    removed.UpdatedAt = utcNow;
+
+                var entity = CreateEntry(group.Id, entry, day, utcNow);
+                db.ScheduleEntries.Add(entity);
+
+                var history = new ScheduleHistory
+                {
+                    Id = Guid.NewGuid(),
+                    ChangeType = ScheduleChangeType.Replace,
+                    AppliedAt = utcNow,
+                    AppliedByUserId = appliedByUserId,
+                    GroupId = group.Id,
+                    TeacherId = entry.TeacherId,
+                    Subject = entry.Subject ?? string.Empty,
+                    Room = entity.Room,
+                    DayOfWeek = day,
+                    NumberPair = entry.NumberPair,
+                    Week = entry.Week,
+                    Note = entry.Note,
+                    RemovedSubject = removed.Subject,
+                    RemovedTeacherId = removed.TeacherId,
+                    RemovedRoom = removed.Room,
+                    RemovedNumberPair = removed.NumberPair,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                };
+                db.ScheduleHistory.Add(history);
+
+                var change = new ScheduleChangeDto
+                {
+                    ChangeType = "Replace",
+                    GroupId = group.Id,
+                    GroupName = group.Name,
+                    TeacherId = entry.TeacherId,
+                    TeacherName = entry.TeacherName,
+                    DayOfWeek = entry.DayOfWeek,
+                    Week = entry.Week,
+                    NumberPair = entry.NumberPair,
+                    Subject = entry.Subject ?? string.Empty,
+                    Note = entry.Note,
+                    RemovedSubject = removed.Subject,
+                    RemovedTeacherName = entry.RemovedTeacherName,
+                    RemovedNumberPair = removed.NumberPair,
+                };
+
+                return new AppliedEntry(history, change);
+            }
+        }
+    }
+
+    private static ScheduleEntry CreateEntry(
+        Guid groupId,
+        CorrectionPreviewEntry entry,
+        DayOfWeek day,
+        DateTime utcNow
+    )
+    {
+        var (start, end) = ScheduleImportService.GetPairTime(day, entry.NumberPair);
+
+        var entity = new ScheduleEntry
+        {
+            Id = Guid.NewGuid(),
+            GroupId = groupId,
+            TeacherId = entry.TeacherId,
+            Subject = ScheduleImportService.NormalizeSubject(entry.Subject ?? string.Empty),
+            Room = string.Empty,
+            DayOfWeek = day,
+            NumberPair = entry.NumberPair,
+            StartTime = start,
+            EndTime = end,
+            Weeks = new List<int> { entry.Week },
+            LessonType = LessonType.Practice,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+        };
+
+        return entity;
+    }
 }
