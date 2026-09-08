@@ -60,14 +60,46 @@ public class ScheduleService(
         var ps = Math.Clamp(pageSize ?? 20, 1, 2000);
         var items = await query.Skip((p - 1) * ps).Take(ps).ToListAsync(ct);
 
-        return Result<PagedResponse<ScheduleResponse>>.Ok(
-            new PagedResponse<ScheduleResponse>(
-                items.Select(s => s.ToDto()).ToList(),
-                totalCount,
-                p,
-                ps
+        var changeTagsBySlot = await GetChangeTagsAsync(items, week, ct);
+
+        var dtos = items
+            .Select(s =>
+                s.ToDto(
+                    changeTagsBySlot.GetValueOrDefault((s.GroupId, s.DayOfWeek, s.NumberPair))
+                )
             )
+            .ToList();
+
+        return Result<PagedResponse<ScheduleResponse>>.Ok(
+            new PagedResponse<ScheduleResponse>(dtos, totalCount, p, ps)
         );
+    }
+
+    private async Task<
+        Dictionary<(Guid GroupId, DayOfWeek DayOfWeek, int NumberPair), List<ChangeTag>>
+    > GetChangeTagsAsync(List<ScheduleEntry> items, int? week, CancellationToken ct)
+    {
+        var groupIds = items.Select(s => s.GroupId).Distinct().ToList();
+        if (groupIds.Count == 0)
+            return new Dictionary<(Guid, DayOfWeek, int), List<ChangeTag>>();
+
+        var historyQuery = db
+            .ScheduleHistory.AsNoTracking()
+            .Where(h => groupIds.Contains(h.GroupId));
+
+        if (week.HasValue)
+            historyQuery = historyQuery.Where(h => h.Week == week.Value);
+
+        var history = await historyQuery.ToListAsync(ct);
+
+        return history
+            .GroupBy(h => (h.GroupId, h.DayOfWeek, h.NumberPair))
+            .ToDictionary(
+                g => g.Key,
+                g =>
+                    g.Select(h => new ChangeTag { ChangeType = h.ChangeType, Week = h.Week })
+                        .ToList()
+            );
     }
 
     public async Task<Result<ScheduleResponse>> GetByIdAsync(Guid id, CancellationToken ct)

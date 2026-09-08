@@ -6,7 +6,7 @@ namespace CollegeLMS.API.Mappers;
 
 public static class ScheduleMapper
 {
-    public static ScheduleResponse ToDto(this ScheduleEntry entry) =>
+    public static ScheduleResponse ToDto(this ScheduleEntry entry, List<ChangeTag>? changeTags = null) =>
         new()
         {
             Id = entry.Id,
@@ -22,6 +22,7 @@ public static class ScheduleMapper
             EndTime = entry.EndTime,
             Weeks = entry.Weeks,
             LessonType = entry.LessonType.ToString(),
+            ChangeTags = changeTags ?? new List<ChangeTag>(),
         };
 
     public static ScheduleEntry ToEntity(this CreateScheduleRequest request) =>
