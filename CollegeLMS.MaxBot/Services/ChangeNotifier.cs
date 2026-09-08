@@ -77,7 +77,7 @@ public class ChangeNotifier
 
             foreach (var s in settings)
             {
-                if (!s.NotifyDays.Contains(day))
+                if (!s.NotifyEnabled || !s.NotifyDays.Contains(day))
                     continue;
 
                 var groupMatches =

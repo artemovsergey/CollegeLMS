@@ -253,9 +253,8 @@ public static class MessageFormatter
         if (revisions.Count == 0)
             return "📭 *Мои изменения*\n\nИзменений пока нет.";
 
-        var totalPages = Math.Max(1, (int)Math.Ceiling((double)revisions.Count / pageSize));
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"🔄 *Мои изменения* (стр. {page + 1}/{totalPages})");
+        sb.AppendLine($"🔄 *Мои изменения* (стр. {page + 1})");
         sb.AppendLine();
 
         var index = page * pageSize + 1;
