@@ -1,0 +1,105 @@
+@startuml
+!theme plain
+title Корректировка расписания — ER
+
+' === API DB (collegelms) ===
+entity ScheduleHistory {
+  * id: GUID
+  --
+  * change_type: string (Add|Remove|Replace)
+  * applied_at: datetime
+  * applied_by_user_id: GUID (FK)
+  * group_id: GUID (FK)
+  teacher_id: GUID (FK, nullable)
+  * subject: string
+  room: string
+  * day_of_week: int
+  * number_pair: int
+  * week: int
+  note: string
+  removed_subject: string
+  removed_teacher_id: GUID (FK, nullable)
+  removed_room: string
+  removed_number_pair: int
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity ScheduleEntry {
+  * id: GUID
+  --
+  * group_id: GUID (FK)
+  teacher_id: GUID (FK, nullable)
+  * subject: string
+  * room: string
+  * day_of_week: int
+  * number_pair: int
+  * weeks: jsonb / int[]
+  * start_time: time
+  * end_time: time
+  created_at: datetime
+  updated_at: datetime
+}
+
+entity Group {
+  * id: GUID
+  --
+  * name: string
+  is_deleted: bool
+}
+
+entity Teacher {
+  * id: GUID
+  --
+  * full_name: string
+  is_deleted: bool
+}
+
+entity User {
+  * id: GUID
+  --
+  * full_name: string
+  * role: string
+}
+
+Group ||--o{ ScheduleEntry : attends
+Teacher ||--o{ ScheduleEntry : teaches
+Group ||--o{ ScheduleHistory : change_scope
+Teacher ||--o{ ScheduleHistory : change_scope
+User ||--o{ ScheduleHistory : applied
+
+note right of ScheduleHistory
+  changeTags = история по (group, day_of_week,
+  number_pair) -> { change_type, week }
+end note
+
+' === MaxBot DB (collegelms_maxbot) ===
+entity ScheduleRevision {
+  * id: bigserial
+  --
+  * foreign_id: GUID (id из ScheduleHistory)
+  * change_type: string (Add|Remove|Replace)
+  * group_name: string
+  teacher_name: string
+  * subject: string
+  room: string
+  * day_of_week: string (рус.)
+  * week: int
+  * number_pair: int
+  note: string
+  removed_subject: string
+  removed_teacher_name: string
+  removed_number_pair: int
+  * created_at: datetime
+}
+
+note bottom of ScheduleRevision
+  отдельная БД коллега maxbot
+  index ix_schedule_revisions_group_name
+  index ix_schedule_revisions_teacher_name
+  index ix_schedule_revisions_created_at
+end note
+
+ScheduleRevision ||--o| ScheduleHistory : foreign_id (без FK-констрейнта, мягкая связь)
+
+@enduml

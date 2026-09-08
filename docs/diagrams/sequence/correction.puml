@@ -1,0 +1,61 @@
+@startuml
+!theme plain
+title Корректировка расписания: импорт → подтверждение → уведомление
+
+actor "Диспетчер" as Dispatcher
+boundary "Фронтенд (Next)" as UI
+participant "ScheduleCorrectionController" as Ctrl
+participant "ScheduleCorrectionService" as Svc
+participant "ScheduleImportService" as Import
+database "PostgreSQL (collegelms)" as DB
+participant "POST /notify (MaxBot)" as Notify
+database "PostgreSQL (collegelms_maxbot)" as MaxDB
+participant "Telegram Bot API" as TG
+actor "Подписчик" as Sub
+
+== Превью импорта ==
+
+Dispatcher -> UI: выбор week, день, XLSX
+UI -> Ctrl: POST /api/schedule/correction/preview\n(file, week, dayOfWeek)
+Ctrl -> Svc: PreviewAsync(file, week, day, ct)
+Svc -> Import: ExtractPreviewAsync(file)
+Import --> Svc: List<ScheduleChangeDto>
+Svc -> Svc: 3 уровня валидации (структура/дубли/логика)
+Svc --> Ctrl: Result.Ok({ entries, errors, correctionDate })
+Ctrl --> UI: 200 JSON (превью + ошибки)
+UI --> Dispatcher: таблица строк, статы «всего/валидных/ошибок»
+
+== Подтверждение ==
+
+Dispatcher -> UI: «Применить»
+UI -> Ctrl: POST /api/schedule/correction/confirm\n(week, dayOfWeek, entries)
+Ctrl -> Svc: ConfirmAsync(request, ct)
+Svc -> Svc: повторная валидация в транзакции
+Svc -> DB: BEGIN
+Svc -> DB: ApplyChange (Add/Remove/Replace) по строкам
+Svc -> DB: INSERT INTO schedule_history
+Svc -> DB: COMMIT
+DB --> Svc: appliedRows, history
+Svc --> Ctrl: Result.Ok({ applied, history })
+Ctrl --> UI: 200 JSON
+
+note over Svc, Notify: Fail-safe — после COMMIT, try-catch, не влияет на успех подтверждения
+
+== Уведомление подписчиков ==
+
+Ctrl -> Notify: POST /notify\n{ changes: [ { id, groupId, changeType, ... } ] }
+Notify -> Notify: SelectRecipients (NotifyEnabled, NotifyDays, имена группы/преподавателя)
+Notify -> MaxDB: INSERT INTO schedule_revisions (foreign_id = change.id)
+Notify -> TG: SendMessage (формат FormatChangeNotification)
+TG --> Sub: 🔔 Изменение в расписании …
+
+note over Notify: fail-safe: при сбое — лог, подтверждение уже закоммичено
+
+== Запрос «Мои изменения» ==
+
+Sub -> UI (Telegram): «🔄 Мои изменения» (payload changes)
+Notify -> Notify: ShowMyChangesAsync (группа/преподаватель по настройке)
+Notify -> MaxDB: SELECT * FROM schedule_revisions\nWHERE group_name = @g ORDER BY created_at DESC LIMIT 20
+MaxDB --> Notify: List<ScheduleRevision>
+Notify -> TG: SendMessage (FormatMyChanges, кнопки навигации)
+@enduml
