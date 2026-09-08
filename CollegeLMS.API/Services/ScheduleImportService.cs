@@ -74,14 +74,14 @@ public class ScheduleImportService(AppDbContext db)
         ],
     };
 
-    private static (TimeSpan Start, TimeSpan End) GetPairTime(DayOfWeek day, int pairNumber)
+    internal static (TimeSpan Start, TimeSpan End) GetPairTime(DayOfWeek day, int pairNumber)
     {
         var slots = PairTimeSlots.GetValueOrDefault(day) ?? PairTimeSlots[DayOfWeek.Tuesday];
         var index = Math.Clamp(pairNumber - 1, 0, slots.Count - 1);
         return slots[index];
     }
 
-    private static string NormalizeSubject(string subject)
+    internal static string NormalizeSubject(string subject)
     {
         var v = subject.Trim();
 
@@ -107,7 +107,7 @@ public class ScheduleImportService(AppDbContext db)
         return v;
     }
 
-    private static string NormalizeTeacherName(string name)
+    internal static string NormalizeTeacherName(string name)
     {
         return Regex.Replace(name.Trim(), @"\s+", " ");
     }
