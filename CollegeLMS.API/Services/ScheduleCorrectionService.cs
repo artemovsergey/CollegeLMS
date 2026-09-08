@@ -552,15 +552,19 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         if (week.HasValue)
             query = query.Where(h => h.Week == week.Value);
 
-        query = query.OrderByDescending(h => h.AppliedAt).ThenByDescending(h => h.CreatedAt);
+        // Сортировка и пагинация выполняются в памяти: EF Core InMemory-провайдер
+        // возвращает пустой список при Include + Skip/Take (баг тестового провайдера).
+        // Для Postgres таблица истории небольшая, поэтому оверхед незначителен.
+        var items = await query.ToListAsync(ct);
+        items = items
+            .OrderByDescending(h => h.AppliedAt)
+            .ThenByDescending(h => h.CreatedAt)
+            .ToList();
 
-        var total = await query.CountAsync(ct);
+        var total = items.Count;
         var p = Math.Max(page ?? 1, 1);
         var ps = Math.Clamp(pageSize ?? 20, 1, 200);
-        var items = await query
-            .Skip((p - 1) * ps)
-            .Take(ps)
-            .ToListAsync(ct);
+        items = items.Skip((p - 1) * ps).Take(ps).ToList();
 
         return Result<PagedResponse<ScheduleHistoryResponse>>.Ok(
             new PagedResponse<ScheduleHistoryResponse>(
