@@ -11,6 +11,7 @@ import {
   Radio,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import ChangeTagBadge from "@/components/ChangeTagBadge"
 import { cn } from "@/lib/utils"
 
 interface ScheduleCardsProps {
@@ -172,6 +173,13 @@ export default function ScheduleCards({
                   <Calendar className="size-3" />
                   нед. {formatWeeks(entry.weeks)}
                 </span>
+              )}
+              {entry.changeTags && entry.changeTags.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {entry.changeTags.map((tag, i) => (
+                    <ChangeTagBadge key={i} tag={tag} />
+                  ))}
+                </div>
               )}
             </div>
 

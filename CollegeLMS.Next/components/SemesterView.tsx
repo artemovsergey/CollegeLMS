@@ -1,8 +1,10 @@
 "use client"
 
 import type { ScheduleResponse } from "@/types/schedule"
+import type { ChangeTag } from "@/types/correction"
 import { DAYS } from "@/types/schedule"
 import { Calendar } from "lucide-react"
+import ChangeTagBadge from "@/components/ChangeTagBadge"
 
 interface SemesterViewProps {
   entries: ScheduleResponse[]
@@ -17,6 +19,17 @@ interface CompactEntry {
   numberPair: number
   startTime: string
   weeks: number[]
+  changeTags: ChangeTag[]
+}
+
+function mergeTags(a: ChangeTag[], b: ChangeTag[]): ChangeTag[] {
+  const seen = new Set<string>()
+  return [...a, ...b].filter((tag) => {
+    const key = `${tag.changeType}:${tag.week}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function formatWeeks(weeks: number[]): string {
@@ -64,6 +77,7 @@ export default function SemesterView({
       existing.weeks = [...new Set([...existing.weeks, ...entry.weeks])].sort(
         (a, b) => a - b,
       )
+      existing.changeTags = mergeTags(existing.changeTags, entry.changeTags)
     } else {
       list.push({
         subject: entry.subject,
@@ -72,6 +86,7 @@ export default function SemesterView({
         numberPair: entry.numberPair,
         startTime: entry.startTime,
         weeks: [...entry.weeks].sort((a, b) => a - b),
+        changeTags: entry.changeTags ?? [],
       })
     }
   }
@@ -121,6 +136,11 @@ export default function SemesterView({
                       {entry.teacherName}
                     </span>
                   )}
+                  {entry.changeTags
+                    .filter((tag) => tag.week === selectedWeek)
+                    .map((tag, i) => (
+                      <ChangeTagBadge key={i} tag={tag} />
+                    ))}
                   <span className="ml-auto text-muted-foreground shrink-0">
                     {formatWeeks(entry.weeks)}
                   </span>
