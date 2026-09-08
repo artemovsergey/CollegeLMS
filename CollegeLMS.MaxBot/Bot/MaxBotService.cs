@@ -17,6 +17,7 @@ public class MaxBotService : BackgroundService
 
     private const int PageSize = 5;
     private const int PollTimeoutSeconds = 30;
+    private const int ChangesPageSize = 20;
 
     public MaxBotService(
         MaxApiClient max,
@@ -357,6 +358,16 @@ public class MaxBotService : BackgroundService
             case "notifysave":
                 await _max.SendMessageAsync(chatId, "✅ Настройки уведомлений сохранены!", ct: ct);
                 break;
+            case "changes":
+                await ShowMyChangesAsync(chatId, userId, 0, ct);
+                break;
+            case "changes_page":
+                var changesPage = p.Param1 is { } changesPageText
+                    && int.TryParse(changesPageText, out var changesPageValue)
+                    ? changesPageValue
+                    : 0;
+                await ShowMyChangesAsync(chatId, userId, changesPage, ct);
+                break;
             default:
                 _logger.LogWarning("Unknown callback action {Action}", p.Action);
                 await ShowMainMenuAsync(chatId, userId, ct);
@@ -599,6 +610,15 @@ public class MaxBotService : BackgroundService
                     Type = "callback",
                     Text = "🗓 Дата",
                     Payload = CallbackPayload.Cal(today),
+                },
+            },
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔄 Мои изменения",
+                    Payload = CallbackPayload.Changes(),
                 },
             },
             new List<MaxButton>
@@ -928,6 +948,88 @@ public class MaxBotService : BackgroundService
         }
 
         await ShowCalendarAsync(chatId, userId, month.Value.AddMonths(deltaMonths), ct);
+    }
+
+    private async Task ShowMyChangesAsync(long chatId, long userId, int page, CancellationToken ct)
+    {
+        var settings = await GetSettingsAsync(userId, ct);
+        if (settings is null)
+        {
+            await HandleBotStartedAsync(chatId, userId, ct);
+            return;
+        }
+
+        if (settings.GroupId is null && settings.TeacherId is null)
+        {
+            await _max.SendMessageAsync(
+                chatId,
+                "⚠️ Сначала выбери группу или преподавателя в настройках.",
+                ct: ct
+            );
+            return;
+        }
+
+        string? groupName = null;
+        string? teacherName = null;
+        if (settings.GroupId.HasValue)
+            groupName = (await _api.GetGroupsAsync(ct))
+                .FirstOrDefault(g => g.Id == settings.GroupId.Value)
+                ?.Name;
+        if (settings.TeacherId.HasValue)
+            teacherName = (await _api.GetTeachersAsync(ct))
+                .FirstOrDefault(t => t.Id == settings.TeacherId.Value)
+                ?.FullName;
+
+        using var scope = _sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
+
+        var query = db.ScheduleRevisions.AsNoTracking().AsQueryable();
+        if (groupName is not null)
+            query = query.Where(r => r.GroupName == groupName);
+        if (teacherName is not null)
+            query = query.Where(r => r.TeacherName == teacherName);
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip(page * ChangesPageSize)
+            .Take(ChangesPageSize)
+            .ToListAsync(ct);
+
+        var text = MessageFormatter.FormatMyChanges(items, page, ChangesPageSize);
+        var totalPages = Math.Max(1, (int)Math.Ceiling((double)total / ChangesPageSize));
+
+        var buttons = new List<List<MaxButton>>();
+        var navRow = new List<MaxButton>();
+        if (page > 0)
+            navRow.Add(
+                new MaxButton
+                {
+                    Type = "callback",
+                    Text = "← Назад",
+                    Payload = CallbackPayload.ChangesPage(page - 1),
+                }
+            );
+        if (page < totalPages - 1)
+            navRow.Add(
+                new MaxButton
+                {
+                    Type = "callback",
+                    Text = "Далее →",
+                    Payload = CallbackPayload.ChangesPage(page + 1),
+                }
+            );
+        if (navRow.Count > 0)
+            buttons.Add(navRow);
+
+        buttons.Add(
+            new List<MaxButton>
+            {
+                new() { Type = "callback", Text = "🔙 Меню", Payload = "menu" },
+            }
+        );
+
+        await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
 
     private async Task ShowSettingsAsync(long chatId, long userId, CancellationToken ct)

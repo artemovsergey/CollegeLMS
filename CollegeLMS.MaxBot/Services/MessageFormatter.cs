@@ -242,4 +242,38 @@ public static class MessageFormatter
 
         return sb.ToString().TrimEnd();
     }
+
+    /// <summary>Нумерованный список изменений для подписчика (пагинация 20/стр.).</summary>
+    public static string FormatMyChanges(
+        List<ScheduleRevision> revisions,
+        int page,
+        int pageSize = 20
+    )
+    {
+        if (revisions.Count == 0)
+            return "📭 *Мои изменения*\n\nИзменений пока нет.";
+
+        var totalPages = Math.Max(1, (int)Math.Ceiling((double)revisions.Count / pageSize));
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"🔄 *Мои изменения* (стр. {page + 1}/{totalPages})");
+        sb.AppendLine();
+
+        var index = page * pageSize + 1;
+        foreach (var r in revisions)
+        {
+            sb.AppendLine(
+                $"{index}. {r.GroupName} · {r.DayOfWeek} · Нед. {r.Week} · Пара {r.NumberPair}"
+            );
+            sb.AppendLine(
+                $"   📖 {r.Subject} ({FormatChangeNotificationTitle(r.ChangeType)})"
+            );
+            if (r.TeacherName is not null)
+                sb.AppendLine($"   👨‍🏫 {r.TeacherName}");
+            sb.AppendLine($"   🕐 {r.CreatedAt:dd.MM.yyyy HH:mm}");
+            sb.AppendLine();
+            index++;
+        }
+
+        return sb.ToString().TrimEnd();
+    }
 }
