@@ -760,6 +760,76 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Schedule corrections",
+      "item": [
+        {
+          "name": "Preview corrections",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/Корректировка.xlsx"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/preview",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "correction", "preview"]
+            }
+          }
+        },
+        {
+          "name": "Confirm corrections",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entries\": [\n    {\n      \"row\": 7,\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"changeType\": \"Replace\",\n      \"dayOfWeek\": 2,\n      \"week\": 2,\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"teacherId\": \"{{teacherId}}\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"removedSubject\": \"Физика\",\n      \"removedTeacherId\": \"{{teacherId}}\",\n      \"removedTeacherName\": \"Иванов Д.А.\",\n      \"removedNumberPair\": 2,\n      \"note\": \"вм. 4 п\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "correction", "confirm"]
+            }
+          }
+        },
+        {
+          "name": "Correction history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/history?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            }
+          }
+        }
+      ],
+      "description": "Корректировка расписания: превью, подтверждение, история"
     }
   ]
 }

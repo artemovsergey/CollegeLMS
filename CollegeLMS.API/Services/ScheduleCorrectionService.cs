@@ -4,6 +4,7 @@ using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
+using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Response;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CollegeLMS.API.Services;
 
 public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
+    : IScheduleCorrectionService
 {
     private static readonly Regex DatePattern =
         new(@"на\s+(\d{1,2})\.(\d{1,2})\.(\d{4})", RegexOptions.Compiled);
