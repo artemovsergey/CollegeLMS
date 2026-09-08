@@ -1,4 +1,5 @@
 using CollegeLMS.MaxBot.Clients;
+using CollegeLMS.MaxBot.Models;
 
 namespace CollegeLMS.MaxBot.Services;
 
@@ -209,5 +210,36 @@ public static class MessageFormatter
             "сб" or "суббота" or "saturday" => 6,
             _ => 0,
         };
+    }
+
+    /// <summary>Заголовок по типу изменения: добавлена / снята / замена.</summary>
+    public static string FormatChangeNotificationTitle(string changeType)
+    {
+        return changeType switch
+        {
+            "Add" => "добавлена",
+            "Remove" => "снята",
+            "Replace" => "замена",
+            _ => "изменена",
+        };
+    }
+
+    /// <summary>Формат уведомления об изменении расписания.</summary>
+    public static string FormatChangeNotification(ScheduleRevision revision)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("🔔 Изменение в расписании");
+        sb.AppendLine(
+            $"{revision.GroupName} · {revision.DayOfWeek} · Нед. {revision.Week} · Пара {revision.NumberPair}"
+        );
+        sb.AppendLine($"📖 {revision.Subject} ({FormatChangeNotificationTitle(revision.ChangeType)})");
+
+        if (revision.TeacherName is not null)
+            sb.AppendLine($"Преподаватель: {revision.TeacherName}");
+
+        if (revision.Note is not null)
+            sb.AppendLine($"Примечание: {revision.Note}");
+
+        return sb.ToString().TrimEnd();
     }
 }

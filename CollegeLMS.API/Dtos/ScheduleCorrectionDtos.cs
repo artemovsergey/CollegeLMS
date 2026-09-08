@@ -45,6 +45,7 @@ public class CorrectionConfirmResult
 /// <summary>Полезная нагрузка POST /notify в MaxBot.</summary>
 public class ScheduleChangeDto
 {
+    public Guid Id { get; init; }
     public string ChangeType { get; init; } = "";
     public Guid GroupId { get; init; }
     public string GroupName { get; init; } = "";

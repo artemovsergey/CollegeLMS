@@ -619,6 +619,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
                 var change = new ScheduleChangeDto
                 {
+                    Id = history.Id,
                     ChangeType = "Add",
                     GroupId = group.Id,
                     GroupName = group.Name,
@@ -676,6 +677,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
                 var change = new ScheduleChangeDto
                 {
+                    Id = history.Id,
                     ChangeType = "Remove",
                     GroupId = group.Id,
                     GroupName = group.Name,
@@ -748,6 +750,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
                 var change = new ScheduleChangeDto
                 {
+                    Id = history.Id,
                     ChangeType = "Replace",
                     GroupId = group.Id,
                     GroupName = group.Name,
