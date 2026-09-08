@@ -69,6 +69,36 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
     await db.Database.EnsureCreatedAsync();
+
+    // EnsureCreated не создаёт новую таблицу в существующей БД — идемпотентный raw SQL
+    await db.Database.ExecuteSqlRawAsync("""
+        CREATE TABLE IF NOT EXISTS schedule_revisions (
+            id BIGSERIAL PRIMARY KEY,
+            foreign_id UUID NOT NULL,
+            change_type VARCHAR(20) NOT NULL,
+            group_name VARCHAR(200) NOT NULL,
+            teacher_name VARCHAR(200) NULL,
+            subject VARCHAR(300) NOT NULL,
+            room VARCHAR(100) NOT NULL,
+            day_of_week VARCHAR(20) NOT NULL,
+            week INTEGER NOT NULL,
+            number_pair INTEGER NOT NULL,
+            note VARCHAR(500) NULL,
+            removed_subject VARCHAR(300) NULL,
+            removed_teacher_name VARCHAR(200) NULL,
+            removed_number_pair INTEGER NULL,
+            created_at TIMESTAMPTZ NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS ix_schedule_revisions_group_name
+            ON schedule_revisions (group_name);
+
+        CREATE INDEX IF NOT EXISTS ix_schedule_revisions_teacher_name
+            ON schedule_revisions (teacher_name);
+
+        CREATE INDEX IF NOT EXISTS ix_schedule_revisions_created_at
+            ON schedule_revisions (created_at);
+        """);
 }
 
 app.MapGet(
