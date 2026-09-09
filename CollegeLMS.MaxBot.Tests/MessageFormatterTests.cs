@@ -145,6 +145,28 @@ public class MessageFormatterTests
         text.Should().NotMatch(@"  \d+\.");
     }
 
+    [Fact]
+    public void FormatDaySchedule_HasHorizontalRuleBetweenSlots()
+    {
+        var entries = new List<ScheduleResponse>
+        {
+            Entries()[0],
+            Entries()[0]
+                with
+                {
+                    NumberPair = 2,
+                    Subject = "Физика",
+                    StartTime = new TimeSpan(10, 50, 0),
+                },
+        };
+
+        var text = MessageFormatter.FormatDaySchedule(entries, new DateTime(2026, 9, 7), "Группа 101");
+
+        text.Should().Contain("────────");
+        text.Should().Contain("*1.* 📖 Математика");
+        text.Should().Contain("*2.* 📖 Физика");
+    }
+
     private static ScheduleRevision Revision(string changeType = "Replace") =>
         new()
         {
@@ -177,11 +199,11 @@ public class MessageFormatterTests
     {
         var text = MessageFormatter.FormatChangeNotification(Revision());
 
-        text.Should().Contain("🔔 Изменение в расписании");
+        text.Should().Contain("🔔 *Изменение в расписании*");
         text.Should().Contain("ПО262 · Вторник · Нед. 1 · Пара 2");
-        text.Should().Contain("📖 История (замена)");
-        text.Should().Contain("Преподаватель: Петренко В.Б.");
-        text.Should().Contain("Примечание: вм.4 п");
+        text.Should().Contain("📖 История — замена");
+        text.Should().Contain("👨‍🏫 Преподаватель: Петренко В.Б.");
+        text.Should().Contain("📝 Примечание: вм.4 п");
     }
 
     [Fact]
@@ -193,9 +215,9 @@ public class MessageFormatterTests
 
         var text = MessageFormatter.FormatChangeNotification(r);
 
-        text.Should().Contain("📖 История (замена)");
-        text.Should().NotContain("Преподаватель:");
-        text.Should().NotContain("Примечание:");
+        text.Should().Contain("📖 История — замена");
+        text.Should().NotContain("👨‍🏫");
+        text.Should().NotContain("📝");
     }
 
     [Fact]

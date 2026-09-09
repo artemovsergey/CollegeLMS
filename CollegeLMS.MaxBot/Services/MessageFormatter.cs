@@ -139,7 +139,7 @@ public static class MessageFormatter
             if (e.TeacherName is not null)
                 sb.AppendLine($"    👨‍🏫 {e.TeacherName}");
 
-            sb.AppendLine();
+            sb.AppendLine("────────");
         }
 
         return sb.ToString().TrimEnd();
@@ -228,19 +228,19 @@ public static class MessageFormatter
     public static string FormatChangeNotification(ScheduleRevision revision)
     {
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("🔔 Изменение в расписании");
+        sb.AppendLine("🔔 *Изменение в расписании*");
+        sb.AppendLine();
         sb.AppendLine(
             $"{revision.GroupName} · {revision.DayOfWeek} · Нед. {revision.Week} · Пара {revision.NumberPair}"
         );
-        sb.AppendLine(
-            $"📖 {revision.Subject} ({FormatChangeNotificationTitle(revision.ChangeType)})"
-        );
+        sb.AppendLine();
+        sb.AppendLine($"📖 {revision.Subject} — {FormatChangeNotificationTitle(revision.ChangeType)}");
 
         if (revision.TeacherName is not null)
-            sb.AppendLine($"Преподаватель: {revision.TeacherName}");
+            sb.AppendLine($"👨‍🏫 Преподаватель: {revision.TeacherName}");
 
         if (revision.Note is not null)
-            sb.AppendLine($"Примечание: {revision.Note}");
+            sb.AppendLine($"📝 Примечание: {revision.Note}");
 
         return sb.ToString().TrimEnd();
     }
