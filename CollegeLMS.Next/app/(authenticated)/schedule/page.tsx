@@ -97,9 +97,7 @@ export default function SchedulePage() {
   const canManage = user?.role ? CAN_MANAGE_ROLES.includes(user.role) : false
 
   const loadSchedule = useCallback(async () => {
-    if (entries.length === 0) {
-      setInitialLoading(true)
-    }
+    setInitialLoading(true)
     setError(null)
     try {
       const params: Record<string, string | number | undefined> = {
@@ -119,7 +117,7 @@ export default function SchedulePage() {
     } finally {
       setInitialLoading(false)
     }
-  }, [selectedGroupId, selectedTeacherId, selectedWeek, entries.length])
+  }, [selectedGroupId, selectedTeacherId, selectedWeek])
 
   const loadAllEntries = useCallback(async () => {
     setSemesterLoading(true)
@@ -175,22 +173,26 @@ export default function SchedulePage() {
   }, [token, loadGroups, loadTeachers])
 
   useEffect(() => {
-    if (token && viewMode === "cards") {
-      loadSchedule()
-    }
-  }, [token, viewMode, loadSchedule])
+    if (!token) return
 
-  useEffect(() => {
-    if (token && allEntries.length === 0) {
-      loadAllEntries()
+    if (viewMode === "cards") {
+      loadSchedule()
+      return
     }
-  }, [token, allEntries.length, loadAllEntries])
+
+    loadAllEntries()
+  }, [
+    token,
+    viewMode,
+    selectedGroupId,
+    selectedTeacherId,
+    selectedWeek,
+    loadSchedule,
+    loadAllEntries,
+  ])
 
   const handleViewModeChange = (mode: "cards" | "semester") => {
     setViewMode(mode)
-    if (mode === "semester" && allEntries.length === 0) {
-      loadAllEntries()
-    }
   }
 
   const handleSemesterCellClick = (week: number, day: number) => {
