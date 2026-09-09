@@ -108,6 +108,7 @@ services:
       - "5001:5001"
     volumes:
       - uploads_data:/var/www/uploads
+      - /home/user1/.htpasswd.opencode:/etc/nginx/.htpasswd:ro
     extra_hosts:
       - "host.docker.internal:172.18.0.1"
     depends_on:
