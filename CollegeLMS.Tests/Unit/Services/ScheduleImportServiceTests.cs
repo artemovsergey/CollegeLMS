@@ -73,8 +73,9 @@ public class ScheduleImportServiceTests : IDisposable
         entries[0].Room.Should().Be("ч.з.");
         entries[0].Subject.Should().Be("Рус.язык");
         entries[0].TeacherName.Should().Be("Бекетова В.М.");
-        entries[0].Weeks.Should().BeEquivalentTo(
-            [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16]);
+        entries[0]
+            .Weeks.Should()
+            .BeEquivalentTo([1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16]);
     }
 
     [Fact]

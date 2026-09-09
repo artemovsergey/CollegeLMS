@@ -12,7 +12,8 @@ namespace CollegeLMS.API.Services;
 public class ScheduleImportService(AppDbContext db)
 {
     private static readonly Dictionary<string, DayOfWeek> DayMap = new(
-        StringComparer.OrdinalIgnoreCase)
+        StringComparer.OrdinalIgnoreCase
+    )
     {
         ["понедельник"] = DayOfWeek.Monday,
         ["вторник"] = DayOfWeek.Tuesday,
@@ -22,7 +23,10 @@ public class ScheduleImportService(AppDbContext db)
         ["суббота"] = DayOfWeek.Saturday,
     };
 
-    private static readonly Dictionary<DayOfWeek, List<(TimeSpan Start, TimeSpan End)>> PairTimeSlots = new()
+    private static readonly Dictionary<
+        DayOfWeek,
+        List<(TimeSpan Start, TimeSpan End)>
+    > PairTimeSlots = new()
     {
         [DayOfWeek.Monday] =
         [
@@ -112,8 +116,10 @@ public class ScheduleImportService(AppDbContext db)
         return Regex.Replace(name.Trim(), @"\s+", " ");
     }
 
-    public (List<SchedulePreviewEntry> Entries, List<ScheduleValidationError> Errors)
-        ParseScheduleMatrix(IXLWorkbook workbook)
+    public (
+        List<SchedulePreviewEntry> Entries,
+        List<ScheduleValidationError> Errors
+    ) ParseScheduleMatrix(IXLWorkbook workbook)
     {
         var ws = workbook.Worksheet(1);
         var entries = new List<SchedulePreviewEntry>();
@@ -130,12 +136,14 @@ public class ScheduleImportService(AppDbContext db)
 
         if (groupColumns.Count == 0)
         {
-            errors.Add(new ScheduleValidationError
-            {
-                Row = 5,
-                Column = 0,
-                Message = "В строке 5 не найдены названия групп",
-            });
+            errors.Add(
+                new ScheduleValidationError
+                {
+                    Row = 5,
+                    Column = 0,
+                    Message = "В строке 5 не найдены названия групп",
+                }
+            );
             return (entries, errors);
         }
 
@@ -150,21 +158,21 @@ public class ScheduleImportService(AppDbContext db)
 
         if (dayBlocks.Count == 0)
         {
-            errors.Add(new ScheduleValidationError
-            {
-                Row = 0,
-                Column = 0,
-                Message = "Не найдены дни недели в столбце A",
-            });
+            errors.Add(
+                new ScheduleValidationError
+                {
+                    Row = 0,
+                    Column = 0,
+                    Message = "Не найдены дни недели в столбце A",
+                }
+            );
             return (entries, errors);
         }
 
         for (int bi = 0; bi < dayBlocks.Count; bi++)
         {
             var (dayStart, day) = dayBlocks[bi];
-            int dayEnd = bi + 1 < dayBlocks.Count
-                ? dayBlocks[bi + 1].StartRow
-                : lastRow + 1;
+            int dayEnd = bi + 1 < dayBlocks.Count ? dayBlocks[bi + 1].StartRow : lastRow + 1;
 
             var pairRows = new List<int>();
             for (int r = dayStart; r < dayEnd; r++)
@@ -185,18 +193,18 @@ public class ScheduleImportService(AppDbContext db)
 
                 if (pairNum < 1 || pairNum > 7)
                 {
-                    errors.Add(new ScheduleValidationError
-                    {
-                        Row = pairRow,
-                        Column = 2,
-                        Message = $"Строка {pairRow}: номер пары {pairNum} вне диапазона 1-7",
-                    });
+                    errors.Add(
+                        new ScheduleValidationError
+                        {
+                            Row = pairRow,
+                            Column = 2,
+                            Message = $"Строка {pairRow}: номер пары {pairNum} вне диапазона 1-7",
+                        }
+                    );
                     continue;
                 }
 
-                int nextPairRow = pi + 1 < pairRows.Count
-                    ? pairRows[pi + 1]
-                    : dayEnd;
+                int nextPairRow = pi + 1 < pairRows.Count ? pairRows[pi + 1] : dayEnd;
 
                 foreach (var (col, groupName) in groupColumns)
                 {
@@ -211,35 +219,43 @@ public class ScheduleImportService(AppDbContext db)
 
                         if (string.IsNullOrEmpty(parsed.Subject))
                         {
-                            errors.Add(new ScheduleValidationError
-                            {
-                                Row = r,
-                                Column = col,
-                                Message = $"Строка {r}, стлб. {col}: не удалось распознать предмет из \"{cellText}\"",
-                            });
+                            errors.Add(
+                                new ScheduleValidationError
+                                {
+                                    Row = r,
+                                    Column = col,
+                                    Message =
+                                        $"Строка {r}, стлб. {col}: не удалось распознать предмет из \"{cellText}\"",
+                                }
+                            );
                             hasErrors = true;
                         }
 
                         if (parsed.Weeks.Count == 0)
                         {
-                            errors.Add(new ScheduleValidationError
-                            {
-                                Row = r,
-                                Column = col,
-                                Message = $"Строка {r}, стлб. {col}: не указаны недели",
-                            });
+                            errors.Add(
+                                new ScheduleValidationError
+                                {
+                                    Row = r,
+                                    Column = col,
+                                    Message = $"Строка {r}, стлб. {col}: не указаны недели",
+                                }
+                            );
                             hasErrors = true;
                         }
 
                         if (parsed.Weeks.Any(w => w > 52))
                         {
                             var badWeek = parsed.Weeks.First(w => w > 52);
-                            errors.Add(new ScheduleValidationError
-                            {
-                                Row = r,
-                                Column = col,
-                                Message = $"Строка {r}, стлб. {col}: номер недели {badWeek} превышает 52",
-                            });
+                            errors.Add(
+                                new ScheduleValidationError
+                                {
+                                    Row = r,
+                                    Column = col,
+                                    Message =
+                                        $"Строка {r}, стлб. {col}: номер недели {badWeek} превышает 52",
+                                }
+                            );
                             hasErrors = true;
                         }
 
@@ -247,18 +263,20 @@ public class ScheduleImportService(AppDbContext db)
                             continue;
 
                         var (start, end) = GetPairTime(day, pairNum);
-                        entries.Add(new SchedulePreviewEntry
-                        {
-                            GroupName = groupName,
-                            Day = day.ToString(),
-                            Pair = pairNum,
-                            Subject = NormalizeSubject(parsed.Subject),
-                            Room = parsed.Room,
-                            TeacherName = parsed.Teacher,
-                            Weeks = parsed.Weeks,
-                            StartTime = start,
-                            EndTime = end,
-                        });
+                        entries.Add(
+                            new SchedulePreviewEntry
+                            {
+                                GroupName = groupName,
+                                Day = day.ToString(),
+                                Pair = pairNum,
+                                Subject = NormalizeSubject(parsed.Subject),
+                                Room = parsed.Room,
+                                TeacherName = parsed.Teacher,
+                                Weeks = parsed.Weeks,
+                                StartTime = start,
+                                EndTime = end,
+                            }
+                        );
                     }
                 }
             }
@@ -269,21 +287,28 @@ public class ScheduleImportService(AppDbContext db)
 
     private static readonly Regex SubjectCellRegex = new(
         @"^(?<room>[^\s]+)\s+(?<subject>[^(]+?)(?:\s*\((?<weeks>[^)]+)\))?\s*(?<teacher>[А-Яа-яёЁ][А-Яа-яёЁ.\s]*)?$",
-        RegexOptions.Compiled);
+        RegexOptions.Compiled
+    );
 
-    private static (string Room, string Subject, List<int> Weeks, string Teacher) ParseSubjectCell(string cell)
+    private static (string Room, string Subject, List<int> Weeks, string Teacher) ParseSubjectCell(
+        string cell
+    )
     {
         var text = cell.Trim();
         if (string.IsNullOrEmpty(text) || text == ".")
             return (string.Empty, string.Empty, [], string.Empty);
 
-        if (text.StartsWith("ч.з", StringComparison.OrdinalIgnoreCase) ||
-            text.StartsWith("с.з", StringComparison.OrdinalIgnoreCase))
+        if (
+            text.StartsWith("ч.з", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("с.з", StringComparison.OrdinalIgnoreCase)
+        )
         {
             var roomPart = text.Split(' ', 2)[0].Trim();
             var rest = text[roomPart.Length..].Trim();
             var weeksMatch = Regex.Match(rest, @"\(([^)]+)\)");
-            var weeks = weeksMatch.Success ? ParseWeeks(weeksMatch.Groups[1].Value) : new List<int>();
+            var weeks = weeksMatch.Success
+                ? ParseWeeks(weeksMatch.Groups[1].Value)
+                : new List<int>();
             var subject = Regex.Replace(rest, @"\([^)]*\)", "").Trim();
             var teacher = ExtractTrailingTeacher(subject);
             if (!string.IsNullOrEmpty(teacher))
@@ -344,8 +369,7 @@ public class ScheduleImportService(AppDbContext db)
         return weeks.Distinct().OrderBy(x => x).ToList();
     }
 
-    public async Task<PreviewResult> PreviewAsync(
-        Stream fileStream, CancellationToken ct)
+    public async Task<PreviewResult> PreviewAsync(Stream fileStream, CancellationToken ct)
     {
         XLWorkbook workbook;
         try
@@ -394,7 +418,9 @@ public class ScheduleImportService(AppDbContext db)
     }
 
     public async Task<ConfirmResult> ConfirmAsync(
-        ConfirmImportRequest request, CancellationToken ct)
+        ConfirmImportRequest request,
+        CancellationToken ct
+    )
     {
         if (request.Entries.Count == 0)
         {
@@ -412,14 +438,15 @@ public class ScheduleImportService(AppDbContext db)
         {
             await db.ScheduleEntries.ExecuteDeleteAsync(ct);
 
-            var uniqueGroups = request.Entries
-                .Select(e => e.GroupName).Distinct().ToList();
-            var uniqueTeachers = request.Entries
-                .Where(e => !string.IsNullOrEmpty(e.TeacherName))
-                .Select(e => e.TeacherName.Trim()).Distinct().ToList();
+            var uniqueGroups = request.Entries.Select(e => e.GroupName).Distinct().ToList();
+            var uniqueTeachers = request
+                .Entries.Where(e => !string.IsNullOrEmpty(e.TeacherName))
+                .Select(e => e.TeacherName.Trim())
+                .Distinct()
+                .ToList();
 
-            var existingGroups = await db.Groups
-                .Where(g => uniqueGroups.Contains(g.Name))
+            var existingGroups = await db
+                .Groups.Where(g => uniqueGroups.Contains(g.Name))
                 .ToDictionaryAsync(g => g.Name, g => g.Id, ct);
 
             var groupMap = new Dictionary<string, Guid>(existingGroups);
@@ -430,9 +457,12 @@ public class ScheduleImportService(AppDbContext db)
                     Id = Guid.NewGuid(),
                     Name = name,
                     Course = Math.Clamp(
-                        int.TryParse(
-                            new string(name.Where(char.IsDigit).ToArray()),
-                            out var c) ? c / 100 : 1, 1, 4),
+                        int.TryParse(new string(name.Where(char.IsDigit).ToArray()), out var c)
+                            ? c / 100
+                            : 1,
+                        1,
+                        4
+                    ),
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                 };
@@ -440,8 +470,8 @@ public class ScheduleImportService(AppDbContext db)
                 groupMap[name] = group.Id;
             }
 
-            var existingTeachers = await db.Teachers
-                .Include(t => t.User)
+            var existingTeachers = await db
+                .Teachers.Include(t => t.User)
                 .Where(t => uniqueTeachers.Contains(t.User.FullName))
                 .ToDictionaryAsync(t => t.User.FullName, t => t.Id, ct);
 
@@ -482,8 +512,10 @@ public class ScheduleImportService(AppDbContext db)
                 var groupId = groupMap[entry.GroupName];
 
                 Guid? teacherId = null;
-                if (!string.IsNullOrEmpty(entry.TeacherName) &&
-                    teacherMap.TryGetValue(entry.TeacherName, out var tid))
+                if (
+                    !string.IsNullOrEmpty(entry.TeacherName)
+                    && teacherMap.TryGetValue(entry.TeacherName, out var tid)
+                )
                 {
                     teacherId = tid;
                 }
@@ -491,31 +523,34 @@ public class ScheduleImportService(AppDbContext db)
                 Enum.TryParse<DayOfWeek>(entry.Day, true, out var dayOfWeek);
                 var (startTime, endTime) = GetPairTime(dayOfWeek, entry.Pair);
 
-                entriesToAdd.Add(new ScheduleEntry
-                {
-                    Id = Guid.NewGuid(),
-                    GroupId = groupId,
-                    TeacherId = teacherId,
-                    Subject = NormalizeSubject(entry.Subject),
-                    Room = entry.Room,
-                    DayOfWeek = dayOfWeek,
-                    NumberPair = entry.Pair,
-                    StartTime = startTime,
-                    EndTime = endTime,
-                    Weeks = entry.Weeks.Count > 0 ? entry.Weeks : [1],
-                    LessonType = LessonType.None,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                });
+                entriesToAdd.Add(
+                    new ScheduleEntry
+                    {
+                        Id = Guid.NewGuid(),
+                        GroupId = groupId,
+                        TeacherId = teacherId,
+                        Subject = NormalizeSubject(entry.Subject),
+                        Room = entry.Room,
+                        DayOfWeek = dayOfWeek,
+                        NumberPair = entry.Pair,
+                        StartTime = startTime,
+                        EndTime = endTime,
+                        Weeks = entry.Weeks.Count > 0 ? entry.Weeks : [1],
+                        LessonType = LessonType.None,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    }
+                );
             }
 
             db.ScheduleEntries.AddRange(entriesToAdd);
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
 
-            var allEntries = await db.ScheduleEntries
-                .Include(e => e.Group)
-                .Include(e => e.Teacher).ThenInclude(t => t.User)
+            var allEntries = await db
+                .ScheduleEntries.Include(e => e.Group)
+                .Include(e => e.Teacher)
+                    .ThenInclude(t => t.User)
                 .OrderBy(e => e.DayOfWeek)
                 .ThenBy(e => e.NumberPair)
                 .ToListAsync(ct);

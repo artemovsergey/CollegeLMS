@@ -194,7 +194,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task PreviewAsync_AddOnBusyPair_ReturnsLogicError()
+    public async Task PreviewAsync_AddOnBusyPair_AddsEntryAnyway()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
@@ -213,10 +213,68 @@ public class ScheduleCorrectionServiceTests : IDisposable
             var result = await _sut.PreviewAsync(stream, CancellationToken.None);
 
             result.IsSuccess.Should().BeTrue();
-            result.Data!.Entries.Should().BeEmpty();
-            var error = result.Data!.Errors.Should().ContainSingle().Subject;
-            error.Level.Should().Be("logic");
-            error.Message.Should().Contain("уже занята");
+            result.Data!.Errors.Should().BeEmpty();
+            var entry = result.Data!.Entries.Should().ContainSingle().Subject;
+            entry.ChangeType.Should().Be(ScheduleChangeType.Add);
+            entry.Subject.Should().Be("Математика");
+        }
+    }
+
+    [Fact]
+    public async Task PreviewAsync_RemoveOnly_ReturnsRemovedSubjectAndTeacher()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 4, [2]);
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 2).Value = "Физика";
+            ws.Cell(7, 3).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Should().BeEmpty();
+            var entry = result.Data!.Entries.Should().ContainSingle().Subject;
+            entry.ChangeType.Should().Be(ScheduleChangeType.Remove);
+            entry.RemovedSubject.Should().Be("Физика");
+            entry.RemovedTeacherName.Should().Be("Марченко И.А.");
+        }
+    }
+
+    [Fact]
+    public async Task PreviewAsync_MoveToBusyPair_AddsEntryAnyway()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 2, [2]);
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 4, [2]);
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+            ws.Cell(7, 7).Value = "вм. 2 п";
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Should().BeEmpty();
+            var entry = result.Data!.Entries.Should().ContainSingle().Subject;
+            entry.ChangeType.Should().Be(ScheduleChangeType.Replace);
+            entry.NumberPair.Should().Be(4);
+            entry.RemovedNumberPair.Should().Be(2);
         }
     }
 
@@ -458,6 +516,42 @@ public class ScheduleCorrectionServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         _db.ScheduleEntries.Should().BeEmpty();
         _db.ScheduleHistory.Should().ContainSingle(h => h.ChangeType == ScheduleChangeType.Remove);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_RemoveOnSharePair_RemovesMatchingEntry()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var keeps = await SeedEntryAsync(group.Id, teacher.Id, "Математика", 2, [2]);
+        var removes = await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [2]);
+
+        var result = await _sut.ConfirmAsync(
+            new CorrectionConfirmRequest
+            {
+                Entries =
+                [
+                    new CorrectionPreviewEntry
+                    {
+                        GroupId = group.Id,
+                        ChangeType = ScheduleChangeType.Remove,
+                        DayOfWeek = 2,
+                        Week = 2,
+                        NumberPair = 2,
+                        RemovedSubject = "Физика",
+                        RemovedTeacherId = teacher.Id,
+                    },
+                ],
+            },
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Applied.Should().Be(1);
+        var remaining = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        remaining.Id.Should().Be(keeps.Id);
+        remaining.Subject.Should().Be(keeps.Subject);
     }
 
     [Fact]

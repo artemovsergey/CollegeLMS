@@ -9,10 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class ScheduleService(
-    AppDbContext db,
-    ScheduleExportService exportService
-) : IScheduleService
+public class ScheduleService(AppDbContext db, ScheduleExportService exportService)
+    : IScheduleService
 {
     public async Task<Result<PagedResponse<ScheduleResponse>>> GetAllAsync(
         Guid? groupId,
@@ -64,9 +62,7 @@ public class ScheduleService(
 
         var dtos = items
             .Select(s =>
-                s.ToDto(
-                    changeTagsBySlot.GetValueOrDefault((s.GroupId, s.DayOfWeek, s.NumberPair))
-                )
+                s.ToDto(changeTagsBySlot.GetValueOrDefault((s.GroupId, s.DayOfWeek, s.NumberPair)))
             )
             .ToList();
 
@@ -272,7 +268,15 @@ public class ScheduleService(
         CancellationToken ct
     )
     {
-        return await exportService.ExportAsync(groupId, teacherId, room, period, format, layout, ct);
+        return await exportService.ExportAsync(
+            groupId,
+            teacherId,
+            room,
+            period,
+            format,
+            layout,
+            ct
+        );
     }
 
     public async Task<Result<CalendarResponse>> GetCalendarAsync(

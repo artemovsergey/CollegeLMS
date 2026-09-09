@@ -6,7 +6,10 @@ namespace CollegeLMS.API.Mappers;
 
 public static class ScheduleMapper
 {
-    public static ScheduleResponse ToDto(this ScheduleEntry entry, List<ChangeTag>? changeTags = null) =>
+    public static ScheduleResponse ToDto(
+        this ScheduleEntry entry,
+        List<ChangeTag>? changeTags = null
+    ) =>
         new()
         {
             Id = entry.Id,

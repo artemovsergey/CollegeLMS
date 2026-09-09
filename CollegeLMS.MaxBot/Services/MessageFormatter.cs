@@ -232,7 +232,9 @@ public static class MessageFormatter
         sb.AppendLine(
             $"{revision.GroupName} · {revision.DayOfWeek} · Нед. {revision.Week} · Пара {revision.NumberPair}"
         );
-        sb.AppendLine($"📖 {revision.Subject} ({FormatChangeNotificationTitle(revision.ChangeType)})");
+        sb.AppendLine(
+            $"📖 {revision.Subject} ({FormatChangeNotificationTitle(revision.ChangeType)})"
+        );
 
         if (revision.TeacherName is not null)
             sb.AppendLine($"Преподаватель: {revision.TeacherName}");
@@ -263,9 +265,7 @@ public static class MessageFormatter
             sb.AppendLine(
                 $"{index}. {r.GroupName} · {r.DayOfWeek} · Нед. {r.Week} · Пара {r.NumberPair}"
             );
-            sb.AppendLine(
-                $"   📖 {r.Subject} ({FormatChangeNotificationTitle(r.ChangeType)})"
-            );
+            sb.AppendLine($"   📖 {r.Subject} ({FormatChangeNotificationTitle(r.ChangeType)})");
             if (r.TeacherName is not null)
                 sb.AppendLine($"   👨‍🏫 {r.TeacherName}");
             sb.AppendLine($"   🕐 {r.CreatedAt:dd.MM.yyyy HH:mm}");

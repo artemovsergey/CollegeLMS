@@ -362,10 +362,11 @@ public class MaxBotService : BackgroundService
                 await ShowMyChangesAsync(chatId, userId, 0, ct);
                 break;
             case "changes_page":
-                var changesPage = p.Param1 is { } changesPageText
+                var changesPage =
+                    p.Param1 is { } changesPageText
                     && int.TryParse(changesPageText, out var changesPageValue)
-                    ? changesPageValue
-                    : 0;
+                        ? changesPageValue
+                        : 0;
                 await ShowMyChangesAsync(chatId, userId, changesPage, ct);
                 break;
             default:
@@ -1025,7 +1026,12 @@ public class MaxBotService : BackgroundService
         buttons.Add(
             new List<MaxButton>
             {
-                new() { Type = "callback", Text = "🔙 Меню", Payload = "menu" },
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔙 Меню",
+                    Payload = "menu",
+                },
             }
         );
 

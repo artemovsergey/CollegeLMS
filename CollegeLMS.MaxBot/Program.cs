@@ -74,7 +74,8 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
 
     // EnsureCreated не создаёт новую таблицу в существующей БД — идемпотентный raw SQL
-    await db.Database.ExecuteSqlRawAsync("""
+    await db.Database.ExecuteSqlRawAsync(
+        """
         CREATE TABLE IF NOT EXISTS schedule_revisions (
             id BIGSERIAL PRIMARY KEY,
             foreign_id UUID NOT NULL,
@@ -101,7 +102,8 @@ using (var scope = app.Services.CreateScope())
 
         CREATE INDEX IF NOT EXISTS ix_schedule_revisions_created_at
             ON schedule_revisions (created_at);
-        """);
+        """
+    );
 }
 
 app.MapGet(

@@ -101,7 +101,10 @@ public class ScheduleExportService(AppDbContext db)
 
         var grouped = entries
             .GroupBy(e => e.DayOfWeek)
-            .ToDictionary(g => g.Key, g => g.GroupBy(e => e.NumberPair).ToDictionary(g2 => g2.Key, g2 => g2.ToList()));
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(e => e.NumberPair).ToDictionary(g2 => g2.Key, g2 => g2.ToList())
+            );
 
         var allPairs = entries.Select(e => e.NumberPair).Distinct().OrderBy(n => n).ToList();
         var days = DaysMap.Keys.Where(DaysMap.ContainsKey).ToList();
@@ -121,55 +124,94 @@ public class ScheduleExportService(AppDbContext db)
                     .FontSize(14)
                     .AlignCenter();
 
-                page.Content().Table(table =>
-                {
-                    // Columns: Пара | Время | Пн | Вт | Ср | Чт | Пт
-                    table.ColumnsDefinition(c =>
+                page.Content()
+                    .Table(table =>
                     {
-                        c.ConstantColumn(30);   // №
-                        c.ConstantColumn(50);   // Время
-                        foreach (var _ in days)
-                            c.RelativeColumn(1);
-                    });
-
-                    // Header row
-                    table.Header(h =>
-                    {
-                        h.Cell().Background(Color.FromHex("#1e3a5f")).Padding(4).Text("№").FontColor(Colors.White).SemiBold().AlignCenter();
-                        h.Cell().Background(Color.FromHex("#1e3a5f")).Padding(4).Text("Время").FontColor(Colors.White).SemiBold().AlignCenter();
-                        foreach (var day in days)
+                        // Columns: Пара | Время | Пн | Вт | Ср | Чт | Пт
+                        table.ColumnsDefinition(c =>
                         {
-                            h.Cell().Background(Color.FromHex("#1e3a5f")).Padding(4)
-                                .Text(DaysMap[day]).FontColor(Colors.White).SemiBold().AlignCenter();
-                        }
-                    });
+                            c.ConstantColumn(30); // №
+                            c.ConstantColumn(50); // Время
+                            foreach (var _ in days)
+                                c.RelativeColumn(1);
+                        });
 
-                    foreach (var pairNum in allPairs)
-                    {
-                        // Pair number + time row
-                        var firstEntry = entries.FirstOrDefault(e => e.NumberPair == pairNum);
-                        var timeStr = firstEntry != null
-                            ? $"{firstEntry.StartTime:hh\\:mm}–{firstEntry.EndTime:hh\\:mm}"
-                            : "";
-
-                        var isEven = pairNum % 2 == 0;
-                        var bgColor = isEven ? Color.FromHex("#f0f4f8") : Colors.White;
-
-                        table.Cell().Background(bgColor).Padding(3).Text(pairNum.ToString()).SemiBold().AlignCenter();
-                        table.Cell().Background(bgColor).Padding(3).Text(timeStr).FontSize(7).AlignCenter();
-
-                        foreach (var day in days)
+                        // Header row
+                        table.Header(h =>
                         {
-                            var cellText = "";
-                            if (grouped.TryGetValue(day, out var dayPairs) && dayPairs.TryGetValue(pairNum, out var pairEntries))
+                            h.Cell()
+                                .Background(Color.FromHex("#1e3a5f"))
+                                .Padding(4)
+                                .Text("№")
+                                .FontColor(Colors.White)
+                                .SemiBold()
+                                .AlignCenter();
+                            h.Cell()
+                                .Background(Color.FromHex("#1e3a5f"))
+                                .Padding(4)
+                                .Text("Время")
+                                .FontColor(Colors.White)
+                                .SemiBold()
+                                .AlignCenter();
+                            foreach (var day in days)
                             {
-                                cellText = string.Join("\n\n", pairEntries.Select(CellText));
+                                h.Cell()
+                                    .Background(Color.FromHex("#1e3a5f"))
+                                    .Padding(4)
+                                    .Text(DaysMap[day])
+                                    .FontColor(Colors.White)
+                                    .SemiBold()
+                                    .AlignCenter();
                             }
+                        });
 
-                            table.Cell().Background(bgColor).Padding(3).Text(cellText).FontSize(7);
+                        foreach (var pairNum in allPairs)
+                        {
+                            // Pair number + time row
+                            var firstEntry = entries.FirstOrDefault(e => e.NumberPair == pairNum);
+                            var timeStr =
+                                firstEntry != null
+                                    ? $"{firstEntry.StartTime:hh\\:mm}–{firstEntry.EndTime:hh\\:mm}"
+                                    : "";
+
+                            var isEven = pairNum % 2 == 0;
+                            var bgColor = isEven ? Color.FromHex("#f0f4f8") : Colors.White;
+
+                            table
+                                .Cell()
+                                .Background(bgColor)
+                                .Padding(3)
+                                .Text(pairNum.ToString())
+                                .SemiBold()
+                                .AlignCenter();
+                            table
+                                .Cell()
+                                .Background(bgColor)
+                                .Padding(3)
+                                .Text(timeStr)
+                                .FontSize(7)
+                                .AlignCenter();
+
+                            foreach (var day in days)
+                            {
+                                var cellText = "";
+                                if (
+                                    grouped.TryGetValue(day, out var dayPairs)
+                                    && dayPairs.TryGetValue(pairNum, out var pairEntries)
+                                )
+                                {
+                                    cellText = string.Join("\n\n", pairEntries.Select(CellText));
+                                }
+
+                                table
+                                    .Cell()
+                                    .Background(bgColor)
+                                    .Padding(3)
+                                    .Text(cellText)
+                                    .FontSize(7);
+                            }
                         }
-                    }
-                });
+                    });
 
                 page.Footer()
                     .AlignCenter()
@@ -182,17 +224,21 @@ public class ScheduleExportService(AppDbContext db)
         });
 
         var bytes = doc.GeneratePdf();
-        return Result<ExportResult>.Ok(new ExportResult
-        {
-            FileContent = bytes,
-            ContentType = "application/pdf",
-            FileName = $"schedule_grid_{DateTime.UtcNow:yyyyMMdd}.pdf",
-        });
+        return Result<ExportResult>.Ok(
+            new ExportResult
+            {
+                FileContent = bytes,
+                ContentType = "application/pdf",
+                FileName = $"schedule_grid_{DateTime.UtcNow:yyyyMMdd}.pdf",
+            }
+        );
     }
 
     // ──────────────────── PDF DAY CARDS ───────────────────────
 
-    private static Result<ExportResult> ExportPdfDayCards(IReadOnlyList<Entities.ScheduleEntry> entries)
+    private static Result<ExportResult> ExportPdfDayCards(
+        IReadOnlyList<Entities.ScheduleEntry> entries
+    )
     {
         QuestPDF.Settings.License = LicenseType.Community;
 
@@ -216,63 +262,136 @@ public class ScheduleExportService(AppDbContext db)
                     .FontSize(14)
                     .AlignCenter();
 
-                page.Content().Column(col =>
-                {
-                    bool first = true;
-                    foreach (var dayGroup in byDay)
+                page.Content()
+                    .Column(col =>
                     {
-                        if (!first)
-                            col.Item().PaddingTop(10);
-                        first = false;
-
-                        var dayName = DaysMap[dayGroup.Key];
-
-                        // Day header
-                        col.Item()
-                            .Background(Color.FromHex("#1e3a5f"))
-                            .Padding(6)
-                            .Text(dayName)
-                            .FontColor(Colors.White)
-                            .SemiBold()
-                            .FontSize(11);
-
-                        // Pairs table
-                        col.Item().PaddingTop(2).Table(table =>
+                        bool first = true;
+                        foreach (var dayGroup in byDay)
                         {
-                            table.ColumnsDefinition(c =>
-                            {
-                                c.ConstantColumn(25);   // Пара
-                                c.ConstantColumn(55);   // Время
-                                c.RelativeColumn(2);    // Предмет
-                                c.ConstantColumn(55);   // Группа
-                                c.ConstantColumn(50);   // Ауд.
-                                c.RelativeColumn(1.5f); // Преподаватель
-                            });
+                            if (!first)
+                                col.Item().PaddingTop(10);
+                            first = false;
 
-                            table.Header(h =>
-                            {
-                                h.Cell().Background(Color.FromHex("#e8edf2")).Padding(3).Text("Пара").SemiBold().FontSize(8).AlignCenter();
-                                h.Cell().Background(Color.FromHex("#e8edf2")).Padding(3).Text("Время").SemiBold().FontSize(8).AlignCenter();
-                                h.Cell().Background(Color.FromHex("#e8edf2")).Padding(3).Text("Предмет").SemiBold().FontSize(8);
-                                h.Cell().Background(Color.FromHex("#e8edf2")).Padding(3).Text("Группа").SemiBold().FontSize(8).AlignCenter();
-                                h.Cell().Background(Color.FromHex("#e8edf2")).Padding(3).Text("Ауд.").SemiBold().FontSize(8).AlignCenter();
-                                h.Cell().Background(Color.FromHex("#e8edf2")).Padding(3).Text("Преподаватель").SemiBold().FontSize(8);
-                            });
+                            var dayName = DaysMap[dayGroup.Key];
 
-                            foreach (var e in dayGroup.OrderBy(e => e.NumberPair))
-                            {
-                                var bg = e.NumberPair % 2 == 0 ? Color.FromHex("#f8f9fa") : Colors.White;
+                            // Day header
+                            col.Item()
+                                .Background(Color.FromHex("#1e3a5f"))
+                                .Padding(6)
+                                .Text(dayName)
+                                .FontColor(Colors.White)
+                                .SemiBold()
+                                .FontSize(11);
 
-                                table.Cell().Background(bg).Padding(3).Text(e.NumberPair.ToString()).AlignCenter();
-                                table.Cell().Background(bg).Padding(3).Text($"{e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}").FontSize(7).AlignCenter();
-                                table.Cell().Background(bg).Padding(3).Text(e.Subject).FontSize(8);
-                                table.Cell().Background(bg).Padding(3).Text(e.Group?.Name ?? "").FontSize(8).AlignCenter();
-                                table.Cell().Background(bg).Padding(3).Text(e.Room).FontSize(8).AlignCenter();
-                                table.Cell().Background(bg).Padding(3).Text(e.Teacher?.User?.FullName ?? "").FontSize(8);
-                            }
-                        });
-                    }
-                });
+                            // Pairs table
+                            col.Item()
+                                .PaddingTop(2)
+                                .Table(table =>
+                                {
+                                    table.ColumnsDefinition(c =>
+                                    {
+                                        c.ConstantColumn(25); // Пара
+                                        c.ConstantColumn(55); // Время
+                                        c.RelativeColumn(2); // Предмет
+                                        c.ConstantColumn(55); // Группа
+                                        c.ConstantColumn(50); // Ауд.
+                                        c.RelativeColumn(1.5f); // Преподаватель
+                                    });
+
+                                    table.Header(h =>
+                                    {
+                                        h.Cell()
+                                            .Background(Color.FromHex("#e8edf2"))
+                                            .Padding(3)
+                                            .Text("Пара")
+                                            .SemiBold()
+                                            .FontSize(8)
+                                            .AlignCenter();
+                                        h.Cell()
+                                            .Background(Color.FromHex("#e8edf2"))
+                                            .Padding(3)
+                                            .Text("Время")
+                                            .SemiBold()
+                                            .FontSize(8)
+                                            .AlignCenter();
+                                        h.Cell()
+                                            .Background(Color.FromHex("#e8edf2"))
+                                            .Padding(3)
+                                            .Text("Предмет")
+                                            .SemiBold()
+                                            .FontSize(8);
+                                        h.Cell()
+                                            .Background(Color.FromHex("#e8edf2"))
+                                            .Padding(3)
+                                            .Text("Группа")
+                                            .SemiBold()
+                                            .FontSize(8)
+                                            .AlignCenter();
+                                        h.Cell()
+                                            .Background(Color.FromHex("#e8edf2"))
+                                            .Padding(3)
+                                            .Text("Ауд.")
+                                            .SemiBold()
+                                            .FontSize(8)
+                                            .AlignCenter();
+                                        h.Cell()
+                                            .Background(Color.FromHex("#e8edf2"))
+                                            .Padding(3)
+                                            .Text("Преподаватель")
+                                            .SemiBold()
+                                            .FontSize(8);
+                                    });
+
+                                    foreach (var e in dayGroup.OrderBy(e => e.NumberPair))
+                                    {
+                                        var bg =
+                                            e.NumberPair % 2 == 0
+                                                ? Color.FromHex("#f8f9fa")
+                                                : Colors.White;
+
+                                        table
+                                            .Cell()
+                                            .Background(bg)
+                                            .Padding(3)
+                                            .Text(e.NumberPair.ToString())
+                                            .AlignCenter();
+                                        table
+                                            .Cell()
+                                            .Background(bg)
+                                            .Padding(3)
+                                            .Text($"{e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}")
+                                            .FontSize(7)
+                                            .AlignCenter();
+                                        table
+                                            .Cell()
+                                            .Background(bg)
+                                            .Padding(3)
+                                            .Text(e.Subject)
+                                            .FontSize(8);
+                                        table
+                                            .Cell()
+                                            .Background(bg)
+                                            .Padding(3)
+                                            .Text(e.Group?.Name ?? "")
+                                            .FontSize(8)
+                                            .AlignCenter();
+                                        table
+                                            .Cell()
+                                            .Background(bg)
+                                            .Padding(3)
+                                            .Text(e.Room)
+                                            .FontSize(8)
+                                            .AlignCenter();
+                                        table
+                                            .Cell()
+                                            .Background(bg)
+                                            .Padding(3)
+                                            .Text(e.Teacher?.User?.FullName ?? "")
+                                            .FontSize(8);
+                                    }
+                                });
+                        }
+                    });
 
                 page.Footer()
                     .AlignCenter()
@@ -285,24 +404,31 @@ public class ScheduleExportService(AppDbContext db)
         });
 
         var bytes = doc.GeneratePdf();
-        return Result<ExportResult>.Ok(new ExportResult
-        {
-            FileContent = bytes,
-            ContentType = "application/pdf",
-            FileName = $"schedule_days_{DateTime.UtcNow:yyyyMMdd}.pdf",
-        });
+        return Result<ExportResult>.Ok(
+            new ExportResult
+            {
+                FileContent = bytes,
+                ContentType = "application/pdf",
+                FileName = $"schedule_days_{DateTime.UtcNow:yyyyMMdd}.pdf",
+            }
+        );
     }
 
     // ──────────────────── XLSX GRID ───────────────────────────
 
-    private static Result<ExportResult> ExportXlsxGrid(IReadOnlyList<Entities.ScheduleEntry> entries)
+    private static Result<ExportResult> ExportXlsxGrid(
+        IReadOnlyList<Entities.ScheduleEntry> entries
+    )
     {
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Расписание");
 
         var grouped = entries
             .GroupBy(e => e.DayOfWeek)
-            .ToDictionary(g => g.Key, g => g.GroupBy(e => e.NumberPair).ToDictionary(g2 => g2.Key, g2 => g2.ToList()));
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(e => e.NumberPair).ToDictionary(g2 => g2.Key, g2 => g2.ToList())
+            );
 
         var allPairs = entries.Select(e => e.NumberPair).Distinct().OrderBy(n => n).ToList();
         var days = DaysMap.Keys.Where(DaysMap.ContainsKey).ToList();
@@ -333,7 +459,10 @@ public class ScheduleExportService(AppDbContext db)
         foreach (var pairNum in allPairs)
         {
             var firstEntry = entries.FirstOrDefault(e => e.NumberPair == pairNum);
-            var timeStr = firstEntry != null ? $"{firstEntry.StartTime:hh\\:mm}–{firstEntry.EndTime:hh\\:mm}" : "";
+            var timeStr =
+                firstEntry != null
+                    ? $"{firstEntry.StartTime:hh\\:mm}–{firstEntry.EndTime:hh\\:mm}"
+                    : "";
 
             ws.Cell(row, 1).Value = pairNum;
             ws.Cell(row, 2).Value = timeStr;
@@ -341,7 +470,10 @@ public class ScheduleExportService(AppDbContext db)
             for (int i = 0; i < days.Count; i++)
             {
                 var text = "";
-                if (grouped.TryGetValue(days[i], out var dayPairs) && dayPairs.TryGetValue(pairNum, out var pairEntries))
+                if (
+                    grouped.TryGetValue(days[i], out var dayPairs)
+                    && dayPairs.TryGetValue(pairNum, out var pairEntries)
+                )
                 {
                     text = string.Join("\n", pairEntries.Select(CellTextXlsx));
                 }
@@ -350,7 +482,9 @@ public class ScheduleExportService(AppDbContext db)
 
             var isEven = pairNum % 2 == 0;
             var rowRange = ws.Range(row, 1, row, 2 + days.Count);
-            rowRange.Style.Fill.BackgroundColor = isEven ? XLColor.FromHtml("#f0f4f8") : XLColor.White;
+            rowRange.Style.Fill.BackgroundColor = isEven
+                ? XLColor.FromHtml("#f0f4f8")
+                : XLColor.White;
             rowRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             rowRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
             rowRange.Style.Alignment.WrapText = true;
@@ -375,17 +509,21 @@ public class ScheduleExportService(AppDbContext db)
         workbook.SaveAs(ms);
         ms.Seek(0, SeekOrigin.Begin);
 
-        return Result<ExportResult>.Ok(new ExportResult
-        {
-            FileContent = ms.ToArray(),
-            ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            FileName = $"schedule_grid_{DateTime.UtcNow:yyyyMMdd}.xlsx",
-        });
+        return Result<ExportResult>.Ok(
+            new ExportResult
+            {
+                FileContent = ms.ToArray(),
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileName = $"schedule_grid_{DateTime.UtcNow:yyyyMMdd}.xlsx",
+            }
+        );
     }
 
     // ────────────────── XLSX DAY CARDS ────────────────────────
 
-    private static Result<ExportResult> ExportXlsxDayCards(IReadOnlyList<Entities.ScheduleEntry> entries)
+    private static Result<ExportResult> ExportXlsxDayCards(
+        IReadOnlyList<Entities.ScheduleEntry> entries
+    )
     {
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Расписание");
@@ -468,12 +606,14 @@ public class ScheduleExportService(AppDbContext db)
         workbook.SaveAs(ms);
         ms.Seek(0, SeekOrigin.Begin);
 
-        return Result<ExportResult>.Ok(new ExportResult
-        {
-            FileContent = ms.ToArray(),
-            ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            FileName = $"schedule_days_{DateTime.UtcNow:yyyyMMdd}.xlsx",
-        });
+        return Result<ExportResult>.Ok(
+            new ExportResult
+            {
+                FileContent = ms.ToArray(),
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileName = $"schedule_days_{DateTime.UtcNow:yyyyMMdd}.xlsx",
+            }
+        );
     }
 
     private static string CellTextXlsx(Entities.ScheduleEntry e)

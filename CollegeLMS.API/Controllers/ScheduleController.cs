@@ -12,7 +12,8 @@ namespace CollegeLMS.API.Controllers;
 [ApiController]
 [Route("api/schedule")]
 [Produces("application/json")]
-public class ScheduleController(IScheduleService service, ScheduleImportService importService) : ControllerBase
+public class ScheduleController(IScheduleService service, ScheduleImportService importService)
+    : ControllerBase
 {
     [HttpGet]
     [AllowAnonymous]
@@ -150,7 +151,15 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
     {
         var fmt = format.ToLower() == "xlsx" ? ExportFormat.Xlsx : ExportFormat.Pdf;
         var lyt = layout.ToLower() == "daycards" ? ExportLayout.DayCards : ExportLayout.Grid;
-        var result = await service.ExportScheduleAsync(groupId, teacherId, room, period, fmt, lyt, ct);
+        var result = await service.ExportScheduleAsync(
+            groupId,
+            teacherId,
+            room,
+            period,
+            fmt,
+            lyt,
+            ct
+        );
 
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
@@ -171,22 +180,21 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> PreviewImport(
-        IFormFile file,
-        CancellationToken ct
-    )
+    public async Task<IActionResult> PreviewImport(IFormFile file, CancellationToken ct)
     {
         if (file == null || file.Length == 0)
             return BadRequest(Result<SchedulePreviewResponse>.Fail("Файл не выбран", 400));
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (ext != ".xlsx")
-            return BadRequest(Result<SchedulePreviewResponse>.Fail(
-                "Поддерживается только формат XLSX", 400));
+            return BadRequest(
+                Result<SchedulePreviewResponse>.Fail("Поддерживается только формат XLSX", 400)
+            );
 
         if (file.Length > 10 * 1024 * 1024)
-            return BadRequest(Result<SchedulePreviewResponse>.Fail(
-                "Файл слишком большой. Максимум 10MB.", 400));
+            return BadRequest(
+                Result<SchedulePreviewResponse>.Fail("Файл слишком большой. Максимум 10MB.", 400)
+            );
 
         using var stream = new MemoryStream();
         await file.CopyToAsync(stream, ct);

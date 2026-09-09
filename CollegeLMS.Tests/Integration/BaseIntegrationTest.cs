@@ -35,7 +35,13 @@ public abstract class BaseIntegrationTest : IAsyncLifetime
                     options
                         .UseInMemoryDatabase(_dbName)
                         .ConfigureWarnings(w =>
-                            w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning)
+                            w.Ignore(
+                                Microsoft
+                                    .EntityFrameworkCore
+                                    .Diagnostics
+                                    .InMemoryEventId
+                                    .TransactionIgnoredWarning
+                            )
                         )
                 );
             });

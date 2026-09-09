@@ -186,6 +186,13 @@ export default function DispatcherCorrectionPage() {
         </span>
       )
     }
+    if (entry.changeType === "Remove") {
+      return (
+        <span className="line-through text-muted-foreground">
+          {entry.removedSubject ?? "—"}
+        </span>
+      )
+    }
     return <span className="font-medium">{entry.subject ?? "—"}</span>
   }
 

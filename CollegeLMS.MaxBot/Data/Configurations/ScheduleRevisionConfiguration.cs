@@ -45,13 +45,9 @@ public class ScheduleRevisionConfiguration : IEntityTypeConfiguration<ScheduleRe
 
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
 
-        builder
-            .HasIndex(x => x.GroupName)
-            .HasDatabaseName("ix_schedule_revisions_group_name");
+        builder.HasIndex(x => x.GroupName).HasDatabaseName("ix_schedule_revisions_group_name");
 
-        builder
-            .HasIndex(x => x.TeacherName)
-            .HasDatabaseName("ix_schedule_revisions_teacher_name");
+        builder.HasIndex(x => x.TeacherName).HasDatabaseName("ix_schedule_revisions_teacher_name");
 
         builder.HasIndex(x => x.CreatedAt).HasDatabaseName("ix_schedule_revisions_created_at");
     }
