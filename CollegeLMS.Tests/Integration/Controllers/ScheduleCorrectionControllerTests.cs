@@ -116,16 +116,13 @@ public class ScheduleCorrectionControllerTests : BaseIntegrationTest
         var (group, teacher) = await SeedGroupAndTeacherAsync();
         SetAuthHeader(GetToken(UserRole.Admin));
 
-        using var stream = BuildWorkbook(
-            ws =>
-            {
-                ws.Cell(7, 1).Value = group.Name;
-                ws.Cell(7, 4).Value = "Математика";
-                ws.Cell(7, 5).Value = teacher.User.FullName;
-                ws.Cell(7, 6).Value = 4;
-                ws.Cell(7, 7).Value = "вм. 4 п";
-            }
-        );
+        using var stream = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = teacher.User.FullName;
+            ws.Cell(7, 6).Value = 4;
+        });
         using var form = new MultipartFormDataContent();
         var fileContent = new StreamContent(stream);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(

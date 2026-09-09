@@ -340,8 +340,8 @@ export default function DispatcherCorrectionPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {preview.entries.map(entry => (
-                        <tr key={entry.row}>
+                      {preview.entries.map((entry, i) => (
+                        <tr key={`${entry.row}-${i}`}>
                           <td className="px-3 py-2">
                             <ChangeTypeBadge type={entry.changeType} />
                           </td>
@@ -351,7 +351,12 @@ export default function DispatcherCorrectionPage() {
                           <td className="px-3 py-2 whitespace-nowrap">
                             {dayLabelFromInt(entry.dayOfWeek)}
                           </td>
-                          <td className="px-3 py-2">{entry.numberPair}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            {entry.removedNumberPair != null &&
+                            entry.removedNumberPair !== entry.numberPair
+                              ? `${entry.removedNumberPair} → ${entry.numberPair}`
+                              : entry.numberPair}
+                          </td>
                           <td className="px-3 py-2">{renderTitle(entry)}</td>
                           <td className="px-3 py-2 max-w-[220px] truncate">
                             {renderTeacher(entry)}

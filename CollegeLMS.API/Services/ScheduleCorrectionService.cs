@@ -14,11 +14,22 @@ namespace CollegeLMS.API.Services;
 public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
     : IScheduleCorrectionService
 {
-    private static readonly Regex DatePattern =
-        new(@"на\s+(\d{1,2})\.(\d{1,2})\.(\d{4})", RegexOptions.Compiled);
+    private static readonly Regex DatePattern = new(
+        @"на\s+(\d{1,2})\.(\d{1,2})\.(\d{4})",
+        RegexOptions.Compiled
+    );
 
     private static readonly string[] DayNames =
-        ["", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
+    [
+        "",
+        "Понедельник",
+        "Вторник",
+        "Среда",
+        "Четверг",
+        "Пятница",
+        "Суббота",
+        "Воскресенье",
+    ];
 
     private static string DayName(DayOfWeek day) => DayNames[(int)day];
 
@@ -72,8 +83,12 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             Message = message,
         };
 
-    private async Task<(DateTime Date, int Week, List<CorrectionPreviewEntry> Entries, List<ScheduleValidationError> Errors)>
-        ParseWorkbookAsync(XLWorkbook workbook, CancellationToken ct)
+    private async Task<(
+        DateTime Date,
+        int Week,
+        List<CorrectionPreviewEntry> Entries,
+        List<ScheduleValidationError> Errors
+    )> ParseWorkbookAsync(XLWorkbook workbook, CancellationToken ct)
     {
         var ws = workbook.Worksheet(1);
         var errors = new List<ScheduleValidationError>();
@@ -115,14 +130,21 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         }
         catch
         {
-            errors.Add(Error(3, 1, "structure", "Дата в A3 не распознана. Формат: «на ДД.ММ.ГГГГ г.»."));
+            errors.Add(
+                Error(3, 1, "structure", "Дата в A3 не распознана. Формат: «на ДД.ММ.ГГГГ г.».")
+            );
             return (default, 0, entries, errors);
         }
 
         if (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
         {
             errors.Add(
-                Error(3, 1, "structure", "Указана дата на выходной день. Корректировка применяется к учебным дням.")
+                Error(
+                    3,
+                    1,
+                    "structure",
+                    "Указана дата на выходной день. Корректировка применяется к учебным дням."
+                )
             );
             return (default, 0, entries, errors);
         }
@@ -186,7 +208,12 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             if (pairNumber is not { } pair || pair < 1 || pair > 8)
             {
                 errors.Add(
-                    Error(row, 6, "data", $"Строка {row}: не указан/некорректен № пары (F). Ожидается число 1–8.")
+                    Error(
+                        row,
+                        6,
+                        "data",
+                        $"Строка {row}: не указан/некорректен № пары (F). Ожидается число 1–8."
+                    )
                 );
                 continue;
             }
@@ -197,7 +224,12 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             if ((removeSubject.Length > 0) != (removeTeacher.Length > 0))
             {
                 errors.Add(
-                    Error(row, 3, "data", $"Строка {row}: заполнен предмет, но не указан преподаватель (или наоборот).")
+                    Error(
+                        row,
+                        3,
+                        "data",
+                        $"Строка {row}: заполнен предмет, но не указан преподаватель (или наоборот)."
+                    )
                 );
                 continue;
             }
@@ -205,7 +237,12 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             if (hasAdd && (addSubject.Length > 0) != (addTeacher.Length > 0))
             {
                 errors.Add(
-                    Error(row, 5, "data", $"Строка {row}: заполнен предмет, но не указан преподаватель (или наоборот).")
+                    Error(
+                        row,
+                        5,
+                        "data",
+                        $"Строка {row}: заполнен предмет, но не указан преподаватель (или наоборот)."
+                    )
                 );
                 continue;
             }
@@ -213,7 +250,12 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             if (!hasRemove && !hasAdd)
             {
                 errors.Add(
-                    Error(row, 4, "data", $"Строка {row}: не заполнены ни «Снимается», ни «Вводится».")
+                    Error(
+                        row,
+                        4,
+                        "data",
+                        $"Строка {row}: не заполнены ни «Снимается», ни «Вводится»."
+                    )
                 );
                 continue;
             }
@@ -223,7 +265,14 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                 .FirstOrDefaultAsync(g => g.Name == groupName, ct);
             if (group is null)
             {
-                errors.Add(Error(row, 1, "data", $"Строка {row}: группа «{groupName}» не найдена в системе."));
+                errors.Add(
+                    Error(
+                        row,
+                        1,
+                        "data",
+                        $"Строка {row}: группа «{groupName}» не найдена в системе."
+                    )
+                );
                 continue;
             }
 
@@ -234,7 +283,12 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                 if (t is null)
                 {
                     errors.Add(
-                        Error(row, 3, "data", $"Строка {row}: преподаватель «{removeTeacher}» не найден.")
+                        Error(
+                            row,
+                            3,
+                            "data",
+                            $"Строка {row}: преподаватель «{removeTeacher}» не найден."
+                        )
                     );
                     continue;
                 }
@@ -248,7 +302,12 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                 if (t is null)
                 {
                     errors.Add(
-                        Error(row, 5, "data", $"Строка {row}: преподаватель «{addTeacher}» не найден.")
+                        Error(
+                            row,
+                            5,
+                            "data",
+                            $"Строка {row}: преподаватель «{addTeacher}» не найден."
+                        )
                     );
                     continue;
                 }
@@ -263,56 +322,76 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                 _ => ScheduleChangeType.Replace,
             };
 
+            var noteOldPair = ParseNoteOldPair(note);
+            var rowEntries = new List<CorrectionPreviewEntry>();
+
             if (changeType == ScheduleChangeType.Add)
             {
-                if (await IsPairBusyAsync(group.Id, date.DayOfWeek, pair, week, null, ct))
+                var subject =
+                    addSubject.Length > 0
+                        ? ScheduleImportService.NormalizeSubject(addSubject)
+                        : string.Empty;
+
+                // Примечание «вм.X» → перенос: снять занятие с пары X, ввести на пару F.
+                if (noteOldPair is { } movePair)
                 {
-                    errors.Add(
-                        Error(
-                            row,
-                            4,
-                            "logic",
-                            $"Строка {row}: на {DayName(date.DayOfWeek)} {week}-й неделе, пара {pair} уже занята."
-                        )
+                    var moved = await BuildReplaceAsync(
+                        row,
+                        group.Name,
+                        group.Id,
+                        date.DayOfWeek,
+                        week,
+                        movePair,
+                        subject,
+                        addTeacherId,
+                        pair,
+                        subject,
+                        addTeacherId,
+                        Normalize(addTeacher),
+                        note,
+                        errors,
+                        ct
                     );
-                    continue;
+                    if (moved is not null)
+                        rowEntries.Add(moved);
                 }
-
-                var subject = addSubject.Length > 0
-                    ? ScheduleImportService.NormalizeSubject(addSubject)
-                    : string.Empty;
-
-                entries.Add(
-                    new CorrectionPreviewEntry
+                else
+                {
+                    if (await IsPairBusyAsync(group.Id, date.DayOfWeek, pair, week, null, ct))
                     {
-                        Row = row,
-                        GroupId = group.Id,
-                        GroupName = group.Name,
-                        ChangeType = changeType,
-                        DayOfWeek = (int)date.DayOfWeek,
-                        Week = week,
-                        NumberPair = pair,
-                        Subject = subject,
-                        TeacherId = addTeacherId,
-                        TeacherName = Normalize(addTeacher),
-                        Note = note,
+                        errors.Add(
+                            Error(
+                                row,
+                                4,
+                                "logic",
+                                $"Строка {row}: на {DayName(date.DayOfWeek)} {week}-й неделе, пара {pair} уже занята."
+                            )
+                        );
                     }
-                );
+                    else
+                    {
+                        rowEntries.Add(
+                            new CorrectionPreviewEntry
+                            {
+                                Row = row,
+                                GroupId = group.Id,
+                                GroupName = group.Name,
+                                ChangeType = changeType,
+                                DayOfWeek = (int)date.DayOfWeek,
+                                Week = week,
+                                NumberPair = pair,
+                                Subject = subject,
+                                TeacherId = addTeacherId,
+                                TeacherName = Normalize(addTeacher),
+                                Note = note,
+                            }
+                        );
+                    }
+                }
             }
             else if (changeType == ScheduleChangeType.Remove)
             {
-                var target = await db
-                    .ScheduleEntries.AsNoTracking()
-                    .Include(e => e.Teacher!)
-                    .ThenInclude(t => t.User)
-                    .FirstOrDefaultAsync(
-                        e =>
-                            e.GroupId == group.Id
-                            && e.DayOfWeek == date.DayOfWeek
-                            && e.NumberPair == pair
-                            && e.Weeks.Contains(week),
-                        ct
-                    );
+                var target = await FindEntryAtPairAsync(group.Id, date.DayOfWeek, week, pair, ct);
 
                 if (target is null)
                 {
@@ -324,102 +403,78 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                             $"Строка {row}: занятие на {DayName(date.DayOfWeek)} {week}-й неделе, пара {pair} не найдено."
                         )
                     );
-                    continue;
                 }
-
-                entries.Add(
-                    new CorrectionPreviewEntry
-                    {
-                        Row = row,
-                        GroupId = group.Id,
-                        GroupName = group.Name,
-                        ChangeType = changeType,
-                        DayOfWeek = (int)date.DayOfWeek,
-                        Week = week,
-                        NumberPair = pair,
-                        RemovedSubject = target.Subject,
-                        RemovedTeacherId = target.TeacherId,
-                        RemovedTeacherName = target.Teacher?.User?.FullName,
-                        RemovedNumberPair = target.NumberPair,
-                        Note = note,
-                    }
-                );
+                else
+                {
+                    rowEntries.Add(
+                        new CorrectionPreviewEntry
+                        {
+                            Row = row,
+                            GroupId = group.Id,
+                            GroupName = group.Name,
+                            ChangeType = changeType,
+                            DayOfWeek = (int)date.DayOfWeek,
+                            Week = week,
+                            NumberPair = pair,
+                            RemovedSubject = target.Subject,
+                            RemovedTeacherId = target.TeacherId,
+                            RemovedTeacherName = target.Teacher?.User?.FullName,
+                            RemovedNumberPair = target.NumberPair,
+                            Note = note,
+                        }
+                    );
+                }
             }
-            else // Replace
+            else // Replace: на паре F снимается B/C и вводится D/E
             {
-                var removed = await db
-                    .ScheduleEntries.AsNoTracking()
-                    .Include(e => e.Teacher!)
-                    .ThenInclude(t => t.User)
-                    .FirstOrDefaultAsync(
-                        e =>
-                            e.GroupId == group.Id
-                            && e.DayOfWeek == date.DayOfWeek
-                            && e.Weeks.Contains(week)
-                            && e.Subject == ScheduleImportService.NormalizeSubject(removeSubject)
-                            && (
-                                removeTeacherId.HasValue
-                                    ? e.TeacherId == removeTeacherId.Value
-                                    : e.TeacherId == null
-                            ),
+                var swap = await BuildReplaceAsync(
+                    row,
+                    group.Name,
+                    group.Id,
+                    date.DayOfWeek,
+                    week,
+                    pair,
+                    removeSubject,
+                    removeTeacherId,
+                    pair,
+                    addSubject,
+                    addTeacherId,
+                    Normalize(addTeacher),
+                    note,
+                    errors,
+                    ct
+                );
+
+                if (noteOldPair is { } movePair)
+                {
+                    // Примечание «вм.X» → дополнительно снять D/E со старой пары X.
+                    var removedOld = await BuildRemoveEntryAsync(
+                        row,
+                        group.Name,
+                        group.Id,
+                        date.DayOfWeek,
+                        week,
+                        movePair,
+                        addSubject,
+                        addTeacherId,
+                        Normalize(addTeacher),
+                        note,
+                        errors,
                         ct
                     );
-
-                if (removed is null)
-                {
-                    errors.Add(
-                        Error(
-                            row,
-                            4,
-                            "logic",
-                            $"Строка {row}: занятие на {DayName(date.DayOfWeek)} {week}-й неделе не найдено."
-                        )
-                    );
-                    continue;
-                }
-
-                if (removed.NumberPair == pair)
-                {
-                    errors.Add(
-                        Error(row, 4, "logic", $"Строка {row}: пара снятия и ввода одинакова.")
-                    );
-                    continue;
-                }
-
-                if (await IsPairBusyAsync(group.Id, date.DayOfWeek, pair, week, removed.Id, ct))
-                {
-                    errors.Add(
-                        Error(
-                            row,
-                            4,
-                            "logic",
-                            $"Строка {row}: на {DayName(date.DayOfWeek)} {week}-й неделе, пара {pair} уже занята."
-                        )
-                    );
-                    continue;
-                }
-
-                entries.Add(
-                    new CorrectionPreviewEntry
+                    if (swap is not null && removedOld is not null)
                     {
-                        Row = row,
-                        GroupId = group.Id,
-                        GroupName = group.Name,
-                        ChangeType = changeType,
-                        DayOfWeek = (int)date.DayOfWeek,
-                        Week = week,
-                        NumberPair = pair,
-                        Subject = ScheduleImportService.NormalizeSubject(addSubject),
-                        TeacherId = addTeacherId,
-                        TeacherName = Normalize(addTeacher),
-                        RemovedSubject = removed.Subject,
-                        RemovedTeacherId = removed.TeacherId,
-                        RemovedTeacherName = removed.Teacher?.User?.FullName,
-                        RemovedNumberPair = removed.NumberPair,
-                        Note = note,
+                        rowEntries.Add(swap);
+                        rowEntries.Add(removedOld);
                     }
-                );
+                }
+                else if (swap is not null)
+                {
+                    rowEntries.Add(swap);
+                }
             }
+
+            entries.AddRange(rowEntries);
         }
 
         return (date, week, entries, errors);
@@ -432,6 +487,186 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
         var text = pairValue.GetText().Trim();
         return int.TryParse(text, out var n) ? n : null;
+    }
+
+    private static readonly Regex NotePairPattern = new(
+        @"вм\.?\s*(\d{1,2})\s*п?",
+        RegexOptions.Compiled
+    );
+
+    private static int? ParseNoteOldPair(string note)
+    {
+        if (string.IsNullOrWhiteSpace(note))
+            return null;
+
+        var match = NotePairPattern.Match(note);
+        return match.Success ? int.Parse(match.Groups[1].Value) : null;
+    }
+
+    private async Task<ScheduleEntry?> FindEntryAtPairAsync(
+        Guid groupId,
+        DayOfWeek day,
+        int week,
+        int pair,
+        CancellationToken ct
+    ) =>
+        await db
+            .ScheduleEntries.AsNoTracking()
+            .Include(e => e.Teacher!)
+                .ThenInclude(t => t.User)
+            .FirstOrDefaultAsync(
+                e =>
+                    e.GroupId == groupId
+                    && e.DayOfWeek == day
+                    && e.NumberPair == pair
+                    && e.Weeks.Contains(week),
+                ct
+            );
+
+    private async Task<CorrectionPreviewEntry?> BuildReplaceAsync(
+        int row,
+        string groupName,
+        Guid groupId,
+        DayOfWeek day,
+        int week,
+        int removedPair,
+        string removedSubject,
+        Guid? removedTeacherId,
+        int addPair,
+        string addSubject,
+        Guid? addTeacherId,
+        string addTeacherName,
+        string note,
+        List<ScheduleValidationError> errors,
+        CancellationToken ct
+    )
+    {
+        var removed = await db
+            .ScheduleEntries.AsNoTracking()
+            .Include(e => e.Teacher!)
+                .ThenInclude(t => t.User)
+            .FirstOrDefaultAsync(
+                e =>
+                    e.GroupId == groupId
+                    && e.DayOfWeek == day
+                    && e.NumberPair == removedPair
+                    && e.Weeks.Contains(week)
+                    && e.Subject == ScheduleImportService.NormalizeSubject(removedSubject)
+                    && (
+                        removedTeacherId.HasValue
+                            ? e.TeacherId == removedTeacherId.Value
+                            : e.TeacherId == null
+                    ),
+                ct
+            );
+
+        if (removed is null)
+        {
+            errors.Add(
+                Error(
+                    row,
+                    4,
+                    "logic",
+                    $"Строка {row}: занятие на {DayName(day)} {week}-й неделе, пара {removedPair} не найдено."
+                )
+            );
+            return null;
+        }
+
+        if (await IsPairBusyAsync(groupId, day, addPair, week, removed.Id, ct))
+        {
+            errors.Add(
+                Error(
+                    row,
+                    4,
+                    "logic",
+                    $"Строка {row}: на {DayName(day)} {week}-й неделе, пара {addPair} уже занята."
+                )
+            );
+            return null;
+        }
+
+        return new CorrectionPreviewEntry
+        {
+            Row = row,
+            GroupId = groupId,
+            GroupName = groupName,
+            ChangeType = ScheduleChangeType.Replace,
+            DayOfWeek = (int)day,
+            Week = week,
+            NumberPair = addPair,
+            Subject = ScheduleImportService.NormalizeSubject(addSubject),
+            TeacherId = addTeacherId,
+            TeacherName = addTeacherName,
+            RemovedSubject = removed.Subject,
+            RemovedTeacherId = removed.TeacherId,
+            RemovedTeacherName = removed.Teacher?.User?.FullName,
+            RemovedNumberPair = removed.NumberPair,
+            Note = note,
+        };
+    }
+
+    private async Task<CorrectionPreviewEntry?> BuildRemoveEntryAsync(
+        int row,
+        string groupName,
+        Guid groupId,
+        DayOfWeek day,
+        int week,
+        int pair,
+        string subject,
+        Guid? teacherId,
+        string teacherName,
+        string note,
+        List<ScheduleValidationError> errors,
+        CancellationToken ct
+    )
+    {
+        var target = await db
+            .ScheduleEntries.AsNoTracking()
+            .Include(e => e.Teacher!)
+                .ThenInclude(t => t.User)
+            .FirstOrDefaultAsync(
+                e =>
+                    e.GroupId == groupId
+                    && e.DayOfWeek == day
+                    && e.NumberPair == pair
+                    && e.Weeks.Contains(week)
+                    && e.Subject == ScheduleImportService.NormalizeSubject(subject)
+                    && (teacherId.HasValue ? e.TeacherId == teacherId.Value : e.TeacherId == null),
+                ct
+            );
+
+        if (target is null)
+        {
+            errors.Add(
+                Error(
+                    row,
+                    4,
+                    "logic",
+                    $"Строка {row}: занятие на {DayName(day)} {week}-й неделе, пара {pair} не найдено."
+                )
+            );
+            return null;
+        }
+
+        return new CorrectionPreviewEntry
+        {
+            Row = row,
+            GroupId = groupId,
+            GroupName = groupName,
+            ChangeType = ScheduleChangeType.Remove,
+            DayOfWeek = (int)day,
+            Week = week,
+            NumberPair = pair,
+            Subject = ScheduleImportService.NormalizeSubject(subject),
+            TeacherId = teacherId,
+            TeacherName = teacherName,
+            RemovedSubject = target.Subject,
+            RemovedTeacherId = target.TeacherId,
+            RemovedTeacherName = target.Teacher?.User?.FullName,
+            RemovedNumberPair = target.NumberPair,
+            Note = note,
+        };
     }
 
     private async Task<Guid?> FindTeacherAsync(string name, CancellationToken ct)
@@ -512,7 +747,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             .ScheduleHistory.AsNoTracking()
             .Include(h => h.Group)
             .Include(h => h.Teacher!)
-            .ThenInclude(t => t.User)
+                .ThenInclude(t => t.User)
             .Where(h => ids.Contains(h.Id))
             .OrderBy(h => h.AppliedAt)
             .ToListAsync(ct);
@@ -535,18 +770,19 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         CancellationToken ct
     )
     {
-        var query = db.ScheduleHistory.AsNoTracking()
+        var query = db
+            .ScheduleHistory.AsNoTracking()
             .Include(h => h.Group)
             .Include(h => h.Teacher!)
-            .ThenInclude(t => t.User)
+                .ThenInclude(t => t.User)
             .AsQueryable();
 
         if (groupId.HasValue)
             query = query.Where(h => h.GroupId == groupId.Value);
 
         if (teacherId.HasValue)
-            query = query.Where(
-                h => h.TeacherId == teacherId.Value || h.RemovedTeacherId == teacherId.Value
+            query = query.Where(h =>
+                h.TeacherId == teacherId.Value || h.RemovedTeacherId == teacherId.Value
             );
 
         if (week.HasValue)
@@ -699,6 +935,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                     e =>
                         e.GroupId == group.Id
                         && e.DayOfWeek == day
+                        && e.NumberPair == (entry.RemovedNumberPair ?? entry.NumberPair)
                         && e.Weeks.Contains(entry.Week)
                         && (
                             entry.RemovedTeacherId.HasValue
@@ -712,9 +949,6 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                     throw new InvalidOperationException(
                         $"Занятие на {day} {entry.Week}-й неделе не найдено."
                     );
-
-                if (removed.NumberPair == entry.NumberPair)
-                    throw new InvalidOperationException("Пара снятия и ввода одинакова.");
 
                 removed.Weeks = removed.Weeks.Where(w => w != entry.Week).ToList();
                 if (removed.Weeks.Count == 0)
