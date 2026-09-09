@@ -128,6 +128,23 @@ public class MessageFormatterTests
         MessageFormatter.DateForWeekDay(weekStart, 0).Should().Be(new DateTime(2026, 9, 13));
     }
 
+    [Fact]
+    public void FormatWeekSchedule_PairNumbers_AreBoldNotOrderedList()
+    {
+        var entries = new List<ScheduleResponse>();
+        for (var i = 1; i <= 7; i++)
+            entries.Add(Entries()[0] with { NumberPair = i, Subject = $"Предмет{i}" });
+
+        var text = MessageFormatter.FormatWeekSchedule(
+            entries,
+            new DateTime(2026, 9, 7),
+            "Группа 101"
+        );
+
+        text.Should().Contain("*7.* 📖 Предмет7");
+        text.Should().NotMatch(@"  \d+\.");
+    }
+
     private static ScheduleRevision Revision(string changeType = "Replace") =>
         new()
         {

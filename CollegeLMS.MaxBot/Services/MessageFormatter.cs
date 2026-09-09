@@ -79,7 +79,7 @@ public static class MessageFormatter
                     _ => "📚",
                 };
                 sb.AppendLine(
-                    $"  {e.NumberPair}. {type} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})"
+                    $"*{e.NumberPair}.* {type} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})"
                 );
             }
             sb.AppendLine();
@@ -176,7 +176,7 @@ public static class MessageFormatter
                     _ => "📚",
                 };
                 var pairLine =
-                    $"  {e.NumberPair}. {type} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})";
+                    $"*{e.NumberPair}.* {type} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})";
                 if (showGroup && e.GroupName.Length > 0)
                     pairLine += $" — {e.GroupName}";
                 sb.AppendLine(pairLine);
