@@ -51,6 +51,7 @@ public static class MessageFormatter
             if (e.TeacherName is not null)
                 sb.AppendLine($"    👨‍🏫 {e.TeacherName}");
 
+            AppendChangeMarkers(sb, e);
             sb.AppendLine();
         }
 
@@ -81,6 +82,7 @@ public static class MessageFormatter
                 sb.AppendLine(
                     $"*{e.NumberPair}.* {type} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})"
                 );
+                AppendChangeMarkers(sb, e);
             }
             sb.AppendLine();
         }
@@ -139,6 +141,7 @@ public static class MessageFormatter
             if (e.TeacherName is not null)
                 sb.AppendLine($"    👨‍🏫 {e.TeacherName}");
 
+            AppendChangeMarkers(sb, e);
             sb.AppendLine("────────");
         }
 
@@ -180,6 +183,7 @@ public static class MessageFormatter
                 if (showGroup && e.GroupName.Length > 0)
                     pairLine += $" — {e.GroupName}";
                 sb.AppendLine(pairLine);
+                AppendChangeMarkers(sb, e);
             }
             sb.AppendLine();
         }
@@ -213,6 +217,26 @@ public static class MessageFormatter
     }
 
     /// <summary>Заголовок по типу изменения: добавлена / снята / замена.</summary>
+    private static void AppendChangeMarkers(
+        System.Text.StringBuilder sb,
+        ScheduleResponse entry
+    )
+    {
+        foreach (var tag in entry.ChangeTags)
+        {
+            var marker = tag.ChangeType switch
+            {
+                "Add" => "🟢 добавлено",
+                "Remove" => "🔴 снято",
+                "Move" => tag.RemovedNumberPair.HasValue
+                    ? $"🔄 перенос с пары {tag.RemovedNumberPair}"
+                    : "🔄 перенос",
+                _ => "🔵 замена",
+            };
+            sb.AppendLine($"    ⚠️ {marker} (нед. {tag.Week})");
+        }
+    }
+
     public static string FormatChangeNotificationTitle(string changeType)
     {
         return changeType switch

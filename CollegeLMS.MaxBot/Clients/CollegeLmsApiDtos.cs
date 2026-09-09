@@ -15,6 +15,16 @@ public record ScheduleResponse
     public TimeSpan EndTime { get; init; }
     public List<int> Weeks { get; init; } = [];
     public string LessonType { get; init; } = "";
+    public List<ChangeTag> ChangeTags { get; init; } = [];
+}
+
+public record ChangeTag
+{
+    public string ChangeType { get; init; } = "";
+    public int Week { get; init; }
+    public int? RemovedNumberPair { get; init; }
+    public string? RemovedSubject { get; init; }
+    public string? Note { get; init; }
 }
 
 public record GroupResponse
