@@ -18,10 +18,7 @@ public class DocumentsController(IDocumentsService service) : ControllerBase
     [SwaggerResponse(200, "Список получен", typeof(Result<List<DocumentTemplateResponse>>))]
     [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(403, "Доступ запрещён")]
-    [ProducesResponseType(
-        typeof(Result<List<DocumentTemplateResponse>>),
-        StatusCodes.Status200OK
-    )]
+    [ProducesResponseType(typeof(Result<List<DocumentTemplateResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<Result<List<DocumentTemplateResponse>>>> GetTemplates(

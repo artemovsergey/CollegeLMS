@@ -43,10 +43,7 @@ public class DocumentsService(IConfiguration config) : IDocumentsService
 
         var path = Path.GetFullPath(Path.Combine(_templatesPath, fileName));
         if (!File.Exists(path))
-            return Result<DocumentDownloadResult>.Fail(
-                "Файл шаблона отсутствует на сервере",
-                404
-            );
+            return Result<DocumentDownloadResult>.Fail("Файл шаблона отсутствует на сервере", 404);
 
         var content = await File.ReadAllBytesAsync(path, ct);
         return Result<DocumentDownloadResult>.Ok(
