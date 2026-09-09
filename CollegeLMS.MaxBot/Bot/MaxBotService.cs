@@ -161,7 +161,7 @@ public class MaxBotService : BackgroundService
                     MaxChatId = chatId,
                     Role = "student",
                     NotifyEnabled = true,
-                    NotifyDays = [1, 5],
+                    NotifyDays = [1, 2, 3, 4, 5],
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                 }

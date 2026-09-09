@@ -9,7 +9,7 @@ public class UserSettings
     public Guid? GroupId { get; set; }
     public Guid? TeacherId { get; set; }
     public bool NotifyEnabled { get; set; } = true;
-    public int[] NotifyDays { get; set; } = [1, 5];
+    public int[] NotifyDays { get; set; } = [1, 2, 3, 4, 5];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
