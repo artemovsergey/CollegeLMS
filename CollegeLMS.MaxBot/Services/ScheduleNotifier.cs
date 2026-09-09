@@ -84,10 +84,10 @@ public class ScheduleNotifier : BackgroundService
         var max = scope.ServiceProvider.GetRequiredService<MaxApiClient>();
 
         var today = GetNow();
-        var dayOfWeek = (int)today.DayOfWeek; // 0 = Воскресенье
-        if (dayOfWeek == 0)
+        var dayOfWeek = (int)today.DayOfWeek; // 0 = Воскресенье, 6 = Суббота
+        if (dayOfWeek is 0 or 6)
         {
-            _logger.LogInformation("Sunday — no notifications");
+            _logger.LogInformation("Weekend — no notifications");
             return;
         }
 
