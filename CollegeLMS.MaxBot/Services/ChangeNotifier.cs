@@ -73,11 +73,9 @@ public class ChangeNotifier
         var result = new List<(long ChatId, ScheduleRevision Revision)>();
         foreach (var r in revisions)
         {
-            var day = DayIndexFromName(r.DayOfWeek);
-
             foreach (var s in settings)
             {
-                if (!s.NotifyEnabled || !s.NotifyDays.Contains(day))
+                if (!s.NotifyEnabled)
                     continue;
 
                 var groupMatches =
@@ -96,17 +94,4 @@ public class ChangeNotifier
 
         return result.DistinctBy(x => (x.ChatId, x.Revision.Id)).ToList();
     }
-
-    private static int DayIndexFromName(string dayName) =>
-        dayName switch
-        {
-            "Понедельник" => 1,
-            "Вторник" => 2,
-            "Среда" => 3,
-            "Четверг" => 4,
-            "Пятница" => 5,
-            "Суббота" => 6,
-            "Воскресенье" => 7,
-            _ => 0,
-        };
 }

@@ -99,7 +99,7 @@ public class ChangeNotifierTests
     }
 
     [Fact]
-    public void SelectRecipients_DayNotInNotifyDays_IsExcluded()
+    public void SelectRecipients_DayNotInNotifyDays_StillMatches()
     {
         var recipients = ChangeNotifier.SelectRecipients(
             [Student(days: [3])],
@@ -108,14 +108,14 @@ public class ChangeNotifierTests
             [Rev()]
         );
 
-        recipients.Should().BeEmpty();
+        recipients.Should().ContainSingle(x => x.ChatId == 100);
     }
 
     [Fact]
-    public void SelectRecipients_SundayRevision_MatchesNotifyDay7()
+    public void SelectRecipients_SundayRevision_StillMatches()
     {
         var recipients = ChangeNotifier.SelectRecipients(
-            [Student(days: [7])],
+            [Student(days: [1])],
             GroupNames,
             TeacherNames,
             [Rev(dayName: "Воскресенье")]
