@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
+import Link from "next/link"
 import { Loader2, AlertTriangle } from "lucide-react"
 import type { Result } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
@@ -8,6 +9,39 @@ import api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { LESSON_TYPE_LABELS, type LessonType } from "@/types/schedule"
+
+interface DispatcherEntry {
+  groupId: string
+  groupName: string
+  subject: string
+  room: string
+  startTime: string
+  endTime: string
+  lessonType: LessonType
+  changeType: string | null
+}
+
+interface DispatcherPairSlot {
+  numberPair: number
+  startTime: string
+  endTime: string
+  entries: DispatcherEntry[]
+}
+
+interface DispatcherTeacherStatus {
+  teacherId: string
+  teacherName: string
+  totalPairs: number
+  entries: DispatcherEntry[]
+}
+
+interface DispatcherDashboardResponse {
+  date: string
+  week: number
+  dayOfWeek: number
+  slots: DispatcherPairSlot[]
+  teachers: DispatcherTeacherStatus[]
+}
 
 const LESSON_COLORS: Record<LessonType, string> = {
   Lecture: "#3b82f6",
@@ -47,6 +81,7 @@ export default function DispatcherDashboardPage() {
   const [entries, setEntries] = useState<ScheduleResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dashboard, setDashboard] = useState<DispatcherDashboardResponse | null>(null)
 
   useEffect(() => {
     api
@@ -59,6 +94,16 @@ export default function DispatcherDashboardPage() {
       })
       .catch(() => setError("Ошибка загрузки расписания"))
       .finally(() => setLoading(false))
+
+    const todayStr = new Date().toLocaleDateString("en-CA")
+    api
+      .get<Result<DispatcherDashboardResponse>>("/api/dispatcher/dashboard", {
+        params: { date: todayStr },
+      })
+      .then((res) => {
+        if (res.data.isSuccess && res.data.data) setDashboard(res.data.data)
+      })
+      .catch(() => setError((prev) => prev ?? "Ошибка загрузки дашборда"))
   }, [])
 
   const bars = useMemo(() => {
@@ -124,6 +169,96 @@ export default function DispatcherDashboardPage() {
           <AlertTriangle className="size-4 shrink-0" />
           {error}
         </div>
+      )}
+
+      {dashboard && (
+        <>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center justify-between text-base">
+                <span>Преподаватели на {new Date(dashboard.date).toLocaleDateString("ru-RU")}</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Нед. {dashboard.week} · {dashboard.teachers.length} преподавателей
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {dashboard.teachers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-10 text-center">Нет занятий на этот день</p>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {dashboard.teachers.map((t) => (
+                    <Link
+                      key={t.teacherId}
+                      href={`/schedule?teacherId=${t.teacherId}`}
+                      className="rounded-lg border p-3 transition-colors hover:bg-accent/50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium truncate">{t.teacherName}</p>
+                        <span className="text-xs text-muted-foreground">{t.totalPairs} пар</span>
+                      </div>
+                      <div className="mt-2 space-y-1">
+                        {t.entries.slice(0, 3).map((e, i) => (
+                          <p key={i} className="text-xs text-muted-foreground truncate">
+                            {e.startTime.slice(0, 5)} · {e.groupName} · {e.subject} · {e.room}
+                          </p>
+                        ))}
+                        {t.entries.length > 3 && (
+                          <p className="text-xs text-muted-foreground">+{t.entries.length - 3} ещё</p>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Слоты пар</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-xs text-muted-foreground">
+                      <th className="text-left py-2">Пара</th>
+                      <th className="text-left py-2">Время</th>
+                      <th className="text-left py-2">Занятия</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dashboard.slots.map((slot) => (
+                      <tr key={slot.numberPair} className="border-b border-border/50">
+                        <td className="py-2 align-top">{slot.numberPair}</td>
+                        <td className="py-2 align-top whitespace-nowrap">
+                          {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
+                        </td>
+                        <td className="py-2">
+                          {slot.entries.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          ) : (
+                            <ul className="space-y-1">
+                              {slot.entries.map((e, i) => (
+                                <li key={i} className="text-xs">
+                                  <span className="font-medium">{e.groupName}</span>
+                                  <span className="text-muted-foreground">
+                                    {" "}· {e.subject} · {e.room}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       <Card>
