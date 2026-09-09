@@ -32,7 +32,11 @@ public abstract class BaseIntegrationTest : IAsyncLifetime
                     services.Remove(s);
 
                 services.AddDbContext<AppDbContext>(options =>
-                    options.UseInMemoryDatabase(_dbName)
+                    options
+                        .UseInMemoryDatabase(_dbName)
+                        .ConfigureWarnings(w =>
+                            w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning)
+                        )
                 );
             });
         });

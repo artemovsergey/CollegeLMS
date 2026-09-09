@@ -24,6 +24,7 @@ public class ScheduleValidationError
 {
     public int Row { get; set; }
     public int Column { get; set; }
+    public string Level { get; set; } = "data";
     public string Message { get; set; } = string.Empty;
 }
 

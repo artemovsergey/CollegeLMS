@@ -1346,7 +1346,7 @@ git commit -m "feat: превью корректировки расписани�
             GroupId = groupId,
             TeacherId = entry.TeacherId,
             Subject = ScheduleImportService.NormalizeSubject(entry.Subject ?? string.Empty),
-            Room = entry.Room ?? string.Empty,
+            Room = string.Empty,
             DayOfWeek = day,
             NumberPair = entry.NumberPair,
             StartTime = start,

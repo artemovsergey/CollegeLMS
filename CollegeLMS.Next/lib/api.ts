@@ -50,7 +50,7 @@ api.interceptors.response.use(
 
 export default api
 
-function unwrap<T>(res: { data: Result<T> }): T {
+export function unwrap<T>(res: { data: Result<T> }): T {
   if (!res.data.isSuccess || res.data.data === null) {
     throw new Error(res.data.errorMessage ?? "Ошибка запроса")
   }

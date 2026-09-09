@@ -35,6 +35,10 @@ public sealed record CallbackPayload(string Action, string? Param1, string? Para
 
     public static string CalNext(DateTime month) => $"calnext:{month:yyyy-MM}";
 
+    public static string Changes() => "changes";
+
+    public static string ChangesPage(int page) => $"changes_page:{page}";
+
     public static DateTime? TryParseDate(string? text)
     {
         if (text is null)

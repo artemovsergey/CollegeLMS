@@ -13,7 +13,7 @@ builder
     .AddSwaggerWithBearer()
     .AddCorsFrontend(builder.Configuration)
     .AddJsonSerializer()
-    .AddApplicationServices()
+    .AddApplicationServices(builder.Configuration)
     .AddHealthChecksWithDb(builder.Configuration)
     .AddRateLimit();
 

@@ -1,3 +1,5 @@
+using CollegeLMS.API.Entities.Enums;
+
 namespace CollegeLMS.API.Dtos;
 
 public class ScheduleResponse
@@ -15,6 +17,13 @@ public class ScheduleResponse
     public TimeSpan EndTime { get; set; }
     public List<int> Weeks { get; set; } = new();
     public string LessonType { get; set; } = string.Empty;
+    public List<ChangeTag> ChangeTags { get; set; } = new();
+}
+
+public class ChangeTag
+{
+    public ScheduleChangeType ChangeType { get; set; }
+    public int Week { get; set; }
 }
 
 public class CreateScheduleRequest

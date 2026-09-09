@@ -1,5 +1,7 @@
 export type LessonType = "Lecture" | "Practice" | "Lab" | "Exam"
 
+import type { ChangeTag } from "@/types/correction"
+
 export interface ScheduleResponse {
   id: string
   groupId: string
@@ -14,6 +16,7 @@ export interface ScheduleResponse {
   endTime: string
   weeks: number[]
   lessonType: LessonType
+  changeTags: ChangeTag[]
 }
 
 export const DAYS = [

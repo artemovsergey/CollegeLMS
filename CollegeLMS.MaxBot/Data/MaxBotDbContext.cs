@@ -10,6 +10,8 @@ public class MaxBotDbContext : DbContext
 
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
+    public DbSet<ScheduleRevision> ScheduleRevisions => Set<ScheduleRevision>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MaxBotDbContext).Assembly);

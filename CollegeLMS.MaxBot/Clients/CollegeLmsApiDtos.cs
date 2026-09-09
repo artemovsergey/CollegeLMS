@@ -38,3 +38,22 @@ public record SchedulePageResponse
     public int Page { get; init; }
     public int PageSize { get; init; }
 }
+
+/// <summary>Полезная нагрузка POST /notify — изменения расписания из API CollegeLMS.</summary>
+public record NotifyChangeDto
+{
+    public Guid Id { get; init; }
+    public string ChangeType { get; init; } = "";
+    public Guid GroupId { get; init; }
+    public string GroupName { get; init; } = "";
+    public Guid? TeacherId { get; init; }
+    public string? TeacherName { get; init; }
+    public int DayOfWeek { get; init; }
+    public int Week { get; init; }
+    public int NumberPair { get; init; }
+    public string Subject { get; init; } = "";
+    public string? Note { get; init; }
+    public string? RemovedSubject { get; init; }
+    public string? RemovedTeacherName { get; init; }
+    public int? RemovedNumberPair { get; init; }
+}

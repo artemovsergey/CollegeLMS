@@ -1,0 +1,67 @@
+@startuml
+!theme plain
+
+interface IScheduleCorrectionService {
+  + PreviewAsync(file, week, dayOfWeek, ct): Result<CorrectionPreviewResponse>
+  + ConfirmAsync(request, ct): Result<ConfirmCorrectionResponse>
+  + GetHistoryAsync(query, ct): Result<PagedResponse<ScheduleHistoryResponse>>
+}
+
+class ScheduleCorrectionService {
+  - db: AppDbContext
+  - changeTags: List<ChangeTag>
+  + PreviewAsync(file, week, dayOfWeek, ct): Result<CorrectionPreviewResponse>
+  + ConfirmAsync(request, ct): Result<ConfirmCorrectionResponse>
+  + GetHistoryAsync(query, ct): Result<PagedResponse<ScheduleHistoryResponse>>
+  - ApplyChangeAsync(change, ct): Task
+  - BuildChangeTagsAsync(history, ct): List<ChangeTag>
+}
+
+class ScheduleCorrectionController {
+  - service: IScheduleCorrectionService
+  + Preview(file, week, dayOfWeek, ct): ActionResult
+  + Confirm(request, ct): ActionResult
+  + GetHistory(query, ct): ActionResult
+}
+
+interface IScheduleImportService {
+  + ImportAsync(file, ct): Result<ImportResult>
+  + GetPairTime(pair): (start, end)
+}
+
+class ScheduleImportService {
+  - db: AppDbContext
+  + ImportAsync(file, ct): Result<ImportResult>
+  + GetPairTime(pair): (start, end)
+}
+
+class ScheduleService {
+  + GetAllAsync(query, ct): Result<PagedResponse<ScheduleEntryResponse>>
+}
+
+class MaxBotHttpClient {
+  - client: HttpClient
+  + NotifyChangesAsync(changes, ct): Task
+}
+
+class ScheduleHistory {
+  + ChangeType: enum
+  + GroupId: GUID
+  + Week: int
+  + AppliedAt: datetime
+}
+
+class ChangeTag {
+  + ChangeType: ScheduleChangeType
+  + Week: int
+}
+
+IScheduleCorrectionService <|.. ScheduleCorrectionService
+ScheduleCorrectionController --> IScheduleCorrectionService
+ScheduleCorrectionService --> IScheduleImportService : валидация/GetPairTime
+ScheduleCorrectionService --> ScheduleService : GetChangeableEntriesAsync
+ScheduleCorrectionService --> ScheduleHistory : создаёт записи
+ScheduleCorrectionService ..> ScheduleCorrectionController : MaxBotHttpClient.inject
+ScheduleCorrectionController --> MaxBotHttpClient : POST /notify после confirm
+ScheduleHistory ..> ChangeTag : проекция тегов пар
+@enduml
