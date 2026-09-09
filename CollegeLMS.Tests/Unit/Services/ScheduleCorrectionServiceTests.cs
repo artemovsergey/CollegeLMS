@@ -272,7 +272,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
             result.IsSuccess.Should().BeTrue();
             result.Data!.Errors.Should().BeEmpty();
             var entry = result.Data!.Entries.Should().ContainSingle().Subject;
-            entry.ChangeType.Should().Be(ScheduleChangeType.Replace);
+            entry.ChangeType.Should().Be(ScheduleChangeType.Move);
             entry.NumberPair.Should().Be(4);
             entry.RemovedNumberPair.Should().Be(2);
         }
@@ -334,7 +334,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
             result.IsSuccess.Should().BeTrue();
             result.Data!.Errors.Should().BeEmpty();
             var entry = result.Data!.Entries.Should().ContainSingle().Subject;
-            entry.ChangeType.Should().Be(ScheduleChangeType.Replace);
+            entry.ChangeType.Should().Be(ScheduleChangeType.Move);
             entry.NumberPair.Should().Be(4);
             entry.RemovedNumberPair.Should().Be(2);
             entry.Subject.Should().Be("Математика");

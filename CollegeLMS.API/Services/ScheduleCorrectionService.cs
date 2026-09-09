@@ -564,7 +564,10 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             Row = row,
             GroupId = groupId,
             GroupName = groupName,
-            ChangeType = ScheduleChangeType.Replace,
+            ChangeType =
+                removed.NumberPair != addPair
+                    ? ScheduleChangeType.Move
+                    : ScheduleChangeType.Replace,
             DayOfWeek = (int)day,
             Week = week,
             NumberPair = addPair,
@@ -889,7 +892,8 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                 return new AppliedEntry(history, change);
             }
 
-            default: // Replace
+            case ScheduleChangeType.Replace:
+            case ScheduleChangeType.Move:
             {
                 var removed = await db.ScheduleEntries.FirstOrDefaultAsync(
                     e =>
@@ -922,7 +926,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                 var history = new ScheduleHistory
                 {
                     Id = Guid.NewGuid(),
-                    ChangeType = ScheduleChangeType.Replace,
+                    ChangeType = entry.ChangeType,
                     AppliedAt = utcNow,
                     AppliedByUserId = appliedByUserId,
                     GroupId = group.Id,
@@ -945,7 +949,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                 var change = new ScheduleChangeDto
                 {
                     Id = history.Id,
-                    ChangeType = "Replace",
+                    ChangeType = entry.ChangeType.ToString(),
                     GroupId = group.Id,
                     GroupName = group.Name,
                     TeacherId = entry.TeacherId,
@@ -962,7 +966,16 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
                 return new AppliedEntry(history, change);
             }
+
+            default:
+                throw new InvalidOperationException(
+                    $"Неизвестный тип изменения расписания: {entry.ChangeType}"
+                );
         }
+
+        throw new InvalidOperationException(
+            $"Неизвестный тип изменения расписания: {entry.ChangeType}"
+        );
     }
 
     private static ScheduleEntry CreateEntry(
