@@ -1,4 +1,4 @@
-export type CorrectionChangeType = "Add" | "Remove" | "Replace"
+export type CorrectionChangeType = "Add" | "Remove" | "Replace" | "Move"
 
 export interface CorrectionPreviewEntry {
   row: number
@@ -62,4 +62,7 @@ export interface ScheduleHistoryItem {
 export interface ChangeTag {
   changeType: CorrectionChangeType
   week: number
+  removedNumberPair: number | null
+  removedSubject: string | null
+  note: string | null
 }

@@ -14,6 +14,7 @@ import {
   Plus,
   Minus,
   Repeat,
+  ArrowRightLeft,
   RefreshCw,
 } from "lucide-react"
 import {
@@ -52,6 +53,11 @@ const CHANGE_TYPE_META: Record<
     label: "Замена",
     icon: Repeat,
     className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+  },
+  Move: {
+    label: "Перенос",
+    icon: ArrowRightLeft,
+    className: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
   },
 }
 
@@ -175,7 +181,7 @@ export default function DispatcherCorrectionPage() {
   const hasErrors = (preview?.errors.length ?? 0) > 0
 
   const renderTitle = (entry: CorrectionPreviewEntry) => {
-    if (entry.changeType === "Replace") {
+    if (entry.changeType === "Replace" || entry.changeType === "Move") {
       return (
         <span className="flex items-center gap-1">
           <span className="line-through text-muted-foreground">
@@ -197,7 +203,7 @@ export default function DispatcherCorrectionPage() {
   }
 
   const renderTeacher = (entry: CorrectionPreviewEntry) => {
-    if (entry.changeType === "Replace") {
+    if (entry.changeType === "Replace" || entry.changeType === "Move") {
       const from = entry.removedTeacherName
       const to = entry.teacherName
       if (from && to)
@@ -307,11 +313,10 @@ export default function DispatcherCorrectionPage() {
                   </div>
                   <div className="rounded-lg border bg-card p-3">
                     <p
-                      className={`text-2xl font-bold ${
-                        hasErrors
+                      className={`text-2xl font-bold ${hasErrors
                           ? "text-destructive"
                           : "text-emerald-600 dark:text-emerald-400"
-                      }`}
+                        }`}
                     >
                       {preview.errors.length}
                     </p>
@@ -360,7 +365,7 @@ export default function DispatcherCorrectionPage() {
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap">
                             {entry.removedNumberPair != null &&
-                            entry.removedNumberPair !== entry.numberPair
+                              entry.removedNumberPair !== entry.numberPair
                               ? `${entry.removedNumberPair} → ${entry.numberPair}`
                               : entry.numberPair}
                           </td>
@@ -495,14 +500,15 @@ export default function DispatcherCorrectionPage() {
                           </td>
                           <td className="px-3 py-2">
                             {item.removedNumberPair != null &&
-                            item.changeType === "Replace" &&
-                            item.removedNumberPair !== item.numberPair
+                              (item.changeType === "Replace" || item.changeType === "Move") &&
+                              item.removedNumberPair !== item.numberPair
                               ? `${item.removedNumberPair} → ${item.numberPair}`
                               : item.numberPair}
                           </td>
                           <td className="px-3 py-2">
-                            {item.changeType === "Replace" &&
-                            item.removedSubject ? (
+                            {(item.changeType === "Replace" ||
+                              item.changeType === "Move") &&
+                              item.removedSubject ? (
                               <span className="flex items-center gap-1">
                                 <span className="line-through text-muted-foreground">
                                   {item.removedSubject}

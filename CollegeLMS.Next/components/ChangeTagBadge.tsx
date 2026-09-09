@@ -2,7 +2,7 @@
 
 import type { ChangeTag, CorrectionChangeType } from "@/types/correction"
 import type { LucideIcon } from "lucide-react"
-import { Plus, Minus, Repeat } from "lucide-react"
+import { Plus, Minus, Repeat, ArrowRightLeft } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +30,25 @@ const CHANGE_META: Record<
     icon: Repeat,
     className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
   },
+  Move: {
+    label: "Перенос",
+    icon: ArrowRightLeft,
+    className: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
+  },
+}
+
+function tagDetail(tag: ChangeTag): string {
+  const parts = [`${CHANGE_META[tag.changeType].label} — неделя ${tag.week}`]
+  if (tag.changeType === "Move" && tag.removedNumberPair != null) {
+    parts.push(`перенос с пары ${tag.removedNumberPair}`)
+  }
+  if (tag.removedSubject) {
+    parts.push(`вместо: ${tag.removedSubject}`)
+  }
+  if (tag.note) {
+    parts.push(`примечание: ${tag.note}`)
+  }
+  return parts.join("\n")
 }
 
 export default function ChangeTagBadge({ tag }: { tag: ChangeTag }) {
@@ -50,7 +69,7 @@ export default function ChangeTagBadge({ tag }: { tag: ChangeTag }) {
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          {meta.label} — неделя {tag.week}
+          <span className="block whitespace-pre-line text-left">{tagDetail(tag)}</span>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
