@@ -187,6 +187,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMaterialService, MaterialService>();
         services.AddScoped<ICourseDocumentService, CourseDocumentService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IDispatcherDashboardService, DispatcherDashboardService>();
         services.AddScoped<INewsService, NewsService>();
         services.AddScoped<IWordPressImportService, WordPressImportService>();
         services.AddHttpClient(

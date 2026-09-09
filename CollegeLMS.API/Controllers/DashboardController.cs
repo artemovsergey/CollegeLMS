@@ -10,7 +10,10 @@ namespace CollegeLMS.API.Controllers;
 
 [ApiController]
 [Produces("application/json")]
-public class DashboardController(IDashboardService service) : ControllerBase
+public class DashboardController(
+    IDashboardService service,
+    IDispatcherDashboardService dispatcherService
+) : ControllerBase
 {
     [HttpGet("api/teacher/dashboard")]
     [Authorize(Roles = "Teacher")]
@@ -76,6 +79,26 @@ public class DashboardController(IDashboardService service) : ControllerBase
     )
     {
         var result = await service.GetAdminDashboardAsync(ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    [HttpGet("api/dispatcher/dashboard")]
+    [Authorize(Roles = "Dispatcher,Admin")]
+    [SwaggerOperation(Summary = "Получить дашборд диспетчера: преподаватели и пары на дату")]
+    [SwaggerResponse(200, "Дашборд получен", typeof(Result<DispatcherDashboardResponse>))]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён")]
+    [ProducesResponseType(typeof(Result<DispatcherDashboardResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<Result<DispatcherDashboardResponse>>> GetDispatcherDashboard(
+        [FromQuery] DateTime? date,
+        CancellationToken ct
+    )
+    {
+        var result = await dispatcherService.GetDailyAsync(date ?? DateTime.UtcNow.Date, ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
         return Ok(result);
