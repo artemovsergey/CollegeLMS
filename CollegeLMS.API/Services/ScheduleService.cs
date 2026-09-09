@@ -93,7 +93,14 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
             .ToDictionary(
                 g => g.Key,
                 g =>
-                    g.Select(h => new ChangeTag { ChangeType = h.ChangeType, Week = h.Week })
+                    g.Select(h => new ChangeTag
+                    {
+                        ChangeType = h.ChangeType,
+                        Week = h.Week,
+                        RemovedNumberPair = h.RemovedNumberPair,
+                        RemovedSubject = h.RemovedSubject,
+                        Note = h.Note,
+                    })
                         .ToList()
             );
     }

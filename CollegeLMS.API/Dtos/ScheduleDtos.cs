@@ -24,6 +24,9 @@ public class ChangeTag
 {
     public ScheduleChangeType ChangeType { get; set; }
     public int Week { get; set; }
+    public int? RemovedNumberPair { get; set; }
+    public string? RemovedSubject { get; set; }
+    public string? Note { get; set; }
 }
 
 public class CreateScheduleRequest
