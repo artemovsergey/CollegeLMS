@@ -51,7 +51,8 @@ export default function LoginPage() {
           Student: "/my/dashboard",
           Dispatcher: "/schedule",
         }
-        router.push(homeByRole[body.data.user.role] ?? "/my/dashboard")
+        const firstRole = body.data.user.roles?.[0] ?? body.data.user.role
+        router.push(homeByRole[firstRole] ?? "/my/dashboard")
       } else {
         setFormError(body.errorMessage ?? "Ошибка входа")
       }

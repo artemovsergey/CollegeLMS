@@ -94,7 +94,7 @@ export default function SchedulePage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
-  const canManage = user?.role ? CAN_MANAGE_ROLES.includes(user.role) : false
+  const canManage = user?.roles ? user.roles.some(role => CAN_MANAGE_ROLES.includes(role)) : false
 
   const loadSchedule = useCallback(async () => {
     setInitialLoading(true)

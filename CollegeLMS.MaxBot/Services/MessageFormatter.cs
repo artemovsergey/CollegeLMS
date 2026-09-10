@@ -217,10 +217,7 @@ public static class MessageFormatter
     }
 
     /// <summary>Заголовок по типу изменения: добавлена / снята / замена.</summary>
-    private static void AppendChangeMarkers(
-        System.Text.StringBuilder sb,
-        ScheduleResponse entry
-    )
+    private static void AppendChangeMarkers(System.Text.StringBuilder sb, ScheduleResponse entry)
     {
         foreach (var tag in entry.ChangeTags)
         {
@@ -258,7 +255,9 @@ public static class MessageFormatter
             $"{revision.GroupName} · {revision.DayOfWeek} · Нед. {revision.Week} · Пара {revision.NumberPair}"
         );
         sb.AppendLine();
-        sb.AppendLine($"📖 {revision.Subject} — {FormatChangeNotificationTitle(revision.ChangeType)}");
+        sb.AppendLine(
+            $"📖 {revision.Subject} — {FormatChangeNotificationTitle(revision.ChangeType)}"
+        );
 
         if (revision.TeacherName is not null)
             sb.AppendLine($"👨‍🏫 Преподаватель: {revision.TeacherName}");

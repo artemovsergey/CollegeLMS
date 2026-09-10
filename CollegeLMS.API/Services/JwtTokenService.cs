@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using CollegeLMS.API.Entities;
+using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,9 +16,13 @@ public class JwtTokenService(IConfiguration config) : ITokenService
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.Email),
-            new(ClaimTypes.Role, user.Role.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
+
+        foreach (var role in user.Role.GetRoles())
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
+        }
 
         var key = Encoding.UTF8.GetBytes(config["Jwt:Key"]!);
         var issuer = config["Jwt:Issuer"] ?? "CollegeLMS";

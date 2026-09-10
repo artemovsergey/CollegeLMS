@@ -150,19 +150,18 @@ public class MessageFormatterTests
     {
         var entries = new List<ScheduleResponse>
         {
-            Entries()[0]
-                with
-                {
-                    ChangeTags =
-                    [
-                        new ChangeTag
-                        {
-                            ChangeType = "Move",
-                            Week = 1,
-                            RemovedNumberPair = 2,
-                        },
-                    ],
-                },
+            Entries()[0] with
+            {
+                ChangeTags =
+                [
+                    new ChangeTag
+                    {
+                        ChangeType = "Move",
+                        Week = 1,
+                        RemovedNumberPair = 2,
+                    },
+                ],
+            },
         };
 
         var text = MessageFormatter.FormatDaySchedule(
@@ -180,16 +179,19 @@ public class MessageFormatterTests
         var entries = new List<ScheduleResponse>
         {
             Entries()[0],
-            Entries()[0]
-                with
-                {
-                    NumberPair = 2,
-                    Subject = "Физика",
-                    StartTime = new TimeSpan(10, 50, 0),
-                },
+            Entries()[0] with
+            {
+                NumberPair = 2,
+                Subject = "Физика",
+                StartTime = new TimeSpan(10, 50, 0),
+            },
         };
 
-        var text = MessageFormatter.FormatDaySchedule(entries, new DateTime(2026, 9, 7), "Группа 101");
+        var text = MessageFormatter.FormatDaySchedule(
+            entries,
+            new DateTime(2026, 9, 7),
+            "Группа 101"
+        );
 
         text.Should().Contain("────────");
         text.Should().Contain("*1.* 📖 Математика");

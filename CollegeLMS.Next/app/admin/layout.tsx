@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     const byPrefix = Object.entries(adminRoleMap).find(([href]) => pathname.startsWith(href))
     return byPrefix ? byPrefix[1] : []
   })()
-  const denied = !!user && allowedRoles.length > 0 && !allowedRoles.includes(user.role)
+  const denied = !!user && allowedRoles.length > 0 && !user.roles?.some(role => allowedRoles.includes(role))
 
   useEffect(() => {
     if (isLoading) return
@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const filtered = adminMenuSections
     .map(s => ({
       ...s,
-      items: s.items.filter(item => (adminRoleMap[item.href] ?? []).includes(user.role)),
+      items: s.items.filter(item => (adminRoleMap[item.href] ?? []).some(role => user.roles?.includes(role))),
     }))
     .filter(s => s.items.length > 0)
 

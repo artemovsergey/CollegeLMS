@@ -9,31 +9,39 @@ import { adminMenuSections, type MenuSection } from "@/lib/menus"
 import { LayoutDashboard, BookOpen, CalendarDays, GraduationCap, Settings, FileText, Briefcase } from "lucide-react"
 
 const studentMenu = [
-  { label: "Обучение", items: [
-    { href: "/my/dashboard", label: "Моя панель", icon: LayoutDashboard },
-    { href: "/my/courses", label: "Мои курсы", icon: BookOpen },
-    { href: "/schedule", label: "Расписание", icon: CalendarDays },
-  ]},
+  {
+    label: "Обучение", items: [
+      { href: "/my/dashboard", label: "Моя панель", icon: LayoutDashboard },
+      { href: "/my/courses", label: "Мои курсы", icon: BookOpen },
+      { href: "/schedule", label: "Расписание", icon: CalendarDays },
+    ]
+  },
 ]
 
 const teacherMenu = [
-  { label: "Обучение", items: [
-    { href: "/teacher/dashboard", label: "Панель преподавателя", icon: GraduationCap },
-    { href: "/courses", label: "Мои курсы", icon: BookOpen },
-    { href: "/schedule", label: "Расписание", icon: CalendarDays },
-  ]},
+  {
+    label: "Обучение", items: [
+      { href: "/teacher/dashboard", label: "Панель преподавателя", icon: GraduationCap },
+      { href: "/courses", label: "Мои курсы", icon: BookOpen },
+      { href: "/schedule", label: "Расписание", icon: CalendarDays },
+    ]
+  },
 ]
 
 const dispatcherMenu = [
-  { label: "Расписание", items: [
-    { href: "/dispatcher/dashboard", label: "Дашборд", icon: LayoutDashboard },
-    { href: "/schedule", label: "Расписание", icon: CalendarDays },
-    { href: "/dispatcher/correction", label: "Корректировка", icon: Settings },
-  ]},
-  { label: "Учебный процесс", items: [
-    { href: "/dispatcher/documents", label: "Документы", icon: FileText },
-    { href: "/dispatcher/practices", label: "Учебные практики", icon: Briefcase },
-  ]},
+  {
+    label: "Расписание", items: [
+      { href: "/dispatcher/dashboard", label: "Дашборд", icon: LayoutDashboard },
+      { href: "/schedule", label: "Расписание", icon: CalendarDays },
+      { href: "/dispatcher/correction", label: "Корректировка", icon: Settings },
+    ]
+  },
+  {
+    label: "Учебный процесс", items: [
+      { href: "/dispatcher/documents", label: "Документы", icon: FileText },
+      { href: "/dispatcher/practices", label: "Учебные практики", icon: Briefcase },
+    ]
+  },
 ]
 
 const menuByRole: Record<string, MenuSection[]> = {
@@ -54,7 +62,14 @@ export default function AuthenticatedLayout({ children }: { children: ReactNode 
   if (isLoading) return <LoadingSpinner className="min-h-screen" />
   if (!token || !user) return null
 
-  const menuSections = menuByRole[user.role] ?? studentMenu
+  const userRoles = user?.roles ?? []
+  const menuSections = userRoles.includes("Admin")
+    ? menuByRole.Admin
+    : userRoles.includes("Dispatcher")
+      ? menuByRole.Dispatcher
+      : userRoles.includes("Teacher")
+        ? menuByRole.Teacher
+        : studentMenu
 
   return <AuthenticatedShell menuSections={menuSections}>{children}</AuthenticatedShell>
 }

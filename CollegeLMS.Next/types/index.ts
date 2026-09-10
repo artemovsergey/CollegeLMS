@@ -4,6 +4,7 @@ export interface User {
   email: string
   fullName: string
   role: string
+  roles?: string[]
   teacherId?: string | null
   avatarUrl?: string | null
 }
@@ -24,6 +25,7 @@ export interface CreateUserRequest {
   password: string
   fullName: string
   role: string
+  roles?: string[]
 }
 
 export interface UpdateUserRequest {
@@ -31,10 +33,12 @@ export interface UpdateUserRequest {
   email: string
   fullName: string
   role: string
+  roles?: string[]
 }
 
 export interface ChangeRoleRequest {
   role: string
+  roles?: string[]
 }
 
 export interface Result<T> {
@@ -396,6 +400,7 @@ export interface ProfileResponse {
   email: string
   fullName: string
   role: string
+  roles?: string[]
   avatarUrl?: string | null
   teacherData: TeacherProfileData | null
   studentData: StudentProfileData | null

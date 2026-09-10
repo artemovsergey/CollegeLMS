@@ -65,8 +65,8 @@ export default function UserProfilePage() {
         <CardContent className="flex flex-col gap-3 text-sm">
           <div className="flex items-center justify-between">
             <span className="font-medium">{user.fullName}</span>
-            <Badge variant={roleVariants[user.role] ?? "secondary"}>
-              {roleLabels[user.role] ?? user.role}
+            <Badge variant={roleVariants[user.roles?.[0] ?? user.role] ?? "secondary"}>
+              {roleLabels[user.roles?.[0] ?? user.role] ?? (user.roles?.[0] ?? user.role)}
             </Badge>
           </div>
           <p>Логин: {user.login}</p>

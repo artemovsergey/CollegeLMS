@@ -85,7 +85,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
             >
               <Menu size={20} />
             </button>
-            <Link href={homeByRole[user?.role ?? ""] ?? "/my/dashboard"} className="flex items-center gap-2 ml-2">
+            <Link href={homeByRole[user?.roles?.[0] ?? ""] ?? "/my/dashboard"} className="flex items-center gap-2 ml-2">
               <Image src="/logo.svg" alt="" width={0} height={0} sizes="100vw" className="object-contain" style={{ maxHeight: "40px", width: 'auto', height: 'auto' }} unoptimized />
               <span className="text-xs font-semibold text-fg leading-tight">Колледж связи</span>
             </Link>
@@ -129,11 +129,10 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                         key={item.href}
                         href={item.href}
                         onClick={() => setMenuOpen(false)}
-                        className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive(item.href)
+                        className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive(item.href)
                             ? "bg-accent/10 text-accent"
                             : "text-muted-fg hover:bg-muted hover:text-fg"
-                        }`}
+                          }`}
                       >
                         {item.icon && <item.icon size={16} className="shrink-0" />}
                         <span>{item.label}</span>
@@ -170,9 +169,9 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                 </span>
                 <h3 className="text-sm font-semibold text-fg">{user?.fullName}</h3>
                 <p className="text-xs text-muted-fg mt-0.5">{user?.email}</p>
-                {user?.role && (
-                  <Badge variant={roleVariants[user.role] ?? "secondary"} className="mt-2">
-                    {roleLabels[user.role] ?? user.role}
+                {user?.roles && user.roles.length > 0 && (
+                  <Badge variant={roleVariants[user.roles[0]] ?? "secondary"} className="mt-2">
+                    {roleLabels[user.roles[0]] ?? user.roles[0]}
                   </Badge>
                 )}
               </div>
