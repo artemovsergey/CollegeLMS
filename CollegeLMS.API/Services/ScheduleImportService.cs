@@ -436,7 +436,10 @@ public class ScheduleImportService(AppDbContext db)
 
         try
         {
-            await db.ScheduleEntries.ExecuteDeleteAsync(ct);
+            var existingEntries = await db.ScheduleEntries.ToListAsync(ct);
+            var existingHistory = await db.ScheduleHistory.ToListAsync(ct);
+            db.ScheduleEntries.RemoveRange(existingEntries);
+            db.ScheduleHistory.RemoveRange(existingHistory);
 
             var uniqueGroups = request.Entries.Select(e => e.GroupName).Distinct().ToList();
             var uniqueTeachers = request

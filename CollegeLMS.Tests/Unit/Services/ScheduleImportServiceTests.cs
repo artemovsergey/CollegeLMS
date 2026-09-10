@@ -211,6 +211,57 @@ public class ScheduleImportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ConfirmAsync_ClearsPreviousScheduleHistory()
+    {
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ПО 262",
+            Course = 2,
+        };
+        _db.Groups.Add(group);
+        _db.ScheduleHistory.Add(
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Replace,
+                AppliedAt = DateTime.UtcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = group.Id,
+                Subject = "Новая дисциплина",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
+                Week = 1,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest
+            {
+                Entries =
+                [
+                    new SchedulePreviewEntry
+                    {
+                        GroupName = group.Name,
+                        Day = "Monday",
+                        Pair = 1,
+                        Subject = "История",
+                        Room = "232",
+                        TeacherName = "Петров П.П.",
+                        Weeks = [1],
+                    },
+                ],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        _db.ScheduleHistory.Should().BeEmpty();
+        _db.ScheduleEntries.Should().ContainSingle(e => e.Subject == "История");
+    }
+
+    [Fact]
     public void ParseScheduleMatrix_MondayPair1_ReturnsCorrectTime()
     {
         using var workbook = new XLWorkbook();
