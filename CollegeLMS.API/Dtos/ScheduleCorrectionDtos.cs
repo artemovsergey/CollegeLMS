@@ -42,6 +42,23 @@ public class CorrectionConfirmResult
     public List<ScheduleHistoryResponse> History { get; set; } = [];
 }
 
+public class ManualCorrectionExportRequest
+{
+    public DateTime CorrectionDate { get; set; }
+    public List<ManualCorrectionRow> Rows { get; set; } = [];
+}
+
+public class ManualCorrectionRow
+{
+    public string GroupName { get; set; } = string.Empty;
+    public string? RemovedSubject { get; set; }
+    public string? RemovedTeacherName { get; set; }
+    public string? AddedSubject { get; set; }
+    public string? AddedTeacherName { get; set; }
+    public int NumberPair { get; set; }
+    public string? Note { get; set; }
+}
+
 /// <summary>Полезная нагрузка POST /notify в MaxBot.</summary>
 public class ScheduleChangeDto
 {

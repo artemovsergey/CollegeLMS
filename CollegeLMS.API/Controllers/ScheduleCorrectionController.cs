@@ -70,6 +70,23 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
         return Ok(result);
     }
 
+    [HttpPost("correction/export")]
+    public async Task<IActionResult> ExportManualCorrection(
+        ManualCorrectionExportRequest request,
+        CancellationToken ct
+    )
+    {
+        var result = await service.ExportManualAsync(request, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+
+        return File(
+            result.Data!.Content,
+            result.Data.ContentType,
+            result.Data.FileName
+        );
+    }
+
     /// <summary>
     /// Применить корректировки расписания.
     /// </summary>

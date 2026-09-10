@@ -14,8 +14,65 @@ namespace CollegeLMS.API.Services;
 public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
     : IScheduleCorrectionService
 {
+    private readonly string templatesPath = Path.Combine("..", "import", "schedule");
+
     private static bool IsSelfStudyNote(string? note) =>
         string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
+
+    public async Task<Result<DocumentDownloadResult>> ExportManualAsync(
+        ManualCorrectionExportRequest request,
+        CancellationToken ct
+    )
+    {
+        if (request.CorrectionDate == default || request.Rows.Count == 0)
+            return Result<DocumentDownloadResult>.Fail(
+                "Укажите дату и хотя бы одну корректировку.",
+                400
+            );
+
+        if (request.CorrectionDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            return Result<DocumentDownloadResult>.Fail("Корректировка не может быть на выходной день.", 400);
+
+        var templatePath = Path.GetFullPath(Path.Combine(templatesPath, "Корректировка.xlsx"));
+        if (!File.Exists(templatePath))
+            return Result<DocumentDownloadResult>.Fail("Шаблон корректировки отсутствует на сервере.", 404);
+
+        await using var template = File.OpenRead(templatePath);
+        using var workbook = new XLWorkbook(template);
+        var sheet = workbook.Worksheet(1);
+        sheet.Cell(3, 1).Value =
+            $"Корректировка на {request.CorrectionDate:dd.MM.yyyy} г. ({DayName(request.CorrectionDate.DayOfWeek)})";
+
+        var lastRow = Math.Max(sheet.LastRowUsed()?.RowNumber() ?? 7, 7);
+        if (lastRow >= 7)
+            sheet.Range(7, 1, lastRow, 7).Clear(XLClearOptions.Contents);
+
+        for (var index = 0; index < request.Rows.Count; index++)
+        {
+            var row = 7 + index;
+            if (row > lastRow)
+                sheet.Row(row).Style = sheet.Row(7).Style;
+
+            var item = request.Rows[index];
+            sheet.Cell(row, 1).Value = item.GroupName.Trim();
+            sheet.Cell(row, 2).Value = item.RemovedSubject?.Trim() ?? string.Empty;
+            sheet.Cell(row, 3).Value = item.RemovedTeacherName?.Trim() ?? string.Empty;
+            sheet.Cell(row, 4).Value = item.AddedSubject?.Trim() ?? string.Empty;
+            sheet.Cell(row, 5).Value = item.AddedTeacherName?.Trim() ?? string.Empty;
+            sheet.Cell(row, 6).Value = item.NumberPair;
+            sheet.Cell(row, 7).Value = item.Note?.Trim() ?? string.Empty;
+        }
+
+        using var output = new MemoryStream();
+        workbook.SaveAs(output);
+        return Result<DocumentDownloadResult>.Ok(
+            new DocumentDownloadResult
+            {
+                Content = output.ToArray(),
+                FileName = "Корректировка.xlsx",
+            }
+        );
+    }
 
     private static readonly Regex DatePattern = new(
         @"на\s+(\d{1,2})\.(\d{1,2})\.(\d{4})",

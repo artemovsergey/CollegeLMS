@@ -29,6 +29,28 @@ export async function previewCorrection(
   )
 }
 
+export interface ManualCorrectionRow {
+  groupName: string
+  removedSubject: string
+  removedTeacherName: string
+  addedSubject: string
+  addedTeacherName: string
+  numberPair: number
+  note: string
+}
+
+export async function exportManualCorrection(
+  correctionDate: string,
+  rows: ManualCorrectionRow[],
+): Promise<Blob> {
+  const response = await api.post<Blob>(
+    "/api/schedule/correction/export",
+    { correctionDate, rows },
+    { responseType: "blob" },
+  )
+  return response.data
+}
+
 export async function confirmCorrection(
   entries: CorrectionPreviewEntry[],
 ): Promise<ConfirmResult> {

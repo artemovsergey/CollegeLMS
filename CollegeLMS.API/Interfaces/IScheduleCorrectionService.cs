@@ -7,6 +7,11 @@ public interface IScheduleCorrectionService
 {
     Task<Result<CorrectionPreviewResponse>> PreviewAsync(Stream fileStream, CancellationToken ct);
 
+    Task<Result<DocumentDownloadResult>> ExportManualAsync(
+        ManualCorrectionExportRequest request,
+        CancellationToken ct
+    );
+
     Task<Result<CorrectionConfirmResult>> ConfirmAsync(
         CorrectionConfirmRequest request,
         Guid appliedByUserId,

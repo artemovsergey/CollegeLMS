@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import ManualCorrectionForm from "@/components/ManualCorrectionForm"
 
 const CHANGE_TYPE_META: Record<
   CorrectionChangeType,
@@ -89,7 +90,7 @@ function ChangeTypeBadge({ type }: { type: CorrectionChangeType }) {
   )
 }
 
-type Tab = "import" | "journal"
+type Tab = "import" | "manual" | "journal"
 
 export default function DispatcherCorrectionPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -237,6 +238,14 @@ export default function DispatcherCorrectionPage() {
             Импорт
           </Button>
           <Button
+            variant={tab === "manual" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setTab("manual")}
+          >
+            <Plus className="size-4 mr-2" />
+            Вручную
+          </Button>
+          <Button
             variant={tab === "journal" ? "secondary" : "ghost"}
             size="sm"
             onClick={() => setTab("journal")}
@@ -254,7 +263,9 @@ export default function DispatcherCorrectionPage() {
         </div>
       )}
 
-      {tab === "import" ? (
+      {tab === "manual" ? (
+        <ManualCorrectionForm />
+      ) : tab === "import" ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
