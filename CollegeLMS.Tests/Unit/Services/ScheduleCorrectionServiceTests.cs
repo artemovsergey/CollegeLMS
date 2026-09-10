@@ -456,6 +456,44 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ConfirmAsync_AddSelfStudy_DoesNotCreateOrRemoveScheduleEntry()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var existing = await SeedEntryAsync(group.Id, teacher.Id, "Физика", 4, [2]);
+
+        var result = await _sut.ConfirmAsync(
+            new CorrectionConfirmRequest
+            {
+                Entries =
+                [
+                    new CorrectionPreviewEntry
+                    {
+                        GroupId = group.Id,
+                        ChangeType = ScheduleChangeType.Add,
+                        DayOfWeek = 2,
+                        Week = 2,
+                        NumberPair = 4,
+                        Subject = "Математика",
+                        TeacherId = teacher.Id,
+                        TeacherName = "Марченко И.А.",
+                        Note = "сам.р.",
+                    },
+                ],
+            },
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        _db.ScheduleEntries.Should().ContainSingle();
+        _db.ScheduleEntries.Single().Id.Should().Be(existing.Id);
+        _db.ScheduleHistory.Should().ContainSingle(h =>
+            h.ChangeType == ScheduleChangeType.Add && h.Note == "сам.р."
+        );
+    }
+
+    [Fact]
     public async Task ConfirmAsync_Remove_RemovesWeekFromEntry()
     {
         var group = await SeedGroupAsync();

@@ -14,6 +14,9 @@ namespace CollegeLMS.API.Services;
 public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
     : IScheduleCorrectionService
 {
+    private static bool IsSelfStudyNote(string? note) =>
+        string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
+
     private static readonly Regex DatePattern = new(
         @"на\s+(\d{1,2})\.(\d{1,2})\.(\d{4})",
         RegexOptions.Compiled
@@ -785,8 +788,11 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         {
             case ScheduleChangeType.Add:
             {
-                var entity = CreateEntry(group.Id, entry, day, utcNow);
-                db.ScheduleEntries.Add(entity);
+                var entity = IsSelfStudyNote(entry.Note)
+                    ? null
+                    : CreateEntry(group.Id, entry, day, utcNow);
+                if (entity is not null)
+                    db.ScheduleEntries.Add(entity);
 
                 var history = new ScheduleHistory
                 {
@@ -797,7 +803,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                     GroupId = group.Id,
                     TeacherId = entry.TeacherId,
                     Subject = entry.Subject ?? string.Empty,
-                    Room = entity.Room,
+                    Room = entity?.Room ?? string.Empty,
                     DayOfWeek = day,
                     NumberPair = entry.NumberPair,
                     Week = entry.Week,

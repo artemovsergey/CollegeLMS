@@ -2,7 +2,7 @@
 
 import type { ChangeTag, CorrectionChangeType } from "@/types/correction"
 import type { LucideIcon } from "lucide-react"
-import { Plus, Minus, Repeat, ArrowRightLeft } from "lucide-react"
+import { Plus, Minus, Repeat, ArrowRightLeft, BookOpen } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -38,7 +38,8 @@ const CHANGE_META: Record<
 }
 
 function tagDetail(tag: ChangeTag): string {
-  const parts = [`${CHANGE_META[tag.changeType].label} — неделя ${tag.week}`]
+  const label = isSelfStudyTag(tag) ? "Самостоятельная работа" : CHANGE_META[tag.changeType].label
+  const parts = [`${label} — неделя ${tag.week}`]
   if (tag.changeType === "Move" && tag.removedNumberPair != null) {
     parts.push(`перенос с пары ${tag.removedNumberPair}`)
   }
@@ -51,8 +52,18 @@ function tagDetail(tag: ChangeTag): string {
   return parts.join("\n")
 }
 
+function isSelfStudyTag(tag: ChangeTag): boolean {
+  return tag.changeType === "Add" && tag.note?.trim().toLowerCase() === "сам.р."
+}
+
 export default function ChangeTagBadge({ tag }: { tag: ChangeTag }) {
-  const meta = CHANGE_META[tag.changeType]
+  const meta = isSelfStudyTag(tag)
+    ? {
+        label: "Самостоятельная работа",
+        icon: BookOpen,
+        className: "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
+      }
+    : CHANGE_META[tag.changeType]
   const Icon = meta.icon
   return (
     <TooltipProvider delayDuration={0}>
