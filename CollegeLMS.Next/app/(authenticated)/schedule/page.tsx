@@ -268,7 +268,14 @@ export default function SchedulePage() {
         <h2 className="text-xl font-semibold">Расписание</h2>
       </div>
 
-      <div className={`transition-all duration-200 ${showCards ? "opacity-100 max-h-[500px]" : "opacity-0 max-h-0 overflow-hidden pointer-events-none"}`}>
+      <div
+        className={[
+          "transition-[opacity,transform] duration-200",
+          showCards ? "opacity-100" : "opacity-0 pointer-events-none",
+          "overflow-hidden",
+        ].join(" ")}
+        style={{ minHeight: showCards ? 44 : 0 }}
+      >
         <WeekNavigation
           currentWeek={selectedWeek}
           onChange={setSelectedWeek}
@@ -348,7 +355,7 @@ export default function SchedulePage() {
                 handleExport(format, layout)
               }
             }}
-            className="w-auto"
+            className="w-[205px]"
           >
             <option value="" disabled>
               Экспорт
@@ -376,7 +383,14 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      <div className={`transition-all duration-200 ${showCards ? "opacity-100 max-h-[500px]" : "opacity-0 max-h-0 overflow-hidden pointer-events-none"}`}>
+      <div
+        className={[
+          "transition-[opacity,transform] duration-200",
+          showCards ? "opacity-100" : "opacity-0 pointer-events-none",
+          "overflow-hidden",
+        ].join(" ")}
+        style={{ minHeight: showCards ? 52 : 0 }}
+      >
         <DayTabs selectedDay={selectedDay} onChange={setSelectedDay} />
       </div>
 

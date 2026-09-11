@@ -19,7 +19,7 @@ export function NativeSelect({
   children,
 }: NativeSelectProps) {
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative shrink-0", className)}>
       <select
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
