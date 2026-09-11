@@ -2,24 +2,20 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 
-export type ThemePreset = "blue" | "indigo" | "sapphire" | "plum" | "green"
+export type ThemePreset = "blue" | "indigo" | "sapphire"
 
-const THEME_PRESETS: ThemePreset[] = ["blue", "indigo", "sapphire", "plum", "green"]
+const THEME_PRESETS: ThemePreset[] = ["blue", "indigo", "sapphire"]
 
 const THEME_LABELS: Record<ThemePreset, string> = {
   blue: "Синий",
   indigo: "Индиго",
   sapphire: "Сапфир",
-  plum: "Сливовый",
-  green: "Зелёный",
 }
 
 const THEME_DESCRIPTIONS: Record<ThemePreset, string> = {
   blue: "Классический",
   indigo: "Деловой",
   sapphire: "Спокойный",
-  plum: "Мягкий",
-  green: "Свежий",
 }
 
 const DEFAULT_PRESET: ThemePreset = "indigo"

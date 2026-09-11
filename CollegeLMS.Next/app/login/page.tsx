@@ -80,7 +80,7 @@ export default function LoginPage() {
             />
           </Link>
           <h2 className="mt-8 text-center text-xl font-semibold text-white/90">
-            ГБПОУ — Ставропольский колледж связи<br />
+            Ставропольский колледж связи<br />
             имени Героя Советского Союза В.А. Петрова
           </h2>
         </div>
