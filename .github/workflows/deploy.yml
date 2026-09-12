@@ -11,6 +11,7 @@ env:
   TELEGRAM_ALLOWED_USER_ID: ${{ secrets.TELEGRAM_ALLOWED_USER_ID }}
   JWT_KEY: ${{ secrets.JWT_KEY }}
   MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
+  CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
 
 concurrency:
   group: deploy-vps
@@ -27,7 +28,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DB_PASSWORD,TELEGRAM_BOT_TOKEN,TELEGRAM_ALLOWED_USER_ID,JWT_KEY,MAX_BOT_TOKEN
+          envs: DB_PASSWORD,TELEGRAM_BOT_TOKEN,TELEGRAM_ALLOWED_USER_ID,JWT_KEY,MAX_BOT_TOKEN,CERTBOT_EMAIL
           command_timeout: 30m
           script: |
             set -e
@@ -63,6 +64,8 @@ jobs:
               echo "ASPNETCORE_ENVIRONMENT=Production"
               echo "NGINX_HTTP_PORT=80"
               echo "NGINX_HTTPS_PORT=443"
+              echo "PUBLIC_DOMAIN=stvcc.tech"
+              echo "CERTBOT_EMAIL=${CERTBOT_EMAIL}"
               echo "TELEGRAM_BOT_PORT=5030"
               echo "TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}"
               echo "TELEGRAM_ALLOWED_USER_ID=${TELEGRAM_ALLOWED_USER_ID}"
@@ -79,6 +82,25 @@ jobs:
 
             echo "=== Build & start all services ==="
             docker compose --profile telegram-bot --profile max-bot up --build -d --force-recreate
+
+            echo "=== Issue Let's Encrypt certificate if needed ==="
+            if ! docker exec collegelms-certbot test -f /etc/letsencrypt/.stvcc-tech-issued; then
+              if [ -z "${CERTBOT_EMAIL}" ]; then
+                echo "CERTBOT_EMAIL secret is required for the first certificate issuance."
+                exit 1
+              fi
+              docker compose run --rm --entrypoint certbot certbot certonly \
+                --webroot \
+                --webroot-path /var/www/certbot \
+                --email "${CERTBOT_EMAIL}" \
+                --agree-tos \
+                --no-eff-email \
+                --non-interactive \
+                --force-renewal \
+                -d stvcc.tech
+              docker exec collegelms-certbot touch /etc/letsencrypt/.stvcc-tech-issued
+              docker compose restart loadbalancer
+            fi
 
             echo "=== Health check (retry up to 60s) ==="
             API_HEALTH="000"
