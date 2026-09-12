@@ -160,6 +160,7 @@ services:
       MaxBot__NotifyHour: 7
       MaxBot__NotifyMinute: 30
       MaxBot__TimeZone: Europe/Moscow
+      MaxBot__MiniAppUrl: ${MAX_MINI_APP_URL:-https://stvcc.tech/max/schedule}
       CollegeLmsApi__BaseUrl: http://api:8080
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${MAX_BOT_DB_NAME:-collegelms_maxbot};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
     depends_on:
