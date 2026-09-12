@@ -138,11 +138,9 @@ services:
           certbot renew \
             --webroot \
             --webroot-path /var/www/certbot \
-            --deploy-hook "kill -HUP 1" \
             --quiet
           sleep 12h
         done
-    pid: "service:loadbalancer"
     restart: unless-stopped
     networks:
       - collegelms-net
