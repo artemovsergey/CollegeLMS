@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import type { Result, GroupResponse, TeacherResponse } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
@@ -75,6 +75,7 @@ export default function SchedulePage() {
   const [entries, setEntries] = useState<ScheduleResponse[]>([])
   const [allEntries, setAllEntries] = useState<ScheduleResponse[]>([])
   const [initialLoading, setInitialLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [semesterLoading, setSemesterLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -93,11 +94,16 @@ export default function SchedulePage() {
   )
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const requestIdRef = useRef(0)
+  const hasLoadedRef = useRef(false)
 
   const canManage = user?.roles ? user.roles.some(role => CAN_MANAGE_ROLES.includes(role)) : false
 
   const loadSchedule = useCallback(async () => {
-    setInitialLoading(true)
+    const requestId = ++requestIdRef.current
+    const isInitialLoad = !hasLoadedRef.current
+    setInitialLoading(isInitialLoad)
+    setIsRefreshing(true)
     setError(null)
     try {
       const params: Record<string, string | number | undefined> = {
@@ -107,20 +113,29 @@ export default function SchedulePage() {
       if (selectedTeacherId) params.teacherId = selectedTeacherId
       if (selectedWeek) params.week = selectedWeek
       const body = await fetchSchedule(params)
+      if (requestId !== requestIdRef.current) return
       if (body.isSuccess && body.data) {
         setEntries(body.data.items)
+        hasLoadedRef.current = true
       } else {
         setError(body.errorMessage ?? "Ошибка загрузки расписания")
       }
     } catch {
-      setError("Ошибка загрузки расписания")
+      if (requestId === requestIdRef.current) {
+        setError("Ошибка загрузки расписания")
+      }
     } finally {
-      setInitialLoading(false)
+      if (requestId === requestIdRef.current) {
+        setInitialLoading(false)
+        setIsRefreshing(false)
+      }
     }
   }, [selectedGroupId, selectedTeacherId, selectedWeek])
 
   const loadAllEntries = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setSemesterLoading(true)
+    setIsRefreshing(true)
     setError(null)
     try {
       const params: Record<string, string | number | undefined> = {
@@ -129,15 +144,21 @@ export default function SchedulePage() {
       if (selectedGroupId) params.groupId = selectedGroupId
       if (selectedTeacherId) params.teacherId = selectedTeacherId
       const body = await fetchSchedule(params)
+      if (requestId !== requestIdRef.current) return
       if (body.isSuccess && body.data) {
         setAllEntries(body.data.items)
       } else {
         setError(body.errorMessage ?? "Ошибка загрузки расписания")
       }
     } catch {
-      setError("Ошибка загрузки расписания")
+      if (requestId === requestIdRef.current) {
+        setError("Ошибка загрузки расписания")
+      }
     } finally {
-      setSemesterLoading(false)
+      if (requestId === requestIdRef.current) {
+        setSemesterLoading(false)
+        setIsRefreshing(false)
+      }
     }
   }, [selectedGroupId, selectedTeacherId])
 
@@ -392,21 +413,28 @@ export default function SchedulePage() {
         </div>
       ) : (
         <div className="relative">
-          {showCards ? (
-            <ScheduleTable
-              entries={displayEntries}
-              selectedDay={selectedDay}
-              onEntryClick={canManage ? handleEdit : undefined}
-              onDeleteClick={
-                canManage ? (id) => setDeleteConfirmId(id) : undefined
-              }
-            />
-          ) : (
-            <SemesterView
-              entries={displayEntries}
-              selectedWeek={selectedWeek}
-              onCellClick={handleSemesterCellClick}
-            />
+          <div className={isRefreshing ? "opacity-60 transition-opacity" : undefined}>
+            {showCards ? (
+              <ScheduleTable
+                entries={displayEntries}
+                selectedDay={selectedDay}
+                onEntryClick={canManage ? handleEdit : undefined}
+                onDeleteClick={
+                  canManage ? (id) => setDeleteConfirmId(id) : undefined
+                }
+              />
+            ) : (
+              <SemesterView
+                entries={displayEntries}
+                selectedWeek={selectedWeek}
+                onCellClick={handleSemesterCellClick}
+              />
+            )}
+          </div>
+          {isRefreshing && (
+            <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-4">
+              <LoadingSpinner />
+            </div>
           )}
         </div>
       )}
