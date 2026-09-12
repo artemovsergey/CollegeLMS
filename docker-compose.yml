@@ -10,6 +10,8 @@ volumes:
   redis_data:
   nuget_packages:
   uploads_data:
+  letsencrypt_data:
+  certbot_webroot:
 
 services:
   db:
@@ -109,11 +111,38 @@ services:
     volumes:
       - uploads_data:/var/www/uploads
       - /home/user1/.htpasswd.opencode:/etc/nginx/.htpasswd:ro
+      - letsencrypt_data:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
     extra_hosts:
       - "host.docker.internal:172.18.0.1"
     depends_on:
       - api
       - collegelms-next
+    restart: unless-stopped
+    networks:
+      - collegelms-net
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: collegelms-certbot
+    volumes:
+      - letsencrypt_data:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    depends_on:
+      - loadbalancer
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        while :; do
+          certbot renew \
+            --webroot \
+            --webroot-path /var/www/certbot \
+            --deploy-hook "kill -HUP 1" \
+            --quiet
+          sleep 12h
+        done
+    pid: "service:loadbalancer"
     restart: unless-stopped
     networks:
       - collegelms-net
