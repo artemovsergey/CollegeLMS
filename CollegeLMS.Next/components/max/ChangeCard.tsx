@@ -45,7 +45,13 @@ function changeDate(item: ScheduleHistoryItem): Date {
   return base
 }
 
-export default function ChangeCard({ item }: { item: ScheduleHistoryItem }) {
+export default function ChangeCard({
+  item,
+  highlighted = false,
+}: {
+  item: ScheduleHistoryItem
+  highlighted?: boolean
+}) {
   const meta = CHANGE_TYPE_META[item.changeType]
   const Icon = TYPE_ICONS[item.changeType]
 

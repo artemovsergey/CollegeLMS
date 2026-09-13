@@ -241,3 +241,160 @@
   padding: 48px 16px;
   text-align: center;
 }
+
+/* Поиск */
+.max-app__search-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.max-app__search-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.max-app__search-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.max-app__favorite {
+  color: #9ca3af;
+}
+
+.max-app__favorite--on {
+  color: #f59e0b;
+}
+
+/* Пара в расписании */
+.max-schedule__pair {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: #f3f4f6;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.max-schedule__type {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Навигация расписания */
+.max-schedule__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.max-schedule__nav-title {
+  flex: 1;
+  text-align: center;
+}
+
+.max-schedule__date-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-primary);
+}
+
+.max-schedule__date-field input {
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+
+.max-schedule__view-switch {
+  display: inline-flex;
+  gap: 2px;
+  background: #eef0f3;
+  border-radius: 10px;
+  padding: 2px;
+}
+
+.max-schedule__view-tab {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.max-schedule__view-tab--active {
+  background: var(--color-card);
+  color: var(--color-fg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+/* Неделя (overview) */
+.max-week {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.max-week__range {
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.max-week__day {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.max-week__day--strong {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* Шторка поиска */
+.max-app__sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  max-width: 560px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-bg);
+  overflow-y: auto;
+}
+
+.max-app__sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Фильтр недели в ленте изменений */
+.max-app__filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.max-app__change-card--highlight {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
