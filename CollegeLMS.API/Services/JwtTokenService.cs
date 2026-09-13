@@ -42,4 +42,37 @@ public class JwtTokenService(IConfiguration config) : ITokenService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    public string GenerateCustomToken(
+        IReadOnlyCollection<string> roles,
+        int lifetimeMinutes,
+        string nameIdentifier
+    )
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, nameIdentifier),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
+        foreach (var role in roles)
+            claims.Add(new Claim(ClaimTypes.Role, role));
+
+        var key = Encoding.UTF8.GetBytes(config["Jwt:Key"]!);
+        var issuer = config["Jwt:Issuer"] ?? "CollegeLMS";
+        var audience = config["Jwt:Audience"] ?? "CollegeLMS.Clients";
+        var creds = new SigningCredentials(
+            new SymmetricSecurityKey(key),
+            SecurityAlgorithms.HmacSha256
+        );
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(lifetimeMinutes),
+            signingCredentials: creds
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
 }

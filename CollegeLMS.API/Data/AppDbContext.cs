@@ -35,6 +35,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<NotificationSettings> NotificationSettings => Set<NotificationSettings>();
+    public DbSet<DispatcherCredential> DispatcherCredentials => Set<DispatcherCredential>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

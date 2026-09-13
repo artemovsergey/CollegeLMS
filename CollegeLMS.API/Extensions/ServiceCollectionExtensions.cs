@@ -211,6 +211,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentsService, DocumentsService>();
         services.AddScoped<IFavoritesService, FavoritesService>();
         services.AddScoped<INotificationSettingsService, NotificationSettingsService>();
+        services.AddScoped<IDispatcherAuthService, DispatcherAuthService>();
         services.AddHttpClient<MaxBotHttpClient>(c =>
         {
             c.BaseAddress = new Uri(config["MaxBot:BaseUrl"] ?? "http://localhost:8080");

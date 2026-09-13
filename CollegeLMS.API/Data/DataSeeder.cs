@@ -1,12 +1,13 @@
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace CollegeLMS.API.Data;
 
 public static class DataSeeder
 {
-    public static async Task SeedAsync(AppDbContext db)
+    public static async Task SeedAsync(AppDbContext db, IConfiguration config)
     {
         await SeedUsersAsync(db);
         await SeedGroupsAsync(db);
@@ -17,6 +18,25 @@ public static class DataSeeder
         await SeedNewsAsync(db);
         await ImportWordPressDataAsync(db);
         await SeedFeedbacksAsync(db);
+        await SeedDispatcherCredentialAsync(db, config);
+    }
+
+    private static async Task SeedDispatcherCredentialAsync(AppDbContext db, IConfiguration config)
+    {
+        if (await db.DispatcherCredentials.AnyAsync())
+            return;
+
+        var password = config["Dispatcher:Password"] ?? "dispatcher";
+        db.DispatcherCredentials.Add(
+            new DispatcherCredential
+            {
+                Id = Guid.Parse("d0000000-0000-0000-0000-000000000001"),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await db.SaveChangesAsync();
     }
 
     private static async Task SeedUsersAsync(AppDbContext db)

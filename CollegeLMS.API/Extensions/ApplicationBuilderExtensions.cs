@@ -29,7 +29,8 @@ public static class ApplicationBuilderExtensions
         if (db.Database.IsRelational())
         {
             await db.Database.MigrateAsync();
-            await DataSeeder.SeedAsync(db);
+            var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            await DataSeeder.SeedAsync(db, config);
             await DbConstraints.EnsureAsync(db);
         }
     }
