@@ -33,6 +33,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CourseAuthor> CourseAuthors => Set<CourseAuthor>();
     public DbSet<TransferRecord> TransferRecords => Set<TransferRecord>();
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
+    public DbSet<Favorite> Favorites => Set<Favorite>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
