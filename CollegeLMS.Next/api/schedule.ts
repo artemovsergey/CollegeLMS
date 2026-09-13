@@ -156,6 +156,41 @@ export async function fetchDaySchedule(params: {
   })
 }
 
+export interface ScheduleSearchGroup {
+  id: string
+  name: string
+  course: number
+}
+
+export interface ScheduleSearchTeacher {
+  id: string
+  fullName: string
+  position: string | null
+}
+
+export interface ScheduleSearchResponse {
+  groups: ScheduleSearchGroup[]
+  teachers: ScheduleSearchTeacher[]
+  totalGroups: number
+  totalTeachers: number
+}
+
+export async function searchSchedule(
+  q: string,
+  page = 1,
+  pageSize = 20,
+): Promise<Result<ScheduleSearchResponse>> {
+  const qs = new URLSearchParams({
+    q,
+    page: String(page),
+    pageSize: String(pageSize),
+  })
+  const { data } = await api.get<Result<ScheduleSearchResponse>>(
+    `/api/schedule/search?${qs.toString()}`,
+  )
+  return data
+}
+
 export async function createSchedule(
   body: CreateScheduleRequest,
 ): Promise<Result<ScheduleResponse>> {

@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic"
 
-const MaxScheduleView = dynamic(() => import("@/components/MaxScheduleView"), {
+const ScheduleView = dynamic(() => import("@/components/max/ScheduleView"), {
   ssr: false,
 })
 
@@ -9,5 +9,5 @@ export const metadata = {
 }
 
 export default function MaxSchedulePage() {
-  return <MaxScheduleView />
+  return <ScheduleView />
 }

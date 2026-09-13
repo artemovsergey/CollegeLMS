@@ -34,7 +34,7 @@ export function parseMaxDeepLink(search: string): MaxDeepLink {
     : "today"
   const result: MaxDeepLink = { route }
 
-  const date = params.get("date")
+  const date = params.get("date") ?? params.get("day")
   if (date) result.date = date
   const id = params.get("id")
   if (id) result.id = id
