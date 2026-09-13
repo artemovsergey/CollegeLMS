@@ -191,6 +191,35 @@ export async function searchSchedule(
   return data
 }
 
+export interface JournalEntryItem {
+  week: number
+  date: string
+  numberPairs: number[]
+}
+
+export interface JournalSubjectGroup {
+  subject: string
+  items: JournalEntryItem[]
+  pairCount: number
+}
+
+export interface JournalResponse {
+  teacherId: string
+  teacherName: string
+  subjects: JournalSubjectGroup[]
+  totalPairCount: number
+}
+
+export async function fetchJournal(
+  teacherId?: string,
+): Promise<Result<JournalResponse>> {
+  const qs = teacherId ? `?teacherId=${teacherId}` : ""
+  const { data } = await api.get<Result<JournalResponse>>(
+    `/api/schedule/journal${qs}`,
+  )
+  return data
+}
+
 export async function createSchedule(
   body: CreateScheduleRequest,
 ): Promise<Result<ScheduleResponse>> {
