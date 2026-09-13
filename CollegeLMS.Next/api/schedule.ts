@@ -67,6 +67,28 @@ export interface ScheduleImportResult {
   schedule: ScheduleResponse[]
 }
 
+export interface ScheduleCalendarResponse {
+  weekStart: string
+  days: {
+    day: string
+    dayOfWeek: number
+    entries: ScheduleResponse[]
+  }[]
+}
+
+export async function fetchScheduleCalendar(
+  filters: Pick<ScheduleFilters, "groupId" | "teacherId"> = {},
+): Promise<Result<ScheduleCalendarResponse>> {
+  const params = new URLSearchParams({ view: "calendar" })
+  if (filters.groupId) params.set("groupId", filters.groupId)
+  if (filters.teacherId) params.set("teacherId", filters.teacherId)
+
+  const { data } = await api.get<Result<ScheduleCalendarResponse>>(
+    `/api/schedule?${params.toString()}`,
+  )
+  return data
+}
+
 export async function fetchSchedule(
   filters: ScheduleFilters = {},
 ): Promise<Result<PagedResponse<ScheduleResponse>>> {

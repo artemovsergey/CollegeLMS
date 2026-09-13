@@ -1,4 +1,4 @@
-export type LessonType = "Lecture" | "Practice" | "Lab" | "Exam"
+export type LessonType = "Lecture" | "Practice" | "Lab" | "Exam" | "None"
 
 import type { ChangeTag } from "@/types/correction"
 
@@ -34,6 +34,7 @@ export const LESSON_TYPE_LABELS: Record<LessonType, string> = {
   Practice: "Практика",
   Lab: "Лабораторная",
   Exam: "Экзамен",
+  None: "Занятие",
 }
 
 export const LESSON_TYPE_STYLES: Record<LessonType, string> = {
@@ -41,4 +42,5 @@ export const LESSON_TYPE_STYLES: Record<LessonType, string> = {
   Practice: "border-l-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20",
   Lab: "border-l-amber-500 bg-amber-50/60 dark:bg-amber-950/20",
   Exam: "border-l-red-500 bg-red-50/60 dark:bg-red-950/20",
+  None: "border-l-slate-400 bg-slate-50/60 dark:bg-slate-950/20",
 }

@@ -10,7 +10,14 @@ import {
   Spinner,
   Typography,
 } from "@maxhub/max-ui"
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin } from "lucide-react"
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  GraduationCap,
+  MapPin,
+} from "lucide-react"
 import { fetchSchedule } from "@/api/schedule"
 import type { ScheduleResponse } from "@/types/schedule"
 
@@ -39,7 +46,7 @@ function currentWeek() {
 }
 
 function weekDates(week: number) {
-  const start = new Date(SEMESTER_START)
+  const start = mondayOf(SEMESTER_START)
   start.setDate(start.getDate() + (week - 1) * 7)
   const end = new Date(start)
   end.setDate(end.getDate() + 6)
@@ -56,7 +63,8 @@ function lessonTypeLabel(type: ScheduleResponse["lessonType"]) {
     Practice: "Практика",
     Lab: "Лабораторная",
     Exam: "Экзамен",
-  }[type]
+    None: "Занятие",
+  }[type] ?? "Занятие"
 }
 
 function lessonTypeColor(type: ScheduleResponse["lessonType"]) {
@@ -65,12 +73,24 @@ function lessonTypeColor(type: ScheduleResponse["lessonType"]) {
     Practice: "#28a745",
     Lab: "#e6a700",
     Exam: "#e04f5f",
-  }[type]
+    None: "#8b929a",
+  }[type] ?? "#8b929a"
 }
 
 export default function MaxScheduleView() {
+  const [identity] = useState(() => {
+    if (typeof window === "undefined") return { groupId: undefined, teacherId: undefined }
+    const params = new URLSearchParams(window.location.search)
+    return {
+      groupId: params.get("groupId") ?? undefined,
+      teacherId: params.get("teacherId") ?? undefined,
+    }
+  })
   const [week, setWeek] = useState(currentWeek)
-  const [day, setDay] = useState(new Date().getDay() || 1)
+  const [day, setDay] = useState(() => {
+    const today = new Date().getDay()
+    return today === 0 ? 1 : today
+  })
   const [entries, setEntries] = useState<ScheduleResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -79,7 +99,17 @@ export default function MaxScheduleView() {
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchSchedule({ week, pageSize: 200 })
+      if (!identity.groupId && !identity.teacherId) {
+        setEntries([])
+        setError("Откройте расписание из меню MAX после выбора группы или преподавателя")
+        return
+      }
+
+      const result = await fetchSchedule({
+        ...identity,
+        week,
+        pageSize: 200,
+      })
       if (!result.isSuccess || !result.data) {
         setError(result.errorMessage ?? "Не удалось загрузить расписание")
         return
@@ -90,7 +120,7 @@ export default function MaxScheduleView() {
     } finally {
       setLoading(false)
     }
-  }, [week])
+  }, [identity, week])
 
   useEffect(() => {
     void loadSchedule()
@@ -117,7 +147,7 @@ export default function MaxScheduleView() {
             <div>
               <Typography.Title>Расписание</Typography.Title>
               <Typography.Body className="max-schedule__muted">
-                Учебные занятия
+                {identity.groupId ? "Расписание группы" : identity.teacherId ? "Расписание преподавателя" : "Открытое расписание"}
               </Typography.Body>
             </div>
           </div>
@@ -169,7 +199,9 @@ export default function MaxScheduleView() {
           ) : error ? (
             <div className="max-schedule__state">
               <Typography.Body>{error}</Typography.Body>
-              <Button size="small" onClick={() => void loadSchedule()}>Повторить</Button>
+              {identity.groupId || identity.teacherId ? (
+                <Button size="small" onClick={() => void loadSchedule()}>Повторить</Button>
+              ) : null}
             </div>
           ) : visibleEntries.length === 0 ? (
             <div className="max-schedule__state">
@@ -195,6 +227,9 @@ export default function MaxScheduleView() {
                   <span className="max-schedule__details">
                     <span><Clock3 size={14} /> {formatTime(entry.startTime)} – {formatTime(entry.endTime)}</span>
                     <span><MapPin size={14} /> {entry.room || "Кабинет не указан"}</span>
+                    {entry.teacherName ? (
+                      <span><GraduationCap size={14} /> {entry.teacherName}</span>
+                    ) : null}
                   </span>
                 }
                 after={

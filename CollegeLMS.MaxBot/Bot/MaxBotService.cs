@@ -4,6 +4,7 @@ using CollegeLMS.MaxBot.Models;
 using CollegeLMS.MaxBot.Models.Max;
 using CollegeLMS.MaxBot.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CollegeLMS.MaxBot.Bot;
 
@@ -14,6 +15,7 @@ public class MaxBotService : BackgroundService
     private readonly IServiceProvider _sp;
     private readonly ILogger<MaxBotService> _logger;
     private readonly TimeZoneInfo _tz;
+    private readonly MaxBotOptions _options;
 
     private const int PageSize = 5;
     private const int PollTimeoutSeconds = 30;
@@ -24,6 +26,7 @@ public class MaxBotService : BackgroundService
         CollegeLmsApiClient api,
         IServiceProvider sp,
         TimeZoneInfo tz,
+        IOptions<MaxBotOptions> options,
         ILogger<MaxBotService> logger
     )
     {
@@ -31,6 +34,7 @@ public class MaxBotService : BackgroundService
         _api = api;
         _sp = sp;
         _tz = tz;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -617,6 +621,15 @@ public class MaxBotService : BackgroundService
             {
                 new()
                 {
+                    Type = "open_app",
+                    Text = "📱 Открыть расписание",
+                    Url = BuildMiniAppUrl(settings),
+                },
+            },
+            new List<MaxButton>
+            {
+                new()
+                {
                     Type = "callback",
                     Text = "🔄 Мои изменения",
                     Payload = CallbackPayload.Changes(),
@@ -637,6 +650,17 @@ public class MaxBotService : BackgroundService
             $"🏠 *Главное меню*\n\n" + $"Роль: {roleLabel}\n" + $"Группа/Преподаватель: {entity}";
 
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
+    }
+
+    private string BuildMiniAppUrl(UserSettings settings)
+    {
+        var query = new List<string>();
+        if (settings.GroupId.HasValue)
+            query.Add($"groupId={Uri.EscapeDataString(settings.GroupId.Value.ToString())}");
+        if (settings.TeacherId.HasValue)
+            query.Add($"teacherId={Uri.EscapeDataString(settings.TeacherId.Value.ToString())}");
+
+        return query.Count == 0 ? _options.MiniAppUrl : $"{_options.MiniAppUrl}?{string.Join("&", query)}";
     }
 
     private async Task ShowDayAsync(long chatId, long userId, DateTime date, CancellationToken ct)
