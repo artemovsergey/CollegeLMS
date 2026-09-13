@@ -88,6 +88,61 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
         return Ok(result);
     }
 
+    /// <summary>
+    /// Журнал преподавателя: предметы, недели и пары по расписанию.
+    /// </summary>
+    /// <remarks>
+    /// Преподаватель видит только свой журнал. Администратору/диспетчеру
+    /// можно указать teacherId для просмотра журнала другого преподавателя.
+    /// </remarks>
+    /// <response code="200">Журнал получен</response>
+    /// <response code="400">Не указан преподаватель</response>
+    /// <response code="401">Не авторизован</response>
+    /// <response code="403">Доступ запрещён</response>
+    /// <response code="404">Преподаватель не найден</response>
+    /// <response code="500">Ошибка сервера</response>
+    [HttpGet("journal")]
+    [Authorize(Roles = "Teacher,Admin,Dispatcher")]
+    [SwaggerOperation(Summary = "Журнал проведённых занятий преподавателя (по расписанию)")]
+    [SwaggerResponse(200, "Журнал получен", typeof(Result<JournalResponse>))]
+    [SwaggerResponse(400, "Не указан преподаватель", typeof(ErrorResponse))]
+    [SwaggerResponse(401, "Не авторизован", typeof(ErrorResponse))]
+    [SwaggerResponse(403, "Доступ запрещён", typeof(ErrorResponse))]
+    [SwaggerResponse(404, "Преподаватель не найден", typeof(ErrorResponse))]
+    [SwaggerResponse(500, "Ошибка сервера", typeof(ErrorResponse))]
+    [ProducesResponseType(typeof(Result<JournalResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetJournal(
+        [FromQuery] Guid? teacherId,
+        CancellationToken ct
+    )
+    {
+        if (teacherId.HasValue && !User.IsInRole("Admin") && !User.IsInRole("Dispatcher"))
+        {
+            var context = await service.GetContextAsync(User.GetUserId(), ct);
+            if (!context.IsSuccess || context.Data!.TeacherId != teacherId)
+                return Forbid();
+        }
+
+        var effectiveTeacherId =
+            teacherId
+            ?? (await service.GetContextAsync(User.GetUserId(), ct)).Data?.TeacherId;
+        if (!effectiveTeacherId.HasValue)
+            return BadRequest(
+                Result<JournalResponse>.Fail("Не указан преподаватель.", 400)
+            );
+
+        var result = await service.GetJournalAsync(effectiveTeacherId.Value, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+
+        return Ok(result);
+    }
+
     [HttpGet("search")]
     [Authorize(Roles = "Admin,Teacher,Student,Dispatcher")]
     [EnableRateLimiting("SearchPolicy")]

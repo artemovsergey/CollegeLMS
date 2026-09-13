@@ -133,6 +133,75 @@ public async Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken c
         );
     }
 
+    public async Task<Result<JournalResponse>> GetJournalAsync(
+        Guid teacherId,
+        CancellationToken ct
+    )
+    {
+        var teacher = await db
+            .Teachers.AsNoTracking()
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Id == teacherId, ct);
+        if (teacher is null)
+            return Result<JournalResponse>.Fail("Преподаватель не найден.", 404);
+
+        var entries = await db
+            .ScheduleEntries.AsNoTracking()
+            .Where(e => e.TeacherId == teacherId)
+            .ToListAsync(ct);
+
+        // Группировка по (предмет, неделя) с набором номеров пар.
+        var itemMap = new Dictionary<(string Subject, int Week), List<int>>();
+        foreach (var entry in entries)
+        {
+            foreach (var week in entry.Weeks.Where(w => w >= 1 && w <= StudyWeek.TotalWeeks))
+            {
+                var key = (entry.Subject, week);
+                if (!itemMap.TryGetValue(key, out var pairs))
+                {
+                    pairs = new List<int>();
+                    itemMap[key] = pairs;
+                }
+                pairs.Add(entry.NumberPair);
+            }
+        }
+
+        var mondayOfWeek1 = StudyWeek.MondayOf(StudyWeek.SemesterStart);
+        var subjects = itemMap
+            .OrderBy(x => x.Key.Subject)
+            .ThenBy(x => x.Key.Week)
+            .GroupBy(x => x.Key.Subject)
+            .Select(g =>
+            {
+                var items = g
+                    .Select(x => new JournalEntryItem
+                    {
+                        Week = x.Key.Week,
+                        Date = mondayOfWeek1.AddDays((x.Key.Week - 1) * 7),
+                        NumberPairs = x.Value.Distinct().OrderBy(v => v).ToList(),
+                    })
+                    .ToList();
+
+                return new JournalSubjectGroup
+                {
+                    Subject = g.Key,
+                    Items = items,
+                    PairCount = items.Sum(i => i.NumberPairs.Count),
+                };
+            })
+            .ToList();
+
+        return Result<JournalResponse>.Ok(
+            new JournalResponse
+            {
+                TeacherId = teacherId,
+                TeacherName = teacher.User.FullName,
+                Subjects = subjects,
+                TotalPairCount = subjects.Sum(s => s.PairCount),
+            }
+        );
+    }
+
     public async Task<Result<ScheduleSearchResponse>> SearchAsync(
         string? query,
         int page,

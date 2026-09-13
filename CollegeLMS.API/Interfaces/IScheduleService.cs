@@ -26,6 +26,7 @@ public interface IScheduleService
         int pageSize,
         CancellationToken ct = default
     );
+    Task<Result<JournalResponse>> GetJournalAsync(Guid teacherId, CancellationToken ct = default);
     Task<Result<CalendarResponse>> GetCalendarAsync(
         Guid? groupId,
         Guid? teacherId,
