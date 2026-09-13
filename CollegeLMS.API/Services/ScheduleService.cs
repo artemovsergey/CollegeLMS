@@ -19,12 +19,19 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
         DayOfWeek? dayOfWeek,
         string? period,
         int? week,
+        DateTime? date,
         string? view,
         int? page,
         int? pageSize,
         CancellationToken ct
     )
     {
+        if (date.HasValue)
+        {
+            week = StudyWeek.WeekOf(date.Value);
+            dayOfWeek = date.Value.DayOfWeek;
+        }
+
         var query = db
             .ScheduleEntries.AsNoTracking()
             .Include(s => s.Group)
@@ -68,6 +75,79 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
 
         return Result<PagedResponse<ScheduleResponse>>.Ok(
             new PagedResponse<ScheduleResponse>(dtos, totalCount, p, ps)
+        );
+    }
+
+public async Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken ct)
+    {
+        return Result<ScheduleMetaResponse>.Ok(
+            new ScheduleMetaResponse
+            {
+                SemesterStart = StudyWeek.SemesterStart,
+                TotalWeeks = StudyWeek.TotalWeeks,
+                CurrentWeek = StudyWeek.WeekOf(DateTime.UtcNow),
+                CurrentDate = DateTime.UtcNow.Date,
+            }
+        );
+    }
+
+    public async Task<Result<ScheduleSearchResponse>> SearchAsync(
+        string? query,
+        int page,
+        int pageSize,
+        CancellationToken ct
+    )
+    {
+        var q = (query ?? string.Empty).Trim().ToLower();
+        var p = Math.Max(page, 1);
+        var ps = Math.Clamp(pageSize, 1, 50);
+
+        if (q.Length == 0)
+            return Result<ScheduleSearchResponse>.Ok(new ScheduleSearchResponse());
+
+        var groups = await db
+            .Groups.AsNoTracking()
+            .Where(g => g.Name.ToLower().Contains(q))
+            .OrderBy(g => g.Name)
+            .Take(ps)
+            .ToListAsync(ct);
+
+        var teachers = await db
+            .Teachers.AsNoTracking()
+            .Include(t => t.User)
+            .Where(t => t.User.FullName.ToLower().Contains(q))
+            .OrderBy(t => t.User.FullName)
+            .Take(ps)
+            .ToListAsync(ct);
+
+        var totalGroups = await db.Groups.CountAsync(g => g.Name.ToLower().Contains(q), ct);
+        var totalTeachers = await db.Teachers.CountAsync(
+            t => t.User.FullName.ToLower().Contains(q),
+            ct
+        );
+
+        return Result<ScheduleSearchResponse>.Ok(
+            new ScheduleSearchResponse
+            {
+                Groups = groups
+                    .Select(g => new ScheduleSearchGroup
+                    {
+                        Id = g.Id,
+                        Name = g.Name,
+                        Course = g.Course,
+                    })
+                    .ToList(),
+                Teachers = teachers
+                    .Select(t => new ScheduleSearchTeacher
+                    {
+                        Id = t.Id,
+                        FullName = t.User.FullName,
+                        Position = t.Position,
+                    })
+                    .ToList(),
+                TotalGroups = totalGroups,
+                TotalTeachers = totalTeachers,
+            }
         );
     }
 

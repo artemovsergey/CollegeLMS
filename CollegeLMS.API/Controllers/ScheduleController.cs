@@ -5,6 +5,7 @@ using CollegeLMS.API.Services;
 using CollegeLMS.API.SwaggerExamples;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace CollegeLMS.API.Controllers;
@@ -31,6 +32,7 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
         [FromQuery] DayOfWeek? dayOfWeek,
         [FromQuery] string? period,
         [FromQuery] int? week,
+        [FromQuery] DateTime? date,
         [FromQuery] string? view,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
@@ -50,11 +52,50 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
             dayOfWeek,
             period,
             week,
+            date,
             view,
             page,
             pageSize,
             ct
         );
+        return Ok(result);
+    }
+
+    [HttpGet("meta")]
+    [AllowAnonymous]
+    [SwaggerOperation(Summary = "Получить календарь семестра (даты и недели)")]
+    [SwaggerResponse(200, "Календарь получен", typeof(Result<ScheduleMetaResponse>))]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<ScheduleMetaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetMeta(CancellationToken ct = default)
+    {
+        var result = await service.GetMetaAsync(ct);
+        return Ok(result);
+    }
+
+    [HttpGet("search")]
+    [Authorize(Roles = "Admin,Teacher,Student,Dispatcher")]
+    [EnableRateLimiting("SearchPolicy")]
+    [SwaggerOperation(Summary = "Поиск групп и преподавателей")]
+    [SwaggerResponse(200, "Результаты поиска", typeof(Result<ScheduleSearchResponse>))]
+    [SwaggerResponse(400, "Ошибка валидации параметров")]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(429, "Слишком много запросов")]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<ScheduleSearchResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? q,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default
+    )
+    {
+        var result = await service.SearchAsync(q, page, pageSize, ct);
         return Ok(result);
     }
 

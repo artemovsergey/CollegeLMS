@@ -12,9 +12,17 @@ public interface IScheduleService
         DayOfWeek? dayOfWeek,
         string? period,
         int? week,
+        DateTime? date,
         string? view,
         int? page,
         int? pageSize,
+        CancellationToken ct = default
+    );
+    Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken ct = default);
+    Task<Result<ScheduleSearchResponse>> SearchAsync(
+        string? query,
+        int page,
+        int pageSize,
         CancellationToken ct = default
     );
     Task<Result<CalendarResponse>> GetCalendarAsync(
