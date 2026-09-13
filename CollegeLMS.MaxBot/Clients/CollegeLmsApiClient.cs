@@ -121,4 +121,67 @@ public class CollegeLmsApiClient
             return [];
         }
     }
+
+    public async Task<string?> DispatcherLoginAsync(string password, CancellationToken ct)
+    {
+        try
+        {
+            var resp = await _http.PostAsJsonAsync(
+                "/api/dispatcher/login",
+                new { password },
+                JsonOpts,
+                ct
+            );
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Dispatcher login returned {Code}", resp.StatusCode);
+                return null;
+            }
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            var wrapper = JsonSerializer.Deserialize<ResultWrapper<DispatcherLoginResponse>>(
+                json,
+                JsonOpts
+            );
+            return wrapper?.Data?.Token;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to login dispatcher");
+            return null;
+        }
+    }
+
+    public async Task<byte[]?> GetScheduleXlsxAsync(
+        Guid? groupId,
+        string token,
+        CancellationToken ct
+    )
+    {
+        var url = groupId.HasValue
+            ? $"/api/schedule/export?format=xlsx&groupId={groupId}"
+            : "/api/schedule/export?format=xlsx";
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer",
+                token
+            );
+            var resp = await _http.SendAsync(request, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Schedule export returned {Code}", resp.StatusCode);
+                return null;
+            }
+
+            return await resp.Content.ReadAsByteArrayAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to export schedule");
+            return null;
+        }
+    }
 }

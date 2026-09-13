@@ -11,4 +11,6 @@ public class MaxBotOptions
     public string TimeZone { get; set; } = "Europe/Moscow";
 
     public string MiniAppUrl { get; set; } = "https://stvcc.tech/max";
+
+    public List<string> DispatchChatIds { get; set; } = [];
 }

@@ -20,4 +20,10 @@ public static class MiniAppUrlBuilder
 
         return $"{baseUrl}?{string.Join("&", query)}";
     }
+
+    public static string BuildScheduleExportXlsxUrl(string baseUrl, Guid? groupId)
+    {
+        var query = groupId.HasValue ? $"&groupId={groupId}" : "";
+        return $"{baseUrl}/api/schedule/export?format=xlsx{query}";
+    }
 }

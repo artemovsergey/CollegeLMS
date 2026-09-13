@@ -21,6 +21,9 @@ public class MaxBotService : BackgroundService
     private const int PollTimeoutSeconds = 30;
     private const int ChangesPageSize = 20;
 
+    private readonly HashSet<long> _pendingDispatcherPasswords = [];
+    private readonly Dictionary<long, string> _dispatcherTokens = [];
+
     public MaxBotService(
         MaxApiClient max,
         CollegeLmsApiClient api,
@@ -64,6 +67,7 @@ public class MaxBotService : BackgroundService
                             },
                             new BotCommand { Name = "settings", Description = "Настройки" },
                             new BotCommand { Name = "help", Description = "Справка" },
+                            new BotCommand { Name = "dispatcher", Description = "Диспетчер" },
                         ],
                         ct
                     );
@@ -243,6 +247,18 @@ public class MaxBotService : BackgroundService
             return;
         }
 
+        if (lower == "/dispatcher")
+        {
+            await HandleDispatcherCommandAsync(chatId, userId, ct);
+            return;
+        }
+
+        if (_pendingDispatcherPasswords.Remove(userId))
+        {
+            await HandleDispatcherPasswordAsync(chatId, userId, text, ct);
+            return;
+        }
+
         await _max.SendMessageAsync(
             chatId,
             "Используй кнопки меню — команды писать не нужно.",
@@ -375,6 +391,14 @@ public class MaxBotService : BackgroundService
                         ? changesPageValue
                         : 0;
                 await ShowMyChangesAsync(chatId, userId, changesPage, ct);
+                break;
+            case "dispatcher":
+                if (p.Param1 == "xlsx")
+                    await ShowDispatcherChatChoiceAsync(chatId, userId, ct);
+                else if (p.Param1 == "send")
+                    await SendDispatcherXlsxAsync(chatId, userId, p.Param2!, ct);
+                else
+                    await ShowDispatcherMenuAsync(chatId, userId, ct);
                 break;
             default:
                 _logger.LogWarning("Unknown callback action {Action}", p.Action);
@@ -645,6 +669,15 @@ public class MaxBotService : BackgroundService
                     Type = "callback",
                     Text = "⚙️ Настройки",
                     Payload = "settings",
+                },
+            },
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "🚚 Диспетчер",
+                    Payload = "dispatcher",
                 },
             },
         };
@@ -1245,6 +1278,180 @@ public class MaxBotService : BackgroundService
             buttons,
             ct: ct
         );
+    }
+
+    private async Task HandleDispatcherCommandAsync(
+        long chatId,
+        long userId,
+        CancellationToken ct
+    )
+    {
+        _pendingDispatcherPasswords.Add(userId);
+        await _max.SendMessageAsync(chatId, "🔐 Введи пароль диспетчера:", ct: ct);
+    }
+
+    private async Task HandleDispatcherPasswordAsync(
+        long chatId,
+        long userId,
+        string password,
+        CancellationToken ct
+    )
+    {
+        var token = await _api.DispatcherLoginAsync(password.Trim(), ct);
+        if (token is null)
+        {
+            await _max.SendMessageAsync(chatId, "❌ Пароль неверный. Попробуй ещё раз.", ct: ct);
+            return;
+        }
+
+        _dispatcherTokens[userId] = token;
+        await _max.SendMessageAsync(chatId, "✅ Диспетчер авторизован.", ct: ct);
+        await ShowDispatcherMenuAsync(chatId, userId, ct);
+    }
+
+    private async Task ShowDispatcherMenuAsync(long chatId, long userId, CancellationToken ct)
+    {
+        var settings = await GetSettingsAsync(userId, ct);
+        var buttons = new List<List<MaxButton>>
+        {
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "open_app",
+                    Text = "📝 Создать корректировку",
+                    Url = MiniAppUrlBuilder.Build(_options.MiniAppUrl, "dispatcher"),
+                },
+            },
+        };
+
+        if (_options.DispatchChatIds.Count > 0)
+        {
+            buttons.Add(
+                new List<MaxButton>
+                {
+                    new()
+                    {
+                        Type = "callback",
+                        Text = "📊 Отправить XLSX расписания",
+                        Payload = "dispatcher:xlsx",
+                    },
+                }
+            );
+        }
+        else
+        {
+            await _max.SendMessageAsync(
+                chatId,
+                "⚠️ Отправка XLSX не настроена (DispatchChatIds пуст).",
+                ct: ct
+            );
+        }
+
+        buttons.Add(
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔙 Меню",
+                    Payload = "menu",
+                },
+            }
+        );
+
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            "🚚 *Панель диспетчера*\n\nКорректировки создаются в mini-app, итоговый XLSX отправляется по кнопке.",
+            buttons,
+            ct: ct
+        );
+    }
+
+    private async Task ShowDispatcherChatChoiceAsync(
+        long chatId,
+        long userId,
+        CancellationToken ct
+    )
+    {
+        if (_options.DispatchChatIds.Count == 0)
+        {
+            await _max.SendMessageAsync(
+                chatId,
+                "⚠️ Отправка XLSX не настроена (DispatchChatIds пуст).",
+                ct: ct
+            );
+            return;
+        }
+
+        var row = _options
+            .DispatchChatIds.Select(target => new MaxButton
+            {
+                Type = "callback",
+                Text = $"📊 {target}",
+                Payload = $"dispatcher:send:{target}",
+            })
+            .ToList();
+
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            "Выбери чат для отправки XLSX:",
+            new List<List<MaxButton>> { row },
+            ct: ct
+        );
+    }
+
+    private async Task SendDispatcherXlsxAsync(
+        long chatId,
+        long userId,
+        string targetChat,
+        CancellationToken ct
+    )
+    {
+        if (!_options.DispatchChatIds.Contains(targetChat))
+        {
+            await _max.SendMessageAsync(chatId, "❌ Чат не в whitelist диспетчера.", ct: ct);
+            return;
+        }
+
+        if (!_dispatcherTokens.TryGetValue(userId, out var token))
+        {
+            await HandleDispatcherCommandAsync(chatId, userId, ct);
+            return;
+        }
+
+        var settings = await GetSettingsAsync(userId, ct);
+        var groupId = settings?.GroupId;
+        if (!groupId.HasValue)
+        {
+            await _max.SendMessageAsync(chatId, "⚠️ Сначала выбери группу в настройках.", ct: ct);
+            return;
+        }
+
+        var bytes = await _api.GetScheduleXlsxAsync(groupId, token, ct);
+        if (bytes is null)
+        {
+            await _max.SendMessageAsync(chatId, "❌ Не удалось сформировать XLSX.", ct: ct);
+            return;
+        }
+
+        var target = long.TryParse(targetChat, out var targetId) ? targetId : 0;
+        var link = MiniAppUrlBuilder.BuildScheduleExportXlsxUrl(_options.MiniAppUrl, groupId);
+
+        try
+        {
+            await _max.SendMessageAsync(
+                target,
+                $"📊 Расписание (XLSX, {bytes.Length} байт). Ссылка на скачивание:\n{link}",
+                ct: ct
+            );
+            await _max.SendMessageAsync(chatId, "✅ XLSX отправлен.", ct: ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send XLSX message");
+            await _max.SendMessageAsync(chatId, "❌ Не удалось отправить XLSX.", ct: ct);
+        }
     }
 
     private async Task HandleNotifyTimeAsync(

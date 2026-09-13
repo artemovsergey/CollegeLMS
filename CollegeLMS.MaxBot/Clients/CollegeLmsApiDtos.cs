@@ -1,5 +1,11 @@
 namespace CollegeLMS.MaxBot.Clients;
 
+public record DispatcherLoginResponse
+{
+    public string Token { get; init; } = "";
+    public DateTime ExpiresAt { get; init; }
+}
+
 public record ScheduleResponse
 {
     public Guid Id { get; init; }
