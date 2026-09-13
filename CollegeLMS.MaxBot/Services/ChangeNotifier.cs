@@ -2,6 +2,7 @@ using CollegeLMS.MaxBot.Clients;
 using CollegeLMS.MaxBot.Data;
 using CollegeLMS.MaxBot.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CollegeLMS.MaxBot.Services;
 
@@ -11,18 +12,21 @@ public class ChangeNotifier
     private readonly MaxBotDbContext _db;
     private readonly MaxApiClient _max;
     private readonly CollegeLmsApiClient _api;
+    private readonly string _miniAppUrl;
     private readonly ILogger<ChangeNotifier> _logger;
 
     public ChangeNotifier(
         MaxBotDbContext db,
         MaxApiClient max,
         CollegeLmsApiClient api,
+        IOptions<MaxBotOptions> options,
         ILogger<ChangeNotifier> logger
     )
     {
         _db = db;
         _max = max;
         _api = api;
+        _miniAppUrl = options.Value.MiniAppUrl;
         _logger = logger;
     }
 
@@ -46,7 +50,7 @@ public class ChangeNotifier
             {
                 await _max.SendMessageAsync(
                     chatId,
-                    MessageFormatter.FormatChangeNotification(revision),
+                    MessageFormatter.FormatChangeNotification(revision, _miniAppUrl),
                     ct: ct
                 );
             }

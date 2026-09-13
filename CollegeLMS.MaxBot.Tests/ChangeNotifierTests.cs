@@ -42,7 +42,8 @@ public class ChangeNotifierTests
     private static ScheduleRevision Rev(
         string? groupName = "ПО262",
         string? teacherName = null,
-        string dayName = "Вторник"
+        string dayName = "Вторник",
+        int week = 1
     ) =>
         new()
         {
@@ -54,7 +55,7 @@ public class ChangeNotifierTests
             Subject = "История",
             Room = "301",
             DayOfWeek = dayName,
-            Week = 1,
+            Week = week,
             NumberPair = 2,
             CreatedAt = DateTime.UtcNow,
         };
@@ -163,5 +164,26 @@ public class ChangeNotifierTests
         );
 
         recipients.Should().ContainSingle(x => x.ChatId == 100);
+    }
+
+    [Fact]
+    public void FormatChangeNotification_ContainsDeepLinkOnDate()
+    {
+        var rev = Rev(week: 1, dayName: "Вторник");
+
+        var text = MessageFormatter.FormatChangeNotification(rev, "https://stvcc.tech/max");
+
+        text.Should().Contain("📅 Открыть на дату: https://stvcc.tech/max?route=day&date=");
+        text.Should().Contain("date=2026-09-01");
+    }
+
+    [Fact]
+    public void FormatChangeNotification_TuesdaySecondWeekPointsToNextWeek()
+    {
+        var rev = Rev(week: 2, dayName: "Среда");
+
+        var text = MessageFormatter.FormatChangeNotification(rev, "https://stvcc.tech/max");
+
+        text.Should().Contain("date=2026-09-09");
     }
 }

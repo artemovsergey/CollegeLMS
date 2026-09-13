@@ -228,13 +228,14 @@ public class MessageFormatterTests
     [Fact]
     public void FormatChangeNotification_ContainsMetaHeaderAndFields()
     {
-        var text = MessageFormatter.FormatChangeNotification(Revision());
+        var text = MessageFormatter.FormatChangeNotification(Revision(), "https://stvcc.tech/max");
 
         text.Should().Contain("🔔 *Изменение в расписании*");
         text.Should().Contain("ПО262 · Вторник · Нед. 1 · Пара 2");
         text.Should().Contain("📖 История — замена");
         text.Should().Contain("👨‍🏫 Преподаватель: Петренко В.Б.");
         text.Should().Contain("📝 Примечание: вм.4 п");
+        text.Should().Contain("route=day&date=");
     }
 
     [Fact]
@@ -244,7 +245,7 @@ public class MessageFormatterTests
         r.TeacherName = null;
         r.Note = null;
 
-        var text = MessageFormatter.FormatChangeNotification(r);
+        var text = MessageFormatter.FormatChangeNotification(r, "https://stvcc.tech/max");
 
         text.Should().Contain("📖 История — замена");
         text.Should().NotContain("👨‍🏫");

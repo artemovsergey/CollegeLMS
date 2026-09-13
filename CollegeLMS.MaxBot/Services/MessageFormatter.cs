@@ -245,8 +245,8 @@ public static class MessageFormatter
         };
     }
 
-    /// <summary>Формат уведомления об изменении расписания.</summary>
-    public static string FormatChangeNotification(ScheduleRevision revision)
+    /// <summary>Формат уведомления об изменении расписания с deep link на дату.</summary>
+    public static string FormatChangeNotification(ScheduleRevision revision, string miniAppUrl)
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("🔔 *Изменение в расписании*");
@@ -265,7 +265,23 @@ public static class MessageFormatter
         if (revision.Note is not null)
             sb.AppendLine($"📝 Примечание: {revision.Note}");
 
+        if (DateForRevision(revision) is { } date)
+            sb.AppendLine($"📅 Открыть на дату: {MiniAppUrlBuilder.Build(miniAppUrl, "day", date)}");
+
         return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>Дата занятия по номеру недели и дню недели (индекс 1..7, Пн=1).</summary>
+    private static DateTime? DateForRevision(ScheduleRevision revision)
+    {
+        var dayIndex = revision.DayOfWeek is null
+            ? 0
+            : ParseDayOfWeek(revision.DayOfWeek);
+        if (dayIndex == 0)
+            dayIndex = 7;
+
+        var monday = StudyWeek.MondayOf(StudyWeek.SemesterStart);
+        return monday.AddDays((revision.Week - 1) * 7 + (dayIndex - 1));
     }
 
     /// <summary>Нумерованный список изменений для подписчика (пагинация 20/стр.).</summary>
