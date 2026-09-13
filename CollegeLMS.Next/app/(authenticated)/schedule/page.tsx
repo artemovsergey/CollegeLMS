@@ -8,6 +8,7 @@ import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import {
   fetchSchedule,
+  fetchScheduleCalendar,
   exportSchedule,
   deleteSchedule,
 } from "@/api/schedule"
@@ -138,15 +139,13 @@ export default function SchedulePage() {
     setIsRefreshing(true)
     setError(null)
     try {
-      const params: Record<string, string | number | undefined> = {
-        pageSize: 2000,
-      }
-      if (selectedGroupId) params.groupId = selectedGroupId
-      if (selectedTeacherId) params.teacherId = selectedTeacherId
-      const body = await fetchSchedule(params)
+      const body = await fetchScheduleCalendar({
+        groupId: selectedGroupId || undefined,
+        teacherId: selectedTeacherId || undefined,
+      })
       if (requestId !== requestIdRef.current) return
       if (body.isSuccess && body.data) {
-        setAllEntries(body.data.items)
+        setAllEntries(body.data.days.flatMap((day) => day.entries))
       } else {
         setError(body.errorMessage ?? "Ошибка загрузки расписания")
       }
@@ -283,13 +282,13 @@ export default function SchedulePage() {
   const showCards = viewMode === "cards"
 
   return (
-    <div className="flex flex-col gap-4 p-6 mx-auto max-w-7xl">
+    <div className="flex w-full min-w-0 flex-col gap-4 p-6 mx-auto max-w-7xl">
       <div className="flex items-center gap-2">
         <CalendarDays className="size-5 text-primary" />
         <h2 className="text-xl font-semibold">Расписание</h2>
       </div>
 
-      <div className={`transition-all duration-200 ${showCards ? "opacity-100 max-h-[500px]" : "opacity-0 max-h-0 overflow-hidden pointer-events-none"}`}>
+      <div className={showCards ? "block" : "hidden"}>
         <WeekNavigation
           currentWeek={selectedWeek}
           onChange={setSelectedWeek}
@@ -397,7 +396,7 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      <div className={`transition-all duration-200 ${showCards ? "opacity-100 max-h-[500px]" : "opacity-0 max-h-0 overflow-hidden pointer-events-none"}`}>
+      <div className={showCards ? "block" : "hidden"}>
         <DayTabs selectedDay={selectedDay} onChange={setSelectedDay} />
       </div>
 
@@ -407,13 +406,13 @@ export default function SchedulePage() {
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      ) : !showCards && semesterLoading ? (
+      ) : !showCards && semesterLoading && allEntries.length === 0 ? (
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <div className="relative">
-          <div className={isRefreshing ? "opacity-60 transition-opacity" : undefined}>
+        <div className="relative min-h-[420px] min-w-0">
+          <div className={`min-w-0 ${isRefreshing ? "opacity-60 transition-opacity" : ""}`}>
             {showCards ? (
               <ScheduleTable
                 entries={displayEntries}
