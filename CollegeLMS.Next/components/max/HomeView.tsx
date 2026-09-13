@@ -23,6 +23,7 @@ import ChangeCard from "@/components/max/ChangeCard"
 import CurrentPairCard from "@/components/max/CurrentPairCard"
 import ScheduleEmpty from "@/components/max/ScheduleEmpty"
 import ScheduleError from "@/components/max/ScheduleError"
+import SearchSheet from "@/components/max/SearchSheet"
 
 export default function HomeView() {
   const { viewContext, isAuthed, loading: contextLoading } = useMaxContext()
@@ -33,6 +34,7 @@ export default function HomeView() {
   const [error, setError] = useState<string | null>(null)
   const [changes, setChanges] = useState<ScheduleHistoryItem[]>([])
   const [changesError, setChangesError] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -205,7 +207,17 @@ export default function HomeView() {
             </CellList>
           )
         )}
+
+        <Button
+          variant="secondary"
+          stretched
+          onClick={() => setSearchOpen(true)}
+        >
+          Сменить просмотр
+        </Button>
       </main>
+
+      <SearchSheet open={searchOpen} onClose={() => setSearchOpen(false)} />
     </MaxUI>
   )
 }

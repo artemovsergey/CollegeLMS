@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Search, X, GraduationCap, Users } from "lucide-react"
+import { Search, X, GraduationCap, Users, Star } from "lucide-react"
 import { Button, Input, Typography } from "@maxhub/max-ui"
 import { searchSchedule } from "@/api/schedule"
 import type {
@@ -9,6 +9,8 @@ import type {
   ScheduleSearchResponse,
   ScheduleSearchTeacher,
 } from "@/api/schedule"
+import { addFavorite, listFavorites, removeFavorite } from "@/api/favorites"
+import type { FavoriteTargetType } from "@/api/favorites"
 import { useMaxContext, type ViewContext } from "@/lib/max-context"
 
 export default function SearchSheet({
@@ -23,6 +25,7 @@ export default function SearchSheet({
   const [result, setResult] = useState<ScheduleSearchResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [favIds, setFavIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!open) {
@@ -30,6 +33,11 @@ export default function SearchSheet({
       setResult(null)
       setError(null)
       return
+    }
+    if (isAuthed) {
+      void listFavorites()
+        .then((favorites) => setFavIds(new Set(favorites.map((f) => f.targetId))))
+        .catch(() => setFavIds(new Set()))
     }
     const q = query.trim()
     if (q.length === 0) {
@@ -48,17 +56,43 @@ export default function SearchSheet({
         }
         setResult(res.data)
       } catch {
-        setError(navigator.onLine === false ? "Нет соединения" : "Не удалось загрузить. Повторите")
+        setError(
+          navigator.onLine === false
+            ? "Нет соединения"
+            : "Не удалось загрузить. Повторите",
+        )
       } finally {
         setLoading(false)
       }
     }, 300)
     return () => window.clearTimeout(timer)
-  }, [open, query])
+  }, [open, query, isAuthed])
 
-const openItem = (ctx: ViewContext) => {
+  const openItem = (ctx: ViewContext) => {
     setViewContext(ctx)
     onClose()
+  }
+
+  const toggleFavorite = async (
+    targetType: FavoriteTargetType,
+    targetId: string,
+  ) => {
+    if (!isAuthed) return
+    if (favIds.has(targetId)) {
+      const current = await listFavorites().catch(() => [])
+      const fav = current.find((f) => f.targetId === targetId)
+      if (fav) {
+        await removeFavorite(fav.id).catch(() => undefined)
+        setFavIds((prev) => {
+          const next = new Set(prev)
+          next.delete(targetId)
+          return next
+        })
+      }
+    } else {
+      await addFavorite(targetType, targetId).catch(() => undefined)
+      setFavIds((prev) => new Set(prev).add(targetId))
+    }
   }
 
   if (!open) return null
@@ -67,7 +101,12 @@ const openItem = (ctx: ViewContext) => {
     (result?.groups.length ?? 0) + (result?.teachers.length ?? 0)
 
   return (
-    <div className="max-app__sheet" role="dialog" aria-modal="true" aria-label="Поиск">
+    <div
+      className="max-app__sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Поиск"
+    >
       <div className="max-app__sheet-head">
         <Typography.Title>Поиск</Typography.Title>
         <Button
@@ -128,12 +167,17 @@ const openItem = (ctx: ViewContext) => {
               title="Группы"
               icon={<Users size={14} aria-hidden />}
               items={result.groups}
+              favIds={favIds}
+              showStar={isAuthed}
               renderLabel={(item) => (item as ScheduleSearchGroup).name}
               onOpen={(item) =>
                 openItem({
                   groupId: item.id,
                   groupName: (item as ScheduleSearchGroup).name,
                 })
+              }
+              onToggleFavorite={(item) =>
+                void toggleFavorite("Group", item.id)
               }
             />
           ) : null}
@@ -142,12 +186,17 @@ const openItem = (ctx: ViewContext) => {
               title="Преподаватели"
               icon={<GraduationCap size={14} aria-hidden />}
               items={result.teachers}
+              favIds={favIds}
+              showStar={isAuthed}
               renderLabel={(item) => (item as ScheduleSearchTeacher).fullName}
               onOpen={(item) =>
                 openItem({
                   teacherId: item.id,
                   teacherName: (item as ScheduleSearchTeacher).fullName,
                 })
+              }
+              onToggleFavorite={(item) =>
+                void toggleFavorite("Teacher", item.id)
               }
             />
           ) : null}
@@ -161,14 +210,20 @@ function SearchSection({
   title,
   icon,
   items,
+  favIds,
+  showStar,
   renderLabel,
   onOpen,
+  onToggleFavorite,
 }: {
   title: string
   icon: React.ReactNode
   items: (ScheduleSearchGroup | ScheduleSearchTeacher)[]
+  favIds: Set<string>
+  showStar: boolean
   renderLabel: (item: ScheduleSearchGroup | ScheduleSearchTeacher) => string
   onOpen: (item: ScheduleSearchGroup | ScheduleSearchTeacher) => void
+  onToggleFavorite: (item: ScheduleSearchGroup | ScheduleSearchTeacher) => void
 }) {
   return (
     <div className="max-app__search-section">
@@ -177,14 +232,45 @@ function SearchSection({
           {icon} {title}
         </span>
       </Typography.Label>
-      {items.map((item) => (
-        <div className="max-app__search-item" key={item.id}>
-          <Typography.Body>{renderLabel(item)}</Typography.Body>
-          <Button size="small" variant="secondary" onClick={() => onOpen(item)}>
-            Открыть
-          </Button>
-        </div>
-      ))}
+      {items.map((item) => {
+        const fav = favIds.has(item.id)
+        return (
+          <div className="max-app__search-item" key={item.id}>
+            <Typography.Body>{renderLabel(item)}</Typography.Body>
+            <span className="max-app__search-actions">
+              {showStar ? (
+                <Button
+                  size="small"
+                  variant="ghost"
+                  aria-label={
+                    fav ? "Убрать из избранного" : "В избранное"
+                  }
+                  className={
+                    fav
+                      ? "max-app__favorite max-app__favorite--on"
+                      : "max-app__favorite"
+                  }
+                  onClick={() => onToggleFavorite(item)}
+                  iconBefore={
+                    <Star
+                      size={18}
+                      fill={fav ? "currentColor" : "none"}
+                      aria-hidden
+                    />
+                  }
+                />
+              ) : null}
+              <Button
+                size="small"
+                variant="secondary"
+                onClick={() => onOpen(item)}
+              >
+                Открыть
+              </Button>
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }
