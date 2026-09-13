@@ -108,6 +108,19 @@ public class ScheduleCorrectionControllerTests : BaseIntegrationTest
         return JsonSerializer.Deserialize<T>(json, JsonOptions);
     }
 
+    private async Task<HttpResponseMessage> PostConfirmAsync(
+        CorrectionConfirmRequest request,
+        string idempotencyKey
+    )
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "/api/schedule/correction/confirm")
+        {
+            Content = JsonContent.Create(request),
+        };
+        message.Headers.Add("Idempotency-Key", idempotencyKey);
+        return await Client.SendAsync(message);
+    }
+
     // --- Задача 9.1: превью ---
 
     [Fact]
@@ -192,8 +205,7 @@ public class ScheduleCorrectionControllerTests : BaseIntegrationTest
         var (group, teacher) = await SeedGroupAndTeacherAsync();
         SetAuthHeader(GetToken(UserRole.Admin));
 
-        var response = await Client.PostAsJsonAsync(
-            "/api/schedule/correction/confirm",
+        var response = await PostConfirmAsync(
             new CorrectionConfirmRequest
             {
                 Entries =
@@ -211,7 +223,8 @@ public class ScheduleCorrectionControllerTests : BaseIntegrationTest
                         Note = "вм. 4 п",
                     },
                 ],
-            }
+            },
+            "test-key-1"
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -229,6 +242,79 @@ public class ScheduleCorrectionControllerTests : BaseIntegrationTest
         var history = Assert.Single(db.ScheduleHistory);
         Assert.Equal(ScheduleChangeType.Add, history.ChangeType);
         Assert.Equal(group.Id, history.GroupId);
+    }
+
+    [Fact]
+    public async Task ConfirmCorrection_WithoutIdempotencyKey_ReturnsBadRequest()
+    {
+        SetAuthHeader(GetToken(UserRole.Admin));
+
+        using var message = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/schedule/correction/confirm"
+        )
+        {
+            Content = JsonContent.Create(new CorrectionConfirmRequest()),
+        };
+        var response = await Client.SendAsync(message);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ConfirmCorrection_SameKeyTwice_ReturnsConflict()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        SetAuthHeader(GetToken(UserRole.Admin));
+
+        var request = new CorrectionConfirmRequest
+        {
+            Entries =
+            [
+                new CorrectionPreviewEntry
+                {
+                    GroupId = group.Id,
+                    ChangeType = ScheduleChangeType.Add,
+                    DayOfWeek = 2,
+                    Week = 2,
+                    NumberPair = 4,
+                    Subject = "Математика",
+                    TeacherId = teacher.Id,
+                    TeacherName = teacher.User.FullName,
+                    Note = "вм. 4 п",
+                },
+            ],
+        };
+
+        var first = await PostConfirmAsync(request, "duplicate-key");
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+
+        var second = await PostConfirmAsync(request, "duplicate-key");
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Single(db.ScheduleEntries);
+        Assert.Single(db.ScheduleHistory);
+    }
+
+    [Fact]
+    public async Task ConfirmCorrection_EmptyEntries_SavesIdempotencyKey()
+    {
+        SetAuthHeader(GetToken(UserRole.Admin));
+
+        var response = await PostConfirmAsync(new CorrectionConfirmRequest(), "empty-key");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeWithEnumsAsync<Result<CorrectionConfirmResult>>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+        Assert.Equal(0, body.Data!.Applied);
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var confirmation = Assert.Single(db.CorrectionConfirmations);
+        Assert.Equal("empty-key", confirmation.IdempotencyKey);
     }
 
     // --- Задача 9.3: история ---

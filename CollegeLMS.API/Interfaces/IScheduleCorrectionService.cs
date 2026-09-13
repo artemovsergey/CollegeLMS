@@ -14,6 +14,7 @@ public interface IScheduleCorrectionService
 
     Task<Result<CorrectionConfirmResult>> ConfirmAsync(
         CorrectionConfirmRequest request,
+        string idempotencyKey,
         Guid appliedByUserId,
         CancellationToken ct
     );

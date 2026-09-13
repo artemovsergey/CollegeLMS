@@ -720,41 +720,68 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
     public async Task<Result<CorrectionConfirmResult>> ConfirmAsync(
         CorrectionConfirmRequest request,
+        string idempotencyKey,
         Guid appliedByUserId,
         CancellationToken ct
     )
     {
-        if (request.Entries.Count == 0)
-            return Result<CorrectionConfirmResult>.Ok(
-                new CorrectionConfirmResult { Applied = 0, History = [] }
+        var existing = await db
+            .CorrectionConfirmations.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.IdempotencyKey == idempotencyKey, ct);
+        if (existing is not null)
+            return Result<CorrectionConfirmResult>.Fail(
+                $"Корректировка с ключом идемпотентности «{idempotencyKey}» уже была применена.",
+                409
             );
 
+        var emptySet = request.Entries.Count == 0;
         var history = new List<ScheduleHistory>();
         var notifChanges = new List<ScheduleChangeDto>();
 
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-
-        try
+        if (!emptySet)
         {
-            foreach (var entry in request.Entries)
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+            try
             {
-                var applied = await ApplyEntryAsync(entry, appliedByUserId, ct);
-                history.Add(applied.History);
-                if (applied.Change is not null)
-                    notifChanges.Add(applied.Change);
-            }
+                foreach (var entry in request.Entries)
+                {
+                    var applied = await ApplyEntryAsync(entry, appliedByUserId, ct);
+                    history.Add(applied.History);
+                    if (applied.Change is not null)
+                        notifChanges.Add(applied.Change);
+                }
 
-            await db.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
         }
-        catch
-        {
-            await tx.RollbackAsync(ct);
-            throw;
-        }
+
+        db.CorrectionConfirmations.Add(
+            new CorrectionConfirmation
+            {
+                Id = Guid.NewGuid(),
+                IdempotencyKey = idempotencyKey,
+                HistoryCount = history.Count,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await db.SaveChangesAsync(ct);
 
         // Оповещение MaxBot — fail-safe, после фиксации транзакции
-        await maxBot.SendChangesAsync(notifChanges, ct);
+        if (notifChanges.Count > 0)
+            await maxBot.SendChangesAsync(notifChanges, ct);
+
+        if (history.Count == 0)
+            return Result<CorrectionConfirmResult>.Ok(
+                new CorrectionConfirmResult { Applied = 0, History = [] }
+            );
 
         var ids = history.Select(h => h.Id).ToList();
         var saved = await db

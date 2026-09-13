@@ -99,6 +99,7 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
     /// <response code="401">Не авторизован</response>
     /// <response code="403">Доступ запрещён</response>
     /// <response code="404">Группа или занятие не найдены</response>
+    /// <response code="409">Ключ идемпотентности уже использован</response>
     /// <response code="500">Ошибка сервера</response>
     [HttpPost("correction/confirm")]
     [SwaggerOperation(Summary = "Подтвердить корректировки расписания")]
@@ -107,12 +108,14 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
     [SwaggerResponse(401, "Не авторизован", typeof(ErrorResponse))]
     [SwaggerResponse(403, "Доступ запрещён", typeof(ErrorResponse))]
     [SwaggerResponse(404, "Группа или занятие не найдены", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Ключ идемпотентности уже использован", typeof(ErrorResponse))]
     [SwaggerResponse(500, "Ошибка сервера", typeof(ErrorResponse))]
     [ProducesResponseType(typeof(Result<CorrectionConfirmResult>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ConfirmCorrection(
         CorrectionConfirmRequest request,
@@ -120,7 +123,18 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
     )
     {
         var appliedByUserId = User.GetUserId();
-        var result = await service.ConfirmAsync(request, appliedByUserId, ct);
+        var idempotencyKey = Request.Headers["Idempotency-Key"].ToString();
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+            return BadRequest(
+                Result<CorrectionConfirmResult>.Fail("Заголовок Idempotency-Key обязателен.", 400)
+            );
+
+        var result = await service.ConfirmAsync(
+            request,
+            idempotencyKey,
+            appliedByUserId,
+            ct
+        );
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
 

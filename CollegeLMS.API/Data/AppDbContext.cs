@@ -36,6 +36,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<NotificationSettings> NotificationSettings => Set<NotificationSettings>();
     public DbSet<DispatcherCredential> DispatcherCredentials => Set<DispatcherCredential>();
+    public DbSet<CorrectionConfirmation> CorrectionConfirmations => Set<CorrectionConfirmation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

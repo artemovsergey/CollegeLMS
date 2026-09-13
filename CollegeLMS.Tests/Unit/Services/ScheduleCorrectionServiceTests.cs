@@ -436,6 +436,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
                     },
                 ],
             },
+            "test-key",
             appliedBy,
             CancellationToken.None
         );
@@ -481,6 +482,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
                     },
                 ],
             },
+            "test-key",
             Guid.NewGuid(),
             CancellationToken.None
         );
@@ -515,6 +517,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
                     },
                 ],
             },
+            "test-key",
             Guid.NewGuid(),
             CancellationToken.None
         );
@@ -547,6 +550,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
                     },
                 ],
             },
+            "test-key",
             Guid.NewGuid(),
             CancellationToken.None
         );
@@ -581,6 +585,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
                     },
                 ],
             },
+            "test-key",
             Guid.NewGuid(),
             CancellationToken.None
         );
@@ -622,6 +627,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
                     },
                 ],
             },
+            "test-key",
             Guid.NewGuid(),
             CancellationToken.None
         );
@@ -668,6 +674,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
                     },
                 ],
             },
+            "test-key",
             Guid.NewGuid(),
             CancellationToken.None
         );
@@ -728,6 +735,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
                     },
                 ],
             },
+            "test-key",
             Guid.NewGuid(),
             CancellationToken.None
         );
@@ -790,7 +798,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
         };
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _sut.ConfirmAsync(request, Guid.NewGuid(), CancellationToken.None)
+            _sut.ConfirmAsync(request, "test-key", Guid.NewGuid(), CancellationToken.None)
         );
 
         using var fresh = TestDbContextFactory.Create();
@@ -832,6 +840,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
                     },
                 ],
             },
+            "test-key",
             Guid.NewGuid(),
             CancellationToken.None
         );
