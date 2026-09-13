@@ -12,9 +12,22 @@ public static class StudyWeek
         return date.Date.AddDays(-offset);
     }
 
-    public static int ForDate(DateTime date)
+    public static int WeekOf(DateTime date)
     {
         var diffWeeks = (int)((MondayOf(date) - MondayOf(SemesterStart)).TotalDays / 7);
         return Math.Max(1, diffWeeks + 1);
     }
+
+    public static int ForDate(DateTime date) => WeekOf(date);
+
+    public static bool IsInSemester(DateTime date)
+    {
+        if (date.Date < SemesterStart.Date)
+            return false;
+
+        return WeekOf(date) <= TotalWeeks;
+    }
+
+    /// <summary>Количество учебных недель в семестре.</summary>
+    public static int TotalWeeks { get; } = 16;
 }
