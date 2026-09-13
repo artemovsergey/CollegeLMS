@@ -29,7 +29,13 @@ public class DispatcherAuthServiceTests : IDisposable
         _db.SaveChanges();
 
         _tokens
-            .Setup(t => t.GenerateCustomToken(It.IsAny<IReadOnlyCollection<string>>(), 30, It.IsAny<string>()))
+            .Setup(t =>
+                t.GenerateCustomToken(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    30,
+                    It.IsAny<string>()
+                )
+            )
             .Returns("dispatcher-token");
         _sut = new DispatcherAuthService(_db, _tokens.Object);
     }

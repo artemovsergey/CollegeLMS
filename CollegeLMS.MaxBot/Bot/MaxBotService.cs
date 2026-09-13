@@ -1280,11 +1280,7 @@ public class MaxBotService : BackgroundService
         );
     }
 
-    private async Task HandleDispatcherCommandAsync(
-        long chatId,
-        long userId,
-        CancellationToken ct
-    )
+    private async Task HandleDispatcherCommandAsync(long chatId, long userId, CancellationToken ct)
     {
         _pendingDispatcherPasswords.Add(userId);
         await _max.SendMessageAsync(chatId, "🔐 Введи пароль диспетчера:", ct: ct);
@@ -1368,11 +1364,7 @@ public class MaxBotService : BackgroundService
         );
     }
 
-    private async Task ShowDispatcherChatChoiceAsync(
-        long chatId,
-        long userId,
-        CancellationToken ct
-    )
+    private async Task ShowDispatcherChatChoiceAsync(long chatId, long userId, CancellationToken ct)
     {
         if (_options.DispatchChatIds.Count == 0)
         {

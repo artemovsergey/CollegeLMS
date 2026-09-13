@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CollegeLMS.API.Data.Configurations;
 
-public class CorrectionConfirmationConfiguration
-    : IEntityTypeConfiguration<CorrectionConfirmation>
+public class CorrectionConfirmationConfiguration : IEntityTypeConfiguration<CorrectionConfirmation>
 {
     public void Configure(EntityTypeBuilder<CorrectionConfirmation> builder)
     {

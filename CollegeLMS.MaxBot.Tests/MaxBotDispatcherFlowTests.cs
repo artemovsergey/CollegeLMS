@@ -45,12 +45,10 @@ public class MaxBotDispatcherFlowTests
         var body =
             """{"isSuccess":true,"data":{"token":"tok-123","expiresAt":"2026-01-01T00:00:00Z"}}""";
         var client = BuildClient(
-            new StubHandler(
-                _ => new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(body, Encoding.UTF8, "application/json"),
-                }
-            )
+            new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json"),
+            })
         );
 
         var token = await client.DispatcherLoginAsync("secret", CancellationToken.None);
@@ -63,16 +61,14 @@ public class MaxBotDispatcherFlowTests
     {
         string? authHeader = null;
         var client = BuildClient(
-            new StubHandler(
-                request =>
+            new StubHandler(request =>
+            {
+                authHeader = request.Headers.Authorization?.ToString();
+                return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    authHeader = request.Headers.Authorization?.ToString();
-                    return new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = new ByteArrayContent([1, 2, 3]),
-                    };
-                }
-            )
+                    Content = new ByteArrayContent([1, 2, 3]),
+                };
+            })
         );
 
         var bytes = await client.GetScheduleXlsxAsync(null, "tok-123", CancellationToken.None);
@@ -88,7 +84,8 @@ public class MaxBotDispatcherFlowTests
 
         var url = MiniAppUrlBuilder.BuildScheduleExportXlsxUrl("https://stvcc.tech/max", groupId);
 
-        url.Should().Be($"https://stvcc.tech/max/api/schedule/export?format=xlsx&groupId={groupId}");
+        url.Should()
+            .Be($"https://stvcc.tech/max/api/schedule/export?format=xlsx&groupId={groupId}");
     }
 
     [Fact]

@@ -490,9 +490,8 @@ public class ScheduleCorrectionServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         _db.ScheduleEntries.Should().ContainSingle();
         _db.ScheduleEntries.Single().Id.Should().Be(existing.Id);
-        _db.ScheduleHistory.Should().ContainSingle(h =>
-            h.ChangeType == ScheduleChangeType.Add && h.Note == "сам.р."
-        );
+        _db.ScheduleHistory.Should()
+            .ContainSingle(h => h.ChangeType == ScheduleChangeType.Add && h.Note == "сам.р.");
     }
 
     [Fact]

@@ -22,11 +22,7 @@ public class MiniAppUrlBuilderTests
     public void Build_WithGroupId_AddsLegacyHint()
     {
         var groupId = Guid.NewGuid();
-        var url = MiniAppUrlBuilder.Build(
-            "https://stvcc.tech/max",
-            "today",
-            groupId: groupId
-        );
+        var url = MiniAppUrlBuilder.Build("https://stvcc.tech/max", "today", groupId: groupId);
 
         url.Should().Contain($"route=today").And.Contain($"groupId={groupId}");
     }

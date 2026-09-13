@@ -50,7 +50,11 @@ public class DispatcherAuthService(AppDbContext db, ITokenService tokens) : IDis
 
         Attempts[clientIp] = new AttemptState(0, DateTime.MinValue);
 
-        var token = tokens.GenerateCustomToken(["Dispatcher"], 30, $"dispatcher-{Guid.NewGuid():N}");
+        var token = tokens.GenerateCustomToken(
+            ["Dispatcher"],
+            30,
+            $"dispatcher-{Guid.NewGuid():N}"
+        );
         return Result<DispatcherLoginResponse>.Ok(
             new DispatcherLoginResponse
             {

@@ -85,9 +85,7 @@ public class NotificationSettingsService(AppDbContext db) : INotificationSetting
                 Enabled = settings.Enabled,
                 Time = settings.Time.ToString(@"hh\:mm", CultureInfo.InvariantCulture),
                 Days = settings.Days,
-                NextNotifyAt = settings.Enabled
-                    ? NextNotifyAt(settings.Time, settings.Days)
-                    : null,
+                NextNotifyAt = settings.Enabled ? NextNotifyAt(settings.Time, settings.Days) : null,
             }
         );
     }

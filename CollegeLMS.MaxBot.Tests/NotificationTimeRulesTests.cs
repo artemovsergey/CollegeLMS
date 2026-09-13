@@ -23,7 +23,10 @@ public class NotificationTimeRulesTests
     [InlineData(9, 0)]
     public void IsValid_RejectsOffStepAndOutsideRange(int hours, int minutes)
     {
-        NotificationTimeRules.IsValid(TimeSpan.FromMinutes(hours * 60 + minutes)).Should().BeFalse();
+        NotificationTimeRules
+            .IsValid(TimeSpan.FromMinutes(hours * 60 + minutes))
+            .Should()
+            .BeFalse();
     }
 }
 
@@ -34,7 +37,8 @@ public class NotificationWindowTests
     [Fact]
     public void IsDue_BeforeWindow_ReturnsFalse()
     {
-        NotificationWindow.IsDue(new TimeSpan(7, 29, 0), new TimeSpan(7, 30, 0), _window)
+        NotificationWindow
+            .IsDue(new TimeSpan(7, 29, 0), new TimeSpan(7, 30, 0), _window)
             .Should()
             .BeFalse();
     }
@@ -42,7 +46,8 @@ public class NotificationWindowTests
     [Fact]
     public void IsDue_AtWindowStart_ReturnsTrue()
     {
-        NotificationWindow.IsDue(new TimeSpan(7, 30, 0), new TimeSpan(7, 30, 0), _window)
+        NotificationWindow
+            .IsDue(new TimeSpan(7, 30, 0), new TimeSpan(7, 30, 0), _window)
             .Should()
             .BeTrue();
     }
@@ -50,7 +55,8 @@ public class NotificationWindowTests
     [Fact]
     public void IsDue_InsideWindow_ReturnsTrue()
     {
-        NotificationWindow.IsDue(new TimeSpan(7, 40, 0), new TimeSpan(7, 30, 0), _window)
+        NotificationWindow
+            .IsDue(new TimeSpan(7, 40, 0), new TimeSpan(7, 30, 0), _window)
             .Should()
             .BeTrue();
     }
@@ -58,7 +64,8 @@ public class NotificationWindowTests
     [Fact]
     public void IsDue_AtWindowEnd_ReturnsTrue()
     {
-        NotificationWindow.IsDue(new TimeSpan(7, 45, 0), new TimeSpan(7, 30, 0), _window)
+        NotificationWindow
+            .IsDue(new TimeSpan(7, 45, 0), new TimeSpan(7, 30, 0), _window)
             .Should()
             .BeTrue();
     }
@@ -66,7 +73,8 @@ public class NotificationWindowTests
     [Fact]
     public void IsDue_AfterWindow_ReturnsFalse()
     {
-        NotificationWindow.IsDue(new TimeSpan(8, 0, 0), new TimeSpan(7, 30, 0), _window)
+        NotificationWindow
+            .IsDue(new TimeSpan(8, 0, 0), new TimeSpan(7, 30, 0), _window)
             .Should()
             .BeFalse();
     }

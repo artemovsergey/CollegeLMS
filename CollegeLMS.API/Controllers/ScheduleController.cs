@@ -116,10 +116,7 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetJournal(
-        [FromQuery] Guid? teacherId,
-        CancellationToken ct
-    )
+    public async Task<IActionResult> GetJournal([FromQuery] Guid? teacherId, CancellationToken ct)
     {
         if (teacherId.HasValue && !User.IsInRole("Admin") && !User.IsInRole("Dispatcher"))
         {
@@ -129,12 +126,9 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
         }
 
         var effectiveTeacherId =
-            teacherId
-            ?? (await service.GetContextAsync(User.GetUserId(), ct)).Data?.TeacherId;
+            teacherId ?? (await service.GetContextAsync(User.GetUserId(), ct)).Data?.TeacherId;
         if (!effectiveTeacherId.HasValue)
-            return BadRequest(
-                Result<JournalResponse>.Fail("Не указан преподаватель.", 400)
-            );
+            return BadRequest(Result<JournalResponse>.Fail("Не указан преподаватель.", 400));
 
         var result = await service.GetJournalAsync(effectiveTeacherId.Value, ct);
         if (!result.IsSuccess)

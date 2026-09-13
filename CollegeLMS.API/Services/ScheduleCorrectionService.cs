@@ -31,11 +31,17 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             );
 
         if (request.CorrectionDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-            return Result<DocumentDownloadResult>.Fail("Корректировка не может быть на выходной день.", 400);
+            return Result<DocumentDownloadResult>.Fail(
+                "Корректировка не может быть на выходной день.",
+                400
+            );
 
         var templatePath = Path.GetFullPath(Path.Combine(templatesPath, "Корректировка.xlsx"));
         if (!File.Exists(templatePath))
-            return Result<DocumentDownloadResult>.Fail("Шаблон корректировки отсутствует на сервере.", 404);
+            return Result<DocumentDownloadResult>.Fail(
+                "Шаблон корректировки отсутствует на сервере.",
+                404
+            );
 
         await using var template = File.OpenRead(templatePath);
         using var workbook = new XLWorkbook(template);

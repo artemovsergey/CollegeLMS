@@ -16,21 +16,33 @@ namespace CollegeLMS.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    password_hash = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                    password_hash = table.Column<string>(
+                        type: "character varying(200)",
+                        maxLength: 200,
+                        nullable: false
+                    ),
+                    created_at = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false,
+                        defaultValueSql: "CURRENT_TIMESTAMP"
+                    ),
+                    updated_at = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false,
+                        defaultValueSql: "CURRENT_TIMESTAMP"
+                    ),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_dispatcher_credentials", x => x.id);
-                });
+                }
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "dispatcher_credentials");
+            migrationBuilder.DropTable(name: "dispatcher_credentials");
         }
     }
 }

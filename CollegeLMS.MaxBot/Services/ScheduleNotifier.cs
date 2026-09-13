@@ -14,11 +14,7 @@ public class ScheduleNotifier : BackgroundService
     private readonly Dictionary<long, DateOnly> _lastSentPerUser = new();
     private readonly TimeSpan _window = TimeSpan.FromMinutes(15);
 
-    public ScheduleNotifier(
-        IServiceProvider sp,
-        TimeZoneInfo tz,
-        ILogger<ScheduleNotifier> logger
-    )
+    public ScheduleNotifier(IServiceProvider sp, TimeZoneInfo tz, ILogger<ScheduleNotifier> logger)
     {
         _sp = sp;
         _tz = tz;
@@ -43,10 +39,7 @@ public class ScheduleNotifier : BackgroundService
                 }
 
                 var subscribers = await LoadTodaySubscribersAsync(ct);
-                var minTime = subscribers
-                    .Select(s => s.NotifyTime)
-                    .DefaultIfEmpty()
-                    .Min();
+                var minTime = subscribers.Select(s => s.NotifyTime).DefaultIfEmpty().Min();
 
                 if (minTime == default && !subscribers.Any())
                 {
@@ -54,7 +47,10 @@ public class ScheduleNotifier : BackgroundService
                     continue;
                 }
 
-                var target = today.ToDateTime(new TimeOnly(minTime.Hours, minTime.Minutes), DateTimeKind.Unspecified);
+                var target = today.ToDateTime(
+                    new TimeOnly(minTime.Hours, minTime.Minutes),
+                    DateTimeKind.Unspecified
+                );
                 if (now < target)
                 {
                     _logger.LogDebug("Next notification at {Target:O} (МСК)", target);
@@ -143,7 +139,11 @@ public class ScheduleNotifier : BackgroundService
                 await Task.Delay(500, ct);
 
                 _lastSentPerUser[user.MaxUserId] = today;
-                _logger.LogInformation("Digest sent to user {UserId} at {Time}", user.MaxUserId, now);
+                _logger.LogInformation(
+                    "Digest sent to user {UserId} at {Time}",
+                    user.MaxUserId,
+                    now
+                );
             }
             catch (Exception ex)
             {

@@ -78,7 +78,7 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
         );
     }
 
-public async Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken ct)
+    public async Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken ct)
     {
         return Result<ScheduleMetaResponse>.Ok(
             new ScheduleMetaResponse
@@ -128,15 +128,10 @@ public async Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken c
             );
         }
 
-        return Result<ScheduleContextResponse>.Ok(
-            new ScheduleContextResponse { Role = "Other" }
-        );
+        return Result<ScheduleContextResponse>.Ok(new ScheduleContextResponse { Role = "Other" });
     }
 
-    public async Task<Result<JournalResponse>> GetJournalAsync(
-        Guid teacherId,
-        CancellationToken ct
-    )
+    public async Task<Result<JournalResponse>> GetJournalAsync(Guid teacherId, CancellationToken ct)
     {
         var teacher = await db
             .Teachers.AsNoTracking()
@@ -173,8 +168,7 @@ public async Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken c
             .GroupBy(x => x.Key.Subject)
             .Select(g =>
             {
-                var items = g
-                    .Select(x => new JournalEntryItem
+                var items = g.Select(x => new JournalEntryItem
                     {
                         Week = x.Key.Week,
                         Date = mondayOfWeek1.AddDays((x.Key.Week - 1) * 7),

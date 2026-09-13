@@ -80,11 +80,7 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
 
-        return File(
-            result.Data!.Content,
-            result.Data.ContentType,
-            result.Data.FileName
-        );
+        return File(result.Data!.Content, result.Data.ContentType, result.Data.FileName);
     }
 
     /// <summary>
@@ -129,12 +125,7 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
                 Result<CorrectionConfirmResult>.Fail("Заголовок Idempotency-Key обязателен.", 400)
             );
 
-        var result = await service.ConfirmAsync(
-            request,
-            idempotencyKey,
-            appliedByUserId,
-            ct
-        );
+        var result = await service.ConfirmAsync(request, idempotencyKey, appliedByUserId, ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
 

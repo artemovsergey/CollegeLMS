@@ -786,8 +786,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/schedule/correction/preview",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "schedule", "correction", "preview"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "preview"
+              ]
             }
           }
         },
@@ -807,8 +814,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/schedule/correction/confirm",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "schedule", "correction", "confirm"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "confirm"
+              ]
             }
           }
         },
@@ -819,11 +833,23 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/schedule/history?page=1&pageSize=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "schedule", "history"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "history"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "pageSize", "value": "20" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
               ]
             }
           }
@@ -841,10 +867,19 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/dispatcher/dashboard?date=2026-09-09",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "dispatcher", "dashboard"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispatcher",
+                "dashboard"
+              ],
               "query": [
-                { "key": "date", "value": "2026-09-09" }
+                {
+                  "key": "date",
+                  "value": "2026-09-09"
+                }
               ]
             }
           },
@@ -857,8 +892,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/dispatcher/documents/templates",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "dispatcher", "documents", "templates"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispatcher",
+                "documents",
+                "templates"
+              ]
             }
           },
           "description": "Список шаблонов документов для скачивания"
@@ -870,7 +912,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/dispatcher/documents/templates/%D0%A0%D0%B0%D1%81%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5.xlsx/download",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "dispatcher",
@@ -882,9 +926,266 @@
             }
           },
           "description": "Скачать шаблон документа (xlsx)"
+        },
+        {
+          "name": "Login dispatcher",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dispatcher/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispatcher",
+                "login"
+              ],
+              "query": [
+                {
+                  "key": "password",
+                  "value": "changeme"
+                }
+              ]
+            }
+          },
+          "description": "Вход диспетчера по паролю, короткий токен (30 мин, rate-limited на IP)"
         }
       ],
       "description": "Диспетчер: дашборд и шаблоны документов"
+    },
+    {
+      "name": "Schedule (MAX)",
+      "description": "Эндпоинты единого календаря и поиска для mini-app (и веба)",
+      "item": [
+        {
+          "name": "Get schedule meta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/meta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "meta"
+              ],
+              "query": []
+            }
+          },
+          "description": "Календарь семестра: semesterStart, totalWeeks, currentWeek, currentDate"
+        },
+        {
+          "name": "Search groups and teachers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "11"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "description": "Поиск групп и преподавателей по подстроке"
+        },
+        {
+          "name": "Get journal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/journal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "journal"
+              ],
+              "query": [
+                {
+                  "key": "teacherId",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                }
+              ]
+            }
+          },
+          "description": "Журнал преподавателя: недели с числом пар по предмету"
+        },
+        {
+          "name": "Get schedule context",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/context",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "context"
+              ],
+              "query": []
+            }
+          },
+          "description": "Контекст авторизованного пользователя: группа/преподаватель пользователя"
+        }
+      ]
+    },
+    {
+      "name": "Favorites",
+      "description": "Избранные группы и преподаватели (mini-app, требует авторизации)",
+      "item": [
+        {
+          "name": "List favorites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "favorites"
+              ],
+              "query": []
+            }
+          },
+          "description": "Список избранного пользователя"
+        },
+        {
+          "name": "Add favorite",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "favorites"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetType\": \"Group\",\n  \"targetId\": \"00000000-0000-0000-0000-000000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "description": "Добавить в избранное"
+        },
+        {
+          "name": "Delete favorite",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/favorites/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "favorites",
+                "00000000-0000-0000-0000-000000000000"
+              ],
+              "query": []
+            }
+          },
+          "description": "Удалить из избранного по id"
+        }
+      ]
+    },
+    {
+      "name": "Notification settings",
+      "description": "Настройки дайджеста расписания пользователя",
+      "item": [
+        {
+          "name": "Get notification settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "settings"
+              ],
+              "query": []
+            }
+          },
+          "description": "Текущие настройки уведомлений (enabled, время, дни)"
+        },
+        {
+          "name": "Update notification settings",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "settings"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"time\": \"07:40\",\n  \"days\": [\n    1,\n    2,\n    3,\n    4,\n    5\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "description": "Обновить настройки уведомлений"
+        }
+      ]
     }
   ]
 }

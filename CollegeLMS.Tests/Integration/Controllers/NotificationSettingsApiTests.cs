@@ -66,7 +66,12 @@ public class NotificationSettingsApiTests : BaseIntegrationTest
 
         var bad = await Client.PutAsJsonAsync(
             "/api/notifications/settings",
-            new { enabled = true, time = "09:00", days = new[] { 1 } }
+            new
+            {
+                enabled = true,
+                time = "09:00",
+                days = new[] { 1 },
+            }
         );
         var badBody = JsonSerializer.Deserialize<Result<NotificationSettingsResponse>>(
             await bad.Content.ReadAsStringAsync(),
@@ -76,7 +81,12 @@ public class NotificationSettingsApiTests : BaseIntegrationTest
 
         var notStep = await Client.PutAsJsonAsync(
             "/api/notifications/settings",
-            new { enabled = true, time = "07:33", days = new[] { 1 } }
+            new
+            {
+                enabled = true,
+                time = "07:33",
+                days = new[] { 1 },
+            }
         );
         var notStepBody = JsonSerializer.Deserialize<Result<NotificationSettingsResponse>>(
             await notStep.Content.ReadAsStringAsync(),
@@ -95,7 +105,12 @@ public class NotificationSettingsApiTests : BaseIntegrationTest
 
         var bad = await Client.PutAsJsonAsync(
             "/api/notifications/settings",
-            new { enabled = true, time = "07:45", days = new[] { 0, 8 } }
+            new
+            {
+                enabled = true,
+                time = "07:45",
+                days = new[] { 0, 8 },
+            }
         );
 
         var body = JsonSerializer.Deserialize<Result<NotificationSettingsResponse>>(
@@ -115,7 +130,12 @@ public class NotificationSettingsApiTests : BaseIntegrationTest
 
         var ok = await Client.PutAsJsonAsync(
             "/api/notifications/settings",
-            new { enabled = true, time = "07:45", days = new[] { 1, 3, 5 } }
+            new
+            {
+                enabled = true,
+                time = "07:45",
+                days = new[] { 1, 3, 5 },
+            }
         );
         var okBody = JsonSerializer.Deserialize<Result<NotificationSettingsResponse>>(
             await ok.Content.ReadAsStringAsync(),

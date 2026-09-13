@@ -266,7 +266,9 @@ public static class MessageFormatter
             sb.AppendLine($"📝 Примечание: {revision.Note}");
 
         if (DateForRevision(revision) is { } date)
-            sb.AppendLine($"📅 Открыть на дату: {MiniAppUrlBuilder.Build(miniAppUrl, "day", date)}");
+            sb.AppendLine(
+                $"📅 Открыть на дату: {MiniAppUrlBuilder.Build(miniAppUrl, "day", date)}"
+            );
 
         return sb.ToString().TrimEnd();
     }
@@ -274,9 +276,7 @@ public static class MessageFormatter
     /// <summary>Дата занятия по номеру недели и дню недели (индекс 1..7, Пн=1).</summary>
     private static DateTime? DateForRevision(ScheduleRevision revision)
     {
-        var dayIndex = revision.DayOfWeek is null
-            ? 0
-            : ParseDayOfWeek(revision.DayOfWeek);
+        var dayIndex = revision.DayOfWeek is null ? 0 : ParseDayOfWeek(revision.DayOfWeek);
         if (dayIndex == 0)
             dayIndex = 7;
 

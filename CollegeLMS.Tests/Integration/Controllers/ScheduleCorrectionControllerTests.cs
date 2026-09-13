@@ -113,7 +113,10 @@ public class ScheduleCorrectionControllerTests : BaseIntegrationTest
         string idempotencyKey
     )
     {
-        using var message = new HttpRequestMessage(HttpMethod.Post, "/api/schedule/correction/confirm")
+        using var message = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/schedule/correction/confirm"
+        )
         {
             Content = JsonContent.Create(request),
         };

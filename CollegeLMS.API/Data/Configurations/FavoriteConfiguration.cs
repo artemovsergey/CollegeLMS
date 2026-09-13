@@ -14,7 +14,12 @@ public class FavoriteConfiguration : IEntityTypeConfiguration<Favorite>
         builder.Property(x => x.TargetType).HasConversion<string>().HasMaxLength(20);
 
         builder
-            .HasIndex(x => new { x.UserId, x.TargetType, x.TargetId })
+            .HasIndex(x => new
+            {
+                x.UserId,
+                x.TargetType,
+                x.TargetId,
+            })
             .IsUnique()
             .HasDatabaseName("ux_favorites_user_target");
     }
