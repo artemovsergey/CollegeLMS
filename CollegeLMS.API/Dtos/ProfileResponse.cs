@@ -16,6 +16,7 @@ public class ProfileResponse
 
 public class TeacherProfileData
 {
+    public Guid? TeacherId { get; set; }
     public string CyclicalCommission { get; set; } = string.Empty;
     public string Position { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;

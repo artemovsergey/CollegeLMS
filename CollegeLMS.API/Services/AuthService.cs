@@ -1,5 +1,7 @@
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
+using CollegeLMS.API.Entities;
+using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Response;
@@ -25,7 +27,7 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         var token = tokenService.GenerateAccessToken(user);
 
         Guid? teacherId = null;
-        if (user.Role == Entities.Enums.UserRole.Teacher)
+        if (user.Role == UserRole.Teacher)
         {
             teacherId = (
                 await db.Teachers.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == user.Id, ct)
@@ -44,21 +46,7 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         if (user is null)
             return Result<ProfileResponse>.Fail("Пользователь не найден", 404);
 
-        object? roleData = null;
-
-        if (user.Role == Entities.Enums.UserRole.Teacher)
-        {
-            roleData = await db
-                .Teachers.AsNoTracking()
-                .FirstOrDefaultAsync(t => t.UserId == userId, ct);
-        }
-        else if (user.Role == Entities.Enums.UserRole.Student)
-        {
-            roleData = await db
-                .Students.AsNoTracking()
-                .Include(s => s.Group)
-                .FirstOrDefaultAsync(s => s.UserId == userId, ct);
-        }
+        var roleData = await LoadRoleDataAsync(user.Id, user.Role, ct);
 
         return Result<ProfileResponse>.Ok(user.ToProfileDto(roleData));
     }
@@ -108,21 +96,7 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
 
         await db.SaveChangesAsync(ct);
 
-        object? roleData = null;
-
-        if (user.Role == Entities.Enums.UserRole.Teacher)
-        {
-            roleData = await db
-                .Teachers.AsNoTracking()
-                .FirstOrDefaultAsync(t => t.UserId == userId, ct);
-        }
-        else if (user.Role == Entities.Enums.UserRole.Student)
-        {
-            roleData = await db
-                .Students.AsNoTracking()
-                .Include(s => s.Group)
-                .FirstOrDefaultAsync(s => s.UserId == userId, ct);
-        }
+        var roleData = await LoadRoleDataAsync(user.Id, user.Role, ct);
 
         return Result<ProfileResponse>.Ok(user.ToProfileDto(roleData));
     }
@@ -165,20 +139,7 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         user.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        object? roleData = null;
-        if (user.Role == Entities.Enums.UserRole.Teacher)
-        {
-            roleData = await db
-                .Teachers.AsNoTracking()
-                .FirstOrDefaultAsync(t => t.UserId == userId, ct);
-        }
-        else if (user.Role == Entities.Enums.UserRole.Student)
-        {
-            roleData = await db
-                .Students.AsNoTracking()
-                .Include(s => s.Group)
-                .FirstOrDefaultAsync(s => s.UserId == userId, ct);
-        }
+        var roleData = await LoadRoleDataAsync(user.Id, user.Role, ct);
 
         return Result<ProfileResponse>.Ok(user.ToProfileDto(roleData));
     }
@@ -201,5 +162,29 @@ public class AuthService(AppDbContext db, ITokenService tokenService) : IAuthSer
         await db.SaveChangesAsync(ct);
 
         return Result.Ok();
+    }
+
+    private async Task<object?> LoadRoleDataAsync(Guid userId, UserRole role, CancellationToken ct)
+    {
+        if (role.HasRole(UserRole.Student))
+        {
+            return await db
+                .Students.AsNoTracking()
+                .Include(s => s.Group)
+                .FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        }
+
+        if (
+            role.HasRole(UserRole.Teacher)
+            || role.HasRole(UserRole.Admin)
+            || role.HasRole(UserRole.Dispatcher)
+        )
+        {
+            return await db
+                .Teachers.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.UserId == userId, ct);
+        }
+
+        return null;
     }
 }

@@ -91,6 +91,48 @@ public async Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken c
         );
     }
 
+    public async Task<Result<ScheduleContextResponse>> GetContextAsync(
+        Guid userId,
+        CancellationToken ct
+    )
+    {
+        var student = await db
+            .Students.AsNoTracking()
+            .Include(s => s.Group)
+            .FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        if (student is not null)
+        {
+            return Result<ScheduleContextResponse>.Ok(
+                new ScheduleContextResponse
+                {
+                    GroupId = student.GroupId,
+                    GroupName = student.Group?.Name ?? string.Empty,
+                    Role = "Student",
+                }
+            );
+        }
+
+        var teacher = await db
+            .Teachers.AsNoTracking()
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.UserId == userId, ct);
+        if (teacher is not null)
+        {
+            return Result<ScheduleContextResponse>.Ok(
+                new ScheduleContextResponse
+                {
+                    TeacherId = teacher.Id,
+                    TeacherName = teacher.User.FullName,
+                    Role = "Teacher",
+                }
+            );
+        }
+
+        return Result<ScheduleContextResponse>.Ok(
+            new ScheduleContextResponse { Role = "Other" }
+        );
+    }
+
     public async Task<Result<ScheduleSearchResponse>> SearchAsync(
         string? query,
         int page,

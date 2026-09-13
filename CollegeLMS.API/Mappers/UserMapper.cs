@@ -42,6 +42,7 @@ public static class UserMapper
         {
             dto.TeacherData = new TeacherProfileData
             {
+                TeacherId = teacher.Id,
                 CyclicalCommission = teacher.CyclicalCommission,
                 Position = teacher.Position,
                 Category = teacher.Category.ToString(),

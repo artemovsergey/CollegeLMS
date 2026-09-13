@@ -19,6 +19,7 @@ public interface IScheduleService
         CancellationToken ct = default
     );
     Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken ct = default);
+    Task<Result<ScheduleContextResponse>> GetContextAsync(Guid userId, CancellationToken ct = default);
     Task<Result<ScheduleSearchResponse>> SearchAsync(
         string? query,
         int page,

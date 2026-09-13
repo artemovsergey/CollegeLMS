@@ -1,4 +1,5 @@
 using CollegeLMS.API.Dtos;
+using CollegeLMS.API.Extensions;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
 using CollegeLMS.API.Services;
@@ -71,6 +72,19 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
     public async Task<IActionResult> GetMeta(CancellationToken ct = default)
     {
         var result = await service.GetMetaAsync(ct);
+        return Ok(result);
+    }
+
+    [HttpGet("context")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Личный контекст расписания текущего пользователя")]
+    [SwaggerResponse(200, "Контекст получен", typeof(Result<ScheduleContextResponse>))]
+    [SwaggerResponse(401, "Не авторизован", typeof(ErrorResponse))]
+    [ProducesResponseType(typeof(Result<ScheduleContextResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetContext(CancellationToken ct)
+    {
+        var result = await service.GetContextAsync(User.GetUserId(), ct);
         return Ok(result);
     }
 
