@@ -10,5 +10,5 @@ public class MaxBotOptions
 
     public string TimeZone { get; set; } = "Europe/Moscow";
 
-    public string MiniAppUrl { get; set; } = "https://stvcc.tech/max/schedule";
+    public string MiniAppUrl { get; set; } = "https://stvcc.tech/max";
 }

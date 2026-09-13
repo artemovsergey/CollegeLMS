@@ -623,7 +623,7 @@ public class MaxBotService : BackgroundService
                 {
                     Type = "open_app",
                     Text = "📱 Открыть расписание",
-                    Url = BuildMiniAppUrl(settings),
+                    Url = BuildMiniAppUrl(settings, "today"),
                 },
             },
             new List<MaxButton>
@@ -652,15 +652,15 @@ public class MaxBotService : BackgroundService
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
 
-    private string BuildMiniAppUrl(UserSettings settings)
+    private string BuildMiniAppUrl(UserSettings settings, string route, DateTime? date = null)
     {
-        var query = new List<string>();
-        if (settings.GroupId.HasValue)
-            query.Add($"groupId={Uri.EscapeDataString(settings.GroupId.Value.ToString())}");
-        if (settings.TeacherId.HasValue)
-            query.Add($"teacherId={Uri.EscapeDataString(settings.TeacherId.Value.ToString())}");
-
-        return query.Count == 0 ? _options.MiniAppUrl : $"{_options.MiniAppUrl}?{string.Join("&", query)}";
+        return MiniAppUrlBuilder.Build(
+            _options.MiniAppUrl,
+            route,
+            date,
+            settings.GroupId,
+            settings.TeacherId
+        );
     }
 
     private async Task ShowDayAsync(long chatId, long userId, DateTime date, CancellationToken ct)
@@ -673,7 +673,7 @@ public class MaxBotService : BackgroundService
         }
 
         var entityName = settings.Role == "student" ? "Группа" : "Преподаватель";
-        var buttons = DayNavButtons(date, entityName);
+        var buttons = DayNavButtons(date, settings);
 
         if (date.DayOfWeek == DayOfWeek.Sunday)
         {
@@ -703,7 +703,7 @@ public class MaxBotService : BackgroundService
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
 
-    private static List<List<MaxButton>> DayNavButtons(DateTime date, string entityName)
+    private List<List<MaxButton>> DayNavButtons(DateTime date, UserSettings settings)
     {
         return
         [
@@ -720,6 +720,15 @@ public class MaxBotService : BackgroundService
                     Type = "callback",
                     Text = "След. день →",
                     Payload = CallbackPayload.DayNext(date),
+                },
+            },
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "open_app",
+                    Text = "📱 Открыть в mini-app",
+                    Url = BuildMiniAppUrl(settings, "day", date),
                 },
             },
             new List<MaxButton>
@@ -769,7 +778,7 @@ public class MaxBotService : BackgroundService
             entityName,
             showGroup: settings.Role == "teacher"
         );
-        var buttons = WeekNavButtons(weekStart);
+        var buttons = WeekNavButtons(weekStart, settings);
 
         if (text.Length > 4000)
         {
@@ -795,7 +804,7 @@ public class MaxBotService : BackgroundService
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
 
-    private static List<List<MaxButton>> WeekNavButtons(DateTime weekStart)
+    private List<List<MaxButton>> WeekNavButtons(DateTime weekStart, UserSettings settings)
     {
         var firstRow = new List<MaxButton>();
         for (var i = 0; i < 7; i++)
@@ -830,6 +839,12 @@ public class MaxBotService : BackgroundService
 
         var actionRow = new List<MaxButton>
         {
+            new()
+            {
+                Type = "open_app",
+                Text = "📱 Открыть в mini-app",
+                Url = BuildMiniAppUrl(settings, "week", weekStart),
+            },
             new()
             {
                 Type = "callback",
@@ -1047,6 +1062,17 @@ public class MaxBotService : BackgroundService
         if (navRow.Count > 0)
             buttons.Add(navRow);
 
+        buttons.Add(
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "open_app",
+                    Text = "📱 Открыть изменения",
+                    Url = BuildMiniAppUrl(settings, "changes"),
+                },
+            }
+        );
         buttons.Add(
             new List<MaxButton>
             {
