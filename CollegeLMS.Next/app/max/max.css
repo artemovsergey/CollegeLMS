@@ -450,3 +450,35 @@
   font: inherit;
   font-size: 14px;
 }
+
+.max-app__file-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 16px;
+  background: var(--color-card);
+  cursor: pointer;
+  text-align: center;
+}
+
+.max-app__file-drop input {
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+}
+
+.max-app__errors {
+  padding: 12px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}

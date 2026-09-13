@@ -77,7 +77,10 @@ export default function ManualCorrectionForm() {
           toast.error(preview.errors[0].message)
           return
         }
-        const result = await confirmCorrection(preview.entries)
+        const result = await confirmCorrection(
+          preview.entries,
+          crypto.randomUUID(),
+        )
         toast.success(`Файл сформирован, применено изменений: ${result.applied}`)
       } else {
         toast.success("Файл корректировки сформирован")

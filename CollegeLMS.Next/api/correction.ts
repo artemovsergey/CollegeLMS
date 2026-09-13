@@ -53,11 +53,14 @@ export async function exportManualCorrection(
 
 export async function confirmCorrection(
   entries: CorrectionPreviewEntry[],
+  idempotencyKey: string,
 ): Promise<ConfirmResult> {
   return unwrap(
-    await api.post<Result<ConfirmResult>>("/api/schedule/correction/confirm", {
-      entries,
-    }),
+    await api.post<Result<ConfirmResult>>(
+      "/api/schedule/correction/confirm",
+      { entries },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    ),
   )
 }
 

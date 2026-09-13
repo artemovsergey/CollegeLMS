@@ -165,7 +165,10 @@ export default function DispatcherCorrectionPage() {
     if (!preview) return
     setConfirming(true)
     try {
-      const result = await confirmCorrection(preview.entries)
+      const result = await confirmCorrection(
+        preview.entries,
+        crypto.randomUUID(),
+      )
       toast.success(`Применено изменений: ${result.applied}`)
       setAppliedCount(result.applied)
       setPreview(null)
