@@ -253,7 +253,7 @@ public class MaxBotService : BackgroundService
             return;
         }
 
-        if (_pendingDispatcherPasswords.Remove(userId))
+        if (_pendingDispatcherPasswords.Contains(userId))
         {
             await HandleDispatcherPasswordAsync(chatId, userId, text, ct);
             return;
@@ -1301,6 +1301,7 @@ public class MaxBotService : BackgroundService
         }
 
         _dispatcherTokens[userId] = token;
+        _pendingDispatcherPasswords.Remove(userId);
         await _max.SendMessageAsync(chatId, "✅ Диспетчер авторизован.", ct: ct);
         await ShowDispatcherMenuAsync(chatId, userId, ct);
     }

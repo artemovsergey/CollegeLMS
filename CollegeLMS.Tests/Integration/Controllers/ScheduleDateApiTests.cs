@@ -102,11 +102,11 @@ public class ScheduleDateApiTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task Search_RequiresAuth()
+    public async Task Search_AllowsAnonymous()
     {
         var response = await Client.GetAsync("/api/schedule/search?q=pos");
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]

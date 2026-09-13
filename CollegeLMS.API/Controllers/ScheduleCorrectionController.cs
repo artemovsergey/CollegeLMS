@@ -136,25 +136,20 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
     /// История корректировок расписания с пагинацией и фильтрами.
     /// </summary>
     /// <response code="200">История получена</response>
-    /// <response code="401">Не авторизован</response>
-    /// <response code="403">Доступ запрещён</response>
     /// <response code="500">Ошибка сервера</response>
     [HttpGet("history")]
+    [AllowAnonymous]
     [SwaggerOperation(Summary = "История корректировок расписания")]
     [SwaggerResponse(
         200,
         "История получена",
         typeof(Result<PagedResponse<ScheduleHistoryResponse>>)
     )]
-    [SwaggerResponse(401, "Не авторизован", typeof(ErrorResponse))]
-    [SwaggerResponse(403, "Доступ запрещён", typeof(ErrorResponse))]
     [SwaggerResponse(500, "Ошибка сервера", typeof(ErrorResponse))]
     [ProducesResponseType(
         typeof(Result<PagedResponse<ScheduleHistoryResponse>>),
         StatusCodes.Status200OK
     )]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetHistory(
         [FromQuery] Guid? groupId,

@@ -78,7 +78,7 @@ export async function getHistory(
   const qs = urlParams.toString()
   return unwrap(
     await api.get<Result<PagedResponse<ScheduleHistoryItem>>>(
-      `/api/schedule/correction/history${qs ? `?${qs}` : ""}`,
+      `/api/schedule/history${qs ? `?${qs}` : ""}`,
     ),
   )
 }

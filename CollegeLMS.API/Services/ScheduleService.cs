@@ -214,6 +214,7 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
             .Groups.AsNoTracking()
             .Where(g => g.Name.ToLower().Contains(q))
             .OrderBy(g => g.Name)
+            .Skip((p - 1) * ps)
             .Take(ps)
             .ToListAsync(ct);
 
@@ -222,6 +223,7 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
             .Include(t => t.User)
             .Where(t => t.User.FullName.ToLower().Contains(q))
             .OrderBy(t => t.User.FullName)
+            .Skip((p - 1) * ps)
             .Take(ps)
             .ToListAsync(ct);
 

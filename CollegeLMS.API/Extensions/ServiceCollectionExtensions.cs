@@ -266,6 +266,20 @@ public static class ServiceCollectionExtensions
                         }
                     )
             );
+            options.AddPolicy(
+                "ExportPolicy",
+                context =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: GetClientIp(context),
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 10,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0,
+                        }
+                    )
+            );
         });
 
         return services;

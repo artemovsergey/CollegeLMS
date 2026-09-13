@@ -138,17 +138,15 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
     }
 
     [HttpGet("search")]
-    [Authorize(Roles = "Admin,Teacher,Student,Dispatcher")]
+    [AllowAnonymous]
     [EnableRateLimiting("SearchPolicy")]
     [SwaggerOperation(Summary = "Поиск групп и преподавателей")]
     [SwaggerResponse(200, "Результаты поиска", typeof(Result<ScheduleSearchResponse>))]
     [SwaggerResponse(400, "Ошибка валидации параметров")]
-    [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(429, "Слишком много запросов")]
     [SwaggerResponse(500, "Ошибка сервера")]
     [ProducesResponseType(typeof(Result<ScheduleSearchResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Search(
@@ -237,11 +235,12 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
     }
 
     [HttpGet("export")]
-    [Authorize(Roles = "Admin,Teacher,Student,Dispatcher")]
+    [AllowAnonymous]
+    [EnableRateLimiting("ExportPolicy")]
     [SwaggerOperation(Summary = "Экспорт расписания в PDF или Excel")]
     [SwaggerResponse(200, "Файл готов к скачиванию")]
-    [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(404, "Нет данных")]
+    [SwaggerResponse(429, "Слишком много запросов")]
     [SwaggerResponse(500, "Ошибка сервера")]
     public async Task<IActionResult> Export(
         [FromQuery] Guid? groupId,
