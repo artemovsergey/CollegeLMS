@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth"
 import {
   fetchSchedule,
   fetchScheduleCalendar,
+  fetchScheduleMeta,
   exportSchedule,
   deleteSchedule,
 } from "@/api/schedule"
@@ -86,6 +87,7 @@ export default function SchedulePage() {
   const [selectedGroupId, setSelectedGroupId] = useState("")
   const [selectedTeacherId, setSelectedTeacherId] = useState("")
   const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek())
+  const [totalWeeks, setTotalWeeks] = useState(52)
   const [selectedDay, setSelectedDay] = useState<number | null>(defaultDay())
   const [viewMode, setViewMode] = useState<"cards" | "semester">("cards")
 
@@ -185,12 +187,25 @@ export default function SchedulePage() {
     }
   }, [authLoading, token, router])
 
+  const loadMeta = useCallback(async () => {
+    try {
+      const body = await fetchScheduleMeta()
+      if (body.isSuccess && body.data) {
+        setSelectedWeek(body.data.currentWeek)
+        setTotalWeeks(body.data.totalWeeks)
+      }
+    } catch {
+      /* fallback: getCurrentWeek() уже применяется при инициализации */
+    }
+  }, [])
+
   useEffect(() => {
     if (token) {
       loadGroups()
       loadTeachers()
+      loadMeta()
     }
-  }, [token, loadGroups, loadTeachers])
+  }, [token, loadGroups, loadTeachers, loadMeta])
 
   useEffect(() => {
     if (!token) return
@@ -292,7 +307,7 @@ export default function SchedulePage() {
         <WeekNavigation
           currentWeek={selectedWeek}
           onChange={setSelectedWeek}
-          totalWeeks={52}
+          totalWeeks={totalWeeks}
         />
       </div>
 
