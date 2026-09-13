@@ -8,6 +8,7 @@ export interface ScheduleFilters {
   dayOfWeek?: number
   period?: string
   week?: number
+  date?: string
   page?: number
   pageSize?: number
 }
@@ -100,6 +101,7 @@ export async function fetchSchedule(
   if (filters.period) params.set("period", filters.period)
   if (filters.week !== undefined)
     params.set("week", String(filters.week))
+  if (filters.date) params.set("date", filters.date)
   if (filters.page) params.set("page", String(filters.page))
   if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
 
@@ -108,6 +110,50 @@ export async function fetchSchedule(
     Result<PagedResponse<ScheduleResponse>>
   >(`/api/schedule${qs ? `?${qs}` : ""}`)
   return data
+}
+
+export interface ScheduleMeta {
+  semesterStart: string
+  totalWeeks: number
+  currentWeek: number
+  currentDate: string
+}
+
+export async function fetchScheduleMeta(): Promise<Result<ScheduleMeta>> {
+  const { data } = await api.get<Result<ScheduleMeta>>("/api/schedule/meta")
+  return data
+}
+
+export function toIsoDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+export function parseIsoDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number)
+  return new Date(year, month - 1, day)
+}
+
+export function toDateFromTime(time: string, base: Date = new Date()): Date {
+  const [hours, minutes] = time.split(":").map(Number)
+  const result = new Date(base)
+  result.setHours(hours, minutes, 0, 0)
+  return result
+}
+
+export async function fetchDaySchedule(params: {
+  date: string
+  groupId?: string
+  teacherId?: string
+}): Promise<Result<PagedResponse<ScheduleResponse>>> {
+  return fetchSchedule({
+    date: params.date,
+    groupId: params.groupId,
+    teacherId: params.teacherId,
+    pageSize: 200,
+  })
 }
 
 export async function createSchedule(
