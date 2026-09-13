@@ -398,3 +398,45 @@
   outline-offset: -2px;
   border-radius: 12px;
 }
+
+/* Настройки уведомлений */
+.max-app__days-row {
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.max-app__day-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.max-app__day-toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.max-app__day-toggle-label--on {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.max-app__hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.max-app__error {
+  color: #b91c1c;
+  font-size: 14px;
+}
