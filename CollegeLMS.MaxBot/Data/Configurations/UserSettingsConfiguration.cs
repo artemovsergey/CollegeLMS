@@ -28,6 +28,8 @@ public class UserSettingsConfiguration : IEntityTypeConfiguration<UserSettings>
 
         builder.Property(x => x.NotifyDays).HasColumnName("notify_days");
 
+        builder.Property(x => x.NotifyTime).HasColumnName("notify_time").HasColumnType("interval");
+
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
 
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");

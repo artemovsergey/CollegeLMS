@@ -102,6 +102,9 @@ using (var scope = app.Services.CreateScope())
 
         CREATE INDEX IF NOT EXISTS ix_schedule_revisions_created_at
             ON schedule_revisions (created_at);
+
+        ALTER TABLE user_settings
+            ADD COLUMN IF NOT EXISTS notify_time interval NOT NULL DEFAULT INTERVAL '7 hours 30 minutes';
         """
     );
 }

@@ -1,7 +1,7 @@
 using CollegeLMS.MaxBot.Clients;
 using CollegeLMS.MaxBot.Data;
+using CollegeLMS.MaxBot.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace CollegeLMS.MaxBot.Services;
 
@@ -9,21 +9,19 @@ public class ScheduleNotifier : BackgroundService
 {
     private readonly IServiceProvider _sp;
     private readonly TimeZoneInfo _tz;
-    private readonly MaxBotOptions _options;
     private readonly ILogger<ScheduleNotifier> _logger;
 
-    private DateOnly? _lastSentDay;
+    private readonly Dictionary<long, DateOnly> _lastSentPerUser = new();
+    private readonly TimeSpan _window = TimeSpan.FromMinutes(15);
 
     public ScheduleNotifier(
         IServiceProvider sp,
         TimeZoneInfo tz,
-        IOptions<MaxBotOptions> options,
         ILogger<ScheduleNotifier> logger
     )
     {
         _sp = sp;
         _tz = tz;
-        _options = options.Value;
         _logger = logger;
     }
 
@@ -37,17 +35,26 @@ public class ScheduleNotifier : BackgroundService
             {
                 var now = GetNow();
                 var today = DateOnly.FromDateTime(now);
-                var target = now
-                    .Date.AddHours(_options.NotifyHour)
-                    .AddMinutes(_options.NotifyMinute);
 
-                if (_lastSentDay == today)
+                if (IsWeekend(now.DayOfWeek))
                 {
-                    target = target.AddDays(1);
-                    await Task.Delay(target - GetNow(), ct);
+                    await DelayTillNextWeekday(today, now, ct);
                     continue;
                 }
 
+                var subscribers = await LoadTodaySubscribersAsync(ct);
+                var minTime = subscribers
+                    .Select(s => s.NotifyTime)
+                    .DefaultIfEmpty()
+                    .Min();
+
+                if (minTime == default && !subscribers.Any())
+                {
+                    await DelayTillNextWeekday(today, now, ct);
+                    continue;
+                }
+
+                var target = today.ToDateTime(new TimeOnly(minTime.Hours, minTime.Minutes), DateTimeKind.Unspecified);
                 if (now < target)
                 {
                     _logger.LogDebug("Next notification at {Target:O} (МСК)", target);
@@ -55,14 +62,8 @@ public class ScheduleNotifier : BackgroundService
                     continue;
                 }
 
-                if (now < target.AddMinutes(15))
-                {
-                    await SendNotificationsAsync(ct);
-                    _lastSentDay = today;
-                    continue;
-                }
-
-                _lastSentDay = today;
+                await SendDueNotificationsAsync(subscribers, now, today, ct);
+                await Task.Delay(TimeSpan.FromSeconds(30), ct);
             }
             catch (OperationCanceledException)
             {
@@ -76,36 +77,55 @@ public class ScheduleNotifier : BackgroundService
         }
     }
 
-    private async Task SendNotificationsAsync(CancellationToken ct)
+    private async Task<List<UserSettings>> LoadTodaySubscribersAsync(CancellationToken ct)
+    {
+        var now = GetNow();
+        var dayOfWeek = (int)now.DayOfWeek;
+
+        using var scope = _sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
+
+        return await db
+            .UserSettings.Where(x => x.NotifyEnabled && x.NotifyDays.Contains(dayOfWeek))
+            .ToListAsync(ct);
+    }
+
+    private async Task SendDueNotificationsAsync(
+        List<UserSettings> subscribers,
+        DateTime now,
+        DateOnly today,
+        CancellationToken ct
+    )
     {
         using var scope = _sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
         var api = scope.ServiceProvider.GetRequiredService<CollegeLmsApiClient>();
         var max = scope.ServiceProvider.GetRequiredService<MaxApiClient>();
 
-        var today = GetNow();
-        var dayOfWeek = (int)today.DayOfWeek; // 0 = Воскресенье, 6 = Суббота
-        if (dayOfWeek is 0 or 6)
-        {
-            _logger.LogInformation("Weekend — no notifications");
-            return;
-        }
-
+        var dayOfWeek = (int)now.DayOfWeek;
         var week = StudyWeek.Current(_tz);
-
-        var subscribers = await db
-            .UserSettings.Where(x => x.NotifyEnabled && x.NotifyDays.Contains(dayOfWeek))
-            .ToListAsync(ct);
-
-        _logger.LogInformation(
-            "Sending notifications to {Count} users for day {Day} (week {Week})",
-            subscribers.Count,
-            dayOfWeek,
-            week
-        );
 
         foreach (var user in subscribers)
         {
+            if (_lastSentPerUser.TryGetValue(user.MaxUserId, out var last) && last == today)
+                continue;
+
+            if (!NotificationWindow.IsDue(now.TimeOfDay, user.NotifyTime, _window))
+            {
+                if (now.TimeOfDay > user.NotifyTime.Add(_window))
+                    _lastSentPerUser[user.MaxUserId] = today;
+                continue;
+            }
+
+            if (!NotificationTimeRules.IsValid(user.NotifyTime))
+            {
+                _logger.LogWarning(
+                    "User {UserId} has invalid NotifyTime {Time}",
+                    user.MaxUserId,
+                    user.NotifyTime
+                );
+            }
+
             try
             {
                 var entries = await api.GetScheduleAsync(
@@ -121,6 +141,9 @@ public class ScheduleNotifier : BackgroundService
 
                 await max.SendMessageAsync(user.MaxChatId, text, ct: ct);
                 await Task.Delay(500, ct);
+
+                _lastSentPerUser[user.MaxUserId] = today;
+                _logger.LogInformation("Digest sent to user {UserId} at {Time}", user.MaxUserId, now);
             }
             catch (Exception ex)
             {
@@ -131,6 +154,17 @@ public class ScheduleNotifier : BackgroundService
                 );
             }
         }
+    }
+
+    private bool IsWeekend(DayOfWeek day) => day is DayOfWeek.Saturday or DayOfWeek.Sunday;
+
+    private async Task DelayTillNextWeekday(DateOnly today, DateTime now, CancellationToken ct)
+    {
+        var daysTillMonday = ((int)DayOfWeek.Monday - (int)now.DayOfWeek + 7) % 7;
+        var nextDay = today.AddDays(daysTillMonday);
+        var target = nextDay.ToDateTime(new TimeOnly(0, 30), DateTimeKind.Unspecified);
+        _logger.LogDebug("Next notification at {Target:O} (МСК)", target);
+        await Task.Delay(target - now, ct);
     }
 
     private DateTime GetNow() => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _tz);

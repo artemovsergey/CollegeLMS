@@ -359,6 +359,9 @@ public class MaxBotService : BackgroundService
             case "notifyday":
                 await HandleNotifyDayToggleAsync(chatId, userId, int.Parse(p.Param1!), ct);
                 break;
+            case "notifytime":
+                await HandleNotifyTimeAsync(chatId, userId, int.Parse(p.Param1!), ct);
+                break;
             case "notifysave":
                 await _max.SendMessageAsync(chatId, "✅ Настройки уведомлений сохранены!", ct: ct);
                 break;
@@ -1112,7 +1115,8 @@ public class MaxBotService : BackgroundService
             $"⚙️ *Настройки*\n\n"
             + $"Роль: {roleLabel}\n"
             + $"Группа/Преподаватель: {(hasEntity ? "✅ выбран" : "❌ не выбран")}\n"
-            + $"Уведомления: {notifyStatus} ({notifyDays})";
+            + $"Уведомления: {notifyStatus} ({notifyDays})\n"
+            + $"⏰ Время дайджеста: {settings.NotifyTime:hh\\:mm}";
 
         var buttons = new List<List<MaxButton>>
         {
@@ -1160,6 +1164,24 @@ public class MaxBotService : BackgroundService
                     Type = "callback",
                     Text = "🔔 Уведомления",
                     Payload = "notify:toggle",
+                },
+            }
+        );
+
+        buttons.Add(
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "⏰ −5 мин",
+                    Payload = "notifytime:-5",
+                },
+                new()
+                {
+                    Type = "callback",
+                    Text = "⏰ +5 мин",
+                    Payload = "notifytime:5",
                 },
             }
         );
@@ -1221,6 +1243,42 @@ public class MaxBotService : BackgroundService
             chatId,
             $"🔔 Уведомления {status}\n\nВыбери дни:",
             buttons,
+            ct: ct
+        );
+    }
+
+    private async Task HandleNotifyTimeAsync(
+        long chatId,
+        long userId,
+        int deltaMinutes,
+        CancellationToken ct
+    )
+    {
+        using var scope = _sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
+
+        var settings = await db.UserSettings.FirstOrDefaultAsync(x => x.MaxUserId == userId, ct);
+        if (settings is null)
+            return;
+
+        var candidate = settings.NotifyTime.Add(TimeSpan.FromMinutes(deltaMinutes));
+        if (!NotificationTimeRules.IsValid(candidate))
+        {
+            await _max.SendMessageAsync(
+                chatId,
+                $"⏰ Время дайджеста — от {NotificationTimeRules.Min:hh\\:mm} до {NotificationTimeRules.Max:hh\\:mm} с шагом 5 минут.",
+                ct: ct
+            );
+            return;
+        }
+
+        settings.NotifyTime = candidate;
+        settings.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        await _max.SendMessageAsync(
+            chatId,
+            $"⏰ Время дайджеста: {settings.NotifyTime:hh\\:mm} (МСК)",
             ct: ct
         );
     }
