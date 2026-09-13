@@ -122,6 +122,20 @@ public static class DbConstraints
             """
         );
 
+        // Notification settings
+        await db.Database.ExecuteSqlRawAsync(
+            """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_notification_settings_time_range') THEN
+                        ALTER TABLE notification_settings
+                        ADD CONSTRAINT ck_notification_settings_time_range
+                        CHECK (time >= INTERVAL '7 hours 30 minutes' AND time <= INTERVAL '8 hours 30 minutes');
+                    END IF;
+                END $$;
+            """
+        );
+
         // Test Assignments
         await db.Database.ExecuteSqlRawAsync(
             """
