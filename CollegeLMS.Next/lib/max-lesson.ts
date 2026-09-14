@@ -40,8 +40,8 @@ export function lessonTypeLabel(type: LessonType): string {
       Practice: "Практика",
       Lab: "Лабораторная",
       Exam: "Экзамен",
-      None: "Занятие",
-    }[type] ?? "Занятие"
+      None: "",
+    }[type] ?? ""
   )
 }
 

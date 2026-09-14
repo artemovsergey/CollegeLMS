@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Star, Users, GraduationCap } from "lucide-react"
 import {
@@ -10,13 +9,15 @@ import {
   CellList,
   CellSimple,
   MaxUI,
-  Spinner,
   Typography,
 } from "@maxhub/max-ui"
-import { listFavorites, removeFavorite } from "@/api/favorites"
-import type { Favorite } from "@/api/favorites"
 import { useMaxContext, type ViewContext } from "@/lib/max-context"
-import ScheduleError from "@/components/max/ScheduleError"
+import {
+  FAVORITES_EVENT,
+  listLocalFavorites,
+  removeLocalFavorite,
+  type LocalFavorite,
+} from "@/lib/max-favorites"
 
 interface LocalItem {
   key: string
@@ -27,103 +28,78 @@ interface LocalItem {
   isFavorite: boolean
 }
 
-function toLocal(fav: Favorite): LocalItem {
+function toLocal(fav: LocalFavorite): LocalItem {
   const isGroup = fav.targetType === "Group"
   return {
     key: fav.id,
     targetType: fav.targetType,
     id: fav.targetId,
-    name: isGroup
-      ? (fav.groupName ?? "Группа")
-      : (fav.teacherName ?? "Преподаватель"),
+    name: fav.name,
     context: isGroup
-      ? { groupId: fav.targetId, groupName: fav.groupName ?? undefined }
-      : { teacherId: fav.targetId, teacherName: fav.teacherName ?? undefined },
+      ? { groupId: fav.targetId, groupName: fav.name }
+      : { teacherId: fav.targetId, teacherName: fav.name },
     isFavorite: true,
   }
 }
 
 export default function FavoritesView() {
-  const { isAuthed, viewContext, setViewContext } = useMaxContext()
+  const { viewContext, setViewContext } = useMaxContext()
   const router = useRouter()
   const [items, setItems] = useState<LocalItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const favorites = await listFavorites()
-      const local = favorites.map(toLocal)
-      if (
-        viewContext.groupId &&
-        !local.some((i) => i.id === viewContext.groupId)
-      ) {
-        local.unshift({
-          key: `context:group:${viewContext.groupId}`,
-          targetType: "Group",
-          id: viewContext.groupId,
-          name: viewContext.groupName ?? "Группа",
-          context: { groupId: viewContext.groupId, groupName: viewContext.groupName ?? undefined },
-          isFavorite: false,
-        })
-      }
-      if (
-        viewContext.teacherId &&
-        !local.some((i) => i.id === viewContext.teacherId)
-      ) {
-        local.unshift({
-          key: `context:teacher:${viewContext.teacherId}`,
-          targetType: "Teacher",
-          id: viewContext.teacherId,
-          name: viewContext.teacherName ?? "Преподаватель",
-          context: { teacherId: viewContext.teacherId, teacherName: viewContext.teacherName ?? undefined },
-          isFavorite: false,
-        })
-      }
-      setItems(local)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Не удалось загрузить избранное",
-      )
-    } finally {
-      setLoading(false)
+  const load = useCallback(() => {
+    const local = listLocalFavorites().map(toLocal)
+    if (
+      viewContext.groupId &&
+      !local.some((i) => i.id === viewContext.groupId)
+    ) {
+      local.unshift({
+        key: `context:group:${viewContext.groupId}`,
+        targetType: "Group",
+        id: viewContext.groupId,
+        name: viewContext.groupName ?? "Группа",
+        context: {
+          groupId: viewContext.groupId,
+          groupName: viewContext.groupName ?? undefined,
+        },
+        isFavorite: false,
+      })
     }
+    if (
+      viewContext.teacherId &&
+      !local.some((i) => i.id === viewContext.teacherId)
+    ) {
+      local.unshift({
+        key: `context:teacher:${viewContext.teacherId}`,
+        targetType: "Teacher",
+        id: viewContext.teacherId,
+        name: viewContext.teacherName ?? "Преподаватель",
+        context: {
+          teacherId: viewContext.teacherId,
+          teacherName: viewContext.teacherName ?? undefined,
+        },
+        isFavorite: false,
+      })
+    }
+    setItems(local)
   }, [viewContext])
 
   useEffect(() => {
-    void load()
+    load()
+    window.addEventListener(FAVORITES_EVENT, load)
+    window.addEventListener("storage", load)
+    return () => {
+      window.removeEventListener(FAVORITES_EVENT, load)
+      window.removeEventListener("storage", load)
+    }
   }, [load])
-
-  if (!isAuthed) {
-    return (
-      <MaxUI>
-        <main className="max-app__page max-app__login-prompt">
-          <Star size={32} className="max-app__state-icon" aria-hidden />
-          <Typography.Title>
-            Войдите, чтобы сохранять избранное
-          </Typography.Title>
-          <Typography.Body className="max-app__muted">
-            Избранное хранится в вашем аккаунте
-          </Typography.Body>
-          <Link href="/login" passHref>
-            <Button>Войти</Button>
-          </Link>
-        </main>
-      </MaxUI>
-    )
-  }
 
   const groups = items.filter((i) => i.targetType === "Group")
   const teachers = items.filter((i) => i.targetType === "Teacher")
 
-  const drop = async (item: LocalItem) => {
-    setItems((prev) => prev.filter((i) => i.key !== item.key))
+  const drop = (item: LocalItem) => {
     if (!item.isFavorite) return
-    const favs = await listFavorites().catch(() => [])
-    const fav = favs.find((f) => f.targetId === item.id)
-    if (fav) await removeFavorite(fav.id).catch(() => undefined)
+    removeLocalFavorite(item.targetType, item.id)
   }
 
   const open = (item: LocalItem) => {
@@ -142,17 +118,13 @@ export default function FavoritesView() {
             variant="ghost"
             aria-label="Убрать из избранного"
             className="max-app__favorite max-app__favorite--on"
-            onClick={() => void drop(item)}
-            iconBefore={
-              <Star size={18} fill="currentColor" aria-hidden />
-            }
+            onClick={() => drop(item)}
+            iconBefore={<Star size={18} fill="currentColor" aria-hidden />}
           />
+        ) : item.targetType === "Teacher" ? (
+          <GraduationCap size={18} aria-hidden />
         ) : (
-          item.targetType === "Teacher" ? (
-            <GraduationCap size={18} aria-hidden />
-          ) : (
-            <Users size={18} aria-hidden />
-          )
+          <Users size={18} aria-hidden />
         )
       }
       title={item.name}
@@ -177,13 +149,7 @@ export default function FavoritesView() {
         <header className="max-app__page-title">
           <Typography.Title>Избранное</Typography.Title>
         </header>
-        {loading ? (
-          <div className="max-app__state">
-            <Spinner size={24} />
-          </div>
-        ) : error ? (
-          <ScheduleError message={error} onRetry={() => void load()} />
-        ) : items.length === 0 ? (
+        {items.length === 0 ? (
           <div className="max-app__state">
             <Star size={32} className="max-app__state-icon" aria-hidden />
             <Typography.Title>Пока пусто</Typography.Title>
@@ -197,9 +163,7 @@ export default function FavoritesView() {
               <CellList
                 mode="island"
                 header={
-                  <CellHeader titleStyle="normal">
-                    Преподаватели
-                  </CellHeader>
+                  <CellHeader titleStyle="normal">Преподаватели</CellHeader>
                 }
               >
                 {teachers.map((item) => (
@@ -210,9 +174,7 @@ export default function FavoritesView() {
             {groups.length > 0 ? (
               <CellList
                 mode="island"
-                header={
-                  <CellHeader titleStyle="normal">Группы</CellHeader>
-                }
+                header={<CellHeader titleStyle="normal">Группы</CellHeader>}
               >
                 {groups.map((item) => (
                   <div key={item.key}>{renderCell(item)}</div>

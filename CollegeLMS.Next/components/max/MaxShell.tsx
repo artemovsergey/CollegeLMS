@@ -4,21 +4,17 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
-  Home,
   CalendarDays,
   Star,
   History,
-  Settings,
   ShieldCheck,
 } from "lucide-react"
 import type { ReactNode } from "react"
 
 const TABS = [
-  { href: "/max", label: "Главная", icon: Home },
   { href: "/max/schedule", label: "Расписание", icon: CalendarDays },
   { href: "/max/favorites", label: "Избранное", icon: Star },
   { href: "/max/changes", label: "Изменения", icon: History },
-  { href: "/max/settings", label: "Настройки", icon: Settings },
   { href: "/max/dispatcher", label: "Диспетчер", icon: ShieldCheck },
 ]
 
@@ -47,8 +43,7 @@ export default function MaxShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const hasDispatcher = useDispatcherSession()
 
-  const isActive = (href: string) =>
-    href === "/max" ? pathname === "/max" : pathname.startsWith(href)
+  const isActive = (href: string) => pathname.startsWith(href)
 
   return (
     <div className="max-app">

@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight, Search, CalendarDays } from "lucide-react"
 import {
   Button,
-  CellList,
-  CellSimple,
   MaxUI,
   Spinner,
   Typography,
@@ -23,7 +21,6 @@ import type { ScheduleMeta } from "@/api/schedule"
 import type { ScheduleResponse } from "@/types/schedule"
 import { useMaxContext } from "@/lib/max-context"
 import { parseMaxDeepLink } from "@/lib/max-deeplink"
-import { currentPair, WEEKDAYS } from "@/lib/max-lesson"
 import DayFeed from "@/components/max/DayFeed"
 import WeekFeed from "@/components/max/WeekFeed"
 import ScheduleEmpty from "@/components/max/ScheduleEmpty"
@@ -74,7 +71,9 @@ export default function ScheduleView() {
       let initialWeek = res.data.currentWeek
       let initialDate =
         normalizeDateOnly(res.data.currentDate) || toIsoDate(new Date())
-      if (link.route === "week" || link.view === "week") {
+      if (link.route === "today" || link.route === "schedule") {
+        setView("day")
+      } else if (link.route === "week" || link.view === "week") {
         setView("week")
         const linkDate = link.date ? normalizeDateOnly(link.date) : ""
         if (linkDate) {
@@ -157,13 +156,9 @@ export default function ScheduleView() {
     return `${formatDay(toIsoDate(start))} – ${formatDay(toIsoDate(end))}`
   }, [meta, selectedWeek])
 
-  const pair = useMemo(
-    () =>
-      view === "day"
-        ? currentPair(entries)
-        : { current: undefined, next: undefined },
-    [view, entries],
-  )
+  const dateIsToday = selectedDate === toIsoDate(new Date())
+  const isCurrentWeek =
+    meta !== null && selectedWeek === meta.currentWeek
 
   const isOutsideSemester =
     view === "week" &&
@@ -301,25 +296,41 @@ export default function ScheduleView() {
           </div>
         ) : error ? (
           <ScheduleError message={error} onRetry={() => void load()} />
+        ) : !contextName ? (
+          <div className="max-app__login-prompt">
+            <CalendarDays size={32} className="max-app__state-icon" aria-hidden />
+            <Typography.Title>Выберите расписание</Typography.Title>
+            <Typography.Body className="max-app__muted">
+              Откройте группу или преподавателя через поиск
+            </Typography.Body>
+            <Button onClick={() => setSearchOpen(true)}>Поиск</Button>
+          </div>
         ) : entries.length === 0 ? (
           <ScheduleEmpty />
         ) : view === "week" ? (
-          <WeekFeed entries={entries} rangeLabel={weekRange} />
+          <WeekFeed
+            entries={entries}
+            rangeLabel={weekRange}
+            highlightToday={isCurrentWeek}
+          />
         ) : (
           <DayFeed
             entries={entries}
+            today={dateIsToday}
             header={<span>{formatDay(selectedDate)}</span>}
           />
         )}
 
-        <Button
-          variant="secondary"
-          stretched
-          onClick={() => setSearchOpen(true)}
-          iconBefore={<Search size={18} aria-hidden />}
-        >
-          Сменить просмотр
-        </Button>
+        {contextName ? (
+          <Button
+            variant="secondary"
+            stretched
+            onClick={() => setSearchOpen(true)}
+            iconBefore={<Search size={18} aria-hidden />}
+          >
+            Поиск группы или преподавателя
+          </Button>
+        ) : null}
       </main>
 
       <SearchSheet open={searchOpen} onClose={() => setSearchOpen(false)} />
