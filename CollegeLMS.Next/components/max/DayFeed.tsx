@@ -10,6 +10,7 @@ import {
 } from "@/lib/max-lesson"
 import { toDateFromTime } from "@/api/schedule"
 import { useMaxContext } from "@/lib/max-context"
+import ChangeBadge from "@/components/max/ChangeBadge"
 
 export default function DayFeed({
   entries,
@@ -57,11 +58,23 @@ export default function DayFeed({
               </div>
             }
             subtitle={
-              <span className="max-schedule__subtitle">
-                <Clock3 size={14} aria-hidden />{" "}
-                {formatTime(entry.startTime)} – {formatTime(entry.endTime)}
-                {counterpart ? ` · ${counterpart}` : ""}
-                {entry.room ? ` · ${entry.room}` : ""}
+              <span className="max-schedule__subtitle-wrap">
+                <span className="max-schedule__subtitle">
+                  <Clock3 size={14} aria-hidden />{" "}
+                  {formatTime(entry.startTime)} – {formatTime(entry.endTime)}
+                  {counterpart ? ` · ${counterpart}` : ""}
+                  {entry.room ? ` · ${entry.room}` : ""}
+                </span>
+                {entry.changeTags.length > 0 ? (
+                  <span className="max-schedule__tag-row">
+                    {entry.changeTags.map((tag, i) => (
+                      <ChangeBadge
+                        key={`${tag.changeType}:${tag.week}:${i}`}
+                        tag={tag}
+                      />
+                    ))}
+                  </span>
+                ) : null}
               </span>
             }
             after={

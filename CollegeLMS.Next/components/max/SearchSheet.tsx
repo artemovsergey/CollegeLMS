@@ -114,15 +114,20 @@ export default function SearchSheet({
         />
       </div>
 
-      <Input
-        autoFocus
-        type="search"
-        placeholder="Группа или преподаватель…"
-        aria-label="Поиск группы или преподавателя"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        iconBefore={<Search size={18} aria-hidden />}
-      />
+      <label className="max-app__field">
+        <span className="max-app__form-label">
+          Группа или преподаватель
+        </span>
+        <Input
+          id="max-search-input"
+          autoFocus
+          type="search"
+          placeholder="Начните вводить название"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          iconBefore={<Search size={18} aria-hidden />}
+        />
+      </label>
 
       {loading ? (
         <div className="max-app__state">

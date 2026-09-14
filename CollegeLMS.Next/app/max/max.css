@@ -217,6 +217,11 @@
   background: #fef3c7;
 }
 
+.max-app__badge--selfstudy {
+  color: #6d28d9;
+  background: #ede9fe;
+}
+
 .max-app__change-chip {
   display: inline-flex;
   align-items: center;
@@ -442,11 +447,47 @@
   justify-content: space-between;
 }
 
+.max-app__sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.max-app__confirm-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: 12px;
+}
+
+.max-app__confirm-error-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #b91c1c;
+}
+
 /* Фильтр недели в ленте изменений */
 .max-app__filter-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin: 0 0 12px;
+}
+
+.max-schedule__subtitle-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.max-schedule__tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .max-app__change-card--highlight {

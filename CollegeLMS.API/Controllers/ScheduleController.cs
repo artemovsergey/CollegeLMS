@@ -163,11 +163,7 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
     [HttpGet("subjects")]
     [AllowAnonymous]
     [SwaggerOperation(Summary = "Список предметов для выпадающих списков корректировок")]
-    [SwaggerResponse(
-        200,
-        "Список предметов получен",
-        typeof(Result<SubjectsResponse>)
-    )]
+    [SwaggerResponse(200, "Список предметов получен", typeof(Result<SubjectsResponse>))]
     [SwaggerResponse(500, "Ошибка сервера")]
     [ProducesResponseType(typeof(Result<SubjectsResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]

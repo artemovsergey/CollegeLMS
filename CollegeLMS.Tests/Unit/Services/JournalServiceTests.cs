@@ -127,14 +127,15 @@ public class JournalServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetJournalAsync_Date_IsMondayOfWeek()
+    public async Task GetJournalAsync_Date_ReflectsDayOfWeek()
     {
         var teacher = await SeedTeacherAsync();
         await SeedEntryAsync(teacher.Id, "Математика", 2, [2]);
 
         var result = await _sut.GetJournalAsync(teacher.Id, default);
 
-        var mondayWeek2 = StudyWeek.MondayOf(StudyWeek.SemesterStart).AddDays(7);
-        result.Data!.Subjects.Single().Items.Single().Date.Should().Be(mondayWeek2);
+        // Вторник 2-й недели: понедельник недели + (DayOfWeek.Tuesday)=1.
+        var tuesdayWeek2 = StudyWeek.MondayOf(StudyWeek.SemesterStart).AddDays(7 + 1);
+        result.Data!.Subjects.Single().Items.Single().Date.Should().Be(tuesdayWeek2);
     }
 }

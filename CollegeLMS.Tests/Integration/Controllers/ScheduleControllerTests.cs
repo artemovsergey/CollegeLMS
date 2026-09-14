@@ -96,6 +96,100 @@ public class ScheduleControllerTests : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task GetSubjects_ReturnsDistinctSubjects_WhenAnonymous()
+    {
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.ScheduleEntries.AddRange(
+                new ScheduleEntry
+                {
+                    Id = Guid.NewGuid(),
+                    GroupId = Guid.NewGuid(),
+                    Subject = "Математика",
+                    Room = "301",
+                    DayOfWeek = DayOfWeek.Monday,
+                    NumberPair = 1,
+                    StartTime = new TimeSpan(9, 0, 0),
+                    EndTime = new TimeSpan(10, 30, 0),
+                    Weeks = new List<int> { 1 },
+                    LessonType = LessonType.Lecture,
+                },
+                new ScheduleEntry
+                {
+                    Id = Guid.NewGuid(),
+                    GroupId = Guid.NewGuid(),
+                    Subject = "МАТЕМАТИКА",
+                    Room = "302",
+                    DayOfWeek = DayOfWeek.Tuesday,
+                    NumberPair = 2,
+                    StartTime = new TimeSpan(9, 0, 0),
+                    EndTime = new TimeSpan(10, 30, 0),
+                    Weeks = new List<int> { 1 },
+                    LessonType = LessonType.Practice,
+                }
+            );
+            await db.SaveChangesAsync();
+        }
+
+        var response = await Client.GetAsync("/api/schedule/subjects");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeWithEnumsAsync<Result<SubjectsResponse>>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+        Assert.Contains("Математика", body.Data!.Subjects);
+        Assert.Single(body.Data.Subjects);
+    }
+
+    [Fact]
+    public async Task GetSubjects_FiltersByQuery_IgnoreCase()
+    {
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.ScheduleEntries.AddRange(
+                new ScheduleEntry
+                {
+                    Id = Guid.NewGuid(),
+                    GroupId = Guid.NewGuid(),
+                    Subject = "Математика",
+                    Room = "301",
+                    DayOfWeek = DayOfWeek.Monday,
+                    NumberPair = 1,
+                    StartTime = new TimeSpan(9, 0, 0),
+                    EndTime = new TimeSpan(10, 30, 0),
+                    Weeks = new List<int> { 1 },
+                    LessonType = LessonType.Lecture,
+                },
+                new ScheduleEntry
+                {
+                    Id = Guid.NewGuid(),
+                    GroupId = Guid.NewGuid(),
+                    Subject = "Литература",
+                    Room = "401",
+                    DayOfWeek = DayOfWeek.Tuesday,
+                    NumberPair = 1,
+                    StartTime = new TimeSpan(9, 0, 0),
+                    EndTime = new TimeSpan(10, 30, 0),
+                    Weeks = new List<int> { 1 },
+                    LessonType = LessonType.Lecture,
+                }
+            );
+            await db.SaveChangesAsync();
+        }
+
+        var response = await Client.GetAsync("/api/schedule/subjects?q=%D0%9C%D0%B0%D1%82");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeWithEnumsAsync<Result<SubjectsResponse>>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+        var subject = Assert.Single(body.Data!.Subjects);
+        Assert.Equal("Математика", subject);
+    }
+
+    [Fact]
     public async Task GetById_ReturnsEntry_WhenFound()
     {
         var entry = ScheduleEntryFixture.CreateFaker().Generate();

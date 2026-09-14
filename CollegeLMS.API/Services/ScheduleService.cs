@@ -269,10 +269,7 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
         );
     }
 
-    public async Task<Result<SubjectsResponse>> GetSubjectsAsync(
-        string? q,
-        CancellationToken ct
-    )
+    public async Task<Result<SubjectsResponse>> GetSubjectsAsync(string? q, CancellationToken ct)
     {
         var qTrim = (q ?? string.Empty).Trim();
         var subjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -299,9 +296,7 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
         subjects.UnionWith(removedSubjects);
 
         var result = subjects
-            .Where(s =>
-                qTrim.Length == 0 || s.Contains(qTrim, StringComparison.OrdinalIgnoreCase)
-            )
+            .Where(s => qTrim.Length == 0 || s.Contains(qTrim, StringComparison.OrdinalIgnoreCase))
             .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
             .Take(200)
             .ToList();

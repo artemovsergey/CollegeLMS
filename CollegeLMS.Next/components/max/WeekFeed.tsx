@@ -1,8 +1,11 @@
 "use client"
 
 import type { ScheduleResponse } from "@/types/schedule"
-import { WEEKDAYS } from "@/lib/max-lesson"
+import { DAYS } from "@/types/schedule"
 import DayFeed from "@/components/max/DayFeed"
+
+// Порядок дней недели: Пн → Сб, затем Воскресенье (резерв).
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
 
 function isoDayOfWeek(date: Date): number {
   const day = date.getDay()
@@ -30,17 +33,20 @@ export default function WeekFeed({
   return (
     <div className="max-week">
       <div className="max-week__range">{rangeLabel}</div>
-      {WEEKDAYS.map((day) => {
-        const list = byDay.get(day.value)
+      {DAY_ORDER.map((dayValue) => {
+        const list = byDay.get(dayValue)
         if (!list || list.length === 0) return null
+        const day = DAYS.find((d) => d.value === dayValue)
         return (
           <DayFeed
-            key={day.value}
+            key={dayValue}
             entries={list}
-            today={highlightToday && day.value === today}
+            today={highlightToday && dayValue === today}
             header={
               <div className="max-week__day">
-                <span className="max-week__day--strong">{day.full}</span>
+                <span className="max-week__day--strong">
+                  {day?.full ?? String(dayValue)}
+                </span>
                 <span className="max-app__note">{list.length} пар</span>
               </div>
             }

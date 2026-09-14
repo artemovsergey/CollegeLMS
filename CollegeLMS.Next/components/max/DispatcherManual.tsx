@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Plus, Search, Trash2, Users, GraduationCap } from "lucide-react"
 import { Button, Input, Typography } from "@maxhub/max-ui"
-import { confirmCorrection } from "@/api/correction"
-import { fetchSchedule, searchSchedule } from "@/api/schedule"
+import { fetchSchedule, fetchSubjects, searchSchedule } from "@/api/schedule"
 import type { ScheduleResponse } from "@/types/schedule"
 import type {
   CorrectionChangeType,
   CorrectionPreviewEntry,
   ConfirmResult,
 } from "@/types/correction"
-import { extractErrorMessage } from "@/lib/utils"
 import { WEEKDAYS } from "@/lib/max-lesson"
+import { NoteChips } from "@/components/NoteChips"
+import ConfirmOpsSheet from "@/components/max/ConfirmOpsSheet"
 
 type DraftOp = {
   key: number
@@ -69,7 +69,7 @@ export default function DispatcherManual({
 
   const [ops, setOps] = useState<DraftOp[]>([])
   const [formError, setFormError] = useState<string | null>(null)
-  const [confirming, setConfirming] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const [schedule, setSchedule] = useState<ScheduleResponse[]>([])
   const [scheduleLoading, setScheduleLoading] = useState(false)
@@ -203,26 +203,18 @@ export default function DispatcherManual({
     }
   }
 
-  const apply = async () => {
+  const entries = useMemo(
+    () => ops.map((op, index) => toEntry(op, index)),
+    [ops],
+  )
+
+  const openConfirm = () => {
     if (ops.length === 0) {
       setFormError("Добавьте хотя бы одну операцию")
       return
     }
-    setConfirming(true)
     setFormError(null)
-    try {
-      const entries = ops.map(toEntry)
-      const result = await confirmCorrection(entries, crypto.randomUUID())
-      onApplied(result)
-      setOps([])
-    } catch (err) {
-      setFormError(
-        extractErrorMessage(err) ??
-          "Ошибка применения. Проверьте операции и повторите",
-      )
-    } finally {
-      setConfirming(false)
-    }
+    setConfirmOpen(true)
   }
 
   const changeLabel = (t: CorrectionChangeType): string =>
@@ -354,14 +346,7 @@ export default function DispatcherManual({
 
       {changeType === "Add" || changeType === "Replace" ? (
         <>
-          <label className="max-app__field">
-            <span className="max-app__form-label">Предмет</span>
-            <Input
-              value={subject}
-              placeholder="Например, Физика"
-              onChange={(e) => setSubject(e.target.value)}
-            />
-          </label>
+          <SubjectPicker value={subject} onChange={setSubject} />
           <TeacherPicker
             value={{ id: teacherId, name: teacherName }}
             placeholder="Преподаватель (необязательно)"
@@ -399,6 +384,7 @@ export default function DispatcherManual({
 
       <label className="max-app__field">
         <span className="max-app__form-label">Примечание</span>
+        <NoteChips value={note} onChange={setNote} />
         <Input
           value={note}
           placeholder="Необязательно"
@@ -443,13 +429,23 @@ export default function DispatcherManual({
           ))}
           <Button
             stretched
-            loading={confirming}
-            onClick={() => void apply()}
+            onClick={openConfirm}
           >
             Применить изменения
           </Button>
         </div>
       ) : null}
+
+      <ConfirmOpsSheet
+        open={confirmOpen}
+        ops={entries}
+        onCancel={() => setConfirmOpen(false)}
+        onApplied={(result) => {
+          onApplied(result)
+          setOps([])
+          setConfirmOpen(false)
+        }}
+      />
     </div>
   )
 }
@@ -547,6 +543,85 @@ function GroupPicker({
           ) : null}
         </>
       )}
+    </div>
+  )
+}
+
+function SubjectPicker({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (subject: string) => void
+}) {
+  const [query, setQuery] = useState("")
+  const [options, setOptions] = useState<string[]>([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setQuery(value)
+  }, [value])
+
+  useEffect(() => {
+    const q = query.trim()
+    if (q.length === 0) {
+      setOptions([])
+      setOpen(false)
+      return
+    }
+    const timer = window.setTimeout(async () => {
+      setLoading(true)
+      try {
+        const res = await fetchSubjects(q)
+        const subjects = res.isSuccess
+          ? (res.data?.subjects ?? []).slice(0, 6)
+          : []
+        setOptions(subjects)
+        setOpen(subjects.length > 0)
+      } catch {
+        setOptions([])
+        setOpen(false)
+      } finally {
+        setLoading(false)
+      }
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [query])
+
+  return (
+    <div className="max-app__field">
+      <span className="max-app__form-label">Предмет</span>
+      <Input
+        value={query}
+        placeholder="Начните вводить предмет"
+        onChange={(e) => {
+          setQuery(e.target.value)
+          onChange(e.target.value)
+        }}
+        iconBefore={<Search size={18} aria-hidden />}
+      />
+      {loading ? (
+        <Typography.Body className="max-app__note">Поиск…</Typography.Body>
+      ) : null}
+      {open && options.length > 0 ? (
+        <div className="max-app__search-item">
+          {options.map((subject) => (
+            <Button
+              key={subject}
+              size="small"
+              variant="secondary"
+              onClick={() => {
+                onChange(subject)
+                setQuery(subject)
+                setOpen(false)
+              }}
+            >
+              {subject}
+            </Button>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

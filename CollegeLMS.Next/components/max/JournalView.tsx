@@ -13,6 +13,7 @@ import {
 import { fetchJournal } from "@/api/schedule"
 import type { JournalResponse } from "@/api/schedule"
 import { useMaxContext } from "@/lib/max-context"
+import { dayLabelFromInt } from "@/lib/max-lesson"
 import ScheduleError from "@/components/max/ScheduleError"
 import ScheduleEmpty from "@/components/max/ScheduleEmpty"
 
@@ -59,7 +60,9 @@ export default function JournalView() {
     journal?.subjects.find((s) => s.subject === subject) ?? null
 
   const items = subjectGroup
-    ? [...subjectGroup.items].sort((a, b) => a.week - b.week)
+    ? [...subjectGroup.items].sort((a, b) =>
+        a.week !== b.week ? a.week - b.week : a.dayOfWeek - b.dayOfWeek,
+      )
     : []
 
   if (!isAuthed || !isTeacher) {
@@ -129,9 +132,9 @@ export default function JournalView() {
               >
                 {items.map((entry) => (
                   <CellSimple
-                    key={`${subjectGroup.subject}:${entry.week}`}
+                    key={`${subjectGroup.subject}:${entry.week}:${entry.dayOfWeek}`}
                     separator
-                    title={`Неделя ${entry.week}`}
+                    title={`Неделя ${entry.week} · ${dayLabelFromInt(entry.dayOfWeek)}`}
                     subtitle={formatDate(entry.date)}
                     after={
                       <Typography.Body>Пар: {entry.numberPairs.length}</Typography.Body>

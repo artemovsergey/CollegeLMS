@@ -877,10 +877,9 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
         foreach (var entry in entries)
         {
-            var groupExists = await db.Groups.AsNoTracking().AnyAsync(
-                g => g.Id == entry.GroupId,
-                ct
-            );
+            var groupExists = await db
+                .Groups.AsNoTracking()
+                .AnyAsync(g => g.Id == entry.GroupId, ct);
             if (!groupExists)
             {
                 errors.Add($"Группа «{entry.GroupName}» не найдена.");
@@ -894,16 +893,19 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             {
                 case ScheduleChangeType.Remove:
                 {
-                    var removeQuery = db.ScheduleEntries.AsNoTracking().Where(e =>
-                        e.GroupId == entry.GroupId
-                        && e.DayOfWeek == day
-                        && e.NumberPair == entry.NumberPair
-                        && e.Weeks.Contains(entry.Week)
-                    );
+                    var removeQuery = db
+                        .ScheduleEntries.AsNoTracking()
+                        .Where(e =>
+                            e.GroupId == entry.GroupId
+                            && e.DayOfWeek == day
+                            && e.NumberPair == entry.NumberPair
+                            && e.Weeks.Contains(entry.Week)
+                        );
 
                     if (!string.IsNullOrEmpty(entry.RemovedSubject))
                         removeQuery = removeQuery.Where(e =>
-                            e.Subject == ScheduleImportService.NormalizeSubject(entry.RemovedSubject)
+                            e.Subject
+                            == ScheduleImportService.NormalizeSubject(entry.RemovedSubject)
                         );
                     if (entry.RemovedTeacherId.HasValue)
                         removeQuery = removeQuery.Where(e =>
@@ -921,20 +923,22 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                 case ScheduleChangeType.Replace:
                 case ScheduleChangeType.Move:
                 {
-                    var removed = await db.ScheduleEntries.AsNoTracking().FirstOrDefaultAsync(
-                        e =>
-                            e.GroupId == entry.GroupId
-                            && e.DayOfWeek == day
-                            && e.NumberPair == (entry.RemovedNumberPair ?? entry.NumberPair)
-                            && e.Weeks.Contains(entry.Week)
-                            && (
-                                entry.RemovedTeacherId.HasValue
-                                    ? e.TeacherId == entry.RemovedTeacherId.Value
-                                    : e.TeacherId == null
-                            )
-                            && e.Subject == (entry.RemovedSubject ?? string.Empty),
-                        ct
-                    );
+                    var removed = await db
+                        .ScheduleEntries.AsNoTracking()
+                        .FirstOrDefaultAsync(
+                            e =>
+                                e.GroupId == entry.GroupId
+                                && e.DayOfWeek == day
+                                && e.NumberPair == (entry.RemovedNumberPair ?? entry.NumberPair)
+                                && e.Weeks.Contains(entry.Week)
+                                && (
+                                    entry.RemovedTeacherId.HasValue
+                                        ? e.TeacherId == entry.RemovedTeacherId.Value
+                                        : e.TeacherId == null
+                                )
+                                && e.Subject == (entry.RemovedSubject ?? string.Empty),
+                            ct
+                        );
                     if (removed is null)
                         errors.Add(
                             $"Занятие на {dayName} {entry.Week}-й неделе, пара {entry.RemovedNumberPair ?? entry.NumberPair} не найдено (снимаемое занятие)."

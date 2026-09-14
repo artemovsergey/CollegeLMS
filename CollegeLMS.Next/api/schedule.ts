@@ -207,8 +207,24 @@ export async function searchSchedule(
   return data
 }
 
+export interface SubjectsResponse {
+  subjects: string[]
+}
+
+export async function fetchSubjects(
+  q = "",
+): Promise<Result<SubjectsResponse>> {
+  const qs = new URLSearchParams()
+  if (q) qs.set("q", q)
+  const { data } = await api.get<Result<SubjectsResponse>>(
+    `/api/schedule/subjects${qs.toString() ? `?${qs.toString()}` : ""}`,
+  )
+  return data
+}
+
 export interface JournalEntryItem {
   week: number
+  dayOfWeek: number
   date: string
   numberPairs: number[]
 }
