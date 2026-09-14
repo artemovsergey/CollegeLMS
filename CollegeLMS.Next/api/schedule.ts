@@ -131,8 +131,24 @@ export function toIsoDate(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
+
+// Бэкенд отдаёт DateTime в полном ISO-формате ("2026-09-14T00:00:00Z"),
+// а deep-link может содержать мусор — приводим всё к YYYY-MM-DD.
+export function normalizeDateOnly(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0) return ""
+  const candidate = value.length > 10 ? value.slice(0, 10) : value
+  return DATE_ONLY_RE.test(candidate) ? candidate : ""
+}
+
+export function isValidDate(date: unknown): date is Date {
+  return date instanceof Date && !Number.isNaN(date.getTime())
+}
+
 export function parseIsoDate(value: string): Date {
-  const [year, month, day] = value.split("-").map(Number)
+  const normalized = normalizeDateOnly(value)
+  if (!normalized) return new Date(Number.NaN)
+  const [year, month, day] = normalized.split("-").map(Number)
   return new Date(year, month - 1, day)
 }
 

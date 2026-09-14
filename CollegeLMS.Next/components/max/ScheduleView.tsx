@@ -14,6 +14,8 @@ import {
   fetchDaySchedule,
   fetchSchedule,
   fetchScheduleMeta,
+  isValidDate,
+  normalizeDateOnly,
   parseIsoDate,
   toIsoDate,
 } from "@/api/schedule"
@@ -41,7 +43,9 @@ function addDays(date: Date, days: number): Date {
 }
 
 function formatDay(value: string): string {
-  return parseIsoDate(value).toLocaleDateString("ru-RU", {
+  const date = parseIsoDate(value)
+  if (!isValidDate(date)) return ""
+  return date.toLocaleDateString("ru-RU", {
     day: "2-digit",
     month: "2-digit",
   })
@@ -68,15 +72,20 @@ export default function ScheduleView() {
         typeof window !== "undefined" ? window.location.search : "",
       )
       let initialWeek = res.data.currentWeek
-      let initialDate = res.data.currentDate
+      let initialDate =
+        normalizeDateOnly(res.data.currentDate) || toIsoDate(new Date())
       if (link.route === "week" || link.view === "week") {
         setView("week")
-        if (link.date) {
-          const now = parseIsoDate(link.date)
-          const w1 = mondayOf(parseIsoDate(res.data.semesterStart))
-          initialWeek = Math.floor(
-            (mondayOf(now).getTime() - w1.getTime()) / 604800000,
-          ) + 1
+        const linkDate = link.date ? normalizeDateOnly(link.date) : ""
+        if (linkDate) {
+          const now = parseIsoDate(linkDate)
+          const semesterStart = normalizeDateOnly(res.data.semesterStart)
+          if (isValidDate(now) && semesterStart) {
+            const w1 = mondayOf(parseIsoDate(semesterStart))
+            initialWeek = Math.floor(
+              (mondayOf(now).getTime() - w1.getTime()) / 604800000,
+            ) + 1
+          }
         }
         initialWeek = Math.min(
           Math.max(1, initialWeek),
@@ -84,7 +93,8 @@ export default function ScheduleView() {
         )
       } else if (link.route === "day" && link.date) {
         setView("day")
-        initialDate = link.date
+        const normalized = normalizeDateOnly(link.date)
+        if (normalized) initialDate = normalized
       }
       setSelectedWeek(initialWeek)
       setSelectedDate(initialDate)
@@ -139,7 +149,9 @@ export default function ScheduleView() {
 
   const weekRange = useMemo(() => {
     if (!meta || selectedWeek === null) return ""
-    const w1 = mondayOf(parseIsoDate(meta.semesterStart))
+    const semesterStart = normalizeDateOnly(meta.semesterStart)
+    if (!semesterStart) return ""
+    const w1 = mondayOf(parseIsoDate(semesterStart))
     const start = addDays(w1, (selectedWeek - 1) * 7)
     const end = addDays(start, 6)
     return `${formatDay(toIsoDate(start))} – ${formatDay(toIsoDate(end))}`
@@ -181,9 +193,12 @@ export default function ScheduleView() {
 
   const goToday = () => {
     if (!meta) return
-    setSelectedDate(meta.currentDate)
+    const currentDate = normalizeDateOnly(meta.currentDate)
+    if (currentDate) setSelectedDate(currentDate)
     setSelectedWeek(meta.currentWeek)
   }
+
+  const contextName = viewContext.groupName ?? viewContext.teacherName ?? null
 
   return (
     <MaxUI className="max-schedule">
@@ -191,11 +206,11 @@ export default function ScheduleView() {
         <header className="max-app__page-title">
           <div>
             <Typography.Title>Расписание</Typography.Title>
-            <Typography.Body className="max-app__muted">
-              {viewContext.groupName ??
-                viewContext.teacherName ??
-                "Открытое расписание"}
-            </Typography.Body>
+            {contextName ? (
+              <Typography.Body className="max-app__muted">
+                {contextName}
+              </Typography.Body>
+            ) : null}
           </div>
           <div className="max-schedule__view-switch" role="tablist" aria-label="Вид расписания">
             <button

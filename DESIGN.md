@@ -93,7 +93,7 @@ CollegeLMS — единая цифровая среда Ставропольск
 **Ключевые характеристики:**
 - Primary Deep Navy (`#24386a`), extracted from the logo text. Используется для кнопок, ссылок, заголовков
 - Акцентный цвет (`--accent`) совпадает с primary в светлой теме, меняется на College Blue (`#568edd`) в тёмной
-- 5 цветовых пресетов: indigo, blue, sapphire, plum, green
+- Переключение светлая/тёмная тема — через кнопку в шапке; выбор цветовых пресетов удалён
 - Body text: `#111827` (gray-900) — хороший контраст на белом
 - Inter — шрифт для всего интерфейса
 - Mobile-first: формы и таблицы работают на 320px
@@ -127,14 +127,6 @@ CollegeLMS — единая цифровая среда Ставропольск
 - **Dark Card** (#1f2937): Карточки в тёмной теме
 - **Dark Accent** (#568edd): College Blue становится акцентным цветом
 - **Dark Muted FG** (#929cb5): Muted текст в тёмной теме
-
-### Цветовые пресеты
-Пользователь может выбрать один из 5 пресетов, которые меняют `--accent`:
-- **Indigo** (#24386a) — Deep Navy (по умолчанию)
-- **Blue** (#1e4d8c) — Medium Blue
-- **Sapphire** (#3b5998) — Sapphire
-- **Plum** (#4a4e6b) — Plum
-- **Green** (#2d5a4a) — Forest Green
 
 ### Named Rules
 **The Deep Navy Rule.** Deep Navy — единственный цвет интерактивных элементов в светлой теме. ≤15% экрана.
@@ -455,16 +447,6 @@ Cards, dialogs, and dropdowns sit on the surface without vertical lift. The card
 | `--muted`           | **#1f2937** | Muted поверхности             |
 | `--muted-fg`        | **#929cb5** | Muted текст                   |
 | `--border`          | **#374151** | Границы                       |
-
-## Цветовые пресеты
-
-| Пресет    | `--accent` | `--accent-hover` |
-|-----------|------------|------------------|
-| Indigo    | #24386a    | #1c2c54          |
-| Blue      | #1e4d8c    | #163d73          |
-| Sapphire  | #3b5998    | #2e477a          |
-| Plum      | #4a4e6b    | #3a3e56          |
-| Green     | #2d5a4a    | #23483b          |
 
 ## Цвета из логотипа
 

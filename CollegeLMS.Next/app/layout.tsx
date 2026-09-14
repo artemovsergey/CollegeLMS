@@ -2,11 +2,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth"
 import { ThemeProvider } from "next-themes"
-import { ThemePresetProvider } from "@/lib/theme-preset"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import ThemeSwitcher from "@/components/ThemeSwitcher"
-import CookieConsent from "@/components/CookieConsent"
 import "@fontsource/inter"
 import "@fontsource/inter/500.css"
 import "@fontsource/inter/600.css"
@@ -40,16 +37,12 @@ export default function RootLayout({
           enableSystem={false}
           storageKey="theme"
         >
-          <ThemePresetProvider>
-            <AuthProvider>
-              <TooltipProvider delayDuration={300}>
-                {children}
-                <ThemeSwitcher />
-                <CookieConsent />
-                <Toaster />
-              </TooltipProvider>
-            </AuthProvider>
-          </ThemePresetProvider>
+          <AuthProvider>
+            <TooltipProvider delayDuration={300}>
+              {children}
+              <Toaster />
+            </TooltipProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
