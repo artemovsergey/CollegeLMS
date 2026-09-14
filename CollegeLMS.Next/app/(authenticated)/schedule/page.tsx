@@ -303,7 +303,7 @@ export default function SchedulePage() {
         <h2 className="text-xl font-semibold">Расписание</h2>
       </div>
 
-<      <div
+<div
         className={[
           "transition-[opacity,transform] duration-200",
           showCards ? "opacity-100" : "opacity-0 pointer-events-none",
@@ -418,7 +418,7 @@ export default function SchedulePage() {
         </div>
       </div>
 
-<      <div
+<div
         className={[
           "transition-[opacity,transform] duration-200",
           showCards ? "opacity-100" : "opacity-0 pointer-events-none",
