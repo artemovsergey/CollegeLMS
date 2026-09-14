@@ -1,8 +1,8 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Upload, AlertCircle, CheckCircle2 } from "lucide-react"
-import { Button, CellList, CellSimple, MaxUI, Typography } from "@maxhub/max-ui"
+import { Upload, AlertCircle, CheckCircle2, Pencil } from "lucide-react"
+import { Button, CellList, CellSimple, Input, MaxUI, Typography } from "@maxhub/max-ui"
 import { previewCorrection, confirmCorrection } from "@/api/correction"
 import type {
   CorrectionPreviewResponse,
@@ -42,42 +42,51 @@ export default function DispatcherImport({
 }) {
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [preview, setPreview] = useState<CorrectionPreviewResponse | null>(null)
+  const [entries, setEntries] = useState<CorrectionPreviewEntry[]>([])
+  const [editing, setEditing] = useState<number | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null)
 
   const pick = (file: File | null) => {
     setPreview(null)
-    setIdempotencyKey(null)
+    setEntries([])
+    setEditing(null)
     setError(null)
     if (!file) return
     setPreviewing(true)
     void previewCorrection(file)
       .then((result) => {
         setPreview(result)
-        setIdempotencyKey(crypto.randomUUID())
+        setEntries(result.entries)
       })
       .catch((err) => setError(extractErrorMessage(err) ?? "Ошибка превью"))
       .finally(() => setPreviewing(false))
   }
 
+  const updateEntry = (row: number, patch: Partial<CorrectionPreviewEntry>) => {
+    setEntries((prev) =>
+      prev.map((e) => (e.row === row ? { ...e, ...patch } : e))
+    )
+  }
+
   const apply = async () => {
-    if (!preview || !idempotencyKey || confirming) return
+    if (entries.length === 0 || confirming) return
     setConfirming(true)
     setError(null)
     try {
-      const result = await confirmCorrection(preview.entries, idempotencyKey)
+      const key = crypto.randomUUID()
+      const result = await confirmCorrection(entries, key)
       onApplied(result)
       setPreview(null)
-      setIdempotencyKey(null)
+      setEntries([])
+      setEditing(null)
       if (fileRef.current) fileRef.current.value = ""
     } catch (err) {
       setError(
         extractErrorMessage(err) ??
           "Ошибка применения. Повторите с новым файлом",
       )
-      setIdempotencyKey(null)
     } finally {
       setConfirming(false)
     }
@@ -109,7 +118,7 @@ export default function DispatcherImport({
           <div className="max-app__success-box">
             Дата корректировки: {preview.correctionDate} ·{" "}
             {dayLabel(preview.dayOfWeek)} · неделя {preview.week} ·{" "}
-            {preview.totalEntries} строк, {preview.entries.length} валидных,{" "}
+            {preview.totalEntries} строк, {entries.length} валидных,{" "}
             {preview.errors.length} с ошибками
           </div>
 
@@ -128,18 +137,61 @@ export default function DispatcherImport({
           ) : null}
 
           <CellList mode="island">
-            {preview.entries.map((entry) => (
+            {entries.map((entry) => (
               <CellSimple
                 key={`${entry.row}:${entry.numberPair}`}
                 separator
                 overline={`${dayLabel(entry.dayOfWeek)}, пар ${entry.numberPair}`}
-                title={entryTitle(entry)}
+                title={
+                  editing === entry.row ? (
+                    <Input
+                      value={entry.subject ?? ""}
+                      placeholder="Предмет"
+                      onChange={(e) => updateEntry(entry.row, { subject: e.target.value })}
+                    />
+                  ) : (
+                    entryTitle(entry)
+                  )
+                }
                 before={
                   <span className={`max-app__badge max-app__badge--${entry.changeType.toLowerCase()}`}>
                     <CheckCircle2 size={12} aria-hidden /> {entryBadge(entry)}
                   </span>
                 }
-                subtitle={`${entry.groupName} · ${entry.teacherName ?? entry.removedTeacherName ?? "—"}${entry.note ? ` · ${entry.note}` : ""}`}
+                subtitle={
+                  editing === entry.row ? (
+                    <div className="max-app__inline-edit">
+                      <Input
+                        value={entry.teacherName ?? ""}
+                        placeholder="Преподаватель"
+                        onChange={(e) => updateEntry(entry.row, { teacherName: e.target.value })}
+                      />
+                      <Input
+                        type="number"
+                        min={1}
+                        max={8}
+                        value={entry.numberPair}
+                        onChange={(e) => updateEntry(entry.row, { numberPair: Number(e.target.value) })}
+                      />
+                      <Input
+                        value={entry.note ?? ""}
+                        placeholder="Примечание"
+                        onChange={(e) => updateEntry(entry.row, { note: e.target.value })}
+                      />
+                    </div>
+                  ) : (
+                    `${entry.groupName} · ${entry.teacherName ?? entry.removedTeacherName ?? "—"}${entry.note ? ` · ${entry.note}` : ""}`
+                  )
+                }
+                after={
+                  <Button
+                    size="xsmall"
+                    variant="ghost"
+                    aria-label={editing === entry.row ? "Сохранить" : "Редактировать"}
+                    onClick={() => setEditing(editing === entry.row ? null : entry.row)}
+                    iconBefore={<Pencil size={14} aria-hidden />}
+                  />
+                }
               />
             ))}
           </CellList>
@@ -151,7 +203,7 @@ export default function DispatcherImport({
           <Button
             stretched
             loading={confirming}
-            disabled={hasErrors && preview.entries.length === 0}
+            disabled={entries.length === 0}
             onClick={() => void apply()}
           >
             Применить изменения

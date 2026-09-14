@@ -321,12 +321,52 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
 
         var history = await historyQuery.ToListAsync(ct);
 
-        return history
+        // Дедупликация: Add+Remove за одну неделю на одном слоте аннулируют друг друга
+        var filtered = history
             .GroupBy(h => (h.GroupId, h.DayOfWeek, h.NumberPair))
+            .Select(g =>
+            {
+                var sorted = g.OrderBy(h => h.AppliedAt).ToList();
+                var remaining = new List<ScheduleHistory>();
+                var consumed = new HashSet<int>();
+
+                for (var i = 0; i < sorted.Count; i++)
+                {
+                    if (consumed.Contains(i))
+                        continue;
+
+                    var h = sorted[i];
+                    if (h.ChangeType == Entities.Enums.ScheduleChangeType.Add)
+                    {
+                        var matchingRemove = sorted
+                            .Select((x, idx) => (x, idx))
+                            .FirstOrDefault(pair =>
+                                !consumed.Contains(pair.idx)
+                                && pair.idx > i
+                                && pair.x.ChangeType == Entities.Enums.ScheduleChangeType.Remove
+                                && pair.x.Week == h.Week
+                            );
+
+                        if (matchingRemove.x is not null)
+                        {
+                            consumed.Add(i);
+                            consumed.Add(matchingRemove.idx);
+                            continue;
+                        }
+                    }
+                    remaining.Add(h);
+                }
+
+                return (g.Key, remaining);
+            })
+            .ToList();
+
+        return filtered
+            .Where(x => x.remaining.Count > 0)
             .ToDictionary(
-                g => g.Key,
-                g =>
-                    g.Select(h => new ChangeTag
+                x => x.Key,
+                x =>
+                    x.remaining.Select(h => new ChangeTag
                         {
                             ChangeType = h.ChangeType,
                             Week = h.Week,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Plus, Search, Trash2, Users, GraduationCap } from "lucide-react"
 import { Button, Input, Typography } from "@maxhub/max-ui"
-import { fetchSchedule, fetchSubjects, searchSchedule } from "@/api/schedule"
+import { fetchSchedule, fetchSubjects, fetchScheduleMeta, searchSchedule } from "@/api/schedule"
 import type { ScheduleResponse } from "@/types/schedule"
 import type {
   CorrectionChangeType,
@@ -74,6 +74,14 @@ export default function DispatcherManual({
   const [schedule, setSchedule] = useState<ScheduleResponse[]>([])
   const [scheduleLoading, setScheduleLoading] = useState(false)
 
+  useEffect(() => {
+    void fetchScheduleMeta().then((res) => {
+      if (res.isSuccess && res.data) {
+        setWeek(res.data.currentWeek)
+      }
+    })
+  }, [])
+
   const fetchCurrent = useCallback(async () => {
     if (!groupId) {
       setSchedule([])
@@ -108,6 +116,14 @@ export default function DispatcherManual({
     if (!removedPair) return null
     return schedule.find((e) => e.numberPair === removedPair) ?? null
   }, [schedule, removedPair])
+
+  const canAdd = useMemo(() => {
+    if (!groupId) return false
+    if (changeType === "Add" && subject.trim().length === 0) return false
+    if (changeType === "Remove" && !removedPair) return false
+    if ((changeType === "Replace" || changeType === "Move") && !pickedRemoved) return false
+    return true
+  }, [groupId, changeType, subject, removedPair, pickedRemoved])
 
   const add = () => {
     setFormError(null)
@@ -392,7 +408,7 @@ export default function DispatcherManual({
         />
       </label>
 
-      <Button stretched variant="secondary" onClick={add} iconBefore={<Plus size={18} aria-hidden />}>
+      <Button stretched variant="secondary" onClick={add} disabled={!canAdd} iconBefore={<Plus size={18} aria-hidden />}>
         Добавить операцию
       </Button>
 
@@ -443,6 +459,11 @@ export default function DispatcherManual({
         onApplied={(result) => {
           onApplied(result)
           setOps([])
+          setSubject("")
+          setTeacherId(null)
+          setTeacherName("")
+          setRemovedPair(null)
+          setNote("")
           setConfirmOpen(false)
         }}
       />

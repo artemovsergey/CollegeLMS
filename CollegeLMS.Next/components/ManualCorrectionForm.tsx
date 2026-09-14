@@ -34,11 +34,11 @@ const emptyRow = (): ManualCorrectionRow => ({
   note: "",
 })
 
-function downloadBlob(blob: Blob) {
+function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
   anchor.href = url
-  anchor.download = "Корректировка.xlsx"
+  anchor.download = filename
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
@@ -85,7 +85,8 @@ export default function ManualCorrectionForm() {
 
   const generateFile = async () => {
     const blob = await exportManualCorrection(date, rows)
-    downloadBlob(blob)
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-")
+    downloadBlob(blob, `Корректировка_${timestamp}.xlsx`)
     return blob
   }
 

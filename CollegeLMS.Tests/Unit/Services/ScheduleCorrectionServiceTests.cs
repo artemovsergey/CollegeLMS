@@ -446,7 +446,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
 
         var saved = _db.ScheduleEntries.Should().ContainSingle().Subject;
         saved.Weeks.Should().BeEquivalentTo([2]);
-        saved.LessonType.Should().Be(LessonType.Practice);
+        saved.LessonType.Should().Be(LessonType.None);
         saved.NumberPair.Should().Be(4);
         saved.EndTime.Should().BeGreaterThan(saved.StartTime);
 

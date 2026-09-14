@@ -200,7 +200,6 @@ export default function ScheduleView() {
       <main className="max-app__page">
         <header className="max-app__page-title">
           <div>
-            <Typography.Title>Расписание</Typography.Title>
             {contextName ? (
               <Typography.Body className="max-app__muted">
                 {contextName}

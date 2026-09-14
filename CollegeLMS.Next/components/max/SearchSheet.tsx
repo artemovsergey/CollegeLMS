@@ -122,7 +122,7 @@ export default function SearchSheet({
           id="max-search-input"
           autoFocus
           type="search"
-          placeholder="Начните вводить название"
+          placeholder="Поиск"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           iconBefore={<Search size={18} aria-hidden />}

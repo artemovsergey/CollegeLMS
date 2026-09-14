@@ -71,11 +71,12 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
         using var output = new MemoryStream();
         workbook.SaveAs(output);
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
         return Result<DocumentDownloadResult>.Ok(
             new DocumentDownloadResult
             {
                 Content = output.ToArray(),
-                FileName = "Корректировка.xlsx",
+                FileName = $"Корректировка_{timestamp}.xlsx",
             }
         );
     }
@@ -740,6 +741,20 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                 409
             );
 
+        // Сохраняем ключ идемпотентности до транзакции, чтобы повторный вызов
+        // с тем же ключом был отклонён (защита от гонки).
+        db.CorrectionConfirmations.Add(
+            new CorrectionConfirmation
+            {
+                Id = Guid.NewGuid(),
+                IdempotencyKey = idempotencyKey,
+                HistoryCount = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await db.SaveChangesAsync(ct);
+
         var emptySet = request.Entries.Count == 0;
         var history = new List<ScheduleHistory>();
         var notifChanges = new List<ScheduleChangeDto>();
@@ -759,10 +774,21 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             {
                 foreach (var entry in request.Entries)
                 {
-                    var applied = await ApplyEntryAsync(entry, appliedByUserId, ct);
-                    history.Add(applied.History);
-                    if (applied.Change is not null)
-                        notifChanges.Add(applied.Change);
+                    try
+                    {
+                        var applied = await ApplyEntryAsync(entry, appliedByUserId, ct);
+                        history.Add(applied.History);
+                        if (applied.Change is not null)
+                            notifChanges.Add(applied.Change);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        await tx.RollbackAsync(ct);
+                        return Result<CorrectionConfirmResult>.Fail(
+                            $"Ошибка в строке {entry.Row}: {ex.Message}",
+                            400
+                        );
+                    }
                 }
 
                 await db.SaveChangesAsync(ct);
@@ -775,16 +801,13 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             }
         }
 
-        db.CorrectionConfirmations.Add(
-            new CorrectionConfirmation
-            {
-                Id = Guid.NewGuid(),
-                IdempotencyKey = idempotencyKey,
-                HistoryCount = history.Count,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-            }
+        // Обновляем количество записей в подтверждении
+        var confirmation = await db.CorrectionConfirmations.FirstOrDefaultAsync(
+            c => c.IdempotencyKey == idempotencyKey,
+            ct
         );
+        if (confirmation is not null)
+            confirmation.HistoryCount = history.Count;
         await db.SaveChangesAsync(ct);
 
         // Оповещение MaxBot — fail-safe, после фиксации транзакции
@@ -1188,7 +1211,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             StartTime = start,
             EndTime = end,
             Weeks = new List<int> { entry.Week },
-            LessonType = LessonType.Practice,
+            LessonType = LessonType.None,
             CreatedAt = utcNow,
             UpdatedAt = utcNow,
         };

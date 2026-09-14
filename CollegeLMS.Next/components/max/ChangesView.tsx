@@ -100,7 +100,6 @@ export default function ChangesView() {
       <main className="max-app__page">
         <header className="max-app__page-title">
           <div>
-            <Typography.Title>Изменения</Typography.Title>
             <Typography.Body className="max-app__muted">
               {viewContext.groupName ?? viewContext.teacherName ?? "Лента изменений"}
             </Typography.Body>
