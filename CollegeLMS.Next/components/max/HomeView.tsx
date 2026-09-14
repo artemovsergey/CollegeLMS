@@ -12,7 +12,7 @@ import {
   Spinner,
   Typography,
 } from "@maxhub/max-ui"
-import { fetchDaySchedule, fetchScheduleMeta, parseIsoDate, toIsoDate } from "@/api/schedule"
+import { fetchDaySchedule, fetchScheduleMeta, isValidDate, normalizeDateOnly, parseIsoDate, toIsoDate } from "@/api/schedule"
 import { getHistory } from "@/api/correction"
 import type { ScheduleResponse } from "@/types/schedule"
 import type { ScheduleHistoryItem } from "@/types/correction"
@@ -45,10 +45,11 @@ export default function HomeView() {
         throw new Error(meta.errorMessage ?? "Не удалось загрузить календарь")
       }
       setWeek(meta.data!.currentWeek)
-      setToday(meta.data!.currentDate)
+      const currentDate = normalizeDateOnly(meta.data!.currentDate)
+      if (currentDate) setToday(currentDate)
 
       const schedule = await fetchDaySchedule({
-        date: meta.data!.currentDate,
+        date: currentDate || toIsoDate(new Date()),
         groupId: viewContext.groupId,
         teacherId: viewContext.teacherId,
       })
@@ -90,13 +91,17 @@ export default function HomeView() {
     const link = parseMaxDeepLink(
       typeof window !== "undefined" ? window.location.search : "",
     )
-    if (link.date) setToday(link.date)
+    if (link.date) {
+      const normalized = normalizeDateOnly(link.date)
+      if (normalized) setToday(normalized)
+    }
   }, [])
 
   const pair = useMemo(() => currentPair(entries), [entries])
 
   const dateLabel = useMemo(() => {
     const date = parseIsoDate(today)
+    if (!isValidDate(date)) return null
     const weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     return `${date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}, ${weekdays[(date.getDay() + 6) % 7]}`
   }, [today])
@@ -108,15 +113,21 @@ export default function HomeView() {
     [entries],
   )
 
+  const contextName = viewContext.groupName ?? viewContext.teacherName ?? null
+
   return (
     <MaxUI className="max-home">
       <main className="max-app__page">
         <header className="max-app__page-title">
           <div>
-            <Typography.Title>Сегодня, {dateLabel.toLowerCase()}</Typography.Title>
-            <Typography.Body className="max-app__muted">
-              {viewContext.groupName ?? viewContext.teacherName ?? "Открытое расписание"}
-            </Typography.Body>
+            <Typography.Title>
+              {dateLabel ? `Сегодня, ${dateLabel.toLowerCase()}` : "Сегодня"}
+            </Typography.Title>
+            {contextName ? (
+              <Typography.Body className="max-app__muted">
+                {contextName}
+              </Typography.Body>
+            ) : null}
           </div>
           {week !== null ? (
             <span className="max-app__badge max-app__badge--replace">

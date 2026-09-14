@@ -19,6 +19,7 @@ const TABS = [
   { href: "/max/favorites", label: "Избранное", icon: Star },
   { href: "/max/changes", label: "Изменения", icon: History },
   { href: "/max/settings", label: "Настройки", icon: Settings },
+  { href: "/max/dispatcher", label: "Диспетчер", icon: ShieldCheck },
 ]
 
 function useDispatcherSession() {
@@ -59,29 +60,13 @@ export default function MaxShell({ children }: { children: ReactNode }) {
             href={tab.href}
             className={`max-app__tab ${
               isActive(tab.href) ? "max-app__tab--active" : ""
-            }`}
+            }${tab.href === "/max/dispatcher" && hasDispatcher ? " max-app__tab--authed" : ""}`}
             aria-current={isActive(tab.href) ? "page" : undefined}
           >
             <tab.icon size={20} aria-hidden />
             <span className="max-app__tab-label">{tab.label}</span>
           </Link>
         ))}
-        {hasDispatcher && (
-          <Link
-            href="/max/dispatcher"
-            className={`max-app__tab ${
-              pathname.startsWith("/max/dispatcher")
-                ? "max-app__tab--active"
-                : ""
-            }`}
-            aria-current={
-              pathname.startsWith("/max/dispatcher") ? "page" : undefined
-            }
-          >
-            <ShieldCheck size={20} aria-hidden />
-            <span className="max-app__tab-label">Диспетчер</span>
-          </Link>
-        )}
       </nav>
     </div>
   )

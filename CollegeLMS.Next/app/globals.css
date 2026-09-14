@@ -182,27 +182,6 @@
   --ring: var(--accent);
 }
 
-[data-theme="indigo"] {
-  --accent: #24386a;
-  --accent-hover: #1c2c54;
-  --accent-light: #5b6a90;
-  --accent-lighter: #929cb5;
-}
-
-[data-theme="blue"] {
-  --accent: #1e4d8c;
-  --accent-hover: #163d73;
-  --accent-light: #5b7db5;
-  --accent-lighter: #93adcc;
-}
-
-[data-theme="sapphire"] {
-  --accent: #3b5998;
-  --accent-hover: #2e477a;
-  --accent-light: #6a84b8;
-  --accent-lighter: #9db2d4;
-}
-
 @theme inline {
   --color-bg: var(--bg);
   --color-background: var(--background);

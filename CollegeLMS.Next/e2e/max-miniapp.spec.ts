@@ -3,10 +3,11 @@ import { test, expect } from "@playwright/test"
 const META = {
   isSuccess: true,
   data: {
-    semesterStart: "2026-09-01",
+    // Бэкенд отдаёт DateTime в полном ISO-формате — моки повторяют прод
+    semesterStart: "2026-09-01T00:00:00Z",
     totalWeeks: 16,
     currentWeek: 2,
-    currentDate: "2026-09-07",
+    currentDate: "2026-09-07T00:00:00Z",
   },
   errorMessage: null,
   statusCode: 200,
@@ -136,6 +137,8 @@ test.describe("MAX mini-app", () => {
 
     await expect(page.locator(".max-app__tabbar")).toBeVisible()
     await expect(page.getByRole("button", { name: "Сменить просмотр" })).toBeVisible()
+    await expect(page.getByText("Invalid Date")).toHaveCount(0)
+    await expect(page.getByText("undefined")).toHaveCount(0)
   })
 
   test("Deep link на дату открывает день расписания", async ({ page }) => {
@@ -146,6 +149,17 @@ test.describe("MAX mini-app", () => {
     await expect(page.getByText("Расписание")).toBeVisible()
     await expect(page.getByText("Математика")).toBeVisible()
     await expect(page.locator(".max-app__tabbar")).toBeVisible()
+    await expect(page.getByText("Invalid Date")).toHaveCount(0)
+  })
+
+  test("Полный ISO-формат метаданных не ломает даты", async ({ page }) => {
+    await page.goto("/max/schedule?route=week&date=2026-09-07T00:00:00Z", {
+      waitUntil: "networkidle",
+    })
+
+    await expect(page.getByText("Расписание")).toBeVisible()
+    await expect(page.getByText("Invalid Date")).toHaveCount(0)
+    await expect(page.getByText("undefined")).toHaveCount(0)
   })
 
   test("Поиск возвращает группы и преподавателей", async ({ page }) => {

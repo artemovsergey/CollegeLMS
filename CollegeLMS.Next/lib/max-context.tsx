@@ -48,6 +48,35 @@ interface MaxContextValue {
 
 const EMPTY: ViewContext = {}
 
+const VIEW_CONTEXT_KEY = "max-view-context"
+
+function readStoredViewContext(): ViewContext {
+  if (typeof window === "undefined") return EMPTY
+  try {
+    const raw = localStorage.getItem(VIEW_CONTEXT_KEY)
+    if (!raw) return EMPTY
+    const parsed = JSON.parse(raw) as ViewContext
+    const ctx: ViewContext = {}
+    if (typeof parsed.groupId === "string" && parsed.groupId) ctx.groupId = parsed.groupId
+    if (typeof parsed.groupName === "string" && parsed.groupName) ctx.groupName = parsed.groupName
+    if (typeof parsed.teacherId === "string" && parsed.teacherId) ctx.teacherId = parsed.teacherId
+    if (typeof parsed.teacherName === "string" && parsed.teacherName) ctx.teacherName = parsed.teacherName
+    return ctx
+  } catch {
+    return EMPTY
+  }
+}
+
+function storeViewContext(ctx: ViewContext): void {
+  if (typeof window === "undefined") return
+  try {
+    if (Object.keys(ctx).length === 0) localStorage.removeItem(VIEW_CONTEXT_KEY)
+    else localStorage.setItem(VIEW_CONTEXT_KEY, JSON.stringify(ctx))
+  } catch {
+    // приватный режим — выбор просто не сохранится
+  }
+}
+
 const MaxContext = createContext<MaxContextValue>({
   isAuthed: false,
   profile: null,
@@ -61,7 +90,12 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<MaxProfile | null>(null)
   const [isAuthed, setIsAuthed] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [viewContext, setViewContext] = useState<ViewContext>(EMPTY)
+  const [viewContext, setViewContextState] = useState<ViewContext>(() => readStoredViewContext())
+
+  const setViewContext = useCallback((ctx: ViewContext) => {
+    storeViewContext(ctx)
+    setViewContextState(ctx)
+  }, [])
 
   const reload = useCallback(() => {
     setLoading(true)
@@ -91,9 +125,11 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
           if (ctx.groupName) own.groupName = ctx.groupName
           if (ctx.teacherId) own.teacherId = ctx.teacherId
           if (ctx.teacherName) own.teacherName = ctx.teacherName
-          setViewContext((prev) =>
-            Object.keys(prev).length === 0 ? own : prev,
-          )
+          setViewContextState((prev) => {
+            const next = Object.keys(prev).length === 0 ? own : prev
+            storeViewContext(next)
+            return next
+          })
         } else {
           setIsAuthed(false)
         }

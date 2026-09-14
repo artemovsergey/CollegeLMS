@@ -143,7 +143,7 @@ export default function SearchSheet({
           </Typography.Body>
           {!isAuthed ? (
             <Typography.Body className="max-app__note">
-              Поиск доступен авторизованным пользователям
+              Поиск работает без входа, избранное — после входа
             </Typography.Body>
           ) : null}
         </div>
