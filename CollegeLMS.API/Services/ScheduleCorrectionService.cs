@@ -746,6 +746,13 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
         if (!emptySet)
         {
+            var validationErrors = await ValidateEntriesAsync(request.Entries, ct);
+            if (validationErrors.Count > 0)
+                return Result<CorrectionConfirmResult>.Fail(
+                    string.Join("; ", validationErrors),
+                    400
+                );
+
             await using var tx = await db.Database.BeginTransactionAsync(ct);
 
             try
@@ -860,6 +867,88 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
     }
 
     private record AppliedEntry(ScheduleHistory History, ScheduleChangeDto? Change);
+
+    private async Task<List<string>> ValidateEntriesAsync(
+        List<CorrectionPreviewEntry> entries,
+        CancellationToken ct
+    )
+    {
+        var errors = new List<string>();
+
+        foreach (var entry in entries)
+        {
+            var groupExists = await db.Groups.AsNoTracking().AnyAsync(
+                g => g.Id == entry.GroupId,
+                ct
+            );
+            if (!groupExists)
+            {
+                errors.Add($"Группа «{entry.GroupName}» не найдена.");
+                continue;
+            }
+
+            var day = (DayOfWeek)entry.DayOfWeek;
+            var dayName = DayName(day);
+
+            switch (entry.ChangeType)
+            {
+                case ScheduleChangeType.Remove:
+                {
+                    var removeQuery = db.ScheduleEntries.AsNoTracking().Where(e =>
+                        e.GroupId == entry.GroupId
+                        && e.DayOfWeek == day
+                        && e.NumberPair == entry.NumberPair
+                        && e.Weeks.Contains(entry.Week)
+                    );
+
+                    if (!string.IsNullOrEmpty(entry.RemovedSubject))
+                        removeQuery = removeQuery.Where(e =>
+                            e.Subject == ScheduleImportService.NormalizeSubject(entry.RemovedSubject)
+                        );
+                    if (entry.RemovedTeacherId.HasValue)
+                        removeQuery = removeQuery.Where(e =>
+                            e.TeacherId == entry.RemovedTeacherId.Value
+                        );
+
+                    var target = await removeQuery.FirstOrDefaultAsync(ct);
+                    if (target is null)
+                        errors.Add(
+                            $"Занятие на {dayName} {entry.Week}-й неделе, пара {entry.NumberPair} не найдено (снимаемое занятие)."
+                        );
+                    break;
+                }
+
+                case ScheduleChangeType.Replace:
+                case ScheduleChangeType.Move:
+                {
+                    var removed = await db.ScheduleEntries.AsNoTracking().FirstOrDefaultAsync(
+                        e =>
+                            e.GroupId == entry.GroupId
+                            && e.DayOfWeek == day
+                            && e.NumberPair == (entry.RemovedNumberPair ?? entry.NumberPair)
+                            && e.Weeks.Contains(entry.Week)
+                            && (
+                                entry.RemovedTeacherId.HasValue
+                                    ? e.TeacherId == entry.RemovedTeacherId.Value
+                                    : e.TeacherId == null
+                            )
+                            && e.Subject == (entry.RemovedSubject ?? string.Empty),
+                        ct
+                    );
+                    if (removed is null)
+                        errors.Add(
+                            $"Занятие на {dayName} {entry.Week}-й неделе, пара {entry.RemovedNumberPair ?? entry.NumberPair} не найдено (снимаемое занятие)."
+                        );
+                    break;
+                }
+
+                default:
+                    break;
+            }
+        }
+
+        return errors;
+    }
 
     private async Task<AppliedEntry> ApplyEntryAsync(
         CorrectionPreviewEntry entry,

@@ -18,6 +18,7 @@ public class JournalSubjectGroup
 public class JournalEntryItem
 {
     public int Week { get; set; }
+    public int DayOfWeek { get; set; }
     public DateTime Date { get; set; }
     public List<int> NumberPairs { get; set; } = new();
 }
