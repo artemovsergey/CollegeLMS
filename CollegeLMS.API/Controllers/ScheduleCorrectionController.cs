@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Extensions;
 using CollegeLMS.API.Interfaces;
@@ -118,12 +119,13 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
         CancellationToken ct
     )
     {
-        var appliedByUserId = User.GetUserId();
         var idempotencyKey = Request.Headers["Idempotency-Key"].ToString();
         if (string.IsNullOrWhiteSpace(idempotencyKey))
             return BadRequest(
                 Result<CorrectionConfirmResult>.Fail("Заголовок Idempotency-Key обязателен.", 400)
             );
+
+        Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var appliedByUserId);
 
         var result = await service.ConfirmAsync(request, idempotencyKey, appliedByUserId, ct);
         if (!result.IsSuccess)

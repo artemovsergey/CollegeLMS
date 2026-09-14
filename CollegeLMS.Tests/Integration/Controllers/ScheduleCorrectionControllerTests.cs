@@ -248,6 +248,47 @@ public class ScheduleCorrectionControllerTests : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task ConfirmCorrection_DispatcherToken_AppliesEdit()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+
+        using var scope = Factory.Services.CreateScope();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+        var dispatcherToken = tokenService.GenerateCustomToken(
+            ["Dispatcher"],
+            30,
+            $"dispatcher-{Guid.NewGuid():N}"
+        );
+        SetAuthHeader(dispatcherToken);
+
+        var response = await PostConfirmAsync(
+            new CorrectionConfirmRequest
+            {
+                Entries =
+                [
+                    new CorrectionPreviewEntry
+                    {
+                        GroupId = group.Id,
+                        ChangeType = ScheduleChangeType.Add,
+                        DayOfWeek = 2,
+                        Week = 2,
+                        NumberPair = 4,
+                        Subject = "Математика",
+                        TeacherId = teacher.Id,
+                    },
+                ],
+            },
+            "dispatcher-key"
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeWithEnumsAsync<Result<CorrectionConfirmResult>>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+        Assert.Equal(1, body.Data!.Applied);
+    }
+
+    [Fact]
     public async Task ConfirmCorrection_WithoutIdempotencyKey_ReturnsBadRequest()
     {
         SetAuthHeader(GetToken(UserRole.Admin));
