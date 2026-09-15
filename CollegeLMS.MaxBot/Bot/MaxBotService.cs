@@ -23,6 +23,7 @@ public class MaxBotService : BackgroundService
 
     private readonly HashSet<long> _pendingDispatcherPasswords = [];
     private readonly Dictionary<long, string> _dispatcherTokens = [];
+    private readonly Dictionary<long, DispatcherWizardState> _wizardStates = [];
 
     public MaxBotService(
         MaxApiClient max,
@@ -223,6 +224,7 @@ public class MaxBotService : BackgroundService
 
         if (lower == "/start")
         {
+            _wizardStates.Remove(userId);
             await HandleBotStartedAsync(chatId, userId, ct);
             return;
         }
@@ -256,6 +258,15 @@ public class MaxBotService : BackgroundService
         if (_pendingDispatcherPasswords.Contains(userId))
         {
             await HandleDispatcherPasswordAsync(chatId, userId, text, ct);
+            return;
+        }
+
+        if (
+            _wizardStates.TryGetValue(userId, out var wizard)
+            && wizard.Step is DispatcherWizardStep.Subject or DispatcherWizardStep.Note
+        )
+        {
+            await HandleWizardTextInputAsync(chatId, userId, text.Trim(), wizard, ct);
             return;
         }
 
@@ -398,8 +409,13 @@ public class MaxBotService : BackgroundService
                     await ShowDispatcherChatChoiceAsync(chatId, userId, ct);
                 else if (p.Param1 == "send")
                     await SendDispatcherXlsxAsync(chatId, userId, p.Param2!, ct);
+                else if (p.Param1 == "wizard")
+                    await StartWizardAsync(chatId, userId, ct);
                 else
                     await ShowDispatcherMenuAsync(chatId, userId, ct);
+                break;
+            case "wiz":
+                await HandleWizardCallbackAsync(chatId, userId, p.Param1, p.Param2, ct);
                 break;
             default:
                 _logger.LogWarning("Unknown callback action {Action}", p.Action);
@@ -1502,16 +1518,15 @@ public class MaxBotService : BackgroundService
 
     private async Task ShowDispatcherMenuAsync(long chatId, long userId, CancellationToken ct)
     {
-        var settings = await GetSettingsAsync(userId, ct);
         var buttons = new List<List<MaxButton>>
         {
-            new List<MaxButton>
+            new()
             {
                 new()
                 {
-                    Type = "open_app",
-                    Text = "📝 Создать корректировку",
-                    Url = MiniAppUrlBuilder.Build(_options.MiniAppUrl, "dispatcher"),
+                    Type = "callback",
+                    Text = "➕ Новая корректировка",
+                    Payload = "dispatcher:wizard",
                 },
             },
         };
@@ -1705,5 +1720,553 @@ public class MaxBotService : BackgroundService
             BuildNotifyDayButtons(settings.NotifyDays),
             ct: ct
         );
+    }
+
+    // ── Визард корректировок диспетчера ────────────────────────────────
+
+    private async Task StartWizardAsync(long chatId, long userId, CancellationToken ct)
+    {
+        if (!_dispatcherTokens.ContainsKey(userId))
+        {
+            await _max.SendMessageAsync(
+                chatId,
+                "🔐 Сначала авторизуйся: /dispatcher и введи пароль.",
+                ct: ct
+            );
+            return;
+        }
+
+        _wizardStates[userId] = new DispatcherWizardState { Step = DispatcherWizardStep.Type };
+
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            "🛠 *Новая корректировка*",
+            DispatcherCorrectionWizard.BuildTypeKeyboard(),
+            ct: ct
+        );
+    }
+
+    private async Task HandleWizardCallbackAsync(
+        long chatId,
+        long userId,
+        string? action,
+        string? param,
+        CancellationToken ct
+    )
+    {
+        if (action == "cancel")
+        {
+            await CancelWizardAsync(chatId, userId, ct);
+            return;
+        }
+
+        if (!_wizardStates.TryGetValue(userId, out var ws))
+        {
+            await StartWizardAsync(chatId, userId, ct);
+            return;
+        }
+
+        if (!_dispatcherTokens.ContainsKey(userId))
+        {
+            _wizardStates.Remove(userId);
+            await _max.SendMessageAsync(
+                chatId,
+                "🔐 Сессия диспетчера истекла. Авторизуйся: /dispatcher.",
+                ct: ct
+            );
+            return;
+        }
+
+        switch (action)
+        {
+            case "type":
+                ws.ChangeType = param;
+                ws.Step = DispatcherWizardStep.Day;
+                await _max.SendInlineKeyboardAsync(
+                    chatId,
+                    "День недели:",
+                    DispatcherCorrectionWizard.BuildDayKeyboard(),
+                    ct: ct
+                );
+                break;
+            case "day":
+                ws.Day = int.TryParse(param, out var day) ? day : 1;
+                await ShowWizardWeekKeyboardAsync(chatId, userId, ws, ct);
+                break;
+            case "week":
+                ws.Week = int.TryParse(param, out var week) ? week : 1;
+                ws.Step = DispatcherWizardStep.Group;
+                await ShowWizardGroupsAsync(chatId, userId, ws, 0, ct);
+                break;
+            case "gpage":
+                await ShowWizardGroupsAsync(
+                    chatId,
+                    userId,
+                    ws,
+                    int.TryParse(param, out var gpage) ? gpage : 0,
+                    ct
+                );
+                break;
+            case "group":
+                var sep = param?.IndexOf(':') ?? -1;
+                if (sep <= 0 || !Guid.TryParse(param![..sep], out var groupId))
+                {
+                    await CancelWizardAsync(chatId, userId, ct);
+                    return;
+                }
+                ws.GroupId = groupId;
+                ws.GroupName = param[(sep + 1)..];
+                await AfterWizardGroupAsync(chatId, userId, ws, ct);
+                break;
+            case "rem":
+                await HandleWizardRemovedPairAsync(chatId, userId, ws, param, ct);
+                break;
+            case "pair":
+                ws.NewPair = int.TryParse(param, out var pair) ? pair : 1;
+                if (ws.ChangeType == "Move")
+                {
+                    ws.Step = DispatcherWizardStep.Subject;
+                    await _max.SendMessageAsync(
+                        chatId,
+                        "Предмет (переносим с указанной пары):",
+                        ct: ct
+                    );
+                }
+                else
+                {
+                    ws.Step = DispatcherWizardStep.Subject;
+                    await _max.SendMessageAsync(chatId, "Предмет:", ct: ct);
+                }
+                break;
+            case "tpage":
+                await ShowWizardTeacherKeyboardAsync(
+                    chatId,
+                    userId,
+                    ws,
+                    int.TryParse(param, out var tpage) ? tpage : 0,
+                    ct
+                );
+                break;
+            case "teacher":
+                await HandleWizardTeacherAsync(chatId, userId, ws, param, ct);
+                break;
+            case "apply":
+                await ApplyWizardAsync(chatId, userId, ws, ct);
+                break;
+            default:
+                _logger.LogWarning("Unknown wizard action {Action}", action);
+                await CancelWizardAsync(chatId, userId, ct);
+                break;
+        }
+    }
+
+    private async Task ShowWizardWeekKeyboardAsync(
+        long chatId,
+        long userId,
+        DispatcherWizardState ws,
+        CancellationToken ct
+    )
+    {
+        ws.Step = DispatcherWizardStep.Week;
+
+        var meta = await _api.GetScheduleMetaAsync(ct);
+        var totalWeeks = meta?.TotalWeeks is > 0 ? meta.TotalWeeks : 16;
+        var currentWeek = meta?.CurrentWeek is > 0 ? meta.CurrentWeek : 1;
+
+        var buttons = DispatcherCorrectionWizard.BuildWeekGrid(currentWeek, totalWeeks);
+        buttons.Add(DispatcherCorrectionWizard.CancelRow());
+
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            "Неделя семестра (• — текущая):",
+            buttons,
+            ct: ct
+        );
+    }
+
+    private async Task ShowWizardGroupsAsync(
+        long chatId,
+        long userId,
+        DispatcherWizardState ws,
+        int page,
+        CancellationToken ct
+    )
+    {
+        var groups = await _api.GetGroupsAsync(ct);
+        if (groups.Count == 0)
+        {
+            await CancelWizardAsync(chatId, userId, ct);
+            return;
+        }
+
+        var totalPages = (int)Math.Ceiling((double)groups.Count / PageSize);
+        var paged = groups.Skip(page * PageSize).Take(PageSize).ToList();
+
+        var buttons = paged
+            .Select(g => new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = g.Name,
+                    Payload = $"wiz:group:{g.Id}:{g.Name}",
+                },
+            })
+            .ToList();
+
+        var navRow = new List<MaxButton>();
+        if (page > 0)
+            navRow.Add(
+                new MaxButton
+                {
+                    Type = "callback",
+                    Text = "← Назад",
+                    Payload = $"wiz:gpage:{page - 1}",
+                }
+            );
+        if (page < totalPages - 1)
+            navRow.Add(
+                new MaxButton
+                {
+                    Type = "callback",
+                    Text = "Далее →",
+                    Payload = $"wiz:gpage:{page + 1}",
+                }
+            );
+        if (navRow.Count > 0)
+            buttons.Add(navRow);
+        buttons.Add(DispatcherCorrectionWizard.CancelRow());
+
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            $"Выбери группу (стр. {page + 1}/{totalPages}):",
+            buttons,
+            ct: ct
+        );
+    }
+
+    private async Task AfterWizardGroupAsync(
+        long chatId,
+        long userId,
+        DispatcherWizardState ws,
+        CancellationToken ct
+    )
+    {
+        if (ws.ChangeType == "Add")
+        {
+            ws.Step = DispatcherWizardStep.NewPair;
+            var buttons = DispatcherCorrectionWizard.BuildPairKeyboard("pair");
+            buttons.Add(DispatcherCorrectionWizard.CancelRow());
+            await _max.SendInlineKeyboardAsync(chatId, "Номер новой пары:", buttons, ct: ct);
+            return;
+        }
+
+        await ShowWizardRemovedPairAsync(chatId, userId, ws, ct);
+    }
+
+    /// <summary>Показывает пары выбранной группы на день/неделю для выбора снимаемой.</summary>
+    private async Task ShowWizardRemovedPairAsync(
+        long chatId,
+        long userId,
+        DispatcherWizardState ws,
+        CancellationToken ct
+    )
+    {
+        ws.Step = DispatcherWizardStep.RemovedPair;
+
+        var entries = await _api.GetScheduleAsync(
+            groupId: ws.GroupId,
+            week: ws.Week,
+            dayOfWeek: ws.Day,
+            ct: ct
+        );
+
+        var pairs = entries
+            .OrderBy(e => e.NumberPair)
+            .GroupBy(e => e.NumberPair)
+            .Select(g => g.First())
+            .ToList();
+
+        if (pairs.Count == 0)
+        {
+            var buttons = new List<List<MaxButton>>
+            {
+                new()
+                {
+                    new()
+                    {
+                        Type = "callback",
+                        Text = "🟢 Всё-таки добавить",
+                        Payload = "wiz:type:Add",
+                    },
+                },
+                DispatcherCorrectionWizard.CancelRow(),
+            };
+            await _max.SendInlineKeyboardAsync(
+                chatId,
+                "📭 У этой группы на выбранный день пар нет.\nСнять или заменить нечего — можно только добавить пару.",
+                buttons,
+                ct: ct
+            );
+            return;
+        }
+
+        var buttons2 = pairs
+            .Select(e => new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = $"№{e.NumberPair} — {e.Subject}",
+                    Payload = $"wiz:rem:{e.NumberPair}",
+                },
+            })
+            .ToList();
+        buttons2.Add(DispatcherCorrectionWizard.CancelRow());
+
+        await _max.SendInlineKeyboardAsync(chatId, "Какую пару снимаем:", buttons2, ct: ct);
+    }
+
+    private async Task HandleWizardRemovedPairAsync(
+        long chatId,
+        long userId,
+        DispatcherWizardState ws,
+        string? param,
+        CancellationToken ct
+    )
+    {
+        if (!int.TryParse(param, out var removedPair))
+        {
+            await CancelWizardAsync(chatId, userId, ct);
+            return;
+        }
+
+        var entries = await _api.GetScheduleAsync(
+            groupId: ws.GroupId,
+            week: ws.Week,
+            dayOfWeek: ws.Day,
+            ct: ct
+        );
+        var entry = entries
+            .Where(e => e.NumberPair == removedPair)
+            .OrderBy(e => e.NumberPair)
+            .FirstOrDefault();
+
+        ws.RemovedNumberPair = removedPair;
+        ws.RemovedSubject = entry?.Subject;
+        ws.RemovedTeacherId = entry?.TeacherId;
+        ws.RemovedTeacherName = entry?.TeacherName;
+
+        if (ws.ChangeType == "Remove")
+        {
+            ws.Step = DispatcherWizardStep.Note;
+            await _max.SendMessageAsync(chatId, "Примечание (или «—» без примечания):", ct: ct);
+            return;
+        }
+
+        if (ws.ChangeType == "Move")
+        {
+            ws.Step = DispatcherWizardStep.NewPair;
+            var moveButtons = DispatcherCorrectionWizard.BuildPairKeyboard("pair");
+            moveButtons.Add(DispatcherCorrectionWizard.CancelRow());
+            await _max.SendInlineKeyboardAsync(
+                chatId,
+                "На какую пару переносим:",
+                moveButtons,
+                ct: ct
+            );
+            return;
+        }
+
+        // Replace — новый предмет на тот же слот
+        ws.Step = DispatcherWizardStep.Subject;
+        await _max.SendMessageAsync(chatId, $"Новый предмет вместо «{ws.RemovedSubject}»:", ct: ct);
+    }
+
+    private async Task ShowWizardTeacherKeyboardAsync(
+        long chatId,
+        long userId,
+        DispatcherWizardState ws,
+        int page,
+        CancellationToken ct
+    )
+    {
+        var teachers = await _api.GetTeachersAsync(ct);
+        var totalPages = Math.Max(1, (int)Math.Ceiling((double)teachers.Count / PageSize));
+        page = Math.Clamp(page, 0, totalPages - 1);
+        var paged = teachers.Skip(page * PageSize).Take(PageSize).ToList();
+
+        var buttons = paged
+            .Select(t => new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = t.FullName,
+                    Payload = $"wiz:teacher:{t.Id}",
+                },
+            })
+            .ToList();
+
+        var navRow = new List<MaxButton>();
+        if (page > 0)
+            navRow.Add(
+                new MaxButton
+                {
+                    Type = "callback",
+                    Text = "← Назад",
+                    Payload = $"wiz:tpage:{page - 1}",
+                }
+            );
+        if (page < totalPages - 1)
+            navRow.Add(
+                new MaxButton
+                {
+                    Type = "callback",
+                    Text = "Далее →",
+                    Payload = $"wiz:tpage:{page + 1}",
+                }
+            );
+        if (navRow.Count > 0)
+            buttons.Add(navRow);
+
+        buttons.Add(
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "— без преподавателя",
+                    Payload = "wiz:teacher:none",
+                },
+            }
+        );
+        buttons.Add(DispatcherCorrectionWizard.CancelRow());
+
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            $"Преподаватель (стр. {page + 1}/{totalPages}):",
+            buttons,
+            ct: ct
+        );
+    }
+
+    private async Task HandleWizardTeacherAsync(
+        long chatId,
+        long userId,
+        DispatcherWizardState ws,
+        string? param,
+        CancellationToken ct
+    )
+    {
+        if (param == "none")
+        {
+            ws.TeacherId = null;
+            ws.TeacherName = null;
+        }
+        else
+        {
+            if (!Guid.TryParse(param, out var teacherId))
+            {
+                await CancelWizardAsync(chatId, userId, ct);
+                return;
+            }
+            var teacher = (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == teacherId);
+            if (teacher is null)
+            {
+                await CancelWizardAsync(chatId, userId, ct);
+                return;
+            }
+            ws.TeacherId = teacher.Id;
+            ws.TeacherName = teacher.FullName;
+        }
+
+        ws.Step = DispatcherWizardStep.Note;
+        await _max.SendMessageAsync(chatId, "Примечание (или «—» без примечания):", ct: ct);
+    }
+
+    private async Task HandleWizardTextInputAsync(
+        long chatId,
+        long userId,
+        string text,
+        DispatcherWizardState ws,
+        CancellationToken ct
+    )
+    {
+        if (text.Length > 300)
+            text = text[..300];
+
+        if (ws.Step == DispatcherWizardStep.Subject)
+        {
+            ws.Subject = text;
+            await ShowWizardTeacherKeyboardAsync(chatId, userId, ws, 0, ct);
+            return;
+        }
+
+        ws.Note = text;
+        await ShowWizardConfirmAsync(chatId, userId, ws, ct);
+    }
+
+    private async Task ShowWizardConfirmAsync(
+        long chatId,
+        long userId,
+        DispatcherWizardState ws,
+        CancellationToken ct
+    )
+    {
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            DispatcherCorrectionWizard.BuildPreview(ws),
+            DispatcherCorrectionWizard.BuildConfirmKeyboard(),
+            ct: ct
+        );
+    }
+
+    private async Task ApplyWizardAsync(
+        long chatId,
+        long userId,
+        DispatcherWizardState ws,
+        CancellationToken ct
+    )
+    {
+        if (!_dispatcherTokens.TryGetValue(userId, out var token))
+        {
+            _wizardStates.Remove(userId);
+            await _max.SendMessageAsync(
+                chatId,
+                "🔐 Сессия диспетчера истекла. Авторизуйся: /dispatcher.",
+                ct: ct
+            );
+            return;
+        }
+
+        var entry = DispatcherCorrectionWizard.BuildEntry(ws);
+        var result = await _api.ConfirmCorrectionAsync(entry, token, ct);
+
+        if (result is null)
+        {
+            await _max.SendMessageAsync(
+                chatId,
+                "❌ API отклонил корректировку. Проверь данные и попробуй снова.",
+                ct: ct
+            );
+            await ShowWizardConfirmAsync(chatId, userId, ws, ct);
+            return;
+        }
+
+        _wizardStates.Remove(userId);
+        await _max.SendMessageAsync(
+            chatId,
+            $"✅ Применено записей: {result.Applied}.\nПодписчики получат уведомления.",
+            ct: ct
+        );
+        await ShowDispatcherMenuAsync(chatId, userId, ct);
+    }
+
+    private async Task CancelWizardAsync(long chatId, long userId, CancellationToken ct)
+    {
+        _wizardStates.Remove(userId);
+        await _max.SendMessageAsync(chatId, "❌ Корректировка отменена.", ct: ct);
+        await ShowDispatcherMenuAsync(chatId, userId, ct);
     }
 }

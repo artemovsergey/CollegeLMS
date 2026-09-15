@@ -95,4 +95,90 @@ public class MaxBotDispatcherFlowTests
 
         url.Should().Be("https://stvcc.tech/max/api/schedule/export?format=xlsx");
     }
+
+    [Fact]
+    public async Task ConfirmCorrectionAsync_SendsBearerAndIdempotencyKey()
+    {
+        string? auth = null;
+        string? idem = null;
+        var client = BuildClient(
+            new StubHandler(request =>
+            {
+                auth = request.Headers.Authorization?.ToString();
+                idem = request.Headers.Contains("Idempotency-Key")
+                    ? string.Join(",", request.Headers.GetValues("Idempotency-Key"))
+                    : "";
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                        """{"isSuccess":true,"data":{"applied":1,"history":[]}}""",
+                        Encoding.UTF8,
+                        "application/json"
+                    ),
+                };
+            })
+        );
+
+        var entry = new CorrectionEntryDto
+        {
+            Row = 1,
+            GroupId = Guid.NewGuid(),
+            GroupName = "ИС-21",
+            ChangeType = "Add",
+            DayOfWeek = 1,
+            Week = 1,
+            NumberPair = 1,
+        };
+
+        var result = await client.ConfirmCorrectionAsync(entry, "tok-1", CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Applied.Should().Be(1);
+        auth.Should().Be(new AuthenticationHeaderValue("Bearer", "tok-1").ToString());
+        Guid.TryParse(idem, out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ConfirmCorrectionAsync_ServerError_ReturnsNull()
+    {
+        var client = BuildClient(
+            new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden))
+        );
+
+        var entry = new CorrectionEntryDto
+        {
+            Row = 1,
+            GroupId = Guid.NewGuid(),
+            GroupName = "ИС-21",
+            ChangeType = "Add",
+            DayOfWeek = 1,
+            Week = 1,
+            NumberPair = 1,
+        };
+
+        var result = await client.ConfirmCorrectionAsync(entry, "tok-1", CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetScheduleMetaAsync_ParsesTotalWeeks()
+    {
+        var client = BuildClient(
+            new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"isSuccess":true,"data":{"semesterStart":"2026-09-01","totalWeeks":16,"currentWeek":2,"currentDate":"2026-09-15"}}""",
+                    Encoding.UTF8,
+                    "application/json"
+                ),
+            })
+        );
+
+        var meta = await client.GetScheduleMetaAsync(CancellationToken.None);
+
+        meta.Should().NotBeNull();
+        meta!.TotalWeeks.Should().Be(16);
+        meta.CurrentWeek.Should().Be(2);
+    }
 }

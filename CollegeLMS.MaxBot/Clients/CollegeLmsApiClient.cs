@@ -152,6 +152,78 @@ public class CollegeLmsApiClient
         }
     }
 
+    public async Task<ScheduleMetaDto?> GetScheduleMetaAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.GetAsync("/api/schedule/meta", ct);
+            if (!resp.IsSuccessStatusCode)
+                return null;
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            var wrapper = JsonSerializer.Deserialize<ResultWrapper<ScheduleMetaDto>>(
+                json,
+                JsonOpts
+            );
+            return wrapper?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch schedule meta");
+            return null;
+        }
+    }
+
+    public async Task<CorrectionConfirmResponse?> ConfirmCorrectionAsync(
+        CorrectionEntryDto entry,
+        string token,
+        CancellationToken ct
+    )
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                "/api/schedule/correction/confirm"
+            )
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new { entries = new[] { entry } }, JsonOpts),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                ),
+            };
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer",
+                token
+            );
+            request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+
+            var resp = await _http.SendAsync(request, ct);
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Correction confirm returned {Code}: {Body}",
+                    resp.StatusCode,
+                    json
+                );
+                return null;
+            }
+
+            var wrapper = JsonSerializer.Deserialize<ResultWrapper<CorrectionConfirmResponse>>(
+                json,
+                JsonOpts
+            );
+            return wrapper?.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to confirm correction");
+            return null;
+        }
+    }
+
     public async Task<byte[]?> GetScheduleXlsxAsync(
         Guid? groupId,
         string token,
