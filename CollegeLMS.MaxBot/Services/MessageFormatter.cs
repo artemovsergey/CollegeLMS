@@ -284,18 +284,23 @@ public static class MessageFormatter
         return monday.AddDays((revision.Week - 1) * 7 + (dayIndex - 1));
     }
 
-    /// <summary>Нумерованный список изменений для подписчика (пагинация 20/стр.).</summary>
+    /// <summary>
+    /// Нумерованный список изменений для подписчика (пагинация 20/стр.).
+    /// Показывает дату занятия и deep link на дату последнего изменения.
+    /// </summary>
     public static string FormatMyChanges(
         List<ScheduleRevision> revisions,
         int page,
-        int pageSize = 20
+        int totalPages,
+        int pageSize = 20,
+        string? miniAppUrl = null
     )
     {
         if (revisions.Count == 0)
             return "📭 *Мои изменения*\n\nИзменений пока нет.";
 
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"🔄 *Мои изменения* (стр. {page + 1})");
+        sb.AppendLine($"🔄 *Мои изменения* (стр. {page + 1} из {Math.Max(1, totalPages)})");
         sb.AppendLine();
 
         var index = page * pageSize + 1;
@@ -307,10 +312,21 @@ public static class MessageFormatter
             sb.AppendLine($"   📖 {r.Subject} ({FormatChangeNotificationTitle(r.ChangeType)})");
             if (r.TeacherName is not null)
                 sb.AppendLine($"   👨‍🏫 {r.TeacherName}");
+            if (DateForRevision(r) is { } lessonDate)
+                sb.AppendLine($"   🗓 {FormatShortDate(lessonDate)}");
             sb.AppendLine($"   🕐 {r.CreatedAt:dd.MM.yyyy HH:mm}");
             sb.AppendLine();
             index++;
         }
+
+        if (
+            miniAppUrl is not null
+            && revisions.Count > 0
+            && DateForRevision(revisions[0]) is { } lastDate
+        )
+            sb.AppendLine(
+                $"📅 Открыть дату последнего изменения: {MiniAppUrlBuilder.Build(miniAppUrl, "day", lastDate)}"
+            );
 
         return sb.ToString().TrimEnd();
     }

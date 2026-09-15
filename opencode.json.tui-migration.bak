@@ -74,5 +74,8 @@
             }
         }
     },
-    "model": "z-ai/glm-5.3"
+    "model": "z-ai/glm-5.3",
+    "keybinds": {
+        "input_newline": "ctrl+j,shift+enter"
+    }
 }

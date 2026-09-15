@@ -12,6 +12,8 @@ public class MaxBotDbContext : DbContext
 
     public DbSet<ScheduleRevision> ScheduleRevisions => Set<ScheduleRevision>();
 
+    public DbSet<BotFavorite> BotFavorites => Set<BotFavorite>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MaxBotDbContext).Assembly);

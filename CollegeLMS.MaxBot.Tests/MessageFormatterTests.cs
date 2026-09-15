@@ -255,7 +255,7 @@ public class MessageFormatterTests
     [Fact]
     public void FormatMyChanges_Empty_ShowsEmptyState()
     {
-        var text = MessageFormatter.FormatMyChanges([], 0);
+        var text = MessageFormatter.FormatMyChanges([], 0, 1);
 
         text.Should().Contain("Изменений пока нет.");
     }
@@ -281,9 +281,9 @@ public class MessageFormatterTests
     {
         var items = Enumerable.Range(1, 20).Select(CreateRevision).ToList();
 
-        var text = MessageFormatter.FormatMyChanges(items, 0);
+        var text = MessageFormatter.FormatMyChanges(items, 0, 2);
 
-        text.Should().Contain("стр. 1");
+        text.Should().Contain("стр. 1 из 2");
         text.Should().Contain("1. ПО262 · Вторник · Нед. 1 · Пара 2");
         text.Should().Contain("20. ПО262 · Вторник · Нед. 1 · Пара 2");
         text.Should().Contain("📖 История (замена)");
@@ -294,10 +294,47 @@ public class MessageFormatterTests
     {
         var items = Enumerable.Range(1, 25).Select(CreateRevision).Skip(20).Take(5).ToList();
 
-        var text = MessageFormatter.FormatMyChanges(items, 1);
+        var text = MessageFormatter.FormatMyChanges(items, 1, 2);
 
-        text.Should().Contain("стр. 2");
+        text.Should().Contain("стр. 2 из 2");
         text.Should().Contain("21. ПО262 · Вторник · Нед. 1 · Пара 2");
         text.Should().Contain("25. ПО262 · Вторник · Нед. 1 · Пара 2");
+    }
+
+    [Fact]
+    public void FormatMyChanges_ShowsLessonDateFromWeekAndDay()
+    {
+        var items = new List<ScheduleRevision> { CreateRevision(1) };
+
+        var text = MessageFormatter.FormatMyChanges(items, 0, 1);
+
+        // Нед. 1, Вторник → 01.09.2026 (семестр с 01.09, первый понедельник — 31.08)
+        text.Should().Contain("🗓 01.09");
+    }
+
+    [Fact]
+    public void FormatMyChanges_WithMiniAppUrl_AppendsDeepLinkToLastItemDate()
+    {
+        var items = new List<ScheduleRevision> { CreateRevision(1) };
+
+        var text = MessageFormatter.FormatMyChanges(
+            items,
+            0,
+            1,
+            miniAppUrl: "https://stvcc.tech/max"
+        );
+
+        text.Should().Contain("📅 Открыть дату последнего изменения:");
+        text.Should().Contain("route=day&date=2026-09-01");
+    }
+
+    [Fact]
+    public void FormatMyChanges_WithoutMiniAppUrl_OmitsDeepLink()
+    {
+        var items = new List<ScheduleRevision> { CreateRevision(1) };
+
+        var text = MessageFormatter.FormatMyChanges(items, 0, 1);
+
+        text.Should().NotContain("route=day");
     }
 }

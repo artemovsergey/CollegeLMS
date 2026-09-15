@@ -11,7 +11,7 @@ import {
   Typography,
 } from "@maxhub/max-ui"
 import { getHistory } from "@/api/correction"
-import { exportSchedule } from "@/api/schedule"
+import { exportSchedule, fetchScheduleMeta } from "@/api/schedule"
 import type { ConfirmResult, ScheduleHistoryItem } from "@/types/correction"
 import ChangeCard from "@/components/max/ChangeCard"
 import ScheduleError from "@/components/max/ScheduleError"
@@ -29,6 +29,15 @@ export default function DispatcherResult({
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [semesterStart, setSemesterStart] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    void fetchScheduleMeta()
+      .then((res) => {
+        if (res.isSuccess && res.data) setSemesterStart(res.data.semesterStart)
+      })
+      .catch(() => undefined)
+  }, [])
 
   const load = useCallback(
     async (nextPage: number, replace: boolean) => {
@@ -92,7 +101,11 @@ export default function DispatcherResult({
       ) : (
         <CellList mode="island">
           {items.map((item) => (
-            <ChangeCard key={item.id} item={item} />
+            <ChangeCard
+              key={item.id}
+              item={item}
+              semesterStartIso={semesterStart}
+            />
           ))}
         </CellList>
       )}

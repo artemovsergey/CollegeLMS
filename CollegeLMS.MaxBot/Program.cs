@@ -105,6 +105,19 @@ using (var scope = app.Services.CreateScope())
 
         ALTER TABLE user_settings
             ADD COLUMN IF NOT EXISTS notify_time interval NOT NULL DEFAULT INTERVAL '7 hours 30 minutes';
+
+        CREATE TABLE IF NOT EXISTS bot_favorites (
+            id UUID PRIMARY KEY,
+            max_user_id BIGINT NOT NULL,
+            target_type VARCHAR(20) NOT NULL,
+            target_id UUID NOT NULL,
+            name VARCHAR(200) NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL,
+            updated_at TIMESTAMPTZ NOT NULL
+        );
+
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_bot_favorites_user_type_target
+            ON bot_favorites (max_user_id, target_type, target_id);
         """
     );
 }

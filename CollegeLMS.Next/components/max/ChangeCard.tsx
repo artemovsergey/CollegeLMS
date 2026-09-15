@@ -8,6 +8,7 @@ import {
   dayLabelFromString,
   formatTime,
 } from "@/lib/max-lesson"
+import { dateForLesson } from "@/lib/semester"
 import { toIsoDate } from "@/api/schedule"
 
 const CHANGE_TYPE_META: Record<
@@ -27,8 +28,6 @@ const TYPE_ICONS = {
   Move: ArrowRightLeft,
 } as const
 
-const MONDAY_OF_WEEK_1 = new Date(2026, 7, 31)
-
 const DAY_OFFSET: Record<string, number> = {
   Monday: 0,
   Tuesday: 1,
@@ -39,18 +38,22 @@ const DAY_OFFSET: Record<string, number> = {
   Sunday: 6,
 }
 
-function changeDate(item: ScheduleHistoryItem): Date {
-  const base = new Date(MONDAY_OF_WEEK_1)
-  base.setDate(base.getDate() + (item.week - 1) * 7 + (DAY_OFFSET[item.dayOfWeek] ?? 0))
-  return base
+function changeDate(item: ScheduleHistoryItem, semesterStartIso?: string): Date {
+  return dateForLesson(
+    semesterStartIso,
+    item.week,
+    DAY_OFFSET[item.dayOfWeek] ?? 0,
+  )
 }
 
 export default function ChangeCard({
   item,
   highlighted = false,
+  semesterStartIso,
 }: {
   item: ScheduleHistoryItem
   highlighted?: boolean
+  semesterStartIso?: string
 }) {
   const meta = CHANGE_TYPE_META[item.changeType]
   const Icon = TYPE_ICONS[item.changeType]
@@ -68,7 +71,7 @@ export default function ChangeCard({
   const subjectText =
     subjectParts.length > 0 ? subjectParts.join(" → ") : item.subject
 
-  const date = changeDate(item)
+  const date = changeDate(item, semesterStartIso)
 
   return (
     <CellSimple

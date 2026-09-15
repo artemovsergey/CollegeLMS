@@ -426,6 +426,11 @@
   font-size: 15px;
 }
 
+.max-week__day--empty {
+  padding: 8px 4px;
+  color: #9ca3af;
+}
+
 /* Шторка поиска */
 .max-app__sheet {
   position: fixed;

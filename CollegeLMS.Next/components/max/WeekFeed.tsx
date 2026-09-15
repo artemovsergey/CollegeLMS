@@ -35,8 +35,17 @@ export default function WeekFeed({
       <div className="max-week__range">{rangeLabel}</div>
       {DAY_ORDER.map((dayValue) => {
         const list = byDay.get(dayValue)
-        if (!list || list.length === 0) return null
         const day = DAYS.find((d) => d.value === dayValue)
+        if (!list || list.length === 0) {
+          return (
+            <div key={dayValue} className="max-week__day max-week__day--empty">
+              <span className="max-week__day--strong">
+                {day?.full ?? String(dayValue)}
+              </span>
+              <span className="max-app__note">нет пар</span>
+            </div>
+          )
+        }
         return (
           <DayFeed
             key={dayValue}

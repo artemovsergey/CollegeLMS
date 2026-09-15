@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { History, Filter } from "lucide-react"
+import { History } from "lucide-react"
 import {
   Button,
   CellList,
@@ -27,6 +27,7 @@ export default function ChangesView() {
   const [error, setError] = useState<string | null>(null)
   const [weekFilter, setWeekFilter] = useState<number | undefined>(undefined)
   const [totalWeeks, setTotalWeeks] = useState<number | null>(null)
+  const [semesterStart, setSemesterStart] = useState<string | undefined>(undefined)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const focusedRef = useRef<HTMLDivElement | null>(null)
 
@@ -39,7 +40,10 @@ export default function ChangesView() {
     }
     void fetchScheduleMeta()
       .then((res) => {
-        if (res.isSuccess && res.data) setTotalWeeks(res.data.totalWeeks)
+        if (res.isSuccess && res.data) {
+          setTotalWeeks(res.data.totalWeeks)
+          setSemesterStart(res.data.semesterStart)
+        }
       })
       .catch(() => undefined)
   }, [])
@@ -104,7 +108,6 @@ export default function ChangesView() {
               {viewContext.groupName ?? viewContext.teacherName ?? "Лента изменений"}
             </Typography.Body>
           </div>
-          <Filter size={18} aria-hidden className="max-app__muted" />
         </header>
 
         {weekOptions.length > 0 ? (
@@ -156,7 +159,10 @@ export default function ChangesView() {
                     : undefined
                 }
               >
-                <ChangeCard item={item} />
+                <ChangeCard
+                  item={item}
+                  semesterStartIso={semesterStart}
+                />
               </div>
             ))}
           </CellList>

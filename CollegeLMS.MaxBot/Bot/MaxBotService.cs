@@ -378,11 +378,12 @@ public class MaxBotService : BackgroundService
             case "notifytime":
                 await HandleNotifyTimeAsync(chatId, userId, int.Parse(p.Param1!), ct);
                 break;
-            case "notifysave":
-                await _max.SendMessageAsync(chatId, "✅ Настройки уведомлений сохранены!", ct: ct);
-                break;
             case "changes":
                 await ShowMyChangesAsync(chatId, userId, 0, ct);
+                break;
+            case "fav":
+                if (p.Param1 == "toggle")
+                    await HandleFavoriteToggleAsync(chatId, userId, ct);
                 break;
             case "changes_page":
                 var changesPage =
@@ -448,7 +449,26 @@ public class MaxBotService : BackgroundService
         var totalPages = (int)Math.Ceiling((double)groups.Count / PageSize);
         var paged = groups.Skip(page * PageSize).Take(PageSize).ToList();
 
+        var groupFavorites = await GetFavoritesAsync(userId, "Group", ct);
+        var favIds = groupFavorites.Select(f => f.TargetId).ToHashSet();
+
         var buttons = new List<List<MaxButton>>();
+        if (page == 0)
+        {
+            foreach (var f in groupFavorites)
+                buttons.Add(
+                    new List<MaxButton>
+                    {
+                        new()
+                        {
+                            Type = "callback",
+                            Text = $"★ {f.Name}",
+                            Payload = $"group:{f.TargetId}",
+                        },
+                    }
+                );
+        }
+
         foreach (var g in paged)
             buttons.Add(
                 new List<MaxButton>
@@ -456,7 +476,7 @@ public class MaxBotService : BackgroundService
                     new()
                     {
                         Type = "callback",
-                        Text = g.Name,
+                        Text = favIds.Contains(g.Id) ? $"★ {g.Name}" : g.Name,
                         Payload = $"group:{g.Id}",
                     },
                 }
@@ -530,7 +550,26 @@ public class MaxBotService : BackgroundService
         var totalPages = (int)Math.Ceiling((double)teachers.Count / PageSize);
         var paged = teachers.Skip(page * PageSize).Take(PageSize).ToList();
 
+        var teacherFavorites = await GetFavoritesAsync(userId, "Teacher", ct);
+        var favIds = teacherFavorites.Select(f => f.TargetId).ToHashSet();
+
         var buttons = new List<List<MaxButton>>();
+        if (page == 0)
+        {
+            foreach (var f in teacherFavorites)
+                buttons.Add(
+                    new List<MaxButton>
+                    {
+                        new()
+                        {
+                            Type = "callback",
+                            Text = $"★ {f.Name}",
+                            Payload = $"teacher:{f.TargetId}",
+                        },
+                    }
+                );
+        }
+
         foreach (var t in paged)
             buttons.Add(
                 new List<MaxButton>
@@ -538,7 +577,7 @@ public class MaxBotService : BackgroundService
                     new()
                     {
                         Type = "callback",
-                        Text = t.FullName,
+                        Text = favIds.Contains(t.Id) ? $"★ {t.FullName}" : t.FullName,
                         Payload = $"teacher:{t.Id}",
                     },
                 }
@@ -602,6 +641,153 @@ public class MaxBotService : BackgroundService
         return await db.UserSettings.FirstOrDefaultAsync(x => x.MaxUserId == userId, ct);
     }
 
+    private sealed record FavoriteTargetInfo(string Type, Guid Id);
+
+    /// <summary>Текущая цель избранного: группа имеет приоритет над преподавателем.</summary>
+    private static FavoriteTargetInfo? FavoriteTarget(UserSettings settings)
+    {
+        if (settings.GroupId.HasValue)
+            return new FavoriteTargetInfo("Group", settings.GroupId.Value);
+        if (settings.TeacherId.HasValue)
+            return new FavoriteTargetInfo("Teacher", settings.TeacherId.Value);
+        return null;
+    }
+
+    private async Task<List<BotFavorite>> GetFavoritesAsync(
+        long userId,
+        string targetType,
+        CancellationToken ct
+    )
+    {
+        using var scope = _sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
+        return await db
+            .BotFavorites.AsNoTracking()
+            .Where(f => f.MaxUserId == userId && f.TargetType == targetType)
+            .OrderBy(f => f.Name)
+            .ToListAsync(ct);
+    }
+
+    private async Task<bool> IsFavoriteAsync(
+        long userId,
+        string targetType,
+        Guid targetId,
+        CancellationToken ct
+    )
+    {
+        using var scope = _sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
+        return await db.BotFavorites.AnyAsync(
+            f => f.MaxUserId == userId && f.TargetType == targetType && f.TargetId == targetId,
+            ct
+        );
+    }
+
+    private async Task HandleFavoriteToggleAsync(long chatId, long userId, CancellationToken ct)
+    {
+        using var scope = _sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
+
+        var settings = await db.UserSettings.FirstOrDefaultAsync(x => x.MaxUserId == userId, ct);
+        if (settings is null)
+            return;
+
+        var target = FavoriteTarget(settings);
+        if (target is null)
+        {
+            await SendEntityRequiredAsync(chatId, settings, ct);
+            return;
+        }
+
+        var existing = await db.BotFavorites.FirstOrDefaultAsync(
+            f => f.MaxUserId == userId && f.TargetType == target.Type && f.TargetId == target.Id,
+            ct
+        );
+
+        if (existing is not null)
+        {
+            db.BotFavorites.Remove(existing);
+            await db.SaveChangesAsync(ct);
+            await _max.SendMessageAsync(chatId, "★ Убрано из избранного.", ct: ct);
+        }
+        else
+        {
+            var name =
+                target.Type == "Group"
+                    ? (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == target.Id)?.Name
+                    : (await _api.GetTeachersAsync(ct))
+                        .FirstOrDefault(t => t.Id == target.Id)
+                        ?.FullName;
+
+            if (name is null)
+            {
+                await _max.SendMessageAsync(
+                    chatId,
+                    "❌ Не удалось найти группу/преподавателя.",
+                    ct: ct
+                );
+                return;
+            }
+
+            db.BotFavorites.Add(
+                new BotFavorite
+                {
+                    Id = Guid.NewGuid(),
+                    MaxUserId = userId,
+                    TargetType = target.Type,
+                    TargetId = target.Id,
+                    Name = name,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
+            await db.SaveChangesAsync(ct);
+            await _max.SendMessageAsync(chatId, $"⭐ Добавлено в избранное: {name}", ct: ct);
+        }
+
+        await ShowMainMenuAsync(chatId, userId, ct);
+    }
+
+    /// <summary>Сообщение-подсказка с кнопкой выбора группы/преподавателя вместо дед-энда.</summary>
+    private async Task SendEntityRequiredAsync(
+        long chatId,
+        UserSettings settings,
+        CancellationToken ct
+    )
+    {
+        var buttons = new List<List<MaxButton>>
+        {
+            new()
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text =
+                        settings.Role == "student"
+                            ? "📚 Выбрать группу"
+                            : "👨‍🏫 Выбрать преподавателя",
+                    Payload = settings.Role == "student" ? "settings:group" : "settings:teacher",
+                },
+            },
+            new()
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔙 Меню",
+                    Payload = "menu",
+                },
+            },
+        };
+
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            "⚠️ Сначала выбери группу или преподавателя.",
+            buttons,
+            ct: ct
+        );
+    }
+
     private async Task ShowMainMenuAsync(long chatId, long userId, CancellationToken ct)
     {
         var settings = await GetSettingsAsync(userId, ct);
@@ -662,6 +848,26 @@ public class MaxBotService : BackgroundService
                     Payload = CallbackPayload.Changes(),
                 },
             },
+        };
+
+        var favTarget = FavoriteTarget(settings);
+        if (favTarget is { } target)
+        {
+            var isFav = await IsFavoriteAsync(userId, target.Type, target.Id, ct);
+            buttons.Add(
+                new List<MaxButton>
+                {
+                    new()
+                    {
+                        Type = "callback",
+                        Text = isFav ? "★ Убрать из избранного" : "⭐ В избранное",
+                        Payload = "fav:toggle",
+                    },
+                }
+            );
+        }
+
+        buttons.Add(
             new List<MaxButton>
             {
                 new()
@@ -670,17 +876,8 @@ public class MaxBotService : BackgroundService
                     Text = "⚙️ Настройки",
                     Payload = "settings",
                 },
-            },
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "callback",
-                    Text = "🚚 Диспетчер",
-                    Payload = "dispatcher",
-                },
-            },
-        };
+            }
+        );
 
         var text =
             $"🏠 *Главное меню*\n\n" + $"Роль: {roleLabel}\n" + $"Группа/Преподаватель: {entity}";
@@ -1037,11 +1234,7 @@ public class MaxBotService : BackgroundService
 
         if (settings.GroupId is null && settings.TeacherId is null)
         {
-            await _max.SendMessageAsync(
-                chatId,
-                "⚠️ Сначала выбери группу или преподавателя в настройках.",
-                ct: ct
-            );
+            await SendEntityRequiredAsync(chatId, settings, ct);
             return;
         }
 
@@ -1072,8 +1265,14 @@ public class MaxBotService : BackgroundService
             .Take(ChangesPageSize)
             .ToListAsync(ct);
 
-        var text = MessageFormatter.FormatMyChanges(items, page, ChangesPageSize);
         var totalPages = Math.Max(1, (int)Math.Ceiling((double)total / ChangesPageSize));
+        var text = MessageFormatter.FormatMyChanges(
+            items,
+            page,
+            totalPages,
+            ChangesPageSize,
+            _options.MiniAppUrl
+        );
 
         var buttons = new List<List<MaxButton>>();
         var navRow = new List<MaxButton>();
@@ -1248,36 +1447,31 @@ public class MaxBotService : BackgroundService
         await db.SaveChangesAsync(ct);
 
         var status = settings.NotifyEnabled ? "включены ✅" : "выключены ❌";
-        var dayButtons = settings
-            .NotifyDays.OrderBy(d => d)
+
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            $"🔔 Уведомления {status}\n\nНажми на день, чтобы включить или выключить:",
+            BuildNotifyDayButtons(settings.NotifyDays),
+            ct: ct
+        );
+    }
+
+    /// <summary>Клавиатура из всех 7 дней: отмечены включённые, остальные можно включить.</summary>
+    private static List<List<MaxButton>> BuildNotifyDayButtons(int[] notifyDays)
+    {
+        var buttons = Enumerable
+            .Range(1, 7)
             .Select(d => new MaxButton
             {
                 Type = "callback",
-                Text = $"{MessageFormatter.GetShortDayLabel(d)} ✓",
+                Text = notifyDays.Contains(d)
+                    ? $"{MessageFormatter.GetShortDayLabel(d)} ✓"
+                    : MessageFormatter.GetShortDayLabel(d),
                 Payload = $"notifyday:{d}",
             })
             .ToList();
 
-        var buttons = new List<List<MaxButton>>
-        {
-            dayButtons,
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "callback",
-                    Text = "💾 Сохранить",
-                    Payload = "notifysave",
-                },
-            },
-        };
-
-        await _max.SendInlineKeyboardAsync(
-            chatId,
-            $"🔔 Уведомления {status}\n\nВыбери дни:",
-            buttons,
-            ct: ct
-        );
+        return [buttons.Take(4).ToList(), buttons.Skip(4).ToList()];
     }
 
     private async Task HandleDispatcherCommandAsync(long chatId, long userId, CancellationToken ct)
@@ -1359,7 +1553,7 @@ public class MaxBotService : BackgroundService
 
         await _max.SendInlineKeyboardAsync(
             chatId,
-            "🚚 *Панель диспетчера*\n\nКорректировки создаются в mini-app, итоговый XLSX отправляется по кнопке.",
+            "🔐 *Панель диспетчера*\n\nКорректировки создаются в mini-app, итоговый XLSX отправляется по кнопке.",
             buttons,
             ct: ct
         );
@@ -1505,30 +1699,11 @@ public class MaxBotService : BackgroundService
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        var dayButtons = settings
-            .NotifyDays.OrderBy(d => d)
-            .Select(d => new MaxButton
-            {
-                Type = "callback",
-                Text = $"{MessageFormatter.GetShortDayLabel(d)} ✓",
-                Payload = $"notifyday:{d}",
-            })
-            .ToList();
-
-        var buttons = new List<List<MaxButton>>
-        {
-            dayButtons,
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "callback",
-                    Text = "💾 Сохранить",
-                    Payload = "notifysave",
-                },
-            },
-        };
-
-        await _max.SendInlineKeyboardAsync(chatId, "🔔 Выбери дни уведомлений:", buttons, ct: ct);
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            "🔔 Нажми на день, чтобы включить или выключить:",
+            BuildNotifyDayButtons(settings.NotifyDays),
+            ct: ct
+        );
     }
 }
