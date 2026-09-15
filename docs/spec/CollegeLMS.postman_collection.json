@@ -1038,6 +1038,31 @@
           "description": "Журнал преподавателя: недели с числом пар по предмету"
         },
         {
+          "name": "Get subjects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/subjects?q=Матем",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "subjects"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Матем"
+                }
+              ]
+            }
+          },
+          "description": "Список предметов для выпадающих списков корректировок (фильтр по подстроке)"
+        },
+        {
           "name": "Get schedule context",
           "request": {
             "method": "GET",

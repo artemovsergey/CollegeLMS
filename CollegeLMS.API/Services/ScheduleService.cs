@@ -145,13 +145,21 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
             .Where(e => e.TeacherId == teacherId)
             .ToListAsync(ct);
 
-        // Группировка по (предмет, неделя) с набором номеров пар.
-        var itemMap = new Dictionary<(string Subject, int Week), List<int>>();
+        // Группировка по (предмет, неделя, день недели) с фактической датой дня.
+        // Показываем только проведённые занятия — дата не позже сегодняшнего дня (UTC).
+        var utcToday = DateTime.UtcNow.Date;
+        var mondayOfWeek1 = StudyWeek.MondayOf(StudyWeek.SemesterStart);
+        var itemMap = new Dictionary<(string Subject, int Week, DayOfWeek DayOfWeek), List<int>>();
         foreach (var entry in entries)
         {
             foreach (var week in entry.Weeks.Where(w => w >= 1 && w <= StudyWeek.TotalWeeks))
             {
-                var key = (entry.Subject, week);
+                var dayIndex = ((int)entry.DayOfWeek + 6) % 7;
+                var date = mondayOfWeek1.AddDays((week - 1) * 7 + dayIndex);
+                if (date > utcToday)
+                    continue;
+
+                var key = (entry.Subject, week, entry.DayOfWeek);
                 if (!itemMap.TryGetValue(key, out var pairs))
                 {
                     pairs = new List<int>();
@@ -161,17 +169,20 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
             }
         }
 
-        var mondayOfWeek1 = StudyWeek.MondayOf(StudyWeek.SemesterStart);
         var subjects = itemMap
             .OrderBy(x => x.Key.Subject)
             .ThenBy(x => x.Key.Week)
+            .ThenBy(x => x.Key.DayOfWeek)
             .GroupBy(x => x.Key.Subject)
             .Select(g =>
             {
                 var items = g.Select(x => new JournalEntryItem
                     {
                         Week = x.Key.Week,
-                        Date = mondayOfWeek1.AddDays((x.Key.Week - 1) * 7),
+                        DayOfWeek = (int)x.Key.DayOfWeek,
+                        Date = mondayOfWeek1.AddDays(
+                            (x.Key.Week - 1) * 7 + ((int)x.Key.DayOfWeek + 6) % 7
+                        ),
                         NumberPairs = x.Value.Distinct().OrderBy(v => v).ToList(),
                     })
                     .ToList();
@@ -256,6 +267,41 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
                 TotalTeachers = totalTeachers,
             }
         );
+    }
+
+    public async Task<Result<SubjectsResponse>> GetSubjectsAsync(string? q, CancellationToken ct)
+    {
+        var qTrim = (q ?? string.Empty).Trim();
+        var subjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var entrySubjects = await db
+            .ScheduleEntries.AsNoTracking()
+            .Where(e => !string.IsNullOrWhiteSpace(e.Subject))
+            .Select(e => e.Subject)
+            .ToListAsync(ct);
+        subjects.UnionWith(entrySubjects);
+
+        var historySubjects = await db
+            .ScheduleHistory.AsNoTracking()
+            .Where(h => !string.IsNullOrWhiteSpace(h.Subject))
+            .Select(h => h.Subject)
+            .ToListAsync(ct);
+        subjects.UnionWith(historySubjects);
+
+        var removedSubjects = await db
+            .ScheduleHistory.AsNoTracking()
+            .Where(h => h.RemovedSubject != null && h.RemovedSubject.Trim().Length > 0)
+            .Select(h => h.RemovedSubject!)
+            .ToListAsync(ct);
+        subjects.UnionWith(removedSubjects);
+
+        var result = subjects
+            .Where(s => qTrim.Length == 0 || s.Contains(qTrim, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
+            .Take(200)
+            .ToList();
+
+        return Result<SubjectsResponse>.Ok(new SubjectsResponse { Subjects = result });
     }
 
     private async Task<

@@ -8,10 +8,12 @@ import {
   Star,
   History,
   ShieldCheck,
+  BookOpen,
 } from "lucide-react"
 import type { ReactNode } from "react"
+import { useMaxContext } from "@/lib/max-context"
 
-const TABS = [
+const BASE_TABS = [
   { href: "/max/schedule", label: "Расписание", icon: CalendarDays },
   { href: "/max/favorites", label: "Избранное", icon: Star },
   { href: "/max/changes", label: "Изменения", icon: History },
@@ -41,7 +43,13 @@ function useDispatcherSession() {
 
 export default function MaxShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const { profile } = useMaxContext()
   const hasDispatcher = useDispatcherSession()
+
+  const tabs =
+    profile?.role === "Teacher"
+      ? [...BASE_TABS, { href: "/max/journal", label: "Журнал", icon: BookOpen }]
+      : BASE_TABS
 
   const isActive = (href: string) => pathname.startsWith(href)
 
@@ -49,7 +57,7 @@ export default function MaxShell({ children }: { children: ReactNode }) {
     <div className="max-app">
       <div className="max-app__content pb-20">{children}</div>
       <nav className="max-app__tabbar" aria-label="Разделы">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <Link
             key={tab.href}
             href={tab.href}

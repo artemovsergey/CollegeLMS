@@ -456,4 +456,183 @@ public class ScheduleServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.Days.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task GetSubjectsAsync_ReturnsDistinctSubjects_FromEntriesAndHistory()
+    {
+        _db.ScheduleEntries.Add(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Subject = "Математика",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
+                StartTime = new TimeSpan(9, 0, 0),
+                EndTime = new TimeSpan(10, 30, 0),
+                Weeks = new List<int> { 1 },
+                LessonType = LessonType.Lecture,
+            }
+        );
+        _db.ScheduleHistory.AddRange(
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Add,
+                Subject = "История",
+                AppliedAt = DateTime.UtcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
+                Week = 1,
+            },
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Remove,
+                Subject = "История",
+                RemovedSubject = "Литература",
+                AppliedAt = DateTime.UtcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 2,
+                Week = 1,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetSubjectsAsync(null, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Subjects.Should().BeEquivalentTo(["Математика", "История", "Литература"]);
+    }
+
+    [Fact]
+    public async Task GetSubjectsAsync_FiltersByQuery_IgnoreCase()
+    {
+        _db.ScheduleEntries.AddRange(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Subject = "Математика",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
+                StartTime = new TimeSpan(9, 0, 0),
+                EndTime = new TimeSpan(10, 30, 0),
+                Weeks = new List<int> { 1 },
+                LessonType = LessonType.Lecture,
+            },
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Subject = "Литература",
+                Room = "401",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 1,
+                StartTime = new TimeSpan(9, 0, 0),
+                EndTime = new TimeSpan(10, 30, 0),
+                Weeks = new List<int> { 1 },
+                LessonType = LessonType.Lecture,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetSubjectsAsync("мат", default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Subjects.Should().ContainSingle().Which.Should().Be("Математика");
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_ReturnsConductedOnly_WithDayOfWeek()
+    {
+        var utcNow = DateTime.UtcNow;
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "journal@collegelms.ru",
+            FullName = "Марченко И.А.",
+            PasswordHash = "hash",
+            Role = UserRole.Teacher,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+        };
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            CyclicalCommission = "CS",
+            Position = "Преподаватель",
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+            User = user,
+        };
+        _db.Teachers.Add(teacher);
+
+        // Проведённое занятие: Вторник 2-й недели => 08.09.2026 (не позже сегодняшнего дня).
+        _db.ScheduleEntries.Add(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                TeacherId = teacher.Id,
+                Subject = "Математика",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 1,
+                StartTime = new TimeSpan(9, 0, 0),
+                EndTime = new TimeSpan(10, 30, 0),
+                Weeks = new List<int> { 2 },
+                LessonType = LessonType.Lecture,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        // Будущее занятие: Вторник 6-й недели => 05.10.2026 (должно быть пропущено).
+        _db.ScheduleEntries.Add(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                TeacherId = teacher.Id,
+                Subject = "Литература",
+                Room = "302",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 1,
+                StartTime = new TimeSpan(9, 0, 0),
+                EndTime = new TimeSpan(10, 30, 0),
+                Weeks = new List<int> { 6 },
+                LessonType = LessonType.Lecture,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetJournalAsync(teacher.Id, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.TeacherName.Should().Be("Марченко И.А.");
+        result.Data.Subjects.Should().ContainSingle(s => s.Subject == "Математика");
+        result.Data.Subjects.Should().NotContain(s => s.Subject == "Литература");
+        var item = result.Data.Subjects.Single().Items.Should().ContainSingle().Subject;
+        item.DayOfWeek.Should().Be((int)DayOfWeek.Tuesday);
+        item.Date.Should().Be(new DateTime(2026, 9, 8));
+        item.NumberPairs.Should().BeEquivalentTo([1]);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_ReturnsNotFound_WhenTeacherMissing()
+    {
+        var result = await _sut.GetJournalAsync(Guid.NewGuid(), default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
 }

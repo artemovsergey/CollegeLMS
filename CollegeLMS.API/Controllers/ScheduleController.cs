@@ -160,6 +160,22 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
         return Ok(result);
     }
 
+    [HttpGet("subjects")]
+    [AllowAnonymous]
+    [SwaggerOperation(Summary = "Список предметов для выпадающих списков корректировок")]
+    [SwaggerResponse(200, "Список предметов получен", typeof(Result<SubjectsResponse>))]
+    [SwaggerResponse(500, "Ошибка сервера")]
+    [ProducesResponseType(typeof(Result<SubjectsResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetSubjects(
+        [FromQuery] string? q,
+        CancellationToken ct = default
+    )
+    {
+        var result = await service.GetSubjectsAsync(q, ct);
+        return Ok(result);
+    }
+
     [HttpGet("{id:guid}")]
     [AllowAnonymous]
     [SwaggerOperation(Summary = "Получить запись расписания по ID")]

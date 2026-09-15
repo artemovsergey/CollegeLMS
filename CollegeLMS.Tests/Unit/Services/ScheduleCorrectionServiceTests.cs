@@ -766,7 +766,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
 
-        // Первая операция валидна, вторая (Replace) падает — для неё нет занятия в БД.
+        // Первая операция валидна, вторая (Replace) — нет занятия в БД → возврат 400 без изменений.
         var request = new CorrectionConfirmRequest
         {
             Entries =
@@ -796,9 +796,16 @@ public class ScheduleCorrectionServiceTests : IDisposable
             ],
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _sut.ConfirmAsync(request, "test-key", Guid.NewGuid(), CancellationToken.None)
+        var result = await _sut.ConfirmAsync(
+            request,
+            "test-key",
+            Guid.NewGuid(),
+            CancellationToken.None
         );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("не найдено");
 
         using var fresh = TestDbContextFactory.Create();
         fresh.ScheduleEntries.Should().BeEmpty();
