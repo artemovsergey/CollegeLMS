@@ -426,13 +426,13 @@ export default function DispatcherCorrectionPage() {
               {importing
                 ? "Импорт..."
                 : file
-                  ? "Создать черновик из файла"
+                  ? "Создать пакет из файла"
                   : "Импорт"}
             </Button>
             {!importResult && file && (
               <p className="text-xs text-muted-foreground">
-                После импорта будет создан черновик — вы сможете отредактировать
-                позиции и применить пакет.
+                После импорта будет создан пакет — вы сможете отредактировать
+                позиции и применить его.
               </p>
             )}
           </CardContent>

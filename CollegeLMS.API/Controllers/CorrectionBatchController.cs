@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Extensions;
@@ -40,7 +40,7 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Список пакетов корректировок (по умолчанию — черновики).</summary>
+    /// <summary>Список пакетов корректировок (по умолчанию — подготовленные).</summary>
     [HttpGet]
     [SwaggerOperation(Summary = "Список пакетов корректировок")]
     [SwaggerResponse(200, "Список получен", typeof(Result<List<CorrectionBatchResponse>>))]
@@ -76,7 +76,7 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     [SwaggerOperation(Summary = "Удалить пакет корректировки")]
     [SwaggerResponse(200, "Пакет удалён")]
     [SwaggerResponse(404, "Пакет не найден", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "Пакет не в статусе черновика", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Пакет не в статусе «Подготовлен»", typeof(ErrorResponse))]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
@@ -92,7 +92,7 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     [SwaggerResponse(200, "Позиция добавлена", typeof(Result<CorrectionPositionResponse>))]
     [SwaggerResponse(400, "Некорректные данные", typeof(ErrorResponse))]
     [SwaggerResponse(404, "Пакет не найден", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "Пакет не в статусе черновика", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Пакет не в статусе «Подготовлен»", typeof(ErrorResponse))]
     [ProducesResponseType(typeof(Result<CorrectionPositionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -113,7 +113,7 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     [SwaggerResponse(200, "Позиция обновлена", typeof(Result<CorrectionPositionResponse>))]
     [SwaggerResponse(400, "Некорректные данные", typeof(ErrorResponse))]
     [SwaggerResponse(404, "Пакет или позиция не найдены", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "Пакет не в статусе черновика", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Пакет не в статусе «Подготовлен»", typeof(ErrorResponse))]
     [ProducesResponseType(typeof(Result<CorrectionPositionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -134,7 +134,7 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     [SwaggerOperation(Summary = "Удалить позицию корректировки")]
     [SwaggerResponse(200, "Позиция удалена")]
     [SwaggerResponse(404, "Пакет или позиция не найдены", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "Пакет не в статусе черновика", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Пакет не в статусе «Подготовлен»", typeof(ErrorResponse))]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
