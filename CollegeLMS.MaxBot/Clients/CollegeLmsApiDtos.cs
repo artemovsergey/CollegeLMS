@@ -72,6 +72,7 @@ public record NotifyChangeDto
     public string? RemovedSubject { get; init; }
     public string? RemovedTeacherName { get; init; }
     public int? RemovedNumberPair { get; init; }
+    public DateTime? CorrectionDate { get; init; }
 }
 
 /// <summary>Запись корректировки для POST /api/schedule/correction/confirm.</summary>

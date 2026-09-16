@@ -104,7 +104,14 @@ public class ScheduleServiceTests : IDisposable
         // Группа с постоянными парами 1–8 на понедельник (все учебные недели)
         // + пара 6 добавлена корректировкой на 3-ю неделю (Weeks = [3]).
         var groupId = Guid.NewGuid();
-        _db.Groups.Add(new Group { Id = groupId, Name = "ГР-11", Course = 1 });
+        _db.Groups.Add(
+            new Group
+            {
+                Id = groupId,
+                Name = "ГР-11",
+                Course = 1,
+            }
+        );
         var basePairs = Enumerable
             .Range(1, 8)
             .Select(n => new ScheduleEntry
@@ -156,7 +163,10 @@ public class ScheduleServiceTests : IDisposable
 
         dayResult.IsSuccess.Should().BeTrue();
         dayResult.Data!.Items.Should().HaveCount(8);
-        dayResult.Data.Items.Select(i => i.NumberPair).Should().BeEquivalentTo([1, 2, 3, 4, 5, 6, 7, 8]);
+        dayResult
+            .Data.Items.Select(i => i.NumberPair)
+            .Should()
+            .BeEquivalentTo([1, 2, 3, 4, 5, 6, 7, 8]);
     }
 
     [Fact]

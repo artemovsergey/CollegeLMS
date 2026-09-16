@@ -37,6 +37,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<NotificationSettings> NotificationSettings => Set<NotificationSettings>();
     public DbSet<DispatcherCredential> DispatcherCredentials => Set<DispatcherCredential>();
     public DbSet<CorrectionConfirmation> CorrectionConfirmations => Set<CorrectionConfirmation>();
+    public DbSet<CorrectionBatch> CorrectionBatches => Set<CorrectionBatch>();
+    public DbSet<CorrectionPosition> CorrectionPositions => Set<CorrectionPosition>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

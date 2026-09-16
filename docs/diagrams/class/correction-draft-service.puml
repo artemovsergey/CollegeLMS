@@ -1,0 +1,92 @@
+@startuml
+!theme plain
+title Корректировки: пакеты и позиции — Class
+
+interface ICorrectionDraftService {
+  + CreateBatchAsync(request, createdByUserId, ct): Result<CorrectionBatchResponse>
+  + GetBatchesAsync(status?, ct): Result<List<CorrectionBatchResponse>>
+  + GetBatchAsync(id, ct): Result<CorrectionBatchResponse>
+  + DeleteBatchAsync(id, ct): Result
+  + AddPositionAsync(batchId, request, ct): Result<CorrectionPositionResponse>
+  + UpdatePositionAsync(batchId, positionId, request, ct): Result<CorrectionPositionResponse>
+  + DeletePositionAsync(batchId, positionId, ct): Result
+  + ImportAsync(fileStream, createdByUserId, ct): Result<CorrectionImportResponse>
+  + ExportAsync(batchId, ct): Result<DocumentDownloadResult>
+  + ApplyAsync(batchId, idempotencyKey, appliedByUserId, ct): Result<CorrectionApplyResult>
+}
+
+class CorrectionDraftService {
+  - db: AppDbContext
+  - correctionService: IScheduleCorrectionService
+  - maxBot: MaxBotHttpClient
+  + CreateBatchAsync(...)
+  + GetBatchesAsync(...)
+  + GetBatchAsync(...)
+  + DeleteBatchAsync(...)
+  + AddPositionAsync(...)
+  + UpdatePositionAsync(...)
+  + DeletePositionAsync(...)
+  + ImportAsync(...)
+  + ExportAsync(...)
+  + ApplyAsync(...)
+  - ValidatePositionAsync(request, ct): Task<string?>
+  - IsSelfStudyNote(note?: string): bool
+  - ToManualRow(p: CorrectionPosition): ManualCorrectionRow
+}
+
+class CorrectionDraftController {
+  - service: ICorrectionDraftService
+  + CreateBatch(request, ct): ActionResult   // POST /api/schedule/correction/batches
+  + GetBatches(status, ct): ActionResult     // GET /api/schedule/correction/batches
+  + GetBatch(id, ct): ActionResult           // GET /api/schedule/correction/batches/{id}
+  + DeleteBatch(id, ct): ActionResult        // DELETE /api/schedule/correction/batches/{id}
+  + AddPosition(id, request, ct): ActionResult
+  + UpdatePosition(id, positionId, request, ct): ActionResult
+  + DeletePosition(id, positionId, ct): ActionResult
+  + Import(file, ct): ActionResult           // POST /api/schedule/correction/batches/import
+  + Export(id, ct): ActionResult             // POST /api/schedule/correction/batches/{id}/export
+  + Apply(id, ct): ActionResult              // POST /api/schedule/correction/batches/{id}/apply
+}
+
+interface IScheduleCorrectionService {
+  + PreviewAsync(file, ct): Result<CorrectionPreviewResponse>
+  + ConfirmAsync(request, ct): Result<ConfirmCorrectionResponse>
+  + GetHistoryAsync(query, ct): Result<PagedResponse<ScheduleHistoryResponse>>
+  + ApplyEntriesAsync(entries, appliedByUserId, correctionDate, ct): Result<List<ScheduleHistoryResponse>>
+  + ExportManualAsync(request, ct): Result<DocumentDownloadResult>
+}
+
+class ScheduleCorrectionService {
+  + ApplyEntriesAsync(entries, appliedByUserId, correctionDate, ct)
+  - ApplyEntryAsync(change, appliedByUserId, correctionDate, ct)
+}
+
+class MaxBotHttpClient {
+  + SendChangesAsync(changes, ct): Task
+}
+
+class CorrectionBatch {
+  + Id: Guid
+  + CorrectionDate: DateTime
+  + Week: int
+  + DayOfWeek: int
+  + Status: CorrectionBatchStatus
+  + Positions: List<CorrectionPosition>
+}
+
+class CorrectionPosition {
+  + ChangeType: ScheduleChangeType
+  + GroupId: Guid
+  + Week: int
+  + Status: CorrectionPositionStatus
+  + HistoryId: Guid?
+}
+
+ICorrectionDraftService <|.. CorrectionDraftService
+CorrectionDraftController --> ICorrectionDraftService
+CorrectionDraftService --> IScheduleCorrectionService : ApplyEntriesAsync/Preview/Export
+CorrectionDraftService --> MaxBotHttpClient : SendChangesAsync (после apply)
+CorrectionDraftService --> CorrectionBatch : CRUD
+CorrectionDraftService --> CorrectionPosition : CRUD
+CorrectionBatch o--o{ CorrectionPosition : positions
+@enduml

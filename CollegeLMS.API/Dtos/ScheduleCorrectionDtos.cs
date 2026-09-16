@@ -64,6 +64,7 @@ public class ScheduleChangeDto
 {
     public Guid Id { get; init; }
     public string ChangeType { get; init; } = "";
+    public DateTime? CorrectionDate { get; init; }
     public Guid GroupId { get; init; }
     public string GroupName { get; init; } = "";
     public Guid? TeacherId { get; init; }

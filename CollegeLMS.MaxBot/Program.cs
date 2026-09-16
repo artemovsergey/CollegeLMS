@@ -91,6 +91,7 @@ using (var scope = app.Services.CreateScope())
             removed_subject VARCHAR(300) NULL,
             removed_teacher_name VARCHAR(200) NULL,
             removed_number_pair INTEGER NULL,
+            correction_date TIMESTAMPTZ NULL,
             created_at TIMESTAMPTZ NOT NULL
         );
 
@@ -102,6 +103,9 @@ using (var scope = app.Services.CreateScope())
 
         CREATE INDEX IF NOT EXISTS ix_schedule_revisions_created_at
             ON schedule_revisions (created_at);
+
+        ALTER TABLE schedule_revisions
+            ADD COLUMN IF NOT EXISTS correction_date TIMESTAMPTZ NULL;
 
         ALTER TABLE user_settings
             ADD COLUMN IF NOT EXISTS notify_time interval NOT NULL DEFAULT INTERVAL '7 hours 30 minutes';
@@ -165,6 +169,7 @@ app.MapPost(
                     RemovedSubject = c.RemovedSubject,
                     RemovedTeacherName = c.RemovedTeacherName,
                     RemovedNumberPair = c.RemovedNumberPair,
+                    CorrectionDate = c.CorrectionDate,
                     CreatedAt = now,
                 })
                 .ToList();

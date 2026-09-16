@@ -30,5 +30,7 @@ public class ScheduleRevision
 
     public int? RemovedNumberPair { get; set; }
 
+    public DateTime? CorrectionDate { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

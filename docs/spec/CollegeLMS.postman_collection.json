@@ -853,9 +853,292 @@
               ]
             }
           }
+        },
+        {
+          "name": "Create correction batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correctionDate\": \"2026-09-10T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches"
+              ]
+            }
+          },
+          "description": "Создать пакет корректировки по дате (неделя и день недели вычисляются автоматически)"
+        },
+        {
+          "name": "List correction batches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches?status=Draft",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Draft"
+                }
+              ]
+            }
+          },
+          "description": "Список пакетов корректировок (status: Draft | Applied | Cancelled, опционально)"
+        },
+        {
+          "name": "Get correction batch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "{{batchId}}"
+              ]
+            }
+          },
+          "description": "Пакет корректировки с позициями"
+        },
+        {
+          "name": "Delete correction batch",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "{{batchId}}"
+              ]
+            }
+          },
+          "description": "Удалить черновой пакет (409 — если пакет не в статусе черновика)"
+        },
+        {
+          "name": "Add correction position",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"changeType\": \"Remove\",\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"numberPair\": 2,\n  \"removedSubject\": \"Физика\",\n  \"removedTeacherId\": \"{{teacherId}}\",\n  \"removedTeacherName\": \"Иванов Д.А.\",\n  \"note\": \"сам.р.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}/positions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "{{batchId}}",
+                "positions"
+              ]
+            }
+          },
+          "description": "Добавить позицию в пакет. Примечание «сам.р.» допустимо только для changeType=Remove"
+        },
+        {
+          "name": "Update correction position",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"changeType\": \"Replace\",\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"numberPair\": 4,\n  \"subject\": \"Математика\",\n  \"teacherName\": \"Марченко И.А.\",\n  \"removedSubject\": \"Физика\",\n  \"removedTeacherName\": \"Иванов Д.А.\",\n  \"note\": \"замена\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}/positions/{{positionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "{{batchId}}",
+                "positions",
+                "{{positionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete correction position",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}/positions/{{positionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "{{batchId}}",
+                "positions",
+                "{{positionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Import correction batch from XLSX",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/Корректировка.xlsx"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "import"
+              ]
+            }
+          },
+          "description": "Импорт XLSX: создаёт черновой пакет из файла (batchId возвращается в ответе). При ошибках валидации — детальные ошибки без создания пакета"
+        },
+        {
+          "name": "Export correction batch to XLSX",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "{{batchId}}",
+                "export"
+              ]
+            }
+          },
+          "description": "Скачать XLSX с текущими позициями пакета"
+        },
+        {
+          "name": "Apply correction batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}/apply",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "{{batchId}}",
+                "apply"
+              ]
+            }
+          },
+          "description": "Применить все позиции пакета: отметка Applied, связь с историей, уведомление MaxBot, авто-экспорт XLSX"
         }
       ],
-      "description": "Корректировка расписания: превью, подтверждение, история"
+      "description": "Корректировка расписания: превью, подтверждение, пакеты корректировок (черновики/позиции/импорт/экспорт/применение), история"
     },
     {
       "name": "Dispatcher",

@@ -7,34 +7,28 @@ import {
   Upload,
   FileSpreadsheet,
   AlertCircle,
-  CheckCircle,
-  Eye,
-  ArrowLeft,
   History,
   Plus,
   Minus,
   Repeat,
   ArrowRightLeft,
   RefreshCw,
+  ArrowLeft,
 } from "lucide-react"
-import {
-  previewCorrection,
-  confirmCorrection,
-  getHistory,
-} from "@/api/correction"
+import { importCorrection, getHistory } from "@/api/correction"
 import { extractErrorMessage } from "@/lib/utils"
 import { DAYS } from "@/types/schedule"
 import type {
   CorrectionChangeType,
-  CorrectionPreviewResponse,
-  CorrectionPreviewEntry,
+  CorrectionImportResponse,
   ScheduleHistoryItem,
 } from "@/types/correction"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import ManualCorrectionForm from "@/components/ManualCorrectionForm"
+import CorrectionBatchList from "@/components/CorrectionBatchList"
+import CorrectionPositionEditor from "@/components/CorrectionPositionEditor"
 
 const CHANGE_TYPE_META: Record<
   CorrectionChangeType,
@@ -43,22 +37,26 @@ const CHANGE_TYPE_META: Record<
   Add: {
     label: "Добавлено",
     icon: Plus,
-    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+    className:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
   },
   Remove: {
     label: "Снято",
     icon: Minus,
-    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+    className:
+      "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
   },
   Replace: {
     label: "Замена",
     icon: Repeat,
-    className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+    className:
+      "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
   },
   Move: {
     label: "Перенос",
     icon: ArrowRightLeft,
-    className: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
+    className:
+      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
   },
 }
 
@@ -70,10 +68,6 @@ const DAY_RU: Record<string, string> = {
   Friday: "Пятница",
   Saturday: "Суббота",
   Sunday: "Воскресенье",
-}
-
-function dayLabelFromInt(dayOfWeek: number): string {
-  return DAYS.find(d => d.value === dayOfWeek)?.full ?? String(dayOfWeek)
 }
 
 function dayLabelFromString(dayOfWeek: string): string {
@@ -90,16 +84,25 @@ function ChangeTypeBadge({ type }: { type: CorrectionChangeType }) {
   )
 }
 
-type Tab = "import" | "manual" | "journal"
+type Tab = "drafts" | "editor" | "import" | "journal"
+
+const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
+  { key: "drafts", label: "Черновики", icon: History },
+  { key: "editor", label: "Редактор", icon: FileSpreadsheet },
+  { key: "import", label: "Импорт", icon: Upload },
+  { key: "journal", label: "Журнал", icon: History },
+]
 
 export default function DispatcherCorrectionPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [tab, setTab] = useState<Tab>("import")
+  const [tab, setTab] = useState<Tab>("drafts")
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+
   const [file, setFile] = useState<File | null>(null)
-  const [previewing, setPreviewing] = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const [preview, setPreview] = useState<CorrectionPreviewResponse | null>(null)
-  const [appliedCount, setAppliedCount] = useState<number | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] =
+    useState<CorrectionImportResponse | null>(null)
 
   const [history, setHistory] = useState<ScheduleHistoryItem[]>([])
   const [historyPage, setHistoryPage] = useState(1)
@@ -107,24 +110,27 @@ export default function DispatcherCorrectionPage() {
   const [weekFilter, setWeekFilter] = useState("")
   const [loadingHistory, setLoadingHistory] = useState(false)
 
-  const loadHistory = useCallback(async (page: number) => {
-    setLoadingHistory(true)
-    try {
-      const week = weekFilter ? Number(weekFilter) : undefined
-      const res = await getHistory({
-        week,
-        page,
-        pageSize: 20,
-      })
-      setHistory(res.items)
-      setHistoryPage(res.page)
-      setHistoryTotalPages(res.totalPages)
-    } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Ошибка загрузки журнала")
-    } finally {
-      setLoadingHistory(false)
-    }
-  }, [weekFilter])
+  const loadHistory = useCallback(
+    async (page: number) => {
+      setLoadingHistory(true)
+      try {
+        const week = weekFilter ? Number(weekFilter) : undefined
+        const res = await getHistory({
+          week,
+          page,
+          pageSize: 20,
+        })
+        setHistory(res.items)
+        setHistoryPage(res.page)
+        setHistoryTotalPages(res.totalPages)
+      } catch (err) {
+        toast.error(extractErrorMessage(err) ?? "Ошибка загрузки журнала")
+      } finally {
+        setLoadingHistory(false)
+      }
+    },
+    [weekFilter],
+  )
 
   useEffect(() => {
     if (tab === "journal") loadHistory(1)
@@ -142,133 +148,217 @@ export default function DispatcherCorrectionPage() {
         return
       }
       setFile(f)
-      setPreview(null)
-      setAppliedCount(null)
+      setImportResult(null)
     }
   }
 
-  const handlePreview = async () => {
+  const handleImport = async () => {
     if (!file) return
-    setPreviewing(true)
+    setImporting(true)
     try {
-      const result = await previewCorrection(file)
-      setPreview(result)
-      setAppliedCount(null)
+      const result = await importCorrection(file)
+      if (result.batchId) {
+        toast.success(`Импортировано позиций: ${result.totalEntries}`)
+        setFile(null)
+        setImportResult(null)
+        if (fileInputRef.current) fileInputRef.current.value = ""
+        setSelectedBatchId(result.batchId)
+        setRefreshKey((k) => k + 1)
+        setTab("editor")
+      } else {
+        setImportResult(result)
+      }
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Ошибка превью")
+      toast.error(extractErrorMessage(err) ?? "Ошибка импорта")
     } finally {
-      setPreviewing(false)
+      setImporting(false)
     }
   }
 
-  const handleConfirm = async () => {
-    if (!preview) return
-    setConfirming(true)
-    try {
-      const result = await confirmCorrection(
-        preview.entries,
-        crypto.randomUUID(),
-      )
-      toast.success(`Применено изменений: ${result.applied}`)
-      setAppliedCount(result.applied)
-      setPreview(null)
-      setFile(null)
-      if (fileInputRef.current) fileInputRef.current.value = ""
-      if (tab === "journal") loadHistory(1)
-    } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Ошибка применения")
-    } finally {
-      setConfirming(false)
-    }
+  const openBatch = (id: string) => {
+    setSelectedBatchId(id)
+    setTab("editor")
   }
 
-  const hasErrors = (preview?.errors.length ?? 0) > 0
+  const handleEditorExit = () => {
+    setRefreshKey((k) => k + 1)
+    setSelectedBatchId(null)
+    setTab("drafts")
+  }
 
-  const renderTitle = (entry: CorrectionPreviewEntry) => {
-    if (entry.changeType === "Replace" || entry.changeType === "Move") {
-      return (
-        <span className="flex items-center gap-1">
-          <span className="line-through text-muted-foreground">
-            {entry.removedSubject ?? "—"}
+  const renderJournal = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2">
+            <History className="size-4" />
+            Журнал изменений
           </span>
-          <ArrowLeft className="size-3 rotate-180 text-muted-foreground" />
-          <span className="font-medium">{entry.subject}</span>
-        </span>
-      )
-    }
-    if (entry.changeType === "Remove") {
-      return (
-        <span className="line-through text-muted-foreground">
-          {entry.removedSubject ?? "—"}
-        </span>
-      )
-    }
-    return <span className="font-medium">{entry.subject ?? "—"}</span>
-  }
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min={1}
+              placeholder="Неделя"
+              value={weekFilter}
+              onChange={(e) => setWeekFilter(e.target.value)}
+              className="w-28"
+              aria-label="Фильтр по неделе"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => loadHistory(1)}
+              aria-label="Обновить журнал"
+            >
+              <RefreshCw
+                className={`size-4 ${loadingHistory ? "animate-spin" : ""}`}
+              />
+            </Button>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {history.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Журнал пуст.
+          </p>
+        ) : (
+          <>
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Дата</th>
+                    <th className="px-3 py-2 text-left">Тип</th>
+                    <th className="px-3 py-2 text-left">Группа</th>
+                    <th className="px-3 py-2 text-left">День</th>
+                    <th className="px-3 py-2 text-left">Пара</th>
+                    <th className="px-3 py-2 text-left">Предмет</th>
+                    <th className="px-3 py-2 text-left">Преподаватель</th>
+                    <th className="px-3 py-2 text-left">Примечание</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {history.map((item) => (
+                    <tr key={item.id}>
+                      <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                        {new Date(item.appliedAt).toLocaleString("ru-RU")}
+                      </td>
+                      <td className="px-3 py-2">
+                        <ChangeTypeBadge type={item.changeType} />
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {item.groupName}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {dayLabelFromString(item.dayOfWeek)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {item.removedNumberPair != null &&
+                          (item.changeType === "Replace" ||
+                            item.changeType === "Move") &&
+                          item.removedNumberPair !== item.numberPair
+                          ? `${item.removedNumberPair} → ${item.numberPair}`
+                          : item.numberPair}
+                      </td>
+                      <td className="px-3 py-2">
+                        {(item.changeType === "Replace" ||
+                          item.changeType === "Move") &&
+                          item.removedSubject ? (
+                          <span className="flex items-center gap-1">
+                            <span className="line-through text-muted-foreground">
+                              {item.removedSubject}
+                            </span>
+                            <ArrowLeft className="size-3 rotate-180 text-muted-foreground" />
+                            <span className="font-medium">
+                              {item.subject}
+                            </span>
+                          </span>
+                        ) : (
+                          item.subject
+                        )}
+                      </td>
+                      <td className="px-3 py-2 max-w-[220px] truncate">
+                        {item.teacherName ?? "—"}
+                      </td>
+                      <td className="px-3 py-2 max-w-[200px] truncate text-muted-foreground">
+                        {item.note ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-  const renderTeacher = (entry: CorrectionPreviewEntry) => {
-    if (entry.changeType === "Replace" || entry.changeType === "Move") {
-      const from = entry.removedTeacherName
-      const to = entry.teacherName
-      if (from && to)
-        return (
-          <span className="flex items-center gap-1">
-            <span className="line-through text-muted-foreground">{from}</span>
-            <ArrowLeft className="size-3 rotate-180 text-muted-foreground" />
-            <span className="font-medium">{to}</span>
-          </span>
-        )
-      return to ?? from ?? "—"
-    }
-    return (
-      entry.teacherName ??
-      (entry.changeType === "Remove" ? entry.removedTeacherName : null) ??
-      "—"
-    )
-  }
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Стр. {historyPage} из {historyTotalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={historyPage <= 1}
+                  onClick={() => loadHistory(historyPage - 1)}
+                >
+                  ← Назад
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={historyPage >= historyTotalPages}
+                  onClick={() => loadHistory(historyPage + 1)}
+                >
+                  Далее →
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
 
   return (
     <div className="flex flex-col gap-6 p-6 mx-auto max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Корректировка расписания</h2>
         <div className="inline-flex rounded-lg border bg-card p-1">
-          <Button
-            variant={tab === "import" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setTab("import")}
-          >
-            <Upload className="size-4 mr-2" />
-            Импорт
-          </Button>
-          <Button
-            variant={tab === "manual" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setTab("manual")}
-          >
-            <Plus className="size-4 mr-2" />
-            Вручную
-          </Button>
-          <Button
-            variant={tab === "journal" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setTab("journal")}
-          >
-            <History className="size-4 mr-2" />
-            Журнал
-          </Button>
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <Button
+              key={key}
+              variant={tab === key ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setTab(key)}
+              disabled={key === "editor" && !selectedBatchId}
+            >
+              <Icon className="size-4 mr-2" />
+              {label}
+            </Button>
+          ))}
         </div>
       </div>
 
-      {appliedCount !== null && (
-        <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
-          <CheckCircle className="size-4 shrink-0" />
-          Изменения применены: {appliedCount}
-        </div>
+      {tab === "drafts" && (
+        <CorrectionBatchList onOpen={openBatch} refreshKey={refreshKey} />
       )}
 
-      {tab === "manual" ? (
-        <ManualCorrectionForm />
-      ) : tab === "import" ? (
+      {tab === "editor" &&
+        (selectedBatchId ? (
+          <CorrectionPositionEditor
+            batchId={selectedBatchId}
+            onBack={handleEditorExit}
+            onApplied={handleEditorExit}
+          />
+        ) : (
+          <Card>
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              Откройте черновик из списка, чтобы редактировать его позиции.
+            </CardContent>
+          </Card>
+        ))}
+
+      {tab === "import" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -276,306 +366,79 @@ export default function DispatcherCorrectionPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            {!preview ? (
-              <div
-                className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {file ? (
-                  <>
-                    <FileSpreadsheet className="size-10 text-accent" />
-                    <div>
-                      <p className="font-medium">{file.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {(file.size / 1024).toFixed(1)} KB
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="size-10 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Нажмите для выбора файла</p>
-                      <p className="text-sm text-muted-foreground">
-                        XLSX, до 10MB
-                      </p>
-                    </div>
-                  </>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
+            <div
+              className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {file ? (
+                <>
+                  <FileSpreadsheet className="size-10 text-accent" />
+                  <div>
+                    <p className="font-medium">{file.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Upload className="size-10 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Нажмите для выбора файла</p>
+                    <p className="text-sm text-muted-foreground">
+                      XLSX, до 10MB
+                    </p>
+                  </div>
+                </>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </div>
+
+            {importResult && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 grid gap-2">
+                <p className="flex items-center gap-1 text-sm font-semibold text-destructive">
+                  <AlertCircle className="size-3" />
+                  Файл содержит ошибки ({importResult.errors.length}) — черновик не
+                  создан
+                </p>
+                <div className="max-h-40 overflow-y-auto text-xs space-y-1">
+                  {importResult.errors.map((err, i) => (
+                    <p key={i} className="text-muted-foreground">
+                      Строка {err.row}, стлб. {err.column}: {err.message}
+                    </p>
+                  ))}
+                </div>
               </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="rounded-lg border bg-card p-3">
-                    <p className="text-2xl font-bold">{preview.totalEntries}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Всего записей
-                    </p>
-                  </div>
-                  <div className="rounded-lg border bg-card p-3">
-                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                      {preview.entries.length}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Валидных</p>
-                  </div>
-                  <div className="rounded-lg border bg-card p-3">
-                    <p
-                      className={`text-2xl font-bold ${hasErrors
-                          ? "text-destructive"
-                          : "text-emerald-600 dark:text-emerald-400"
-                        }`}
-                    >
-                      {preview.errors.length}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Ошибок</p>
-                  </div>
-                </div>
-
-                {hasErrors && (
-                  <div className="max-h-40 overflow-y-auto rounded-md border p-3 text-xs space-y-2">
-                    <p className="font-semibold flex items-center gap-1 text-destructive">
-                      <AlertCircle className="size-3" />
-                      Ошибки ({preview.errors.length})
-                    </p>
-                    {preview.errors.map((err, i) => (
-                      <p key={i} className="text-muted-foreground">
-                        Строка {err.row}, стлб. {err.column}: {err.message}
-                      </p>
-                    ))}
-                  </div>
-                )}
-
-                <div className="overflow-x-auto rounded-md border">
-                  <table className="w-full min-w-[720px] text-sm">
-                    <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 text-left">Тип</th>
-                        <th className="px-3 py-2 text-left">Группа</th>
-                        <th className="px-3 py-2 text-left">День</th>
-                        <th className="px-3 py-2 text-left">Пара</th>
-                        <th className="px-3 py-2 text-left">Предмет</th>
-                        <th className="px-3 py-2 text-left">Преподаватель</th>
-                        <th className="px-3 py-2 text-left">Примечание</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {preview.entries.map((entry, i) => (
-                        <tr key={`${entry.row}-${i}`}>
-                          <td className="px-3 py-2">
-                            <ChangeTypeBadge type={entry.changeType} />
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            {entry.groupName}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            {dayLabelFromInt(entry.dayOfWeek)}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            {entry.removedNumberPair != null &&
-                              entry.removedNumberPair !== entry.numberPair
-                              ? `${entry.removedNumberPair} → ${entry.numberPair}`
-                              : entry.numberPair}
-                          </td>
-                          <td className="px-3 py-2">{renderTitle(entry)}</td>
-                          <td className="px-3 py-2 max-w-[220px] truncate">
-                            {renderTeacher(entry)}
-                          </td>
-                          <td className="px-3 py-2 max-w-[200px] truncate text-muted-foreground">
-                            {entry.note ?? "—"}
-                          </td>
-                        </tr>
-                      ))}
-                      {preview.entries.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className="px-3 py-8 text-center text-muted-foreground"
-                          >
-                            Нет валидных записей
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setPreview(null)
-                      setAppliedCount(null)
-                    }}
-                    className="flex-1"
-                  >
-                    <ArrowLeft className="size-4 mr-2" />
-                    Назад
-                  </Button>
-                  <Button
-                    onClick={handleConfirm}
-                    disabled={confirming || hasErrors || preview.entries.length === 0}
-                    className="flex-1"
-                  >
-                    {confirming ? "Применение..." : "Применить"}
-                  </Button>
-                </div>
-              </>
             )}
 
-            {!preview && (
-              <Button
-                onClick={handlePreview}
-                disabled={!file || previewing}
-                className="w-full"
-              >
-                {previewing ? "Загрузка..." : (
-                  <>
-                    <Eye className="size-4 mr-2" />
-                    Просмотр
-                  </>
-                )}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2">
-                <History className="size-4" />
-                Журнал изменений
-              </span>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="Неделя"
-                  value={weekFilter}
-                  onChange={e => setWeekFilter(e.target.value)}
-                  className="w-28"
-                  aria-label="Фильтр по неделе"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => loadHistory(1)}
-                  aria-label="Обновить журнал"
-                >
-                  <RefreshCw
-                    className={`size-4 ${loadingHistory ? "animate-spin" : ""}`}
-                  />
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            {history.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Журнал пуст.
+            <Button
+              onClick={() => void handleImport()}
+              disabled={!file || importing}
+              className="w-full"
+            >
+              {importing
+                ? "Импорт..."
+                : file
+                  ? "Создать черновик из файла"
+                  : "Импорт"}
+            </Button>
+            {!importResult && file && (
+              <p className="text-xs text-muted-foreground">
+                После импорта будет создан черновик — вы сможете отредактировать
+                позиции и применить пакет.
               </p>
-            ) : (
-              <>
-                <div className="overflow-x-auto rounded-md border">
-                  <table className="w-full min-w-[820px] text-sm">
-                    <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 text-left">Дата</th>
-                        <th className="px-3 py-2 text-left">Тип</th>
-                        <th className="px-3 py-2 text-left">Группа</th>
-                        <th className="px-3 py-2 text-left">День</th>
-                        <th className="px-3 py-2 text-left">Пара</th>
-                        <th className="px-3 py-2 text-left">Предмет</th>
-                        <th className="px-3 py-2 text-left">Преподаватель</th>
-                        <th className="px-3 py-2 text-left">Примечание</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {history.map(item => (
-                        <tr key={item.id}>
-                          <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                            {new Date(item.appliedAt).toLocaleString("ru-RU")}
-                          </td>
-                          <td className="px-3 py-2">
-                            <ChangeTypeBadge type={item.changeType} />
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            {item.groupName}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            {dayLabelFromString(item.dayOfWeek)}
-                          </td>
-                          <td className="px-3 py-2">
-                            {item.removedNumberPair != null &&
-                              (item.changeType === "Replace" || item.changeType === "Move") &&
-                              item.removedNumberPair !== item.numberPair
-                              ? `${item.removedNumberPair} → ${item.numberPair}`
-                              : item.numberPair}
-                          </td>
-                          <td className="px-3 py-2">
-                            {(item.changeType === "Replace" ||
-                              item.changeType === "Move") &&
-                              item.removedSubject ? (
-                              <span className="flex items-center gap-1">
-                                <span className="line-through text-muted-foreground">
-                                  {item.removedSubject}
-                                </span>
-                                <ArrowLeft className="size-3 rotate-180 text-muted-foreground" />
-                                <span className="font-medium">
-                                  {item.subject}
-                                </span>
-                              </span>
-                            ) : (
-                              item.subject
-                            )}
-                          </td>
-                          <td className="px-3 py-2 max-w-[220px] truncate">
-                            {item.teacherName ?? "—"}
-                          </td>
-                          <td className="px-3 py-2 max-w-[200px] truncate text-muted-foreground">
-                            {item.note ?? "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    Стр. {historyPage} из {historyTotalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={historyPage <= 1}
-                      onClick={() => loadHistory(historyPage - 1)}
-                    >
-                      ← Назад
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={historyPage >= historyTotalPages}
-                      onClick={() => loadHistory(historyPage + 1)}
-                    >
-                      Далее →
-                    </Button>
-                  </div>
-                </div>
-              </>
             )}
           </CardContent>
         </Card>
       )}
+
+      {tab === "journal" && renderJournal()}
     </div>
   )
 }

@@ -66,3 +66,69 @@ export interface ChangeTag {
   removedSubject: string | null
   note: string | null
 }
+
+export type CorrectionBatchStatus = "Draft" | "Applied" | "Cancelled"
+export type CorrectionPositionStatus = "Draft" | "Applied"
+
+export interface CorrectionPosition {
+  id: string
+  row: number
+  changeType: CorrectionChangeType
+  groupId: string
+  groupName: string
+  dayOfWeek: number
+  week: number
+  numberPair: number
+  subject: string | null
+  teacherId: string | null
+  teacherName: string | null
+  removedSubject: string | null
+  removedTeacherId: string | null
+  removedTeacherName: string | null
+  removedNumberPair: number | null
+  note: string | null
+  status: CorrectionPositionStatus
+  historyId: string | null
+}
+
+export interface CorrectionBatch {
+  id: string
+  correctionDate: string
+  week: number
+  dayOfWeek: number
+  status: CorrectionBatchStatus
+  createdAt: string
+  positionCount: number
+  positions: CorrectionPosition[]
+}
+
+export interface CreateCorrectionPosition {
+  changeType: CorrectionChangeType
+  groupId: string
+  groupName: string
+  numberPair: number
+  subject: string | null
+  teacherId: string | null
+  teacherName: string | null
+  removedSubject: string | null
+  removedTeacherId: string | null
+  removedTeacherName: string | null
+  removedNumberPair: number | null
+  note: string | null
+}
+
+export interface CorrectionImportResponse {
+  batchId: string | null
+  correctionDate: string
+  week: number
+  dayOfWeek: number
+  totalEntries: number
+  positions: CorrectionPosition[]
+  errors: ScheduleValidationError[]
+}
+
+export interface CorrectionApplyResult {
+  applied: number
+  batchId: string
+  history: ScheduleHistoryItem[]
+}

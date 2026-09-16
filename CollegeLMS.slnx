@@ -3,5 +3,4 @@
     <Project Path="CollegeLMS.API/CollegeLMS.csproj" />
   </Folder>
   <Project Path="CollegeLMS.Tests/CollegeLMS.Tests.csproj" />
-
 </Solution>

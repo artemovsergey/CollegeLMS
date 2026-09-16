@@ -221,15 +221,21 @@ public static class MessageFormatter
     {
         foreach (var tag in entry.ChangeTags)
         {
-            var marker = tag.ChangeType switch
-            {
-                "Add" => "🟢 добавлено",
-                "Remove" => "🔴 снято",
-                "Move" => tag.RemovedNumberPair.HasValue
-                    ? $"🔄 перенос с пары {tag.RemovedNumberPair}"
-                    : "🔄 перенос",
-                _ => "🔵 замена",
-            };
+            var isSelfStudy =
+                tag.ChangeType == "Remove"
+                && string.Equals(tag.Note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
+
+            var marker = isSelfStudy
+                ? "🟣 сам.р. (самостоятельная работа)"
+                : tag.ChangeType switch
+                {
+                    "Add" => "🟢 добавлено",
+                    "Remove" => "🔴 снято",
+                    "Move" => tag.RemovedNumberPair.HasValue
+                        ? $"🔄 перенос с пары {tag.RemovedNumberPair}"
+                        : "🔄 перенос",
+                    _ => "🔵 замена",
+                };
             sb.AppendLine($"    ⚠️ {marker} (нед. {tag.Week})");
         }
     }
@@ -269,6 +275,42 @@ public static class MessageFormatter
             sb.AppendLine(
                 $"📅 Открыть на дату: {MiniAppUrlBuilder.Build(miniAppUrl, "day", date)}"
             );
+
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// Сводное уведомление об изменениях: дата корректировки и все позиции,
+    /// затрагивающие выбор подписчика. Одно сообщение на подписчика.
+    /// </summary>
+    public static string FormatCorrectionDigest(
+        DateTime? correctionDate,
+        List<ScheduleRevision> revisions,
+        string? miniAppUrl
+    )
+    {
+        var date = correctionDate ?? (revisions.Count > 0 ? DateForRevision(revisions[0]) : null);
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("🔔 *Изменения в расписании*");
+        sb.AppendLine();
+        if (date is { } d)
+            sb.AppendLine($"📅 Дата: {d:dd.MM.yyyy}");
+        sb.AppendLine();
+
+        foreach (var r in revisions)
+        {
+            sb.AppendLine($"• {r.GroupName} · {r.DayOfWeek} · Нед. {r.Week} · Пара {r.NumberPair}");
+            sb.AppendLine($"  📖 {r.Subject} — {FormatChangeNotificationTitle(r.ChangeType)}");
+            if (r.TeacherName is not null)
+                sb.AppendLine($"  👨‍🏫 {r.TeacherName}");
+            if (r.Note is not null)
+                sb.AppendLine($"  📝 {r.Note}");
+            sb.AppendLine();
+        }
+
+        if (miniAppUrl is not null && date is { } linkDate)
+            sb.AppendLine($"📅 Открыть: {MiniAppUrlBuilder.Build(miniAppUrl, "day", linkDate)}");
 
         return sb.ToString().TrimEnd();
     }

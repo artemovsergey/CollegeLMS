@@ -1,0 +1,64 @@
+@startuml
+!theme plain
+title Пакет корректировок: применение → история → уведомление подписчиков
+
+actor "Диспетчер" as Dispatcher
+boundary "Фронтенд (Next)" as UI
+participant "CorrectionDraftController" as Ctrl
+participant "CorrectionDraftService" as Draft
+participant "ScheduleCorrectionService" as Svc
+database "PostgreSQL (collegelms)" as DB
+participant "POST /notify (MaxBot)" as Notify
+database "PostgreSQL (collegelms_maxbot)" as MaxDB
+participant "Telegram Bot API" as TG
+actor "Подписчик" as Sub
+
+== Черновик ==
+
+Dispatcher -> UI: «Применить»
+UI -> Ctrl: POST /api/schedule/correction/batches/{id}/apply
+Ctrl -> Draft: ApplyAsync(id, idempotencyKey, appliedByUserId, ct)
+Draft -> Draft: статус = Draft? позиции = Draft? → иначе 409/400
+Draft -> Svc: ApplyEntriesAsync(entries, appliedByUserId, correctionDate, ct)
+
+== Применение (транзакция) ==
+
+Svc -> DB: BEGIN
+loop по позициям
+  Svc -> Svc: валидация (группа/преподаватель/пара/сам.р.)
+  Svc -> DB: Update/Add ScheduleEntry (Remove+сам.р. → неделя сохраняется)
+  Svc -> DB: INSERT INTO schedule_history (note = «сам.р.» для снятия)
+end
+Svc -> DB: COMMIT
+DB --> Svc: List<ScheduleHistory>
+
+== Фиксация пакета ==
+
+Svc --> Draft: Result.Ok(changes)
+Draft -> DB: UPDATE correction_positions (status=Applied, history_id)
+Draft -> DB: UPDATE correction_batches (status=Applied, applied_at)
+DB --> Draft: ok
+
+note over Draft, Notify: Fail-safe — после COMMIT; сбой уведомления не откатывает применение
+
+== Уведомление (агрегированное) ==
+
+Draft -> Notify: POST /notify { changes, correctionDate }
+Notify -> Notify: SelectRecipientsGrouped → группировка по подписчику
+loop по каждому подписчику
+  Notify -> MaxDB: INSERT INTO schedule_revisions (foreign_id, correction_date)
+  Notify -> TG: SendMessage (FormatCorrectionDigest: дата + все позиции)
+  TG --> Sub: 🗓 Корректировка на дату: 3 изменения
+end
+
+== Ответ фронту ==
+
+Ctrl --> UI: 200 Result<CorrectionApplyResult> { applied, batchId, history }
+
+Dispatcher -> UI: «Скачать XLSX»
+UI -> Ctrl: POST /api/schedule/correction/batches/{id}/export
+Ctrl -> Draft: ExportAsync(id, ct)
+Draft -> Svc: ExportManualAsync (ManualCorrectionRow: Move → «вм.X»)
+Ctrl --> UI: File .xlsx (имя с timestamp)
+
+@enduml

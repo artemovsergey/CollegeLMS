@@ -19,6 +19,13 @@ public interface IScheduleCorrectionService
         CancellationToken ct
     );
 
+    Task<Result<List<ScheduleChangeDto>>> ApplyEntriesAsync(
+        List<CorrectionPreviewEntry> entries,
+        Guid appliedByUserId,
+        DateTime? correctionDate,
+        CancellationToken ct
+    );
+
     Task<Result<PagedResponse<ScheduleHistoryResponse>>> GetHistoryAsync(
         Guid? groupId,
         Guid? teacherId,

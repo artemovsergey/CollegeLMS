@@ -43,6 +43,8 @@ public class ScheduleRevisionConfiguration : IEntityTypeConfiguration<ScheduleRe
 
         builder.Property(x => x.RemovedNumberPair).HasColumnName("removed_number_pair");
 
+        builder.Property(x => x.CorrectionDate).HasColumnName("correction_date");
+
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
 
         builder.HasIndex(x => x.GroupName).HasDatabaseName("ix_schedule_revisions_group_name");

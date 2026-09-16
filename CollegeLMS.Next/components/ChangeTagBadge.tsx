@@ -53,10 +53,7 @@ function tagDetail(tag: ChangeTag): string {
 }
 
 function isSelfStudyTag(tag: ChangeTag): boolean {
-  return (
-    (tag.changeType === "Add" || tag.changeType === "Remove") &&
-    tag.note?.trim().toLowerCase() === "сам.р."
-  )
+  return tag.changeType === "Remove" && tag.note?.trim().toLowerCase() === "сам.р."
 }
 
 export default function ChangeTagBadge({ tag }: { tag: ChangeTag }) {

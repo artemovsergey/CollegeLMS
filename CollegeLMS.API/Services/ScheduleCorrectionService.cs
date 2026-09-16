@@ -755,50 +755,17 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         );
         await db.SaveChangesAsync(ct);
 
-        var emptySet = request.Entries.Count == 0;
-        var history = new List<ScheduleHistory>();
         var notifChanges = new List<ScheduleChangeDto>();
 
-        if (!emptySet)
+        if (request.Entries.Count > 0)
         {
-            var validationErrors = await ValidateEntriesAsync(request.Entries, ct);
-            if (validationErrors.Count > 0)
+            var applyResult = await ApplyEntriesAsync(request.Entries, appliedByUserId, null, ct);
+            if (!applyResult.IsSuccess)
                 return Result<CorrectionConfirmResult>.Fail(
-                    string.Join("; ", validationErrors),
-                    400
+                    applyResult.ErrorMessage!,
+                    applyResult.StatusCode
                 );
-
-            await using var tx = await db.Database.BeginTransactionAsync(ct);
-
-            try
-            {
-                foreach (var entry in request.Entries)
-                {
-                    try
-                    {
-                        var applied = await ApplyEntryAsync(entry, appliedByUserId, ct);
-                        history.Add(applied.History);
-                        if (applied.Change is not null)
-                            notifChanges.Add(applied.Change);
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        await tx.RollbackAsync(ct);
-                        return Result<CorrectionConfirmResult>.Fail(
-                            $"Ошибка в строке {entry.Row}: {ex.Message}",
-                            400
-                        );
-                    }
-                }
-
-                await db.SaveChangesAsync(ct);
-                await tx.CommitAsync(ct);
-            }
-            catch
-            {
-                await tx.RollbackAsync(ct);
-                throw;
-            }
+            notifChanges = applyResult.Data!;
         }
 
         // Обновляем количество записей в подтверждении
@@ -807,19 +774,19 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             ct
         );
         if (confirmation is not null)
-            confirmation.HistoryCount = history.Count;
+            confirmation.HistoryCount = notifChanges.Count;
         await db.SaveChangesAsync(ct);
 
         // Оповещение MaxBot — fail-safe, после фиксации транзакции
         if (notifChanges.Count > 0)
             await maxBot.SendChangesAsync(notifChanges, ct);
 
-        if (history.Count == 0)
+        if (notifChanges.Count == 0)
             return Result<CorrectionConfirmResult>.Ok(
                 new CorrectionConfirmResult { Applied = 0, History = [] }
             );
 
-        var ids = history.Select(h => h.Id).ToList();
+        var ids = notifChanges.Select(h => h.Id).ToList();
         var saved = await db
             .ScheduleHistory.AsNoTracking()
             .Include(h => h.Group)
@@ -832,10 +799,64 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         return Result<CorrectionConfirmResult>.Ok(
             new CorrectionConfirmResult
             {
-                Applied = history.Count,
+                Applied = notifChanges.Count,
                 History = saved.Select(h => h.ToDto()).ToList(),
             }
         );
+    }
+
+    /// <summary>
+    /// Применяет список позиций корректировки в одной транзакции.
+    /// Возвращает изменения для уведомления (с Id строки истории).
+    /// </summary>
+    public async Task<Result<List<ScheduleChangeDto>>> ApplyEntriesAsync(
+        List<CorrectionPreviewEntry> entries,
+        Guid appliedByUserId,
+        DateTime? correctionDate,
+        CancellationToken ct
+    )
+    {
+        if (entries.Count == 0)
+            return Result<List<ScheduleChangeDto>>.Ok([]);
+
+        var validationErrors = await ValidateEntriesAsync(entries, ct);
+        if (validationErrors.Count > 0)
+            return Result<List<ScheduleChangeDto>>.Fail(string.Join("; ", validationErrors), 400);
+
+        var changes = new List<ScheduleChangeDto>();
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+        try
+        {
+            foreach (var entry in entries)
+            {
+                try
+                {
+                    var applied = await ApplyEntryAsync(entry, appliedByUserId, correctionDate, ct);
+                    if (applied.Change is not null)
+                        changes.Add(applied.Change);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    await tx.RollbackAsync(ct);
+                    return Result<List<ScheduleChangeDto>>.Fail(
+                        $"Ошибка в строке {entry.Row}: {ex.Message}",
+                        400
+                    );
+                }
+            }
+
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+
+        return Result<List<ScheduleChangeDto>>.Ok(changes);
     }
 
     public async Task<Result<PagedResponse<ScheduleHistoryResponse>>> GetHistoryAsync(
@@ -900,6 +921,12 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
         foreach (var entry in entries)
         {
+            if (IsSelfStudyNote(entry.Note) && entry.ChangeType != ScheduleChangeType.Remove)
+            {
+                errors.Add("Примечание «сам.р.» допустимо только для снятия.");
+                continue;
+            }
+
             var groupExists = await db
                 .Groups.AsNoTracking()
                 .AnyAsync(g => g.Id == entry.GroupId, ct);
@@ -980,6 +1007,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
     private async Task<AppliedEntry> ApplyEntryAsync(
         CorrectionPreviewEntry entry,
         Guid appliedByUserId,
+        DateTime? correctionDate,
         CancellationToken ct
     )
     {
@@ -1032,6 +1060,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                     NumberPair = entry.NumberPair,
                     Subject = entry.Subject ?? string.Empty,
                     Note = entry.Note,
+                    CorrectionDate = correctionDate,
                 };
 
                 return new AppliedEntry(history, change);
@@ -1061,6 +1090,8 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                         $"Занятие на {day} {entry.Week}-й неделе, пара {entry.NumberPair} не найдено."
                     );
 
+// «сам.р.» при снятии: пара остаётся в расписании, неделя не удаляется.
+                // Участвует в учебном процессе, студенты видят бейдж и могут не приходить.
                 if (!IsSelfStudyNote(entry.Note))
                 {
                     target.Weeks = target.Weeks.Where(w => w != entry.Week).ToList();
@@ -1106,6 +1137,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                     NumberPair = target.NumberPair,
                     Subject = target.Subject,
                     Note = entry.Note,
+                    CorrectionDate = correctionDate,
                 };
 
                 return new AppliedEntry(history, change);
@@ -1181,6 +1213,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                     RemovedSubject = removed.Subject,
                     RemovedTeacherName = entry.RemovedTeacherName,
                     RemovedNumberPair = removed.NumberPair,
+                    CorrectionDate = correctionDate,
                 };
 
                 return new AppliedEntry(history, change);

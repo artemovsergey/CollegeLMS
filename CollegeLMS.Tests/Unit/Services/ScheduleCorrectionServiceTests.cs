@@ -457,11 +457,11 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ConfirmAsync_AddSelfStudy_DoesNotCreateOrRemoveScheduleEntry()
+    public async Task ConfirmAsync_AddWithSelfStudyNote_IsRejected()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
-        var existing = await SeedEntryAsync(group.Id, teacher.Id, "Физика", 4, [2]);
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 4, [2]);
 
         var result = await _sut.ConfirmAsync(
             new CorrectionConfirmRequest
@@ -487,11 +487,47 @@ public class ScheduleCorrectionServiceTests : IDisposable
             CancellationToken.None
         );
 
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("сам.р.");
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_RemoveSelfStudy_KeepsEntryAndWeek()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var existing = await SeedEntryAsync(group.Id, teacher.Id, "Физика", 4, [1, 2]);
+
+        var result = await _sut.ConfirmAsync(
+            new CorrectionConfirmRequest
+            {
+                Entries =
+                [
+                    new CorrectionPreviewEntry
+                    {
+                        GroupId = group.Id,
+                        ChangeType = ScheduleChangeType.Remove,
+                        DayOfWeek = 2,
+                        Week = 2,
+                        NumberPair = 4,
+                        RemovedSubject = "Физика",
+                        RemovedTeacherId = teacher.Id,
+                        Note = "сам.р.",
+                    },
+                ],
+            },
+            "test-key",
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
         result.IsSuccess.Should().BeTrue();
-        _db.ScheduleEntries.Should().ContainSingle();
-        _db.ScheduleEntries.Single().Id.Should().Be(existing.Id);
+        var entry = _db.ScheduleEntries.Single();
+        entry.Id.Should().Be(existing.Id);
+        // Неделя не удаляется при сам.р.
+        entry.Weeks.Should().BeEquivalentTo([1, 2]);
         _db.ScheduleHistory.Should()
-            .ContainSingle(h => h.ChangeType == ScheduleChangeType.Add && h.Note == "сам.р.");
+            .ContainSingle(h => h.ChangeType == ScheduleChangeType.Remove && h.Note == "сам.р.");
     }
 
     [Fact]

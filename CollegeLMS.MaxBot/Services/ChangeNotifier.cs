@@ -42,17 +42,22 @@ public class ChangeNotifier
         );
         var settings = await _db.UserSettings.Where(u => u.NotifyEnabled).ToListAsync(ct);
 
-        var recipients = SelectRecipients(settings, groupNames, teacherNames, revisions);
+        var recipients = SelectRecipientsGrouped(settings, groupNames, teacherNames, revisions);
 
-        foreach (var (chatId, revision) in recipients)
+        foreach (var (chatId, recipientRevisions) in recipients)
         {
             try
             {
-                await _max.SendMessageAsync(
-                    chatId,
-                    MessageFormatter.FormatChangeNotification(revision, _miniAppUrl),
-                    ct: ct
+                var date = recipientRevisions
+                    .Select(r => r.CorrectionDate)
+                    .FirstOrDefault(d => d.HasValue);
+
+                var text = MessageFormatter.FormatCorrectionDigest(
+                    date,
+                    recipientRevisions,
+                    _miniAppUrl
                 );
+                await _max.SendMessageAsync(chatId, text, ct: ct);
             }
             catch (Exception ex)
             {
@@ -60,6 +65,23 @@ public class ChangeNotifier
                 _logger.LogWarning(ex, "Не удалось отправить уведомление в чат {ChatId}", chatId);
             }
         }
+    }
+
+    /// <summary>
+    /// Группирует уведомления по чату: подписчик получает одно сообщение
+    /// со всеми позициями корректировки, затрагивающими его выбор.
+    /// </summary>
+    public static List<(long ChatId, List<ScheduleRevision> Revisions)> SelectRecipientsGrouped(
+        List<UserSettings> settings,
+        Dictionary<Guid, string> groupNames,
+        Dictionary<Guid, string> teacherNames,
+        List<ScheduleRevision> revisions
+    )
+    {
+        var flat = SelectRecipients(settings, groupNames, teacherNames, revisions);
+        return flat.GroupBy(x => x.ChatId)
+            .Select(g => (g.Key, g.Select(x => x.Revision).ToList()))
+            .ToList();
     }
 
     /// <summary>
