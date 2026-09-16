@@ -178,7 +178,7 @@ public class MaxBotService : BackgroundService
             await db.SaveChangesAsync(ct);
         }
 
-        await ShowRoleSelectionAsync(chatId, ct);
+        await _max.SendMessageAsync(chatId, "👋 Привет! Я бот расписания.", ct: ct);
     }
 
     private async Task ShowRoleSelectionAsync(long chatId, CancellationToken ct)
