@@ -83,7 +83,7 @@ CollegeLMS.Next/         # Next.js 14 + Tailwind CSS 4 + TypeScript
   components/ui/         # Примитивы shadcn/ui
   components/            # Проектные компоненты
   lib/utils.ts           # Хелпер cn()
-CollegeLMS.TelegramBot/  # Telegram-бот (уведомления)
+CollegeLMS.MaxBot/        # Max мессенджер — бот расписания
 loadbalancer/            # Nginx-балансировщик (Dockerfile, nginx.conf, тестовая страница чата)
 import/                  # Данные импорта
 scripts/                 # Скрипты парсинга WP
@@ -292,7 +292,7 @@ Phase 5: E2E (TesterAgent)
 
 Phase 6: LOCAL VERIFICATION (DevOpsAgent)
   Load: docker-compose-dev, vps-deploy
-  Поднять полный compose:     docker compose up --build -d --profile telegram-bot
+  Поднять полный compose:     docker compose up --build -d --profile max-bot
   Проверить что всё работает: docker compose ps
   Если Docker падает         → исправить
   ⚠️ verification-before-completion: docker compose up --build проходит
@@ -310,7 +310,7 @@ Phase 7: MERGE & DEPLOY (Architect)
   CD на VPS:
     1. git pull
     2. запись .env из GitHub Secrets
-    3. docker compose --profile telegram-bot up --build -d --force-recreate
+    3. docker compose --profile max-bot up --build -d --force-recreate
     4. health check (миграции — автоматически при старте API)
   ```
 
@@ -375,9 +375,25 @@ git push                  → CD deploy сразу в production
 - [ ] Postman-коллекция обновлена в docs/spec/
 - [ ] PlantUML диаграммы сгенерированы — ER, Class, Sequence для фичи
 - [ ] Security threat model проверен (если нужно)
-- [ ] `docker compose up --build -d --profile telegram-bot` работает локально
+- [ ] `docker compose up --build -d --profile max-bot` работает локально
 - [ ] Feature-ветка слита в master
 - [ ] Push в master → CD развернул на VPS
+
+### Обязательный коммит и пуш после выполнения плана
+
+После завершения любого плана (фича, фикс, рефакторинг, изменение конфигурации) — **обязательно** сразу сделать коммит и пуш в удалённый репозиторий. Пуш запустит CI/CD на GitHub Actions (если пуш в master) и CD-деплой на VPS.
+
+Правила:
+- Не оставлять незакоммиченные изменения после завершения плана.
+- Коммит: `git add -A && git commit -m "..."` (префикс `feat:`/`fix:`/`refactor:`/`docs:`/`chore:` и т.д.).
+- Если работа велась в новой feature-ветке — **сначала** слить (merge или rebase) в `master`, затем пушить `master`. Схема:
+  ```
+  git checkout master
+  git merge feature/{service}-{feature}   # или git rebase feature/{service}-{feature}
+  git push origin master                  # → запуск CI/CD
+  ```
+- Пуш только при установленном `GITHUB_TOKEN`/`GH_TOKEN` (см. соглашения по коду).
+- После пуша проверить, что GitHub Actions запустился (`gh run watch` или статус в репозитории).
 
 ## Соглашения по БД
 
@@ -412,8 +428,8 @@ git push                  → CD deploy сразу в production
 Всё окружение (Postgres, Redis, API, фронтенд, nginx) работает в Docker — достаточно Docker Desktop. Локальные SDK (.NET, Node) нужны только для быстрых проверок: `dotnet build` / `dotnet test`, `npm run dev`.
 
 ```powershell
-# Старт полного стека (db + redis + api + frontend + nginx + telegram-bot)
-docker compose up --build -d --profile telegram-bot
+# Старт полного стека (db + redis + api + frontend + nginx + max-bot)
+docker compose up --build -d --profile max-bot
 
 # API доступен через nginx: http://localhost/api/...
 # Swagger: http://localhost/swagger/
@@ -429,7 +445,7 @@ NuGet пакеты кэшируются в named volume `nuget_packages` — н�
 | **Phase 1** | `dotnet build` | Локальная проверка backend |
 | **Phase 1** | `dotnet ef migrations add Add{Name} --project CollegeLMS.API -- --provider Npgsql` | Миграция |
 | **Phase 4** | Открыть `http://localhost/` в браузере | Проверка frontend |
-| **Phase 6** | `docker compose up --build -d --profile telegram-bot` | Локальная проверка compose |
+| **Phase 6** | `docker compose up --build -d --profile max-bot` | Локальная проверка compose |
 | **Format** | `dotnet csharpier format .` | CSharpier |
 | **Stop** | `docker compose down` | Остановить всё |
 

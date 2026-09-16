@@ -21,12 +21,12 @@
 | `CollegeLMS.API/` | Web API — контроллеры, сервисы, EF Core |
 | `CollegeLMS.Next/` | Next.js 14 — публичный сайт + SPA |
 | `CollegeLMS.Tests/` | xUnit — unit + integration тесты |
-| `CollegeLMS.TelegramBot/` | Telegram-бот для расписания |
+| `CollegeLMS.MaxBot/` | Max мессенджер — бот расписания |
 
 ## Быстрый старт
 
 ```bash
-docker compose --profile telegram-bot up --build -d
+docker compose --profile max-bot up --build -d
 ```
 
 - Сайт: http://localhost/

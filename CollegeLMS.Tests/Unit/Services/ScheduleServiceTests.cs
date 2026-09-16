@@ -99,6 +99,67 @@ public class ScheduleServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetAllAsync_DayQueryByDate_ReturnsAllPairsForThatDay()
+    {
+        // Группа с постоянными парами 1–8 на понедельник (все учебные недели)
+        // + пара 6 добавлена корректировкой на 3-ю неделю (Weeks = [3]).
+        var groupId = Guid.NewGuid();
+        _db.Groups.Add(new Group { Id = groupId, Name = "ГР-11", Course = 1 });
+        var basePairs = Enumerable
+            .Range(1, 8)
+            .Select(n => new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = groupId,
+                Subject = $"Предмет {n}",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = n,
+                StartTime = new TimeSpan(9 + n, 0, 0),
+                EndTime = new TimeSpan(10 + n, 20, 0),
+                Weeks = Enumerable.Range(1, 16).ToList(),
+                LessonType = LessonType.Lecture,
+            })
+            .ToList();
+
+        _db.ScheduleEntries.AddRange(basePairs);
+        _db.ScheduleHistory.Add(
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Add,
+                GroupId = groupId,
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 6,
+                Week = 3,
+                Subject = "Физкультура",
+                AppliedAt = DateTime.UtcNow,
+                AppliedByUserId = Guid.NewGuid(),
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        // Понедельник 3-й учебной недели: 2026-09-14.
+        var dayResult = await _sut.GetAllAsync(
+            groupId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            new DateTime(2026, 9, 14),
+            null,
+            null,
+            null,
+            default
+        );
+
+        dayResult.IsSuccess.Should().BeTrue();
+        dayResult.Data!.Items.Should().HaveCount(8);
+        dayResult.Data.Items.Select(i => i.NumberPair).Should().BeEquivalentTo([1, 2, 3, 4, 5, 6, 7, 8]);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_ReturnsEntry_WhenFound()
     {
         var entry = ScheduleEntryFixture.CreateFaker().Generate();

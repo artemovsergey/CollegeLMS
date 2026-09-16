@@ -34,11 +34,10 @@ node "VPS (Cloud.ru)" {
       [shadcn/ui]
     }
 
-    component ".NET 10\nCollegeLMS.TelegramBot" as Bot {
-      port "5030"
+    component ".NET 10\nCollegeLMS.MaxBot" as MaxBot {
       [Schedule Bot]
       [Max Bot]
-      [OpenCode Integration]
+      [Change Notifier]
     }
 
     folder "uploads" as Uploads {

@@ -39,6 +39,19 @@ function addDays(date: Date, days: number): Date {
   return result
 }
 
+function weekOfDate(date: string, semesterStart: string): number {
+  const w1 = mondayOf(parseIsoDate(semesterStart))
+  const currentMonday = mondayOf(parseIsoDate(date))
+  return Math.floor((currentMonday.getTime() - w1.getTime()) / 604800000) + 1
+}
+
+function dateInWeek(date: string, week: number, semesterStart: string): string {
+  const w1 = mondayOf(parseIsoDate(semesterStart))
+  const weekStart = addDays(w1, (week - 1) * 7)
+  const weekdayIndex = (parseIsoDate(date).getDay() + 6) % 7
+  return toIsoDate(addDays(weekStart, weekdayIndex))
+}
+
 function formatDay(value: string): string {
   const date = parseIsoDate(value)
   if (!isValidDate(date)) return ""
@@ -168,8 +181,22 @@ export default function ScheduleView() {
 
   const switchView = (next: "day" | "week") => {
     setView(next)
-    if (next === "week" && selectedWeek === null) {
-      setSelectedWeek(meta?.currentWeek ?? 1)
+    const semesterStart = meta ? normalizeDateOnly(meta.semesterStart) : ""
+    if (next === "week") {
+      // День → Неделя: показать неделю, которой принадлежит выбранная дата.
+      if (semesterStart && selectedDate) {
+        const week = Math.min(
+          Math.max(1, weekOfDate(selectedDate, semesterStart)),
+          meta?.totalWeeks ?? 16,
+        )
+        setSelectedWeek(week)
+      } else if (selectedWeek === null) {
+        setSelectedWeek(meta?.currentWeek ?? 1)
+      }
+    } else if (semesterStart && selectedWeek !== null) {
+      // Неделя → День: сохранить день недели, перенеся его в выбранную неделю,
+      // чтобы день и неделя показывали один и тот же период расписания.
+      setSelectedDate(dateInWeek(selectedDate, selectedWeek, semesterStart))
     }
   }
 
@@ -199,7 +226,7 @@ export default function ScheduleView() {
     <MaxUI className="max-schedule">
       <main className="max-app__page">
         <header className="max-app__page-title">
-          <div>
+          <div className="max-schedule__context">
             {contextName ? (
               <Typography.Body className="max-app__muted">
                 {contextName}
@@ -262,16 +289,18 @@ export default function ScheduleView() {
               </label>
             )}
           </div>
-          <Button
-            variant="secondary"
-            size="small"
-            aria-label="Следующий период"
-            onClick={() => navigate(1)}
-            iconAfter={<ChevronRight size={16} aria-hidden />}
-          />
-          <Button variant="secondary" size="small" onClick={goToday}>
-            Сегодня
-          </Button>
+          <div className="max-schedule__nav-actions">
+            <Button
+              variant="secondary"
+              size="small"
+              aria-label="Следующий период"
+              onClick={() => navigate(1)}
+              iconAfter={<ChevronRight size={16} aria-hidden />}
+            />
+            <Button variant="secondary" size="small" onClick={goToday}>
+              Сегодня
+            </Button>
+          </div>
         </div>
 
         {contextLoading ? (

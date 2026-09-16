@@ -23,7 +23,7 @@ jobs:
 
             echo "=== Stop all containers ==="
             cd /home/user1/CollegeLMS
-            docker compose --profile telegram-bot down --remove-orphans || true
+            docker compose down --remove-orphans || true
 
             echo "=== Remove ALL unused images ==="
             docker image prune -af || true

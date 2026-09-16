@@ -162,17 +162,14 @@ http://stvcc.ru/wp-json/wp/v2/pages?per_page=100&_fields=id,parent,title,slug,li
 17. Сервис отдела кадров (HrService)
 - учет личных дел сотрудников
 
-18. Telegram-бот (CollegeLMS.TelegramBot)
+18. Бот Max (CollegeLMS.MaxBot)
 
 Базовые требования:
 - бот Max (Макс): просмотр расписания по группе/преподавателю, inline-кнопки навигации
-- бот Telegram: интерфейс для взаимодействия с OpenCode (установлен на VPS отдельно от compose)
-- интеграция с OpenCode Server API (HTTP + SSE) — OpenCode как внешний dev-tool, не сервис LMS
-- диспетчер может управлять расписанием через веб-приложение и рассылать уведомления группам через ботов
-- запросы разрешений агента прокидываются в мессенджер (inline keyboard Allow/Deny)
+- диспетчер может управлять расписанием через веб-приложение и рассылать уведомления группам через бот
 - конфигурация через env vars, Docker контейнер в docker-compose
 
-Стек: .NET 10, Telegram.Bot NuGet, Max REST API
+Стек: .NET 10, Max REST API
 
 19. Сервис аналитики сайта (AnalyticsService)
 

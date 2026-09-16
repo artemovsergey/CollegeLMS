@@ -114,10 +114,7 @@ export default function SearchSheet({
         />
       </div>
 
-      <label className="max-app__field">
-        <span className="max-app__form-label">
-          Группа или преподаватель
-        </span>
+      <div className="max-app__field">
         <Input
           id="max-search-input"
           autoFocus
@@ -127,7 +124,7 @@ export default function SearchSheet({
           onChange={(e) => setQuery(e.target.value)}
           iconBefore={<Search size={18} aria-hidden />}
         />
-      </label>
+      </div>
 
       {loading ? (
         <div className="max-app__state">
