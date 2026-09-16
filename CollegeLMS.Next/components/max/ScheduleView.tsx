@@ -283,6 +283,16 @@ export default function ScheduleView() {
                 <input
                   type="date"
                   value={selectedDate}
+                  onClick={(e) => {
+                    // Нативный пикер открывается только при получении фокуса.
+                    // showPicker() принудительно открывает на каждый тап,
+                    // даже когда input уже сфокусирован после прошлого открытия.
+                    try {
+                      e.currentTarget.showPicker()
+                    } catch {
+                      // Без поддержки showPicker пикер откроется нативным кликом.
+                    }
+                  }}
                   onChange={(e) => {
                     if (e.target.value) {
                       setView("day")
