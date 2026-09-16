@@ -1,6 +1,6 @@
 import type { LessonType } from "@/types/schedule"
 import type { ScheduleResponse } from "@/types/schedule"
-import { toDateFromTime } from "@/api/schedule"
+import { isValidDate, parseIsoDate, toDateFromTime } from "@/api/schedule"
 
 export const WEEKDAYS = [
   { value: 1, label: "Пн", full: "Понедельник" },
@@ -27,6 +27,24 @@ export function dayLabelFromInt(dayOfWeek: number): string {
 
 export function dayLabelFromString(dayOfWeek: string): string {
   return DAY_RU[dayOfWeek] ?? dayOfWeek
+}
+
+export function formatDay(value: string): string {
+  const date = parseIsoDate(value)
+  if (!isValidDate(date)) return ""
+  return date.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+  })
+}
+
+// Склонение «пар»: 1 пара, 2 пары, 5 пар (с учётом 11–14).
+export function pluralPairs(n: number): string {
+  const mod10 = n % 10
+  const mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) return "пара"
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "пары"
+  return "пар"
 }
 
 export function formatTime(value: string): string {

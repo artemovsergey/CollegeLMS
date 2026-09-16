@@ -2,10 +2,18 @@
 
 import type { ScheduleResponse } from "@/types/schedule"
 import { DAYS } from "@/types/schedule"
+import { parseIsoDate, toIsoDate } from "@/api/schedule"
+import { formatDay, pluralPairs } from "@/lib/max-lesson"
 import DayFeed from "@/components/max/DayFeed"
 
 // Порядок дней недели: Пн → Сб, затем Воскресенье (резерв).
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
+
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
 
 function isoDayOfWeek(date: Date): number {
   const day = date.getDay()
@@ -14,11 +22,11 @@ function isoDayOfWeek(date: Date): number {
 
 export default function WeekFeed({
   entries,
-  rangeLabel,
+  weekStart,
   highlightToday = false,
 }: {
   entries: ScheduleResponse[]
-  rangeLabel: string
+  weekStart: string
   highlightToday?: boolean
 }) {
   const byDay = new Map<number, ScheduleResponse[]>()
@@ -29,20 +37,23 @@ export default function WeekFeed({
   }
 
   const today = isoDayOfWeek(new Date())
+  const weekStartDate = parseIsoDate(weekStart)
 
   return (
     <div className="max-week">
-      <div className="max-week__range">{rangeLabel}</div>
-      {DAY_ORDER.map((dayValue) => {
+      {DAY_ORDER.map((dayValue, index) => {
         const list = byDay.get(dayValue)
         const day = DAYS.find((d) => d.value === dayValue)
+        const dayDate = formatDay(toIsoDate(addDays(weekStartDate, index)))
         if (!list || list.length === 0) {
           return (
             <div key={dayValue} className="max-week__day max-week__day--empty">
               <span className="max-week__day--strong">
                 {day?.full ?? String(dayValue)}
               </span>
-              <span className="max-app__note">нет пар</span>
+              <span className="max-app__note">
+                {dayDate} · нет пар
+              </span>
             </div>
           )
         }
@@ -56,7 +67,9 @@ export default function WeekFeed({
                 <span className="max-week__day--strong">
                   {day?.full ?? String(dayValue)}
                 </span>
-                <span className="max-app__note">{list.length} пар</span>
+                <span className="max-app__note">
+                  {dayDate} · {list.length} {pluralPairs(list.length)}
+                </span>
               </div>
             }
           />

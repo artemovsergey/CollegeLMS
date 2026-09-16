@@ -353,18 +353,24 @@
 
 /* Навигация расписания */
 .max-schedule__nav {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.max-schedule__page-actions {
+  display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.max-schedule__nav-side {
+.max-schedule__nav-info {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 4px;
   min-width: 0;
+  gap: 6px;
 }
 
 .max-schedule__nav-actions {
@@ -373,15 +379,6 @@
   justify-content: flex-end;
   gap: 4px;
   min-width: 0;
-}
-
-.max-schedule__nav-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 0;
-  text-align: center;
 }
 
 .max-schedule__nav-label {
@@ -408,15 +405,22 @@
   }
 }
 
-/* Скрытый date-input: календарь открывается по клику на иконку */
-.max-schedule__date-input {
+/* Календарь: нативный input поверх иконки, picker открывается кликом */
+.max-schedule__date-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.max-schedule__date-field input {
+  z-index: 1;
   position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .max-schedule__view-switch {
@@ -450,12 +454,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.max-week__range {
-  font-size: 13px;
-  color: #6b7280;
-  text-align: center;
 }
 
 .max-week__day {

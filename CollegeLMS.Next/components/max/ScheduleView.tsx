@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight, Search, CalendarDays } from "lucide-react"
 import {
   Button,
@@ -21,6 +21,7 @@ import type { ScheduleMeta } from "@/api/schedule"
 import type { ScheduleResponse } from "@/types/schedule"
 import { useMaxContext } from "@/lib/max-context"
 import { parseMaxDeepLink } from "@/lib/max-deeplink"
+import { formatDay } from "@/lib/max-lesson"
 import DayFeed from "@/components/max/DayFeed"
 import WeekFeed from "@/components/max/WeekFeed"
 import ScheduleEmpty from "@/components/max/ScheduleEmpty"
@@ -52,15 +53,6 @@ function dateInWeek(date: string, week: number, semesterStart: string): string {
   return toIsoDate(addDays(weekStart, weekdayIndex))
 }
 
-function formatDay(value: string): string {
-  const date = parseIsoDate(value)
-  if (!isValidDate(date)) return ""
-  return date.toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-  })
-}
-
 export default function ScheduleView() {
   const { viewContext, loading: contextLoading } = useMaxContext()
   const [view, setView] = useState<"day" | "week">("week")
@@ -71,21 +63,6 @@ export default function ScheduleView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
-  const dateInputRef = useRef<HTMLInputElement>(null)
-
-  const openDatePicker = () => {
-    const el = dateInputRef.current
-    if (!el) return
-    if (typeof el.showPicker === "function") {
-      try {
-        el.showPicker()
-      } catch {
-        el.focus()
-      }
-    } else {
-      el.focus()
-    }
-  }
 
   useEffect(() => {
     let cancelled = false
@@ -184,6 +161,14 @@ export default function ScheduleView() {
     return `${formatDay(toIsoDate(start))} – ${formatDay(toIsoDate(end))}`
   }, [meta, selectedWeek])
 
+  const weekStartIso = useMemo(() => {
+    if (!meta || selectedWeek === null) return ""
+    const semesterStart = normalizeDateOnly(meta.semesterStart)
+    if (!semesterStart) return ""
+    const w1 = mondayOf(parseIsoDate(semesterStart))
+    return toIsoDate(addDays(w1, (selectedWeek - 1) * 7))
+  }, [meta, selectedWeek])
+
   const dateIsToday = selectedDate === toIsoDate(new Date())
   const isCurrentWeek =
     meta !== null && selectedWeek === meta.currentWeek
@@ -248,59 +233,53 @@ export default function ScheduleView() {
               </Typography.Body>
             ) : null}
           </div>
-          <div className="max-schedule__view-switch" role="tablist" aria-label="Вид расписания">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === "week"}
-              className={`max-schedule__view-tab ${
-                view === "week" ? "max-schedule__view-tab--active" : ""
-              }`}
-              onClick={() => switchView("week")}
-            >
-              Неделя
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === "day"}
-              className={`max-schedule__view-tab ${
-                view === "day" ? "max-schedule__view-tab--active" : ""
-              }`}
-              onClick={() => switchView("day")}
-            >
-              День
-            </button>
+          <div className="max-schedule__page-actions">
+            <Button variant="secondary" size="small" onClick={goToday}>
+              Сегодня
+            </Button>
+            <div className="max-schedule__view-switch" role="tablist" aria-label="Вид расписания">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "week"}
+                className={`max-schedule__view-tab ${
+                  view === "week" ? "max-schedule__view-tab--active" : ""
+                }`}
+                onClick={() => switchView("week")}
+              >
+                Неделя
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "day"}
+                className={`max-schedule__view-tab ${
+                  view === "day" ? "max-schedule__view-tab--active" : ""
+                }`}
+                onClick={() => switchView("day")}
+              >
+                День
+              </button>
+            </div>
           </div>
         </header>
 
         <div className="max-schedule__nav">
-          <div className="max-schedule__nav-side">
-            <Button
-              variant="secondary"
-              size="small"
-              aria-label="Предыдущий период"
-              onClick={() => navigate(-1)}
-              iconBefore={<ChevronLeft size={16} aria-hidden />}
-            />
-          </div>
-          <div className="max-schedule__nav-title">
+          <div className="max-schedule__nav-info">
             {view === "week" ? (
               <Typography.Body className="max-schedule__nav-label">
                 <strong>{selectedWeek ? `Неделя ${selectedWeek}` : ""}</strong>
                 <span className="max-app__note">{weekRange}</span>
               </Typography.Body>
             ) : (
-              <>
+              <div className="max-schedule__date-field">
                 <Button
                   variant="secondary"
                   size="small"
                   aria-label="Выбрать дату"
-                  onClick={openDatePicker}
                   iconBefore={<CalendarDays size={16} aria-hidden />}
                 />
                 <input
-                  ref={dateInputRef}
                   type="date"
                   value={selectedDate}
                   onChange={(e) => {
@@ -309,14 +288,19 @@ export default function ScheduleView() {
                       setSelectedDate(e.target.value)
                     }
                   }}
-                  className="max-schedule__date-input"
-                  tabIndex={-1}
-                  aria-hidden="true"
+                  aria-label="Выбрать дату"
                 />
-              </>
+              </div>
             )}
           </div>
           <div className="max-schedule__nav-actions">
+            <Button
+              variant="secondary"
+              size="small"
+              aria-label="Предыдущий период"
+              onClick={() => navigate(-1)}
+              iconBefore={<ChevronLeft size={16} aria-hidden />}
+            />
             <Button
               variant="secondary"
               size="small"
@@ -324,9 +308,6 @@ export default function ScheduleView() {
               onClick={() => navigate(1)}
               iconAfter={<ChevronRight size={16} aria-hidden />}
             />
-            <Button variant="secondary" size="small" onClick={goToday}>
-              Сегодня
-            </Button>
           </div>
         </div>
 
@@ -365,7 +346,7 @@ export default function ScheduleView() {
         ) : view === "week" ? (
           <WeekFeed
             entries={entries}
-            rangeLabel={weekRange}
+            weekStart={weekStartIso}
             highlightToday={isCurrentWeek}
           />
         ) : (
