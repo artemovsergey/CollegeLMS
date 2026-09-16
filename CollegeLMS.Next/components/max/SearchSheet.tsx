@@ -103,8 +103,7 @@ export default function SearchSheet({
       aria-modal="true"
       aria-label="Поиск"
     >
-      <div className="max-app__sheet-head">
-        <Typography.Title>Поиск</Typography.Title>
+      <div className="max-app__sheet-head max-app__sheet-head--bare">
         <Button
           size="small"
           variant="ghost"

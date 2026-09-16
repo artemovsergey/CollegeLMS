@@ -353,22 +353,49 @@
 
 /* Навигация расписания */
 .max-schedule__nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+}
+
+.max-schedule__nav-side {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  min-width: 0;
 }
 
 .max-schedule__nav-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
 }
 
 .max-schedule__nav-title {
-  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
   text-align: center;
-  min-width: 120px;
+}
+
+.max-schedule__nav-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.max-schedule__nav-label .max-app__note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 400px) {
@@ -376,28 +403,20 @@
     gap: 6px;
   }
 
-  .max-schedule__nav-title {
-    order: -1;
-    flex-basis: 100%;
-  }
-
   .max-app__page-title h1 {
     font-size: 18px;
   }
 }
 
-.max-schedule__date-field {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-primary);
-}
-
-.max-schedule__date-field input {
-  border: none;
-  background: transparent;
-  font: inherit;
-  color: inherit;
+/* Скрытый date-input: календарь открывается по клику на иконку */
+.max-schedule__date-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .max-schedule__view-switch {
@@ -474,6 +493,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.max-app__sheet-head--bare {
+  justify-content: flex-end;
 }
 
 .max-app__sheet-actions {

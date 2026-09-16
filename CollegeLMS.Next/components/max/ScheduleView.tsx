@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, Search, CalendarDays } from "lucide-react"
 import {
   Button,
@@ -71,6 +71,21 @@ export default function ScheduleView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
+  const dateInputRef = useRef<HTMLInputElement>(null)
+
+  const openDatePicker = () => {
+    const el = dateInputRef.current
+    if (!el) return
+    if (typeof el.showPicker === "function") {
+      try {
+        el.showPicker()
+      } catch {
+        el.focus()
+      }
+    } else {
+      el.focus()
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -260,23 +275,32 @@ export default function ScheduleView() {
         </header>
 
         <div className="max-schedule__nav">
-          <Button
-            variant="secondary"
-            size="small"
-            aria-label="Предыдущий период"
-            onClick={() => navigate(-1)}
-            iconBefore={<ChevronLeft size={16} aria-hidden />}
-          />
+          <div className="max-schedule__nav-side">
+            <Button
+              variant="secondary"
+              size="small"
+              aria-label="Предыдущий период"
+              onClick={() => navigate(-1)}
+              iconBefore={<ChevronLeft size={16} aria-hidden />}
+            />
+          </div>
           <div className="max-schedule__nav-title">
             {view === "week" ? (
-              <Typography.Body>
-                <strong>{selectedWeek ? `Неделя ${selectedWeek}` : ""}</strong>{" "}
+              <Typography.Body className="max-schedule__nav-label">
+                <strong>{selectedWeek ? `Неделя ${selectedWeek}` : ""}</strong>
                 <span className="max-app__note">{weekRange}</span>
               </Typography.Body>
             ) : (
-              <label className="max-schedule__date-field">
-                <CalendarDays size={16} aria-hidden />
+              <>
+                <Button
+                  variant="secondary"
+                  size="small"
+                  aria-label="Выбрать дату"
+                  onClick={openDatePicker}
+                  iconBefore={<CalendarDays size={16} aria-hidden />}
+                />
                 <input
+                  ref={dateInputRef}
                   type="date"
                   value={selectedDate}
                   onChange={(e) => {
@@ -285,8 +309,11 @@ export default function ScheduleView() {
                       setSelectedDate(e.target.value)
                     }
                   }}
+                  className="max-schedule__date-input"
+                  tabIndex={-1}
+                  aria-hidden="true"
                 />
-              </label>
+              </>
             )}
           </div>
           <div className="max-schedule__nav-actions">
@@ -356,7 +383,7 @@ export default function ScheduleView() {
             onClick={() => setSearchOpen(true)}
             iconBefore={<Search size={18} aria-hidden />}
           >
-            Поиск группы или преподавателя
+            Поиск
           </Button>
         ) : null}
       </main>
