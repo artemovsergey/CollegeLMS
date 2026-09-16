@@ -3,7 +3,7 @@ using CollegeLMS.API.Entities;
 
 namespace CollegeLMS.API.Mappers;
 
-public static class CorrectionDraftMapper
+public static class CorrectionBatchMapper
 {
     public static CorrectionPositionResponse ToDto(this CorrectionPosition position) =>
         new()

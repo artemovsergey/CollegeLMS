@@ -4,7 +4,7 @@
 
 **Goal:** Persist dispatcher corrections as batch+position entities, add "сам.р." per-week badge semantics for Remove, aggregate MaxBot notifications per subscriber.
 
-**Architecture:** Two new entities `CorrectionBatch` (header) + `CorrectionPosition` (row) with a new `CorrectionDraftService`/`ICorrectionDraftService` and a `CorrectionDraftController`. Apply logic reused from `ScheduleCorrectionService.ApplyEntryAsync`. MaxBot aggregates revisions per recipient.
+**Architecture:** Two new entities `CorrectionBatch` (header) + `CorrectionPosition` (row) with a new `CorrectionBatchService`/`ICorrectionBatchService` and a `CorrectionBatchController`. Apply logic reused from `ScheduleCorrectionService.ApplyEntryAsync`. MaxBot aggregates revisions per recipient.
 
 **Tech Stack:** .NET 10, ASP.NET Core Web API, EF Core (Npgsql, snake_case), FluentValidation, ClosedXML, Next.js 14 + Tailwind 4.
 
@@ -56,11 +56,11 @@ Verification: `dotnet build` + `dotnet ef migrations add`.
 ### Task 2: DTOs + mapper + interface + service + controller + DI
 
 **Files:**
-- Create: `CollegeLMS.API/Dtos/CorrectionDraftDtos.cs`
-- Create: `CollegeLMS.API/Mappers/CorrectionDraftMapper.cs`
-- Create: `CollegeLMS.API/Interfaces/ICorrectionDraftService.cs`
-- Create: `CollegeLMS.API/Services/CorrectionDraftService.cs`
-- Create: `CollegeLMS.API/Controllers/CorrectionDraftController.cs`
+- Create: `CollegeLMS.API/Dtos/CorrectionBatchDtos.cs`
+- Create: `CollegeLMS.API/Mappers/CorrectionBatchMapper.cs`
+- Create: `CollegeLMS.API/Interfaces/ICorrectionBatchService.cs`
+- Create: `CollegeLMS.API/Services/CorrectionBatchService.cs`
+- Create: `CollegeLMS.API/Controllers/CorrectionBatchController.cs`
 - Modify: `CollegeLMS.API/Extensions/ServiceCollectionExtensions.cs` (DI)
 - Modify: `CollegeLMS.API/Services/ScheduleCorrectionService.cs` (extract reusable apply helpers)
 
@@ -82,7 +82,7 @@ Endpoints (route `api/schedule/correction/batches`):
 
 Modify `ScheduleCorrectionService.ApplyEntryAsync` Remove branch: if `IsSelfStudyNote(entry.Note)` → do NOT remove week from `ScheduleEntry.Weeks`, keep entry, still record `ScheduleHistory` (ChangeType=Remove, Note="сам.р."). Add validation: "сам.р." only valid for Remove.
 
-Frontend badge: extend `ChangeTagBadge` + `MessageFormatter.AppendChangeMarkers` to render self-study badge when note == "сам.р." regardless of ChangeType.
+Frontend badge: extend `ChangeTagBadge` + `MessageFormatter.AppendChangeMarkers` to render self-study badge for Remove when note == "сам.р.".
 
 ---
 
@@ -96,7 +96,7 @@ Frontend badge: extend `ChangeTagBadge` + `MessageFormatter.AppendChangeMarkers`
 
 ### Task 5: Tests
 
-- Unit: `CorrectionDraftService` (validation, сам.р.), `ChangeNotifier.SelectRecipients` (aggregation), `MessageFormatter` digest.
+- Unit: `CorrectionBatchService` (validation, сам.р.), `ChangeNotifier.SelectRecipients` (aggregation), `MessageFormatter` digest.
 - Integration (WebApplicationFactory): batch/position CRUD, apply flow.
 
 ---
@@ -106,7 +106,7 @@ Frontend badge: extend `ChangeTagBadge` + `MessageFormatter.AppendChangeMarkers`
 - `api/correction.ts`: add batch/position API functions.
 - `types/correction.ts`: batch/position types.
 - New components: `CorrectionBatchList`, `CorrectionPositionEditor`, `RemovePairPicker`.
-- Rework `dispatcher/correction/page.tsx` tabs: Черновики / Редактор / Импорт / Журнал.
+- Rework `dispatcher/correction/page.tsx` tabs: Пакеты / Редактор / Импорт / Журнал.
 - `ChangeTagBadge`: сам.р. badge for Remove.
 
 ---

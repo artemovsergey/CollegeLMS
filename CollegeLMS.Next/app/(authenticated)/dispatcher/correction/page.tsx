@@ -14,6 +14,7 @@ import {
   ArrowRightLeft,
   RefreshCw,
   ArrowLeft,
+  Package,
 } from "lucide-react"
 import { importCorrection, getHistory } from "@/api/correction"
 import { extractErrorMessage } from "@/lib/utils"
@@ -84,10 +85,10 @@ function ChangeTypeBadge({ type }: { type: CorrectionChangeType }) {
   )
 }
 
-type Tab = "drafts" | "editor" | "import" | "journal"
+type Tab = "batches" | "editor" | "import" | "journal"
 
 const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
-  { key: "drafts", label: "Черновики", icon: History },
+  { key: "batches", label: "Пакеты", icon: Package },
   { key: "editor", label: "Редактор", icon: FileSpreadsheet },
   { key: "import", label: "Импорт", icon: Upload },
   { key: "journal", label: "Журнал", icon: History },
@@ -95,7 +96,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
 
 export default function DispatcherCorrectionPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [tab, setTab] = useState<Tab>("drafts")
+  const [tab, setTab] = useState<Tab>("batches")
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
@@ -183,7 +184,7 @@ export default function DispatcherCorrectionPage() {
   const handleEditorExit = () => {
     setRefreshKey((k) => k + 1)
     setSelectedBatchId(null)
-    setTab("drafts")
+    setTab("batches")
   }
 
   const renderJournal = () => (
@@ -339,7 +340,7 @@ export default function DispatcherCorrectionPage() {
         </div>
       </div>
 
-      {tab === "drafts" && (
+      {tab === "batches" && (
         <CorrectionBatchList onOpen={openBatch} refreshKey={refreshKey} />
       )}
 
@@ -353,7 +354,7 @@ export default function DispatcherCorrectionPage() {
         ) : (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Откройте черновик из списка, чтобы редактировать его позиции.
+              Откройте пакет из списка, чтобы редактировать его позиции.
             </CardContent>
           </Card>
         ))}
@@ -404,7 +405,7 @@ export default function DispatcherCorrectionPage() {
               <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 grid gap-2">
                 <p className="flex items-center gap-1 text-sm font-semibold text-destructive">
                   <AlertCircle className="size-3" />
-                  Файл содержит ошибки ({importResult.errors.length}) — черновик не
+                  Файл содержит ошибки ({importResult.errors.length}) — пакет не
                   создан
                 </p>
                 <div className="max-h-40 overflow-y-auto text-xs space-y-1">

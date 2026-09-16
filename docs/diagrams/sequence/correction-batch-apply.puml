@@ -1,11 +1,11 @@
-@startuml
+﻿@startuml
 !theme plain
 title Пакет корректировок: применение → история → уведомление подписчиков
 
 actor "Диспетчер" as Dispatcher
 boundary "Фронтенд (Next)" as UI
-participant "CorrectionDraftController" as Ctrl
-participant "CorrectionDraftService" as Draft
+participant "CorrectionBatchController" as Ctrl
+participant "CorrectionBatchService" as Draft
 participant "ScheduleCorrectionService" as Svc
 database "PostgreSQL (collegelms)" as DB
 participant "POST /notify (MaxBot)" as Notify
@@ -13,7 +13,7 @@ database "PostgreSQL (collegelms_maxbot)" as MaxDB
 participant "Telegram Bot API" as TG
 actor "Подписчик" as Sub
 
-== Черновик ==
+== Подготовленный пакет ==
 
 Dispatcher -> UI: «Применить»
 UI -> Ctrl: POST /api/schedule/correction/batches/{id}/apply

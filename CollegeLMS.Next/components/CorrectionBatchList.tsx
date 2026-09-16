@@ -37,7 +37,7 @@ const STATUS_META: Record<
   { label: string; className: string }
 > = {
   Draft: {
-    label: "Черновик",
+    label: "Подготовлен",
     className:
       "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
   },
@@ -83,7 +83,7 @@ export default function CorrectionBatchList({
 }: CorrectionBatchListProps) {
   const [batches, setBatches] = useState<CorrectionBatch[]>([])
   const [statusFilter, setStatusFilter] = useState<
-    CorrectionBatchStatus | "All" | "Draft"
+    CorrectionBatchStatus | "All"
   >("All")
   const [loading, setLoading] = useState(false)
   const [date, setDate] = useState(todayIso())
@@ -95,7 +95,7 @@ export default function CorrectionBatchList({
     try {
       setBatches(await getBatches())
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Ошибка загрузки черновиков")
+      toast.error(extractErrorMessage(err) ?? "Ошибка загрузки пакетов")
     } finally {
       setLoading(false)
     }
@@ -113,26 +113,26 @@ export default function CorrectionBatchList({
     setCreating(true)
     try {
       const batch = await createBatch(date)
-      toast.success("Черновик создан")
+      toast.success("Пакет создан")
       await load()
       onOpen(batch.id)
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось создать черновик")
+      toast.error(extractErrorMessage(err) ?? "Не удалось создать пакет")
     } finally {
       setCreating(false)
     }
   }
 
   const handleDelete = async (batch: CorrectionBatch) => {
-    if (!window.confirm(`Удалить черновик за ${formatDate(batch.correctionDate)}?`))
+    if (!window.confirm(`Удалить пакет за ${formatDate(batch.correctionDate)}?`))
       return
     setBusyId(batch.id)
     try {
       await deleteBatch(batch.id)
-      toast.success("Черновик удалён")
+      toast.success("Пакет удалён")
       await load()
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось удалить черновик")
+      toast.error(extractErrorMessage(err) ?? "Не удалось удалить пакет")
     } finally {
       setBusyId(null)
     }
@@ -185,7 +185,7 @@ export default function CorrectionBatchList({
         <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
           <span className="flex items-center gap-2">
             <FolderPlus className="size-4" />
-            Черновики корректировок
+            Пакеты корректировок
           </span>
           <Button
             variant="outline"
@@ -209,7 +209,7 @@ export default function CorrectionBatchList({
             />
           </label>
           <Button onClick={() => void handleCreate()} disabled={creating}>
-            {creating ? "Создание..." : "Создать черновик"}
+            {creating ? "Создание..." : "Создать пакет"}
           </Button>
         </div>
 
@@ -217,7 +217,7 @@ export default function CorrectionBatchList({
           {(
             [
               ["All", "Все"],
-              ["Draft", "Черновики"],
+              ["Draft", "Подготовленные"],
               ["Applied", "Применённые"],
             ] as const
           ).map(([key, label]) => (
@@ -233,7 +233,7 @@ export default function CorrectionBatchList({
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState message="Черновиков пока нет. Создайте черновик по дате или импортируйте XLSX на вкладке «Импорт»." />
+          <EmptyState message="Пакетов пока нет. Создайте пакет по дате или импортируйте XLSX на вкладке «Импорт»." />
         ) : (
           <div className="overflow-x-auto rounded-md border">
             <table className="w-full min-w-[760px] text-sm">

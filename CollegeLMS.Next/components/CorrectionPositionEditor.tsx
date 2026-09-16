@@ -356,7 +356,7 @@ export default function CorrectionPositionEditor({
         <CardContent className="py-8">
           <EmptyState message="Пакет не найден." />
           <Button variant="outline" className="mt-4" onClick={onBack}>
-            <ArrowLeft className="size-4 mr-2" /> К черновикам
+            <ArrowLeft className="size-4 mr-2" /> К пакетам
           </Button>
         </CardContent>
       </Card>
@@ -384,7 +384,7 @@ export default function CorrectionPositionEditor({
                   : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
               }
             >
-              {batchIsDraft ? "Черновик" : "Применён"}
+              {batchIsDraft ? "Подготовлен" : "Применён"}
             </Badge>
           </span>
           <div className="flex flex-wrap gap-2">

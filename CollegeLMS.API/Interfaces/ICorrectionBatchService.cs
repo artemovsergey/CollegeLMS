@@ -5,7 +5,7 @@ using CollegeLMS.API.Response;
 
 namespace CollegeLMS.API.Interfaces;
 
-public interface ICorrectionDraftService
+public interface ICorrectionBatchService
 {
     Task<Result<CorrectionBatchResponse>> CreateBatchAsync(
         CreateCorrectionBatchRequest request,

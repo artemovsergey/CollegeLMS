@@ -14,7 +14,7 @@ import { WEEKDAYS } from "@/lib/max-lesson"
 import { NoteChips } from "@/components/NoteChips"
 import ConfirmOpsSheet from "@/components/max/ConfirmOpsSheet"
 
-type DraftOp = {
+type PreparedOp = {
   key: number
   changeType: CorrectionChangeType
   groupId: string
@@ -67,7 +67,7 @@ export default function DispatcherManual({
   const [removedPair, setRemovedPair] = useState<number | null>(null)
   const [note, setNote] = useState("")
 
-  const [ops, setOps] = useState<DraftOp[]>([])
+  const [ops, setOps] = useState<PreparedOp[]>([])
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -170,7 +170,7 @@ export default function DispatcherManual({
     setNote("")
   }
 
-  const toEntry = (op: DraftOp, row: number): CorrectionPreviewEntry => {
+  const toEntry = (op: PreparedOp, row: number): CorrectionPreviewEntry => {
     const common = {
       row,
       groupId: op.groupId,

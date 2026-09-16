@@ -1090,7 +1090,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                         $"Занятие на {day} {entry.Week}-й неделе, пара {entry.NumberPair} не найдено."
                     );
 
-// «сам.р.» при снятии: пара остаётся в расписании, неделя не удаляется.
+                // «сам.р.» при снятии: пара остаётся в расписании, неделя не удаляется.
                 // Участвует в учебном процессе, студенты видят бейдж и могут не приходить.
                 if (!IsSelfStudyNote(entry.Note))
                 {

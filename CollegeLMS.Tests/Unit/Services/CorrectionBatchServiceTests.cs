@@ -10,17 +10,17 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CollegeLMS.Tests.Unit.Services;
 
-public class CorrectionDraftServiceTests : IDisposable
+public class CorrectionBatchServiceTests : IDisposable
 {
     private readonly AppDbContext _db;
-    private readonly CorrectionDraftService _sut;
+    private readonly CorrectionBatchService _sut;
 
-    public CorrectionDraftServiceTests()
+    public CorrectionBatchServiceTests()
     {
         _db = TestDbContextFactory.Create();
         var maxBot = new MaxBotHttpClient(new HttpClient(), NullLogger<MaxBotHttpClient>.Instance);
         var correctionService = new ScheduleCorrectionService(_db, maxBot);
-        _sut = new CorrectionDraftService(_db, correctionService, maxBot);
+        _sut = new CorrectionBatchService(_db, correctionService, maxBot);
     }
 
     public void Dispose() => _db.Dispose();

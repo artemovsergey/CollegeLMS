@@ -208,7 +208,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ScheduleExportService>();
         services.AddScoped<ScheduleImportService>();
         services.AddScoped<IScheduleCorrectionService, ScheduleCorrectionService>();
-        services.AddScoped<ICorrectionDraftService, CorrectionDraftService>();
+        services.AddScoped<ICorrectionBatchService, CorrectionBatchService>();
         services.AddScoped<IDocumentsService, DocumentsService>();
         services.AddScoped<IFavoritesService, FavoritesService>();
         services.AddScoped<INotificationSettingsService, NotificationSettingsService>();

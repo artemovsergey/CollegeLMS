@@ -11,13 +11,13 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace CollegeLMS.API.Controllers;
 
 /// <summary>
-/// Черновики корректировок: пакеты и позиции, импорт XLSX, экспорт, применение.
+/// Пакеты корректировок: пакеты и позиции, импорт XLSX, экспорт, применение.
 /// </summary>
 [ApiController]
 [Route("api/schedule/correction/batches")]
 [Produces("application/json")]
 [Authorize(Roles = "Dispatcher,Admin")]
-public class CorrectionDraftController(ICorrectionDraftService service) : ControllerBase
+public class CorrectionBatchController(ICorrectionBatchService service) : ControllerBase
 {
     /// <summary>Создать пакет корректировки по дате (вычисляет неделю и день недели).</summary>
     [HttpPost]

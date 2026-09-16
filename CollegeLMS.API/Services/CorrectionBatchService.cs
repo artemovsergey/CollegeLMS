@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class CorrectionDraftService(
+public class CorrectionBatchService(
     AppDbContext db,
     IScheduleCorrectionService correctionService,
     MaxBotHttpClient maxBot
-) : ICorrectionDraftService
+) : ICorrectionBatchService
 {
     private static bool IsSelfStudyNote(string? note) =>
         string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);

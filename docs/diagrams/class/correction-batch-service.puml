@@ -1,8 +1,8 @@
-@startuml
+﻿@startuml
 !theme plain
 title Корректировки: пакеты и позиции — Class
 
-interface ICorrectionDraftService {
+interface ICorrectionBatchService {
   + CreateBatchAsync(request, createdByUserId, ct): Result<CorrectionBatchResponse>
   + GetBatchesAsync(status?, ct): Result<List<CorrectionBatchResponse>>
   + GetBatchAsync(id, ct): Result<CorrectionBatchResponse>
@@ -15,7 +15,7 @@ interface ICorrectionDraftService {
   + ApplyAsync(batchId, idempotencyKey, appliedByUserId, ct): Result<CorrectionApplyResult>
 }
 
-class CorrectionDraftService {
+class CorrectionBatchService {
   - db: AppDbContext
   - correctionService: IScheduleCorrectionService
   - maxBot: MaxBotHttpClient
@@ -34,8 +34,8 @@ class CorrectionDraftService {
   - ToManualRow(p: CorrectionPosition): ManualCorrectionRow
 }
 
-class CorrectionDraftController {
-  - service: ICorrectionDraftService
+class CorrectionBatchController {
+  - service: ICorrectionBatchService
   + CreateBatch(request, ct): ActionResult   // POST /api/schedule/correction/batches
   + GetBatches(status, ct): ActionResult     // GET /api/schedule/correction/batches
   + GetBatch(id, ct): ActionResult           // GET /api/schedule/correction/batches/{id}
@@ -82,11 +82,11 @@ class CorrectionPosition {
   + HistoryId: Guid?
 }
 
-ICorrectionDraftService <|.. CorrectionDraftService
-CorrectionDraftController --> ICorrectionDraftService
-CorrectionDraftService --> IScheduleCorrectionService : ApplyEntriesAsync/Preview/Export
-CorrectionDraftService --> MaxBotHttpClient : SendChangesAsync (после apply)
-CorrectionDraftService --> CorrectionBatch : CRUD
-CorrectionDraftService --> CorrectionPosition : CRUD
+ICorrectionBatchService <|.. CorrectionBatchService
+CorrectionBatchController --> ICorrectionBatchService
+CorrectionBatchService --> IScheduleCorrectionService : ApplyEntriesAsync/Preview/Export
+CorrectionBatchService --> MaxBotHttpClient : SendChangesAsync (после apply)
+CorrectionBatchService --> CorrectionBatch : CRUD
+CorrectionBatchService --> CorrectionPosition : CRUD
 CorrectionBatch o--o{ CorrectionPosition : positions
 @enduml
