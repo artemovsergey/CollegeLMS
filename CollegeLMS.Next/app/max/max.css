@@ -1,12 +1,58 @@
 .max-app {
-  --color-bg: #f7f8fa;
-  --color-card: #ffffff;
-  --color-border: #e5e7eb;
-  --color-fg: #191c20;
-  --color-primary: #2563eb;
+  /* Светлая и тёмная схемы заданы вручную (палитра max-ui),
+     т.к. max-ui рендерится только на клиенте и его токены не
+     наследуются на этот корневой элемент. Схема определяется тем же
+     matchMedia('(prefers-color-scheme: dark)'), что и у max-ui. */
+  --background-surface-ground: #edeef2;
+  --background-surface-card: #ffffff;
+  --background-surface-secondary: #f0f0f0;
+  --background-surface-tertiary: #f6f6f6;
+  --stroke-secondary: rgba(12, 13, 14, 0.52);
+  --text-primary: #0c0d0e;
+  --text-secondary: rgba(12, 13, 14, 0.52);
+  --text-tertiary: rgba(12, 13, 14, 0.4);
+  --accent-themed: #007aff;
+  --text-themed: #007aff;
+  --text-positive: #1abe43;
+  --text-negative: #ff303c;
+  --background-accent-attention-primary: #ff9315;
+  --background-button-secondary: #e9ebf1;
+
+  --color-bg: var(--background-surface-ground);
+  --color-card: var(--background-surface-card);
+  --color-border: var(--stroke-secondary);
+  --color-fg: var(--text-primary);
+  --color-primary: var(--accent-themed);
+  --color-text-muted: var(--text-secondary);
+  --color-text-faint: var(--text-tertiary);
+  --color-surface-subtle: var(--background-surface-tertiary);
+  --color-tint-primary: color-mix(in srgb, var(--accent-themed) 14%, var(--background-surface-card));
+  --color-tint-positive: color-mix(in srgb, var(--text-positive) 15%, var(--background-surface-card));
+  --color-tint-negative: color-mix(in srgb, var(--text-negative) 15%, var(--background-surface-card));
+  --color-tint-attention: color-mix(in srgb, var(--background-accent-attention-primary) 18%, var(--background-surface-card));
+  --color-tint-violet: color-mix(in srgb, #8b5cf6 15%, var(--background-surface-card));
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-fg);
+}
+
+@media (prefers-color-scheme: dark) {
+  .max-app {
+    --background-surface-ground: #17181c;
+    --background-surface-card: #25262d;
+    --background-surface-secondary: #1e1f24;
+    --background-surface-tertiary: #25262d;
+    --stroke-secondary: hsla(0, 0%, 100%, 0.44);
+    --text-primary: hsla(0, 0%, 100%, 0.8);
+    --text-secondary: hsla(0, 0%, 100%, 0.44);
+    --text-tertiary: hsla(0, 0%, 100%, 0.28);
+    --accent-themed: #007aff;
+    --text-themed: #007aff;
+    --text-positive: #2bc644;
+    --text-negative: #ce4257;
+    --background-accent-attention-primary: #ff9f0a;
+    --background-button-secondary: #434455;
+  }
 }
 
 .max-app__content {
@@ -40,7 +86,7 @@
   min-height: 56px;
   min-width: 0;
   padding: 6px 4px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   transition: color 0.15s ease;
   text-decoration: none;
 }
@@ -95,7 +141,7 @@
 }
 
 .max-app__muted {
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .max-app__state {
@@ -109,7 +155,7 @@
 }
 
 .max-app__state-icon {
-  color: #9ca3af;
+  color: var(--color-text-faint);
 }
 
 .max-app__switch {
@@ -123,7 +169,7 @@
   height: 24px;
   appearance: none;
   border-radius: 999px;
-  background: #d1d5db;
+  background: var(--background-button-secondary);
   position: relative;
   cursor: pointer;
   transition: background 0.15s ease;
@@ -198,28 +244,28 @@
 }
 
 .max-app__badge--add {
-  color: #047857;
-  background: #d1fae5;
+  color: var(--text-positive);
+  background: var(--color-tint-positive);
 }
 
 .max-app__badge--remove {
-  color: #b91c1c;
-  background: #fee2e2;
+  color: var(--text-negative);
+  background: var(--color-tint-negative);
 }
 
 .max-app__badge--replace {
-  color: #1d4ed8;
-  background: #dbeafe;
+  color: var(--text-themed);
+  background: var(--color-tint-primary);
 }
 
 .max-app__badge--move {
-  color: #b45309;
-  background: #fef3c7;
+  color: var(--background-accent-attention-primary);
+  background: var(--color-tint-attention);
 }
 
 .max-app__badge--selfstudy {
-  color: #6d28d9;
-  background: #ede9fe;
+  color: #8b5cf6;
+  background: var(--color-tint-violet);
 }
 
 .max-app__change-chip {
@@ -228,7 +274,7 @@
   gap: 2px;
   font-size: 11px;
   font-weight: 600;
-  color: #b45309;
+  color: var(--background-accent-attention-primary);
 }
 
 .max-app__time-buttons {
@@ -246,14 +292,14 @@
 
 .max-app__note {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .max-app__success-box {
   padding: 12px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
+  background: var(--color-tint-positive);
+  border: 1px solid color-mix(in srgb, var(--text-positive) 45%, transparent);
+  color: var(--text-positive);
   border-radius: 12px;
   font-size: 14px;
 }
@@ -293,7 +339,7 @@
 }
 
 .max-app__favorite {
-  color: #9ca3af;
+  color: var(--color-text-faint);
 }
 
 .max-app__favorite--on {
@@ -310,7 +356,7 @@
   height: 40px;
   border-radius: 10px;
   border: 1px solid transparent;
-  background: #f3f4f6;
+  background: var(--color-surface-subtle);
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
@@ -319,12 +365,12 @@
 
 .max-schedule__pair--current {
   border-color: var(--color-primary);
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--color-tint-primary);
+  color: var(--text-themed);
 }
 
 .max-schedule__cell--current {
-  background: #eff6ff;
+  background: var(--color-tint-primary);
 }
 
 .max-schedule__subtitle {
@@ -426,7 +472,7 @@
 .max-schedule__view-switch {
   display: inline-flex;
   gap: 2px;
-  background: #eef0f3;
+  background: var(--color-surface-subtle);
   border-radius: 10px;
   padding: 2px;
 }
@@ -439,7 +485,7 @@
   font-weight: 600;
   padding: 6px 10px;
   border-radius: 8px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
@@ -469,7 +515,7 @@
 
 .max-week__day--empty {
   padding: 8px 4px;
-  color: #9ca3af;
+  color: var(--color-text-faint);
 }
 
 /* Шторка поиска */
@@ -509,15 +555,15 @@
   align-items: flex-start;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid #fecaca;
-  background: #fef2f2;
+  border: 1px solid color-mix(in srgb, var(--text-negative) 45%, transparent);
+  background: var(--color-tint-negative);
   border-radius: 12px;
 }
 
 .max-app__confirm-error-icon {
   flex-shrink: 0;
   margin-top: 2px;
-  color: #b91c1c;
+  color: var(--text-negative);
 }
 
 /* Фильтр недели в ленте изменений */
@@ -567,14 +613,14 @@
   background: var(--color-card);
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
 .max-app__day-toggle-label--on {
-  background: #dbeafe;
-  border-color: #93c5fd;
-  color: #1d4ed8;
+  background: var(--color-tint-primary);
+  border-color: color-mix(in srgb, var(--accent-themed) 45%, transparent);
+  color: var(--text-themed);
 }
 
 .max-app__hint {
@@ -584,7 +630,7 @@
 }
 
 .max-app__error {
-  color: #b91c1c;
+  color: var(--text-negative);
   font-size: 14px;
 }
 
@@ -620,8 +666,8 @@
 
 .max-app__errors {
   padding: 12px;
-  border: 1px solid #fecaca;
-  background: #fef2f2;
+  border: 1px solid color-mix(in srgb, var(--text-negative) 45%, transparent);
+  background: var(--color-tint-negative);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -663,7 +709,7 @@
 .max-app__form-label {
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .max-app__picked {
@@ -707,7 +753,7 @@
 
 .max-app__option--on {
   border-color: var(--color-primary);
-  background: #eff6ff;
+  background: var(--color-tint-primary);
 }
 
 .max-app__ops {
