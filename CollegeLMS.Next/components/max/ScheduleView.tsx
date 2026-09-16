@@ -19,9 +19,10 @@ import {
 } from "@/api/schedule"
 import type { ScheduleMeta } from "@/api/schedule"
 import type { ScheduleResponse } from "@/types/schedule"
+import { DAYS } from "@/types/schedule"
 import { useMaxContext } from "@/lib/max-context"
 import { parseMaxDeepLink } from "@/lib/max-deeplink"
-import { formatDay } from "@/lib/max-lesson"
+import { formatDay, pluralPairs } from "@/lib/max-lesson"
 import DayFeed from "@/components/max/DayFeed"
 import WeekFeed from "@/components/max/WeekFeed"
 import ScheduleEmpty from "@/components/max/ScheduleEmpty"
@@ -353,7 +354,19 @@ export default function ScheduleView() {
           <DayFeed
             entries={entries}
             today={dateIsToday}
-            header={<span>{formatDay(selectedDate)}</span>}
+            header={
+              <div className="max-week__day">
+                <span className="max-week__day--strong">
+                  {DAYS.find(
+                    (d) => d.value === parseIsoDate(selectedDate).getDay(),
+                  )?.full ?? ""}
+                </span>
+                <span className="max-app__note">
+                  {formatDay(selectedDate)} · {entries.length}{" "}
+                  {pluralPairs(entries.length)}
+                </span>
+              </div>
+            }
           />
         )}
 
