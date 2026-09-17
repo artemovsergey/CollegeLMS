@@ -129,9 +129,9 @@ Check phase progress per feature following the Full Feature Cycle from AGENTS.md
 
 Check that all agents are configured with proper model and description.
 
-- [ ] Read `opencode.json` — `agent.subagent` section
-- [ ] List all agents: BackendAgent, FrontendAgent, TesterAgent, AnalystAgent, DevOpsAgent
-- [ ] Verify each has `model` and `description` fields
+- [ ] List agent files: `.opencode/agent/*.md` (5 ожидаемых: BackendAgent, FrontendAgent, TesterAgent, AnalystAgent, DevOpsAgent)
+- [ ] Verify each has `mode: subagent`, `model` and `description` во frontmatter
+- [ ] Verify each agent's `model` exists в `opencode models`
 - [ ] Verify descriptions match actual role responsibilities from AGENTS.md
 
 **Pass:** All 5 agents configured with model and description
@@ -144,7 +144,7 @@ Check that all agents are configured with proper model and description.
 
 Check model consistency across all agent configurations.
 
-- [ ] Extract model names from all agent configs
+- [ ] Extract model names from frontmatter `.opencode/agent/*.md` и `opencode.json`
 - [ ] Check consistency: all agents use same model
 - [ ] Verify model name matches available models
 

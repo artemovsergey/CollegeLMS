@@ -69,7 +69,7 @@ jobs:
               echo "OPENCODE_SERVER_URL=http://host.docker.internal:4096"
               echo "OPENCODE_USERNAME=opencode"
               echo "OPENCODE_PASSWORD="
-              echo "OPENCODE_DEFAULT_MODEL=opencode/deepseek-v4-flash-free"
+              echo "OPENCODE_DEFAULT_MODEL=opencode-go/deepseek-v4.1-flash"
             } > .env
 
             echo "=== Stop old containers ==="

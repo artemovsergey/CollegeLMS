@@ -27,6 +27,7 @@ appsettings.*.local.json
 .mimocode/
 .opencode/*
 !.opencode/skills/
+!.opencode/agent/
 .impeccable/
 .superpowers/   
 # Generated lock files

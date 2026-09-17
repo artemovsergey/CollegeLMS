@@ -35,37 +35,13 @@
             "description": "Run full project analysis — spec, user stories, plugins, MCP, skills, readiness, phases, agents, models"
         }
     },
-    "agent": {
-        "subagent": {
-            "BackendAgent": {
-                "model": "deepseek-v4-flash-free",
-                "description": "Backend .NET developer. Creates entities, EF Core migrations, services, controllers, DTOs, mappers, validators, Swagger docs. Uses skills: dotnet-entity, dotnet-endpoint, result-pattern, fluent-validation, swagger-docs, aspnet-core. Runs: dotnet build."
-            },
-            "FrontendAgent": {
-                "model": "deepseek-v4-flash-free",
-                "description": "Frontend Next.js developer. Creates pages, components, API integration, Tailwind CSS v4, shadcn/ui, Lucide icons. Uses skills: nextjs-page, design-system, impeccable. Runs: npm run dev."
-            },
-            "TesterAgent": {
-                "model": "deepseek-v4-flash-free",
-                "description": "Test engineer. Creates xUnit unit tests (Moq + Bogus), integration tests (WebApplicationFactory), Playwright E2E tests. Uses skills: dotnet-test, test-driven-development, systematic-debugging, playwright, playwright-interactive. Runs: dotnet test, npx playwright test."
-            },
-            "AnalystAgent": {
-                "model": "deepseek-v4-flash-free",
-                "description": "Technical analyst. Creates PlantUML diagrams (ER, Class, Sequence, UseCase, Deployment), tech documentation, security threat models. Uses skills: plantuml-docs, security-threat-model."
-            },
-            "DevOpsAgent": {
-                "model": "deepseek-v4-flash-free",
-                "description": "DevOps engineer. Creates Dockerfiles, docker-compose, nginx config, GitHub Actions CI/CD, VPS deploy, Sentry monitoring. Uses skills: cicd-pipeline, docker-compose-dev, vps-deploy, gh-fix-ci, sentry. Runs: docker compose build."
-            }
-        }
-    },
     "provider": {
         "routerai": {
             "npm": "@ai-sdk/openai-compatible",
             "name": "RouterAI",
             "options": {
                 "baseURL": "https://routerai.ru/api/v1",
-                "apiKey": "sk-g6Nc2pOm1zY3ZKznwSYBycBBYZKIisFe"
+                "apiKey": "{env:ROUTERAI_API_KEY}"
             },
             "models": {
                 "z-ai/glm-5.3": {"name": "GLM 5.3"},
@@ -74,5 +50,5 @@
             }
         }
     },
-    "model": "z-ai/glm-5.3"
+    "model": "opencode-go/deepseek-v4.1-flash"
 }
