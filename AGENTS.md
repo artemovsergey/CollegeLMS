@@ -122,12 +122,13 @@ scripts/                 # Скрипты парсинга WP
 
 | Роль | Модель | Обоснование |
 |------|--------|-------------|
-| Architect (primary, Build) | `opencode-go/deepseek-v4.1-flash` | дешёвая рабочая лошадка, лимит ×4 |
-| Plan mode | `opencode-go/gpt-5.6-luna` | лучший дешёвый на русских ТЗ (РуБенч: 75.4% pass@1) |
-| BackendAgent | `opencode-go/glm-5.3` | лучшее измеренное комбо с OpenCode (AA Index: 53.6) |
+| Architect (primary, Build) | `opencode-go/deepseek-v4.1-flash` | дешёвая рабочая лошадка, лимит ×4; llm-stats: coding 44.2 (топ-5) при $0.24/M |
+| Plan mode | `opencode-go/gpt-5.6-luna` | РуБенч: 75.4% pass@1 на русских ТЗ; компромисс — llm-stats coding #20 (36.3), поэтому Luna только для планирования |
+| BackendAgent | `opencode-go/glm-5.3` | AA Index: 53.6 (лучшее комбо с OpenCode); llm-stats: coding 42.6, strong multilingual |
 | FrontendAgent, TesterAgent, AnalystAgent, DevOpsAgent | `opencode-go/deepseek-v4.1-flash` | цена/скорость на рутине |
 
-> Источники: vibecoding.ru/benchmarks/coding-agents (AA Index), vibecoding.ru/rubench. Доступность моделей проверять через `opencode models`.
+> Источники: vibecoding.ru/benchmarks/coding-agents (AA Index), vibecoding.ru/rubench, llm-stats.com (LLM Stats Score + coding-лидерборд). Доступность моделей проверять через `opencode models`.
+> Не берём: Kimi K3 (лимит 110 req/5ч — мало для агентов), Muse Spark 1.3 Contributor (contributor-сборка — данные уходят в обучение Meta).
 
 ### Поддержка dispatch по платформам
 
