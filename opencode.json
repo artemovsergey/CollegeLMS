@@ -58,5 +58,6 @@
             "model": "opencode-go/gpt-5.6-luna"
         }
     },
+    "lsp": {},
     "model": "opencode-go/deepseek-v4.1-flash"
 }

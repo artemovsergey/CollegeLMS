@@ -22,6 +22,7 @@
 - DB: PostgreSQL 16
 - Cache: Redis (только сессии) — контейнер поднят в compose, интеграция в коде ещё не реализована
 - Deploy: Docker Compose, GitHub Actions: deploy.yml (CD) + quality.yml (dotnet build, csharpier --check, frontend build; тесты — локально)
+- LSP: включены встроенные серверы (C# через .NET SDK, TypeScript, ESLint) — секция `lsp` в opencode.json
 - Files: локальная ФС (позже MinIO)
 
 ## Архитектура
