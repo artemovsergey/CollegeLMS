@@ -64,10 +64,6 @@ rectangle "Max" {
   [Max REST API] as MaxApi
 }
 
-rectangle "OpenCode Server" as OC {
-  [SSE / HTTP API]
-}
-
 GHA --> Nginx: git push → SSH deploy
 Repo --> GHA: push trigger
 WP --> API: WordPress import (UC-6)
@@ -81,5 +77,4 @@ Nginx --> API: /api/ → .NET
 Nginx --> API: /swagger → Swagger
 Bot --> MaxApi: Max REST API (уведомления, мини-приложение)
 Bot --> API: Schedule data
-Bot --> OC: OpenCode integration
 @enduml
