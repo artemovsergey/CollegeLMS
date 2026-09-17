@@ -9,7 +9,6 @@ import { siteNavigation } from "@/data/site-content"
 
 const socialLinks = [
   { href: "https://vk.com/stvcc_stav", label: "ВКонтакте", icon: "vk" },
-  { href: "https://t.me/stvcc", label: "Telegram", icon: "tg" },
   { href: "https://max.ru/id2634028465_gos", label: "Max", icon: "max" },
 ]
 
@@ -18,13 +17,6 @@ function SocialIcon({ icon, className }: { icon: string; className?: string }) {
     return (
       <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
         <path fillRule="evenodd" clipRule="evenodd" d="M12.612 18C6.177 18 2.506 13.588 2.353 6.248h3.224c.106 5.388 2.482 7.67 4.364 8.14v-8.14h3.035v4.647c1.86-.2 3.812-2.318 4.47-4.647h3.036c-.506 2.87-2.623 4.988-4.13 5.858 1.506.706 3.918 2.553 4.836 5.894h-3.341c-.718-2.235-2.506-3.964-4.87-4.2V18h-.365z"/>
-      </svg>
-    )
-  }
-  if (icon === "tg") {
-    return (
-      <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M20.665 3.717l-17.73 6.837c-1.21.486-1.203 1.16-.222 1.462l4.552 1.42L17.797 6.79c.498-.303.953-.14.579.192l-8.533 7.7h-.002l.002.002-.314 4.692c.46 0 .663-.211.921-.46l2.211-2.15 4.599 3.397c.848.467 1.457.227 1.668-.785L21.947 5.15c.309-1.24-.473-1.8-1.282-1.434z"/>
       </svg>
     )
   }

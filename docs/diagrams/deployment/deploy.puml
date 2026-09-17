@@ -60,8 +60,8 @@ rectangle "stvcc.ru\n(WordPress)" as WP {
   [REST API]
 }
 
-rectangle "Telegram" {
-  [Telegram API] as TG
+rectangle "Max" {
+  [Max REST API] as MaxApi
 }
 
 rectangle "OpenCode Server" as OC {
@@ -79,7 +79,7 @@ Frontend --> API: REST API + JWT
 Nginx --> Frontend: / → Next.js
 Nginx --> API: /api/ → .NET
 Nginx --> API: /swagger → Swagger
-Bot --> TG: Telegram API
+Bot --> MaxApi: Max REST API (уведомления, мини-приложение)
 Bot --> API: Schedule data
 Bot --> OC: OpenCode integration
 @enduml

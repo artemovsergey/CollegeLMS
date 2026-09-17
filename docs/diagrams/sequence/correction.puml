@@ -10,7 +10,7 @@ participant "ScheduleImportService" as Import
 database "PostgreSQL (collegelms)" as DB
 participant "POST /notify (MaxBot)" as Notify
 database "PostgreSQL (collegelms_maxbot)" as MaxDB
-participant "Telegram Bot API" as TG
+participant "Max REST API\n(мессенджер Max)" as Max
 actor "Подписчик" as Sub
 
 == Превью импорта ==
@@ -46,16 +46,16 @@ note over Svc, Notify: Fail-safe — после COMMIT, try-catch, не влия
 Ctrl -> Notify: POST /notify\n{ changes: [ { id, groupId, changeType, ... } ] }
 Notify -> Notify: SelectRecipients (NotifyEnabled, NotifyDays, имена группы/преподавателя)
 Notify -> MaxDB: INSERT INTO schedule_revisions (foreign_id = change.id)
-Notify -> TG: SendMessage (формат FormatChangeNotification)
-TG --> Sub: 🔔 Изменение в расписании …
+Notify -> Max: SendMessage (формат FormatChangeNotification)
+Max --> Sub: 🔔 Изменение в расписании …
 
 note over Notify: fail-safe: при сбое — лог, подтверждение уже закоммичено
 
 == Запрос «Мои изменения» ==
 
-Sub -> UI (Telegram): «🔄 Мои изменения» (payload changes)
+Sub -> UI (Max): «🔄 Мои изменения» (payload changes)
 Notify -> Notify: ShowMyChangesAsync (группа/преподаватель по настройке)
 Notify -> MaxDB: SELECT * FROM schedule_revisions\nWHERE group_name = @g ORDER BY created_at DESC LIMIT 20
 MaxDB --> Notify: List<ScheduleRevision>
-Notify -> TG: SendMessage (FormatMyChanges, кнопки навигации)
+Notify -> Max: SendMessage (FormatMyChanges, кнопки навигации)
 @enduml

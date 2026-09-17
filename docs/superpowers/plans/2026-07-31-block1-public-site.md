@@ -44,11 +44,10 @@ import { siteNavigation } from "@/data/site-content"
 
 const socialLinks = [
   { href: "https://vk.com/stvcc_stav", label: "ВКонтакте", icon: "vk" },
-  { href: "https://t.me/stvcc", label: "Telegram", icon: "tg" },
   { href: "https://max.ru/id2634028465_gos", label: "Max", icon: "max" },
 ]
 
-// SocialIcon: оставить РОВНО как в текущем файле (vk/tg/max SVG) — без изменений
+// SocialIcon: оставить РОВНО как в текущем файле (vk/max SVG) — без изменений
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)

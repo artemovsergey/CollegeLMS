@@ -56,7 +56,7 @@
 
 ## B4: Social icons 1:1 с TPU
 
-Скопировать SVG-иконки социальных сетей с tpu.ru (VK, Telegram, YouTube, возможно Rutube). Точные копии по размеру, цвету, пропорциям.
+Скопировать SVG-иконки социальных сетей с tpu.ru (VK, YouTube, возможно Rutube). Точные копии по размеру, цвету, пропорциям.
 
 ## C1: Logo original sizes
 

@@ -5,7 +5,7 @@
 
 ## Контекст
 
-Дорабатываем фичу корректировок расписания тремя срезами: **A** — веб-форма (`ManualCorrectionForm.tsx`), **B** — backend (новый endpoint subjects + валидация confirm), **C** — Telegram mini-app бот (`DispatcherManual`, `DayFeed`/`WeekFeed`, `ChangesView`, `SearchSheet`, `MaxShell`). Пункты 1, 2, 6 (группа, № пары, добавление/удаление строк) уже реализованы и сохраняются.
+Дорабатываем фичу корректировок расписания тремя срезами: **A** — веб-форма (`ManualCorrectionForm.tsx`), **B** — backend (новый endpoint subjects + валидация confirm), **C** — мини-приложение MAX (`DispatcherManual`, `DayFeed`/`WeekFeed`, `ChangesView`, `SearchSheet`, `MaxShell`). Пункты 1, 2, 6 (группа, № пары, добавление/удаление строк) уже реализованы и сохраняются.
 
 Проверено при исследовании:
 - `ScheduleResponse` уже содержит `ChangeTags` (backend `ScheduleDtos.cs` + маппер `ScheduleMapper.ToDto` со списком тегов) — пункт 11 готов на backend, не готов рендер в `DayFeed`/`WeekFeed` (пп. 13, 18).

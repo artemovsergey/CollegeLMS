@@ -5,7 +5,7 @@
 ## Контекст
 
 - **Web** (`CollegeLMS.Next/components/ManualCorrectionForm.tsx`) — форма ручной корректировки для диспетчера в веб-версии (вкладка «Корректировки»).
-- **Бот** (`CollegeLMS.Next/components/max/DispatcherManual.tsx`) — форма ручной корректировки в Telegram mini-app MAX.
+- **Бот** (`CollegeLMS.Next/components/max/DispatcherManual.tsx`) — форма ручной корректировки в мини-приложении MAX.
 - **Backend** — `ScheduleCorrectionService` (export/preview/confirm/history), `ScheduleService` (журнал, subjects), `ScheduleController`.
 - Диспетчерский функционал доступен ролям `Dispatcher,Admin`.
 
