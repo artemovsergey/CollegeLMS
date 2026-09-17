@@ -52,6 +52,11 @@
 |--------|------------|---------|
 | `playwright` | Визуальная отладка, E2E-тесты, инспекция DOM, скриншоты | да |
 | `github` | Официальный remote MCP (`api.githubcopilot.com/mcp`, Bearer `GITHUB_TOKEN`) — PR, issues, checks, ветки | да |
+| `context7` | Актуальные доки библиотек (Next.js, Tailwind, EF Core) — remote `mcp.context7.com/mcp` | да |
+| `ms_learn` | Официальная документация Microsoft (.NET, ASP.NET Core, EF Core) — remote `learn.microsoft.com/api/mcp` | да |
+| `chrome_devtools` | Perf, консоль, сеть в Chrome — локальный `chrome-devtools-mcp` | да |
+
+> Локальные MCP ставятся глобально: `npm i -g @playwright/mcp@0.0.81 chrome-devtools-mcp@1.9.0` (npx-запуск на Windows медленный и упирается в таймаут).
 
 ## Плагин (Superpowers)
 
@@ -112,6 +117,17 @@ scripts/                 # Скрипты парсинга WP
 | **FrontendAgent** | Сабагент | impeccable, design-system, nextjs-page | Страницы/компоненты Next.js, интеграция API, Tailwind, shadcn/ui |
 | **AnalystAgent** | Сабагент | plantuml-docs, security-threat-model | Диаграммы PlantUML (ER, Class, Sequence, UseCase, Deployment), техдокументация, threat modeling |
 | **DevOpsAgent** | Сабагент | docker-compose-dev, vps-deploy, cicd-pipeline, gh-fix-ci | Docker, nginx, CI/CD пайплайны, деплой на VPS |
+
+### Модели
+
+| Роль | Модель | Обоснование |
+|------|--------|-------------|
+| Architect (primary, Build) | `opencode-go/deepseek-v4.1-flash` | дешёвая рабочая лошадка, лимит ×4 |
+| Plan mode | `opencode-go/gpt-5.6-luna` | лучший дешёвый на русских ТЗ (РуБенч: 75.4% pass@1) |
+| BackendAgent | `opencode-go/glm-5.3` | лучшее измеренное комбо с OpenCode (AA Index: 53.6) |
+| FrontendAgent, TesterAgent, AnalystAgent, DevOpsAgent | `opencode-go/deepseek-v4.1-flash` | цена/скорость на рутине |
+
+> Источники: vibecoding.ru/benchmarks/coding-agents (AA Index), vibecoding.ru/rubench. Доступность моделей проверять через `opencode models`.
 
 ### Поддержка dispatch по платформам
 

@@ -10,8 +10,9 @@
     "mcp": {
         "playwright": {
             "type": "local",
-            "command": ["npx", "-y", "@playwright/mcp"],
+            "command": ["playwright-mcp"],
             "enabled": true,
+            "timeout": 120000,
             "environment": {
                 "PLAYWRIGHT_BROWSERS_PATH": "0"
             }
@@ -24,6 +25,22 @@
             "headers": {
                 "Authorization": "Bearer {env:GITHUB_TOKEN}"
             }
+        },
+        "context7": {
+            "type": "remote",
+            "url": "https://mcp.context7.com/mcp",
+            "enabled": true
+        },
+        "ms_learn": {
+            "type": "remote",
+            "url": "https://learn.microsoft.com/api/mcp",
+            "enabled": true
+        },
+        "chrome_devtools": {
+            "type": "local",
+            "command": ["chrome-devtools-mcp"],
+            "enabled": true,
+            "timeout": 120000
         }
     },
     "command": {
@@ -34,6 +51,11 @@
         "analyze": {
             "template": "Загрузи skill analyze и выполни полный анализ проекта по всем 9 разделам. Выведи отчёт с индикаторами ✅/❌/⚠️ и сводной таблицей.",
             "description": "Run full project analysis — spec, user stories, plugins, MCP, skills, readiness, phases, agents, models"
+        }
+    },
+    "agent": {
+        "plan": {
+            "model": "opencode-go/gpt-5.6-luna"
         }
     },
     "model": "opencode-go/deepseek-v4.1-flash"
