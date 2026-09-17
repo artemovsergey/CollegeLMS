@@ -480,7 +480,7 @@ NuGet-пакеты кэшируются через BuildKit cache mount (`id=nug
 - Плоские DTO со значениями по умолчанию, file-scoped namespaces
 - `Result<T>.Ok()` для успеха, `Result<T>.Fail()` для ошибок
 - OpenApi namespace: `using Microsoft.OpenApi;`
-- Форматирование: CSharpier (`dotnet csharpier format .` для форматирования, `dotnet csharpier format . --check` в CI)
+- Форматирование: CSharpier (`dotnet csharpier format .` для форматирования, `dotnet csharpier check .` в CI)
 - Все entity наследуют базовый `Entities/Entity` (Guid Id, CreatedAt, UpdatedAt)
 - Мапперы в корневой папке `Mappers/`, интерфейсы сервисов в корневой папке `Interfaces/`
 - `Program.cs` минимален — все `builder.Services.Add*` в `Extensions/ServiceCollectionExtensions.cs`, все `app.Use*` в `Extensions/ApplicationBuilderExtensions.cs`

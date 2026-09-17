@@ -28,9 +28,6 @@ jobs:
             echo "=== Remove ALL unused images ==="
             docker image prune -af || true
 
-            echo "=== Remove unused volumes ==="
-            docker volume prune -f || true
-
             echo "=== Remove unused networks ==="
             docker network prune -f || true
 

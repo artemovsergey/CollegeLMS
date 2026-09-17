@@ -2,5 +2,11 @@
   <Folder Name="/CollegeLMS.API/">
     <Project Path="CollegeLMS.API/CollegeLMS.csproj" />
   </Folder>
+  <Folder Name="/CollegeLMS.MaxBot/">
+    <Project Path="CollegeLMS.MaxBot/CollegeLMS.MaxBot.csproj" />
+  </Folder>
+  <Folder Name="/CollegeLMS.MaxBot.Tests/">
+    <Project Path="CollegeLMS.MaxBot.Tests/CollegeLMS.MaxBot.Tests.csproj" />
+  </Folder>
   <Project Path="CollegeLMS.Tests/CollegeLMS.Tests.csproj" />
 </Solution>
