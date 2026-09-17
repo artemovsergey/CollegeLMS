@@ -1061,11 +1061,18 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                         $"Занятие на {day} {entry.Week}-й неделе, пара {entry.NumberPair} не найдено."
                     );
 
-                target.Weeks = target.Weeks.Where(w => w != entry.Week).ToList();
-                if (target.Weeks.Count == 0)
-                    db.ScheduleEntries.Remove(target);
+                if (!IsSelfStudyNote(entry.Note))
+                {
+                    target.Weeks = target.Weeks.Where(w => w != entry.Week).ToList();
+                    if (target.Weeks.Count == 0)
+                        db.ScheduleEntries.Remove(target);
+                    else
+                        target.UpdatedAt = utcNow;
+                }
                 else
+                {
                     target.UpdatedAt = utcNow;
+                }
 
                 var history = new ScheduleHistory
                 {

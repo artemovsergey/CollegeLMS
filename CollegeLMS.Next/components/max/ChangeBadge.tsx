@@ -13,7 +13,8 @@ const META: Record<CorrectionChangeType, { label: string; icon: LucideIcon }> = 
 
 export default function ChangeBadge({ tag }: { tag: ChangeTag }) {
   const selfStudy =
-    tag.changeType === "Add" && tag.note?.trim().toLowerCase() === "сам.р."
+    (tag.changeType === "Add" || tag.changeType === "Remove") &&
+    tag.note?.trim().toLowerCase() === "сам.р."
 
   if (selfStudy) {
     return (

@@ -495,6 +495,49 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ConfirmAsync_RemoveSelfStudy_KeepsEntryAndWritesHistory()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var entry = await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [1, 2]);
+
+        var result = await _sut.ConfirmAsync(
+            new CorrectionConfirmRequest
+            {
+                Entries =
+                [
+                    new CorrectionPreviewEntry
+                    {
+                        GroupId = group.Id,
+                        ChangeType = ScheduleChangeType.Remove,
+                        DayOfWeek = 2,
+                        Week = 2,
+                        NumberPair = 2,
+                        RemovedSubject = "Физика",
+                        RemovedTeacherId = teacher.Id,
+                        Note = "сам.р.",
+                    },
+                ],
+            },
+            "test-key",
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Applied.Should().Be(1);
+
+        var saved = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        saved.Id.Should().Be(entry.Id);
+        saved.Weeks.Should().BeEquivalentTo([1, 2]);
+
+        var history = _db.ScheduleHistory.Should().ContainSingle().Subject;
+        history.ChangeType.Should().Be(ScheduleChangeType.Remove);
+        history.Note.Should().Be("сам.р.");
+        history.Week.Should().Be(2);
+    }
+
+    [Fact]
     public async Task ConfirmAsync_Remove_RemovesWeekFromEntry()
     {
         var group = await SeedGroupAsync();
