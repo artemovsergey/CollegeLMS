@@ -6,6 +6,9 @@
   ```powershell
   git fetch origin && git pull --rebase origin master
   ```
+- **Перед началом работы мониторить ситуацию на [opencode.ai](https://opencode.ai):** актуальные модели и лимиты ([Go](https://opencode.ai/ru/go)), синтаксис [агентов](https://opencode.ai/docs/ru/agents/), [схема конфига](https://opencode.ai/config.json).
+  - Если есть изменения (новые/убранные модели, изменились лимиты или поля конфига) — сравнить с текущими `.opencode/agent/*.md` и `opencode.json`.
+  - При расхождениях **предложить варианты конфигурации** (модели агентов, лимиты, схема) и не менять без подтверждения.
 - Пуш только при установленном `GITHUB_TOKEN`/`GH_TOKEN`.
 
 ## Спецификация
