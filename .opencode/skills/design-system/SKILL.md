@@ -1,3 +1,8 @@
+---
+name: design-system
+description: Design system CollegeLMS — shadcn/ui + Tailwind CSS v4 + Lucide. Токены (colors/typography/spacing), компоненты (button, card, input, modal, table, badge, toast), form-паттерны, доступность. Используй при создании и правке UI.
+---
+
 # Design System Skill
 
 CollegeLMS design system — Tailwind CSS v4 + shadcn/ui + Lucide icons.

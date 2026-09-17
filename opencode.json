@@ -17,11 +17,12 @@
             }
         },
         "github": {
-            "type": "local",
-            "command": ["npx", "-y", "@modelcontextprotocol/server-github"],
+            "type": "remote",
+            "url": "https://api.githubcopilot.com/mcp/",
             "enabled": true,
-            "environment": {
-                "GITHUB_TOKEN": "{env:GITHUB_TOKEN}"
+            "oauth": false,
+            "headers": {
+                "Authorization": "Bearer {env:GITHUB_TOKEN}"
             }
         }
     },
@@ -31,23 +32,8 @@
             "description": "Commit all changes and push to remote using GITHUB_TOKEN"
         },
         "analyze": {
-            "template": "!echo '🔍 Starting project analysis...'",
+            "template": "Загрузи skill analyze и выполни полный анализ проекта по всем 9 разделам. Выведи отчёт с индикаторами ✅/❌/⚠️ и сводной таблицей.",
             "description": "Run full project analysis — spec, user stories, plugins, MCP, skills, readiness, phases, agents, models"
-        }
-    },
-    "provider": {
-        "routerai": {
-            "npm": "@ai-sdk/openai-compatible",
-            "name": "RouterAI",
-            "options": {
-                "baseURL": "https://routerai.ru/api/v1",
-                "apiKey": "{env:ROUTERAI_API_KEY}"
-            },
-            "models": {
-                "z-ai/glm-5.3": {"name": "GLM 5.3"},
-                "z-ai/glm-5.3-flash": {"name": "GLM 5.3 Flash"},
-                "claude-3-5-sonnet": {"name": "Claude 3.5 Sonnet"}
-            }
         }
     },
     "model": "opencode-go/deepseek-v4.1-flash"

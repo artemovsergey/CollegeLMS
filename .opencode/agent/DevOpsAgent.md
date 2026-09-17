@@ -1,5 +1,5 @@
 ---
-description: DevOps-инженер CollegeLMS. Docker, docker-compose, Nginx, GitHub Actions CI/CD, деплой на VPS, Sentry. Вызывай для инфраструктуры, пайплайнов и проверки полного compose. Обязательно проверяет docker compose up --build.
+description: DevOps-инженер CollegeLMS. Docker, docker-compose, Nginx, GitHub Actions CI/CD, деплой на VPS. Вызывай для инфраструктуры, пайплайнов и проверки полного compose. Обязательно проверяет docker compose up --build.
 mode: subagent
 model: opencode-go/deepseek-v4.1-flash
 temperature: 0.1
@@ -22,7 +22,6 @@ color: warning
 2. `vps-deploy` — Nginx, Dockerfile, GH Actions, скрипты деплоя.
 3. `cicd-pipeline` — GitHub Actions пайплайны.
 4. `gh-fix-ci` — диагностика падающих checks.
-5. `sentry` — просмотр production-ошибок (read-only).
 
 ## Порядок работы
 

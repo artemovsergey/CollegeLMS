@@ -21,7 +21,7 @@
 - Frontend: Next.js 14, TS, Tailwind CSS 4 (в `CollegeLMS.Next/`)
 - DB: PostgreSQL 16
 - Cache: Redis (только сессии) — контейнер поднят в compose, интеграция в коде ещё не реализована
-- Deploy: Docker Compose, GitHub Actions CD (только деплой, тесты локально)
+- Deploy: Docker Compose, GitHub Actions: deploy.yml (CD) + quality.yml (dotnet build, csharpier --check, frontend build; тесты — локально)
 - Files: локальная ФС (позже MinIO)
 
 ## Архитектура
@@ -51,7 +51,7 @@
 | Сервер | Назначение | Включён |
 |--------|------------|---------|
 | `playwright` | Визуальная отладка, E2E-тесты, инспекция DOM, скриншоты | да |
-| `github` | PR, issues, checks, ветки, управление репозиторием | да |
+| `github` | Официальный remote MCP (`api.githubcopilot.com/mcp`, Bearer `GITHUB_TOKEN`) — PR, issues, checks, ветки | да |
 
 ## Плагин (Superpowers)
 
@@ -95,10 +95,11 @@ CollegeLMS.Next/         # Next.js 14 + Tailwind CSS 4 + TypeScript
   components/            # Проектные компоненты
   lib/utils.ts           # Хелпер cn()
 CollegeLMS.MaxBot/        # Max мессенджер — бот расписания
-loadbalancer/            # Nginx-балансировщик (Dockerfile, nginx.conf, тестовая страница чата)
+CollegeLMS.MaxBot.Tests/  # Тесты MaxBot (xUnit + FluentAssertions)
+loadbalancer/            # Nginx-балансировщик (Dockerfile, nginx.conf)
 import/                  # Данные импорта
 scripts/                 # Скрипты парсинга WP
-.github/workflows/       # deploy.yml — CD на VPS
+.github/workflows/       # deploy.yml — CD на VPS; quality.yml — build + csharpier + frontend
 ```
 
 ## Роли агентов
@@ -110,7 +111,7 @@ scripts/                 # Скрипты парсинга WP
 | **TesterAgent** | Сабагент | dotnet-test, playwright, playwright-interactive, test-driven-development, systematic-debugging | Модульные тесты (xUnit + Moq + Bogus), интеграционные (WebApplicationFactory), E2E (Playwright), покрытие |
 | **FrontendAgent** | Сабагент | impeccable, design-system, nextjs-page | Страницы/компоненты Next.js, интеграция API, Tailwind, shadcn/ui |
 | **AnalystAgent** | Сабагент | plantuml-docs, security-threat-model | Диаграммы PlantUML (ER, Class, Sequence, UseCase, Deployment), техдокументация, threat modeling |
-| **DevOpsAgent** | Сабагент | docker-compose-dev, vps-deploy, cicd-pipeline, gh-fix-ci, sentry | Docker, nginx, CI/CD пайплайны, деплой на VPS, мониторинг ошибок |
+| **DevOpsAgent** | Сабагент | docker-compose-dev, vps-deploy, cicd-pipeline, gh-fix-ci | Docker, nginx, CI/CD пайплайны, деплой на VPS |
 
 ### Поддержка dispatch по платформам
 
@@ -154,7 +155,6 @@ scripts/                 # Скрипты парсинга WP
 | `playwright` | Автоматизация браузера из терминала: навигация, формы, скриншоты, E2E-отладка |
 | `playwright-interactive` | Персистентный браузер через js_repl для быстрой итеративной отладки UI |
 | `security-threat-model` | Threat modeling: trust boundaries, пути атак, митигации → Markdown-отчёт |
-| `sentry` | Read-only просмотр issues/событий Sentry через CLI |
 | `gh-fix-ci` | Диагностика падающих GitHub Actions checks через `gh` и фикс после утверждения |
 | `yeet` | Весь флоу разом: add → commit → push → PR через `gh` |
 
@@ -454,7 +454,7 @@ docker compose up --build -d --profile max-bot
 # Frontend: http://localhost/
 ```
 
-NuGet пакеты кэшируются в named volume `nuget_packages` — не теряются при пересборке.
+NuGet-пакеты кэшируются через BuildKit cache mount (`id=nuget`) — не теряются при пересборке.
 
 ### Команды по фазам
 
@@ -475,7 +475,7 @@ NuGet пакеты кэшируются в named volume `nuget_packages` — н�
 - Сообщения об ошибках на русском, Swagger summaries на русском
 - Git-префиксы: `feat:` / `fix:` / `docs:` / `test:` / `refactor:` / `chore:` / `hotfix:` / `merge:`
 - `git add -A` для добавления всех изменений (никогда не перечислять файлы по одному)
-- `gh` CLI должен использовать `GITHUB_TOKEN` env var для аутентификации (`GH_TOKEN` тоже работает) — перед любым `git push` или `gh pr create` убедиться, что `$env:GITHUB_TOKEN` или `$env:GH_TOKEN` установлен. Это предотвращает интерактивный выбор аккаунта при пуше.
+- `gh` CLI установлен (v2.101+), `GH_TOKEN` настроен на уровне пользователя из `GITHUB_TOKEN` — перед любым `git push` или `gh pr create` убедиться, что `$env:GITHUB_TOKEN` или `$env:GH_TOKEN` установлен. Это предотвращает интерактивный выбор аккаунта при пуше.
 - Предпочитать `List<T>` вместо `IEnumerable<T>`
 - Плоские DTO со значениями по умолчанию, file-scoped namespaces
 - `Result<T>.Ok()` для успеха, `Result<T>.Fail()` для ошибок
