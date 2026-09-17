@@ -103,7 +103,7 @@ CollegeLMS.MaxBot/        # Max мессенджер — бот расписан
 CollegeLMS.MaxBot.Tests/  # Тесты MaxBot (xUnit + FluentAssertions)
 loadbalancer/            # Nginx-балансировщик (Dockerfile, nginx.conf)
 import/                  # Данные импорта
-scripts/                 # Скрипты парсинга WP
+scripts/                 # git-push, QA-ссылки, VPS-скрипты; legacy/ — разовые импорты WP/МДК
 .github/workflows/       # deploy.yml — CD на VPS; quality.yml — build + csharpier + frontend
 ```
 

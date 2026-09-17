@@ -80,10 +80,11 @@ systemctl enable --now opencode.service
 echo "=== 10. Firewall ==="
 ufw allow OpenSSH
 ufw allow 80/tcp
+ufw allow 443/tcp
 ufw --force enable
 
 echo "=== 11. Start services ==="
-su - "$OPENCODE_USER" -c "cd $PROJECT_DIR && docker compose up -d --build"
+su - "$OPENCODE_USER" -c "cd $PROJECT_DIR && docker compose --profile max-bot up -d --build"
 
 echo ""
 echo "=== DONE ==="
