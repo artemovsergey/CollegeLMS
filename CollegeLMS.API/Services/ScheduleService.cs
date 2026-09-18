@@ -9,8 +9,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class ScheduleService(AppDbContext db, ScheduleExportService exportService)
-    : IScheduleService
+public class ScheduleService(
+    AppDbContext db,
+    ScheduleExportService exportService,
+    IBellScheduleService bells
+) : IScheduleService
 {
     public async Task<Result<PagedResponse<ScheduleResponse>>> GetAllAsync(
         Guid? groupId,
@@ -30,6 +33,18 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
         {
             week = StudyWeek.WeekOf(date.Value);
             dayOfWeek = date.Value.DayOfWeek;
+
+            // Нерабочий день: пары не выводятся (отображается сообщением на клиенте).
+            var nonWorking = await db
+                .NonWorkingDays.AsNoTracking()
+                .FirstOrDefaultAsync(
+                    d => d.DateFrom <= date.Value.Date && d.DateTo >= date.Value.Date,
+                    ct
+                );
+            if (nonWorking is not null)
+                return Result<PagedResponse<ScheduleResponse>>.Ok(
+                    new PagedResponse<ScheduleResponse>([], 0, 1, 20)
+                );
         }
 
         var query = db
@@ -66,11 +81,21 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
         var items = await query.Skip((p - 1) * ps).Take(ps).ToListAsync(ct);
 
         var changeTagsBySlot = await GetChangeTagsAsync(items, week, ct);
+        var bellTimes = await bells.GetTimeMapAsync(ct);
 
         var dtos = items
             .Select(s =>
-                s.ToDto(changeTagsBySlot.GetValueOrDefault((s.GroupId, s.DayOfWeek, s.NumberPair)))
-            )
+            {
+                var dto = s.ToDto(
+                    changeTagsBySlot.GetValueOrDefault((s.GroupId, s.DayOfWeek, s.NumberPair))
+                );
+                if (bellTimes.TryGetValue(s.NumberPair, out var time))
+                {
+                    dto.StartTime = time.Start;
+                    dto.EndTime = time.End;
+                }
+                return dto;
+            })
             .ToList();
 
         return Result<PagedResponse<ScheduleResponse>>.Ok(
@@ -424,7 +449,15 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
         if (entry is null)
             return Result<ScheduleResponse>.Fail("Запись расписания не найдена", 404);
 
-        return Result<ScheduleResponse>.Ok(entry.ToDto());
+        var dto = entry.ToDto();
+        var bellTimes = await bells.GetTimeMapAsync(ct);
+        if (bellTimes.TryGetValue(entry.NumberPair, out var time))
+        {
+            dto.StartTime = time.Start;
+            dto.EndTime = time.End;
+        }
+
+        return Result<ScheduleResponse>.Ok(dto);
     }
 
     public async Task<Result<ScheduleResponse>> CreateAsync(
@@ -620,9 +653,22 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
             .ToListAsync(ct);
 
         var days = new List<CalendarDayResponse>();
+        var bellTimes = await bells.GetTimeMapAsync(ct);
         foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
         {
-            var dayEntries = entries.Where(s => s.DayOfWeek == day).Select(s => s.ToDto()).ToList();
+            var dayEntries = entries
+                .Where(s => s.DayOfWeek == day)
+                .Select(s =>
+                {
+                    var dto = s.ToDto();
+                    if (bellTimes.TryGetValue(s.NumberPair, out var time))
+                    {
+                        dto.StartTime = time.Start;
+                        dto.EndTime = time.End;
+                    }
+                    return dto;
+                })
+                .ToList();
             if (
                 dayEntries.Count > 0
                 || groupId.HasValue

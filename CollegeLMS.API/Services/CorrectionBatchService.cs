@@ -39,6 +39,13 @@ public class CorrectionBatchService(
         if (!StudyWeek.IsInSemester(request.CorrectionDate))
             return Result<CorrectionBatchResponse>.Fail("Дата вне учебного семестра.", 400);
 
+        var nonWorking = await FindNonWorkingAsync(request.CorrectionDate, ct);
+        if (nonWorking is not null)
+            return Result<CorrectionBatchResponse>.Fail(
+                $"Дата нерабочая: {nonWorking.Title}.",
+                400
+            );
+
         var week = StudyWeek.ForDate(request.CorrectionDate);
         var batch = new CorrectionBatch
         {
@@ -428,6 +435,10 @@ public class CorrectionBatchService(
         if (positions.Count == 0)
             return Result<CorrectionApplyResult>.Fail("В пакете нет позиций для применения.", 400);
 
+        var nonWorking = await FindNonWorkingAsync(batch.CorrectionDate, ct);
+        if (nonWorking is not null)
+            return Result<CorrectionApplyResult>.Fail($"Дата нерабочая: {nonWorking.Title}.", 400);
+
         // Валидация до транзакции: 400 со списком «Строка N: сообщение».
         var errors = await engine.ValidateBatchAsync(batch, ct);
         if (errors.Count > 0)
@@ -482,6 +493,11 @@ public class CorrectionBatchService(
             );
         }
     }
+
+    private async Task<NonWorkingDay?> FindNonWorkingAsync(DateTime date, CancellationToken ct) =>
+        await db
+            .NonWorkingDays.AsNoTracking()
+            .FirstOrDefaultAsync(d => d.DateFrom <= date.Date && d.DateTo >= date.Date, ct);
 
     private async Task TrySendCorrectionImageAsync(CorrectionBatch batch, CancellationToken ct)
     {

@@ -1,6 +1,7 @@
 using ClosedXML.Excel;
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
+using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -9,7 +10,7 @@ using QuestPDF.Infrastructure;
 
 namespace CollegeLMS.API.Services;
 
-public class ScheduleExportService(AppDbContext db)
+public class ScheduleExportService(AppDbContext db, IBellScheduleService bells)
 {
     private static readonly Dictionary<DayOfWeek, string> DaysMap = new()
     {
@@ -64,10 +65,29 @@ public class ScheduleExportService(AppDbContext db)
 
         var today = DateTime.UtcNow;
         if (period == "day")
+        {
+            var nonWorking = await db
+                .NonWorkingDays.AsNoTracking()
+                .FirstOrDefaultAsync(d => d.DateFrom <= today.Date && d.DateTo >= today.Date, ct);
+            if (nonWorking is not null)
+                return Result<ExportResult>.Fail($"Нерабочий день: {nonWorking.Title}", 400);
+
             query = query.Where(s => s.DayOfWeek == today.DayOfWeek);
+        }
 
         query = query.OrderBy(s => s.DayOfWeek).ThenBy(s => s.NumberPair).ThenBy(s => s.StartTime);
         var entries = await query.ToListAsync(ct);
+
+        // Время пар — из справочника звонков (единый источник).
+        var bellTimes = await bells.GetTimeMapAsync(ct);
+        foreach (var entry in entries)
+        {
+            if (bellTimes.TryGetValue(entry.NumberPair, out var time))
+            {
+                entry.StartTime = time.Start;
+                entry.EndTime = time.End;
+            }
+        }
 
         if (entries.Count == 0)
             return Result<ExportResult>.Fail("Нет данных для экспорта", 404);

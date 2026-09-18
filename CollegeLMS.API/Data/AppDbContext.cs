@@ -39,6 +39,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CorrectionConfirmation> CorrectionConfirmations => Set<CorrectionConfirmation>();
     public DbSet<CorrectionBatch> CorrectionBatches => Set<CorrectionBatch>();
     public DbSet<CorrectionPosition> CorrectionPositions => Set<CorrectionPosition>();
+    public DbSet<BellSlot> BellSlots => Set<BellSlot>();
+    public DbSet<BigBreak> BigBreaks => Set<BigBreak>();
+    public DbSet<NonWorkingDay> NonWorkingDays => Set<NonWorkingDay>();
+    public DbSet<ScheduleInsert> ScheduleInserts => Set<ScheduleInsert>();
+    public DbSet<Practice> Practices => Set<Practice>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

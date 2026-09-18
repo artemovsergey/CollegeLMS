@@ -206,6 +206,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICourseAccessService, CourseAccessService>();
         services.AddScoped<ISpecialtyService, SpecialtyService>();
         services.AddScoped<ScheduleExportService>();
+        services.AddScoped<IBellScheduleService, BellScheduleService>();
+        services.AddScoped<INonWorkingDayService, NonWorkingDayService>();
+        services.AddScoped<IScheduleInsertService, ScheduleInsertService>();
+        services.AddScoped<IPracticeService, PracticeService>();
         services.AddScoped<ScheduleImportService>();
         services.AddScoped<IScheduleCorrectionService, ScheduleCorrectionService>();
         services.AddScoped<ICorrectionBatchService, CorrectionBatchService>();

@@ -186,6 +186,10 @@ public sealed class CorrectionApplyEngine(AppDbContext db)
                 .Where(e => groupIds.Contains(e.GroupId))
                 .ToListAsync(ct);
 
+        var bellTimes = await db
+            .BellSlots.AsNoTracking()
+            .ToDictionaryAsync(s => s.NumberPair, s => (s.StartTime, s.EndTime), ct);
+
         var virtualMap =
             new Dictionary<(Guid GroupId, DayOfWeek Day, int Week), List<SimulatedEntry>>();
         foreach (var target in targets)
@@ -365,7 +369,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db)
 
                     if (execute)
                     {
-                        var entity = CreateEntity(entry, utcNow);
+                        var entity = CreateEntity(entry, utcNow, bellTimes);
                         entry.Entity = entity;
                         db.ScheduleEntries.Add(entity);
 
@@ -534,7 +538,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db)
 
                     if (execute)
                     {
-                        var entity = CreateEntity(entry, utcNow);
+                        var entity = CreateEntity(entry, utcNow, bellTimes);
                         entry.Entity = entity;
                         db.ScheduleEntries.Add(entity);
 
@@ -684,9 +688,15 @@ public sealed class CorrectionApplyEngine(AppDbContext db)
             : ScheduleImportService.NormalizeTeacherName(fallbackName);
     }
 
-    private static ScheduleEntry CreateEntity(SimulatedEntry entry, DateTime utcNow)
+    private static ScheduleEntry CreateEntity(
+        SimulatedEntry entry,
+        DateTime utcNow,
+        Dictionary<int, (TimeSpan Start, TimeSpan End)> bellTimes
+    )
     {
-        var (start, end) = ScheduleImportService.GetPairTime(entry.DayOfWeek, entry.NumberPair);
+        var (start, end) = bellTimes.TryGetValue(entry.NumberPair, out var time)
+            ? time
+            : ScheduleImportService.GetPairTime(entry.DayOfWeek, entry.NumberPair);
         return new ScheduleEntry
         {
             Id = Guid.NewGuid(),
