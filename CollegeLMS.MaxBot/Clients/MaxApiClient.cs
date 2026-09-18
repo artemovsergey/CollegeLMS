@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using CollegeLMS.MaxBot.Models.Max;
@@ -130,5 +131,106 @@ public class MaxApiClient
         var body = new { commands };
         var resp = await _http.PatchAsJsonAsync("/me/commands", body, JsonOpts, ct);
         resp.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    /// Получает URL для загрузки медиафайла: POST /uploads?type={type}.
+    /// Ответ в snake_case: { url, token? }.
+    /// </summary>
+    public async Task<MaxUploadResponse> GetUploadUrlAsync(
+        string type,
+        CancellationToken ct = default
+    )
+    {
+        var resp = await _http.PostAsync(
+            $"/uploads?type={Uri.EscapeDataString(type)}",
+            content: null,
+            ct
+        );
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<MaxUploadResponse>(JsonOpts, ct)
+            ?? throw new InvalidOperationException("Пустой ответ POST /uploads");
+    }
+
+    /// <summary>
+    /// Загружает изображение по абсолютному URL (multipart, поле data)
+    /// и возвращает payload вложения — JSON-объект с token.
+    /// </summary>
+    public async Task<JsonElement> UploadImageAsync(
+        string uploadUrl,
+        byte[] content,
+        string fileName,
+        CancellationToken ct = default
+    )
+    {
+        using var form = new MultipartFormDataContent();
+        using var file = new ByteArrayContent(content);
+        file.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        form.Add(file, "data", fileName);
+
+        // uploadUrl — абсолютный адрес CDN, он переопределяет BaseAddress
+        var resp = await _http.PostAsync(uploadUrl, form, ct);
+        resp.EnsureSuccessStatusCode();
+        var raw = await resp.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<JsonElement>(raw);
+    }
+
+    /// <summary>
+    /// Отправляет сообщение с изображением: POST /messages?chat_id={chatId}.
+    /// При ошибке attachment.not.ready — пауза 3 с и повтор (до 3 попыток),
+    /// затем EnsureSuccessStatusCode.
+    /// </summary>
+    public async Task<MaxMessageResponse?> SendImageAsync(
+        long chatId,
+        JsonElement payload,
+        string caption,
+        CancellationToken ct = default
+    )
+    {
+        const int maxAttempts = 3;
+
+        for (var attempt = 1; ; attempt++)
+        {
+            var body = new Dictionary<string, object>
+            {
+                ["text"] = caption,
+                ["format"] = "markdown",
+                ["notify"] = true,
+                ["attachments"] = new[]
+                {
+                    new Dictionary<string, object> { ["type"] = "image", ["payload"] = payload },
+                },
+            };
+
+            var resp = await _http.PostAsJsonAsync(
+                $"/messages?chat_id={chatId}",
+                body,
+                JsonOpts,
+                ct
+            );
+            if (resp.IsSuccessStatusCode)
+                return await resp.Content.ReadFromJsonAsync<MaxMessageResponse>(JsonOpts, ct);
+
+            var errBody = await resp.Content.ReadAsStringAsync(ct);
+            if (
+                errBody.Contains("attachment.not.ready", StringComparison.Ordinal)
+                && attempt < maxAttempts
+            )
+            {
+                _logger.LogWarning(
+                    "Вложение изображения ещё не обработано (попытка {Attempt} из {MaxAttempts}) — повтор через 3 с",
+                    attempt,
+                    maxAttempts
+                );
+                await Task.Delay(TimeSpan.FromSeconds(3), ct);
+                continue;
+            }
+
+            // Попытки исчерпаны или ошибка не связана с обработкой вложения
+            resp.EnsureSuccessStatusCode();
+            throw new HttpRequestException(
+                $"Не удалось отправить изображение в чат {chatId}: {errBody}"
+            );
+        }
     }
 }

@@ -216,14 +216,16 @@ public static class MessageFormatter
         };
     }
 
+    /// <summary>Примечание «сам.р.» — признак самостоятельной работы.</summary>
+    private static bool IsSelfStudyNote(string? note) =>
+        string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Заголовок по типу изменения: добавлена / снята / замена.</summary>
     private static void AppendChangeMarkers(System.Text.StringBuilder sb, ScheduleResponse entry)
     {
         foreach (var tag in entry.ChangeTags)
         {
-            var isSelfStudy =
-                tag.ChangeType == "Remove"
-                && string.Equals(tag.Note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
+            var isSelfStudy = tag.ChangeType == "Remove" && IsSelfStudyNote(tag.Note);
 
             var marker = isSelfStudy
                 ? "🟣 сам.р. (самостоятельная работа)"
@@ -306,6 +308,8 @@ public static class MessageFormatter
                 sb.AppendLine($"  👨‍🏫 {r.TeacherName}");
             if (r.Note is not null)
                 sb.AppendLine($"  📝 {r.Note}");
+            if (IsSelfStudyNote(r.Note))
+                sb.AppendLine("  🟣 сам.р. (самостоятельная работа)");
             sb.AppendLine();
         }
 

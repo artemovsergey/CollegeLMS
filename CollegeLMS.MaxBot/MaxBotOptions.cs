@@ -12,5 +12,8 @@ public class MaxBotOptions
 
     public string MiniAppUrl { get; set; } = "https://stvcc.tech/max";
 
+    /// <summary>Идентификатор канала Max для публикации картинки корректировки.</summary>
+    public string CorrectionChannelId { get; set; } = "";
+
     public List<string> DispatchChatIds { get; set; } = [];
 }

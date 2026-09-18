@@ -85,8 +85,8 @@ public class ChangeNotifier
     }
 
     /// <summary>
-    /// Выбор получателей: Роль «Группа» — имя группы, Роль «Преподаватель» — ФИО,
-    /// плюс день недели в NotifyDays.
+    /// Выбор получателей: Роль «Группа» — имя группы, Роль «Преподаватель» — ФИО
+    /// (по текущему или снятому преподавателю позиции), плюс день недели в NotifyDays.
     /// </summary>
     /// <returns>Пары (chatId, ревизия); дубликаты отбрасываются.</returns>
     public static List<(long ChatId, ScheduleRevision Revision)> SelectRecipients(
@@ -111,7 +111,7 @@ public class ChangeNotifier
                 var teacherMatches =
                     s.TeacherId.HasValue
                     && teacherNames.TryGetValue(s.TeacherId.Value, out var tName)
-                    && tName == r.TeacherName;
+                    && (tName == r.TeacherName || tName == r.RemovedTeacherName);
 
                 if (groupMatches || teacherMatches)
                     result.Add((s.MaxChatId, r));

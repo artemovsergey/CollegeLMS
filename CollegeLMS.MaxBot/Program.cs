@@ -62,6 +62,7 @@ builder.Services.AddSingleton<ScheduleNotifier>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ScheduleNotifier>());
 
 builder.Services.AddScoped<ChangeNotifier>();
+builder.Services.AddScoped<CorrectionImageSender>();
 
 var app = builder.Build();
 
@@ -186,6 +187,47 @@ app.MapPost(
         {
             logger.LogError(ex, "Сбой обработки /notify");
             return Results.Ok(new { received = 0 });
+        }
+    }
+);
+
+// Картинка корректировки в канал Max от API CollegeLMS (после применения пакета).
+// multipart/form-data: file (PNG, имя correction.png) и caption (markdown).
+// Fail-safe: любые исключения логируются и не пробрасываются наружу.
+app.MapPost(
+    "/notify/correction-image",
+    async (HttpRequest request, IServiceProvider services, CancellationToken ct) =>
+    {
+        using var scope = services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        try
+        {
+            if (!request.HasFormContentType)
+                return Results.Ok(new { sent = false });
+
+            var form = await request.ReadFormAsync(ct);
+            var file = form.Files.GetFiles("file").FirstOrDefault();
+            var caption = form["caption"].ToString();
+
+            if (file is null || file.Length == 0)
+            {
+                logger.LogWarning("POST /notify/correction-image: файл отсутствует или пуст");
+                return Results.Ok(new { sent = false });
+            }
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream, ct);
+
+            var sender = scope.ServiceProvider.GetRequiredService<CorrectionImageSender>();
+            await sender.SendAsync(stream.ToArray(), caption, ct);
+
+            return Results.Ok(new { sent = true });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Сбой обработки /notify/correction-image");
+            return Results.Ok(new { sent = false });
         }
     }
 );
