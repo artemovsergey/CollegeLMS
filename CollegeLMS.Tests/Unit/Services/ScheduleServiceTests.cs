@@ -575,7 +575,7 @@ public class ScheduleServiceTests : IDisposable
         );
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GetSubjectsAsync(null, default);
+        var result = await _sut.GetSubjectsAsync(null, null, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Subjects.Should().BeEquivalentTo(["Математика", "История", "Литература"]);
@@ -614,10 +614,123 @@ public class ScheduleServiceTests : IDisposable
         );
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GetSubjectsAsync("мат", default);
+        var result = await _sut.GetSubjectsAsync("мат", null, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Subjects.Should().ContainSingle().Which.Should().Be("Математика");
+    }
+
+    [Fact]
+    public async Task GetSubjectsAsync_WithTeacherId_ReturnsOnlyTeacherSubjects()
+    {
+        var utcNow = DateTime.UtcNow;
+        var teacherUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "teacher-subjects@collegelms.ru",
+            FullName = "Иванов И.И.",
+            PasswordHash = "hash",
+            Role = UserRole.Teacher,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+        };
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = teacherUser.Id,
+            CyclicalCommission = "ЦК",
+            Position = "Преподаватель",
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+            User = teacherUser,
+        };
+        var otherUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "other-subjects@collegelms.ru",
+            FullName = "Петров П.П.",
+            PasswordHash = "hash",
+            Role = UserRole.Teacher,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+        };
+        var otherTeacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = otherUser.Id,
+            CyclicalCommission = "ЦК",
+            Position = "Преподаватель",
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+            User = otherUser,
+        };
+        _db.Teachers.AddRange(teacher, otherTeacher);
+
+        _db.ScheduleEntries.AddRange(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                TeacherId = teacher.Id,
+                Subject = "Математика",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
+                StartTime = new TimeSpan(9, 0, 0),
+                EndTime = new TimeSpan(10, 30, 0),
+                Weeks = new List<int> { 1 },
+                LessonType = LessonType.Lecture,
+            },
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                TeacherId = otherTeacher.Id,
+                Subject = "История",
+                Room = "302",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 2,
+                StartTime = new TimeSpan(10, 40, 0),
+                EndTime = new TimeSpan(12, 10, 0),
+                Weeks = new List<int> { 1 },
+                LessonType = LessonType.Lecture,
+            }
+        );
+        _db.ScheduleHistory.AddRange(
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Add,
+                Subject = "Физика",
+                TeacherId = teacher.Id,
+                AppliedAt = utcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 3,
+                Week = 1,
+            },
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Remove,
+                Subject = "Литература",
+                RemovedSubject = "Химия",
+                RemovedTeacherId = teacher.Id,
+                AppliedAt = utcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 4,
+                Week = 1,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetSubjectsAsync(null, teacher.Id, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Subjects.Should().BeEquivalentTo(["Математика", "Физика", "Химия"]);
     }
 
     [Fact]

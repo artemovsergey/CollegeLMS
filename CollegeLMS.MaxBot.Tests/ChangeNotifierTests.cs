@@ -139,6 +139,72 @@ public class ChangeNotifierTests
     }
 
     [Fact]
+    public void SelectRecipients_MatchesTeacherByRemovedTeacherName()
+    {
+        var rev = Rev();
+        rev.TeacherName = null;
+        rev.RemovedTeacherName = "Петренко В.Б.";
+
+        var recipients = ChangeNotifier.SelectRecipients(
+            [Teacher()],
+            GroupNames,
+            TeacherNames,
+            [rev]
+        );
+
+        recipients.Should().ContainSingle(x => x.ChatId == 200);
+    }
+
+    [Fact]
+    public void SelectRecipientsGrouped_TwoSettingsOneChat_ProducesSingleMessage()
+    {
+        var settings = new List<UserSettings>
+        {
+            Student(),
+            new()
+            {
+                Id = Guid.NewGuid(),
+                MaxUserId = 3,
+                MaxChatId = 100,
+                Role = "teacher",
+                TeacherId = TeacherId,
+                NotifyEnabled = true,
+                NotifyDays = [2],
+            },
+        };
+
+        var grouped = ChangeNotifier.SelectRecipientsGrouped(
+            settings,
+            GroupNames,
+            TeacherNames,
+            [Rev(teacherName: "Петренко В.Б.")]
+        );
+
+        grouped.Should().ContainSingle();
+        grouped[0].ChatId.Should().Be(100);
+        grouped[0].Revisions.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void SelectRecipientsGrouped_MultipleRevisions_GroupedIntoOneMessagePerChat()
+    {
+        var first = Rev();
+        var second = Rev();
+        second.Id = 2;
+
+        var grouped = ChangeNotifier.SelectRecipientsGrouped(
+            [Student()],
+            GroupNames,
+            TeacherNames,
+            [first, second]
+        );
+
+        grouped.Should().ContainSingle();
+        grouped[0].ChatId.Should().Be(100);
+        grouped[0].Revisions.Should().HaveCount(2);
+    }
+
+    [Fact]
     public void SelectRecipients_DedupByChatAndRevision()
     {
         var settings = new List<UserSettings>

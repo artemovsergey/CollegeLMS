@@ -226,6 +226,34 @@ public class MessageFormatterTests
     }
 
     [Fact]
+    public void FormatCorrectionDigest_SelfStudyNote_ShowsSelfStudyLine()
+    {
+        var revision = Revision(changeType: "Remove");
+        revision.Note = "сам.р.";
+
+        var text = MessageFormatter.FormatCorrectionDigest(
+            new DateTime(2026, 9, 8),
+            [revision],
+            miniAppUrl: null
+        );
+
+        text.Should().Contain("🟣 сам.р. (самостоятельная работа)");
+        text.Should().Contain("📝 сам.р.");
+    }
+
+    [Fact]
+    public void FormatCorrectionDigest_WithoutSelfStudy_HidesSelfStudyLine()
+    {
+        var text = MessageFormatter.FormatCorrectionDigest(
+            new DateTime(2026, 9, 8),
+            [Revision()],
+            miniAppUrl: null
+        );
+
+        text.Should().NotContain("самостоятельная работа");
+    }
+
+    [Fact]
     public void FormatChangeNotification_ContainsMetaHeaderAndFields()
     {
         var text = MessageFormatter.FormatChangeNotification(Revision(), "https://stvcc.tech/max");

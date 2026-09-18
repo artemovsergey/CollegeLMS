@@ -25,7 +25,11 @@ public class ScheduleCorrectionServiceTests : IDisposable
     public void Dispose() => _db.Dispose();
 
     private ScheduleCorrectionService CreateSut(HttpClient http) =>
-        new(_db, new MaxBotHttpClient(http, NullLogger<MaxBotHttpClient>.Instance));
+        new(
+            _db,
+            new MaxBotHttpClient(http, NullLogger<MaxBotHttpClient>.Instance),
+            new CorrectionApplyEngine(_db)
+        );
 
     private async Task<Group> SeedGroupAsync(string name = "ПО-262")
     {
@@ -933,5 +937,274 @@ public class ScheduleCorrectionServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.Applied.Should().Be(1);
         _db.ScheduleHistory.Should().ContainSingle();
+    }
+
+    // --- UC-SCH-27: экспорт FILE-3 ---
+
+    private static void EnsureCorrectionTemplate()
+    {
+        var relativeDir = Path.GetFullPath(
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "import", "schedule")
+        );
+        var target = Path.Combine(relativeDir, "Корректировка.xlsx");
+        if (File.Exists(target))
+            return;
+
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, "import", "schedule", "Корректировка.xlsx");
+            if (File.Exists(candidate))
+            {
+                Directory.CreateDirectory(relativeDir);
+                File.Copy(candidate, target, overwrite: true);
+                return;
+            }
+            dir = dir.Parent;
+        }
+
+        throw new FileNotFoundException(
+            "Шаблон «Корректировка.xlsx» не найден для теста экспорта."
+        );
+    }
+
+    [Fact]
+    public async Task ExportManualAsync_UsesFile3FileName()
+    {
+        EnsureCorrectionTemplate();
+
+        var result = await _sut.ExportManualAsync(
+            new ManualCorrectionExportRequest
+            {
+                CorrectionDate = new DateTime(2026, 9, 10),
+                Rows =
+                [
+                    new ManualCorrectionRow
+                    {
+                        GroupName = "ПО-262",
+                        AddedSubject = "Математика",
+                        AddedTeacherName = "Марченко И.А.",
+                        NumberPair = 3,
+                    },
+                ],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result
+            .Data!.FileName.Should()
+            .MatchRegex(@"^Корректировка_\d{2}\.\d{2}\.\d{4}_\d{2}-\d{2}-\d{2}\.xlsx$");
+        result.Data.Content.Should().NotBeEmpty();
+    }
+
+    // --- UC-SCH-27: расписание дня с pending-позициями ---
+
+    private async Task<Guid> SeedDraftBatchAsync(
+        Guid groupId,
+        params CorrectionPosition[] positions
+    )
+    {
+        var utcNow = DateTime.UtcNow;
+        var batch = new CorrectionBatch
+        {
+            Id = Guid.NewGuid(),
+            CorrectionDate = new DateTime(2026, 9, 8),
+            Week = 2,
+            DayOfWeek = (int)DayOfWeek.Tuesday,
+            Status = CorrectionBatchStatus.Draft,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+        };
+
+        foreach (var position in positions)
+        {
+            position.BatchId = batch.Id;
+            position.GroupId = groupId;
+            position.DayOfWeek = (int)DayOfWeek.Tuesday;
+            position.Week = 2;
+            position.Status = CorrectionPositionStatus.Draft;
+            position.CreatedAt = utcNow;
+            position.UpdatedAt = utcNow;
+            batch.Positions.Add(position);
+        }
+
+        _db.CorrectionBatches.Add(batch);
+        await _db.SaveChangesAsync();
+        return batch.Id;
+    }
+
+    [Fact]
+    public async Task GetDayAsync_PendingRemove_HidesPair()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [2]);
+        var batchId = await SeedDraftBatchAsync(
+            group.Id,
+            new CorrectionPosition
+            {
+                Id = Guid.NewGuid(),
+                Row = 1,
+                ChangeType = ScheduleChangeType.Remove,
+                NumberPair = 2,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+            }
+        );
+
+        var result = await _sut.GetDayAsync(
+            group.Id,
+            new DateTime(2026, 9, 8),
+            batchId,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.GroupName.Should().Be(group.Name);
+        result.Data.Entries.Should().NotContain(e => e.NumberPair == 2);
+    }
+
+    [Fact]
+    public async Task GetDayAsync_PendingSelfStudy_ShowsPairWithFlag()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [2]);
+        var batchId = await SeedDraftBatchAsync(
+            group.Id,
+            new CorrectionPosition
+            {
+                Id = Guid.NewGuid(),
+                Row = 1,
+                ChangeType = ScheduleChangeType.Remove,
+                NumberPair = 2,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+                Note = "сам.р.",
+            }
+        );
+
+        var result = await _sut.GetDayAsync(
+            group.Id,
+            new DateTime(2026, 9, 8),
+            batchId,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var entry = result.Data!.Entries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(2);
+        entry.IsSelfStudy.Should().BeTrue();
+        entry.Note.Should().Be("сам.р.");
+        entry.PendingChangeType.Should().Be(ScheduleChangeType.Remove);
+    }
+
+    // --- UC-SCH-25: фильтры журнала изменений ---
+
+    [Fact]
+    public async Task GetHistoryAsync_FiltersByDateAndChangeType()
+    {
+        var group = await SeedGroupAsync();
+        var groupId = group.Id;
+        var utcNow = DateTime.UtcNow;
+        _db.ScheduleHistory.AddRange(
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Add,
+                AppliedAt = utcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = groupId,
+                Group = group,
+                Subject = "Математика",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 1,
+                Week = 2,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            },
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Remove,
+                AppliedAt = utcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = groupId,
+                Group = group,
+                Subject = "Физика",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 2,
+                Week = 2,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            },
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Remove,
+                AppliedAt = utcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = groupId,
+                Group = group,
+                Subject = "История",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 3,
+                Week = 3,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var byDate = await _sut.GetHistoryAsync(
+            groupId,
+            null,
+            null,
+            new DateTime(2026, 9, 8),
+            null,
+            null,
+            null,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        byDate.IsSuccess.Should().BeTrue();
+        byDate.Data!.Items.Should().HaveCount(2);
+
+        var byType = await _sut.GetHistoryAsync(
+            groupId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            ScheduleChangeType.Remove,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        byType.Data!.Items.Should().HaveCount(2);
+        byType.Data.Items.Should().OnlyContain(i => i.ChangeType == ScheduleChangeType.Remove);
+
+        var combined = await _sut.GetHistoryAsync(
+            groupId,
+            null,
+            null,
+            new DateTime(2026, 9, 8),
+            null,
+            null,
+            ScheduleChangeType.Remove,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        combined.Data!.Items.Should().ContainSingle();
+        combined.Data.Items[0].Subject.Should().Be("Физика");
     }
 }
