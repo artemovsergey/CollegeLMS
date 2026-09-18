@@ -1,7 +1,7 @@
 ---
 description: Backend-разработчик CollegeLMS (.NET 10). Сущности, EF Core миграции, сервисы, контроллеры, DTO, мапперы, валидаторы, Swagger. Вызывай для реализации или правки backend API. Обязательно проверяет dotnet build.
 mode: subagent
-model: opencode-go/glm-5.3
+model: opencode-go/deepseek-v4.1-flash
 temperature: 0.1
 color: accent
 ---

@@ -7,7 +7,6 @@
         "opencode-background-agents",
         "@tarquinen/opencode-dcp",
         "opencode-vibeguard",
-        "@plannotator/opencode",
         "opencode-pty"
     ],
     "skills": {
@@ -61,7 +60,10 @@
     },
     "agent": {
         "plan": {
-            "model": "opencode-go/gpt-5.6-luna"
+            "model": "opencode-go/deepseek-v4.1-flash"
+        },
+        "build": {
+            "model": "opencode-go/deepseek-v4.1-flash"
         }
     },
     "lsp": {},
