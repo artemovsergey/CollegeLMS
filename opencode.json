@@ -2,7 +2,13 @@
     "$schema": "https://opencode.ai/config.json",
     "plugin": [
         "superpowers@git+https://github.com/obra/superpowers.git",
-        "@mohak34/opencode-notifier@latest"
+        "@mohak34/opencode-notifier@latest",
+        "opencode-worktree",
+        "opencode-background-agents",
+        "@tarquinen/opencode-dcp",
+        "opencode-vibeguard",
+        "@plannotator/opencode",
+        "opencode-pty"
     ],
     "skills": {
         "paths": [".opencode/skills"]
