@@ -34,7 +34,11 @@ public interface IScheduleService
         Guid? teacherId,
         CancellationToken ct = default
     );
-    Task<Result<JournalResponse>> GetJournalAsync(Guid teacherId, CancellationToken ct = default);
+    Task<Result<JournalResponse>> GetJournalAsync(
+        Guid teacherId,
+        string? subject,
+        CancellationToken ct = default
+    );
     Task<Result<CalendarResponse>> GetCalendarAsync(
         Guid? groupId,
         Guid? teacherId,
@@ -62,6 +66,7 @@ public interface IScheduleService
         Guid? teacherId,
         string? room,
         string? period,
+        string? scope,
         ExportFormat format,
         ExportLayout layout,
         CancellationToken ct = default

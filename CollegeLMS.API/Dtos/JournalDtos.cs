@@ -21,4 +21,7 @@ public class JournalEntryItem
     public int DayOfWeek { get; set; }
     public DateTime Date { get; set; }
     public List<int> NumberPairs { get; set; } = new();
+
+    /// <summary>Бейджи корректировок: Add, Replace, Move, Remove, SelfStudy.</summary>
+    public List<string> ChangeTypes { get; set; } = new();
 }

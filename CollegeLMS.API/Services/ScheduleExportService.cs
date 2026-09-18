@@ -44,11 +44,15 @@ public class ScheduleExportService(AppDbContext db, IBellScheduleService bells)
         Guid? teacherId,
         string? room,
         string? period,
+        string? scope,
         ExportFormat format,
         ExportLayout layout,
         CancellationToken ct
     )
     {
+        if (string.Equals(scope, "semester", StringComparison.OrdinalIgnoreCase))
+            return await ExportSemesterAsync(groupId, teacherId, format, ct);
+
         var query = db
             .ScheduleEntries.AsNoTracking()
             .Include(s => s.Group)
@@ -99,6 +103,336 @@ public class ScheduleExportService(AppDbContext db, IBellScheduleService bells)
             ExportFormat.Xlsx when layout == ExportLayout.DayCards => ExportXlsxDayCards(entries),
             _ => ExportXlsxGrid(entries),
         };
+    }
+
+    // ──────────────────────── SEMESTER EXPORT ────────────────────────
+
+    private async Task<Result<ExportResult>> ExportSemesterAsync(
+        Guid? groupId,
+        Guid? teacherId,
+        ExportFormat format,
+        CancellationToken ct
+    )
+    {
+        if (groupId.HasValue == teacherId.HasValue)
+            return Result<ExportResult>.Fail("Укажите одну группу или одного преподавателя.", 400);
+
+        var entriesQuery = db
+            .ScheduleEntries.AsNoTracking()
+            .Include(e => e.Group)
+            .Include(e => e.Teacher!)
+                .ThenInclude(t => t.User)
+            .AsQueryable();
+        if (groupId.HasValue)
+            entriesQuery = entriesQuery.Where(e => e.GroupId == groupId.Value);
+        if (teacherId.HasValue)
+            entriesQuery = entriesQuery.Where(e => e.TeacherId == teacherId.Value);
+
+        var entries = await entriesQuery.ToListAsync(ct);
+
+        var bellTimes = await bells.GetTimeMapAsync(ct);
+        foreach (var entry in entries)
+        {
+            if (bellTimes.TryGetValue(entry.NumberPair, out var time))
+            {
+                entry.StartTime = time.Start;
+                entry.EndTime = time.End;
+            }
+        }
+
+        var inserts = await db
+            .ScheduleInserts.AsNoTracking()
+            .Where(i => i.IsActive)
+            .ToListAsync(ct);
+
+        var practicesQuery = db
+            .Practices.AsNoTracking()
+            .Include(p => p.Group)
+            .Include(p => p.Teacher!)
+                .ThenInclude(t => t.User)
+            .AsQueryable();
+        if (groupId.HasValue)
+            practicesQuery = practicesQuery.Where(p => p.GroupId == groupId.Value);
+        if (teacherId.HasValue)
+            practicesQuery = practicesQuery.Where(p => p.TeacherId == teacherId.Value);
+        var practices = await practicesQuery.ToListAsync(ct);
+
+        var monday = StudyWeek.MondayOf(StudyWeek.SemesterStart);
+        var semesterStart = StudyWeek.SemesterStart.Date;
+        var semesterEnd = monday.AddDays(StudyWeek.TotalWeeks * 7 - 1);
+        var nonWorking = await db
+            .NonWorkingDays.AsNoTracking()
+            .Where(d => d.DateFrom <= semesterEnd && d.DateTo >= semesterStart)
+            .ToListAsync(ct);
+
+        var historyQuery = db.ScheduleHistory.AsNoTracking().AsQueryable();
+        if (groupId.HasValue)
+            historyQuery = historyQuery.Where(h => h.GroupId == groupId.Value);
+        if (teacherId.HasValue)
+            historyQuery = historyQuery.Where(h =>
+                h.TeacherId == teacherId.Value || h.RemovedTeacherId == teacherId.Value
+            );
+        var history = await historyQuery.ToListAsync(ct);
+
+        var dayNames = new[] { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб" };
+        var cells = new string[StudyWeek.TotalWeeks, 6];
+        for (var week = 1; week <= StudyWeek.TotalWeeks; week++)
+        {
+            for (var dayIndex = 0; dayIndex < 6; dayIndex++)
+            {
+                var day = (DayOfWeek)(dayIndex + 1);
+                var date = monday.AddDays((week - 1) * 7 + dayIndex);
+                cells[week - 1, dayIndex] = BuildSemesterCell(
+                    date,
+                    day,
+                    week,
+                    entries,
+                    inserts,
+                    practices,
+                    nonWorking,
+                    history
+                );
+            }
+        }
+
+        return format == ExportFormat.Xlsx
+            ? ExportSemesterXlsx(cells, dayNames)
+            : ExportSemesterPdf(cells, dayNames);
+    }
+
+    private static string BuildSemesterCell(
+        DateTime date,
+        DayOfWeek day,
+        int week,
+        List<Entities.ScheduleEntry> entries,
+        List<Entities.ScheduleInsert> inserts,
+        List<Entities.Practice> practices,
+        List<Entities.NonWorkingDay> nonWorking,
+        List<Entities.ScheduleHistory> history
+    )
+    {
+        var nwd = nonWorking.FirstOrDefault(d => d.DateFrom <= date && d.DateTo >= date);
+        if (nwd is not null)
+            return $"Не работает: {nwd.Title}";
+
+        var practice = practices.FirstOrDefault(p => p.DateFrom <= date && p.DateTo >= date);
+        if (practice is not null)
+        {
+            var kind = practice.Kind == Entities.Enums.PracticeKind.Up ? "УП" : "ПП";
+            var parts = new List<string> { $"{kind}: {practice.Group?.Name ?? string.Empty}" };
+            if (!string.IsNullOrEmpty(practice.Teacher?.User?.FullName))
+                parts.Add(practice.Teacher.User.FullName);
+            if (!string.IsNullOrEmpty(practice.Organization))
+                parts.Add(practice.Organization);
+            return string.Join("\n", parts);
+        }
+
+        var lines = new List<string>();
+        foreach (var insert in inserts.Where(i => i.DayOfWeek == day).OrderBy(i => i.StartTime))
+            lines.Add($"{insert.StartTime:hh\\:mm}–{insert.EndTime:hh\\:mm} {insert.Title}");
+
+        foreach (
+            var entry in entries
+                .Where(e => e.DayOfWeek == day && e.Weeks.Contains(week))
+                .OrderBy(e => e.NumberPair)
+        )
+        {
+            var line = $"{entry.NumberPair}. {entry.Subject}";
+            if (!string.IsNullOrEmpty(entry.Group?.Name))
+                line += $" ({entry.Group.Name})";
+            if (!string.IsNullOrEmpty(entry.Room))
+                line += $" ауд. {entry.Room}";
+            if (!string.IsNullOrEmpty(entry.Teacher?.User?.FullName))
+                line += $" {entry.Teacher.User.FullName}";
+
+            var marks = BuildSemesterMarks(history, entry.GroupId, day, week, entry.NumberPair);
+            if (marks.Length > 0)
+                line += $" · {marks}";
+
+            lines.Add(line);
+        }
+
+        return lines.Count == 0 ? "—" : string.Join("\n", lines);
+    }
+
+    private static string BuildSemesterMarks(
+        List<Entities.ScheduleHistory> history,
+        Guid groupId,
+        DayOfWeek day,
+        int week,
+        int numberPair
+    )
+    {
+        var labels = new List<string>();
+        foreach (
+            var h in history.Where(h =>
+                h.GroupId == groupId
+                && h.DayOfWeek == day
+                && h.Week == week
+                && h.NumberPair == numberPair
+            )
+        )
+        {
+            var label = h.ChangeType switch
+            {
+                Entities.Enums.ScheduleChangeType.Add => "добавлено",
+                Entities.Enums.ScheduleChangeType.Remove => string.Equals(
+                    h.Note?.Trim(),
+                    "сам.р.",
+                    StringComparison.OrdinalIgnoreCase
+                )
+                    ? "сам.р."
+                    : "снято",
+                Entities.Enums.ScheduleChangeType.Replace => "замена",
+                Entities.Enums.ScheduleChangeType.Move => "перенос",
+                _ => null,
+            };
+            if (label is not null && !labels.Contains(label))
+                labels.Add(label);
+        }
+        return string.Join(", ", labels);
+    }
+
+    private static Result<ExportResult> ExportSemesterXlsx(string[,] cells, string[] dayNames)
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Семестр");
+
+        ws.Cell(1, 1).Value = "Неделя";
+        for (var day = 0; day < dayNames.Length; day++)
+            ws.Cell(1, day + 2).Value = dayNames[day];
+
+        var header = ws.Range(1, 1, 1, 7);
+        header.Style.Font.Bold = true;
+        header.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e3a5f");
+        header.Style.Font.FontColor = XLColor.White;
+        header.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+        var weeks = cells.GetLength(0);
+        for (var week = 0; week < weeks; week++)
+        {
+            ws.Cell(week + 2, 1).Value = week + 1;
+            ws.Cell(week + 2, 1).Style.Font.Bold = true;
+            ws.Cell(week + 2, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
+
+            for (var day = 0; day < 6; day++)
+            {
+                var cell = ws.Cell(week + 2, day + 2);
+                cell.Value = cells[week, day];
+                cell.Style.Alignment.WrapText = true;
+                cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
+            }
+        }
+
+        ws.Column(1).Width = 8;
+        for (var day = 2; day <= 7; day++)
+            ws.Column(day).Width = 30;
+
+        ws.SheetView.FreezeRows(1);
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+
+        var stamp = DateTime.UtcNow.ToString("dd.MM.yyyy_HH-mm-ss");
+        return Result<ExportResult>.Ok(
+            new ExportResult
+            {
+                FileContent = stream.ToArray(),
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileName = $"Расписание_семестр_{stamp}.xlsx",
+            }
+        );
+    }
+
+    private static Result<ExportResult> ExportSemesterPdf(string[,] cells, string[] dayNames)
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        var weeks = cells.GetLength(0);
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(12);
+                page.DefaultTextStyle(x => x.FontSize(6));
+
+                page.Header()
+                    .PaddingBottom(6)
+                    .Text("Расписание на семестр")
+                    .SemiBold()
+                    .FontSize(13)
+                    .AlignCenter();
+
+                page.Content()
+                    .Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.ConstantColumn(30);
+                            for (var day = 0; day < 6; day++)
+                                columns.RelativeColumn(1);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header
+                                .Cell()
+                                .Background("#1e3a5f")
+                                .Padding(3)
+                                .Text("Неделя")
+                                .FontColor(Colors.White)
+                                .SemiBold()
+                                .FontSize(7)
+                                .AlignCenter();
+                            foreach (var day in dayNames)
+                            {
+                                header
+                                    .Cell()
+                                    .Background("#1e3a5f")
+                                    .Padding(3)
+                                    .Text(day)
+                                    .FontColor(Colors.White)
+                                    .SemiBold()
+                                    .FontSize(7)
+                                    .AlignCenter();
+                            }
+                        });
+
+                        for (var week = 0; week < weeks; week++)
+                        {
+                            table
+                                .Cell()
+                                .BorderBottom(0.5f)
+                                .BorderColor("#e5e7eb")
+                                .Padding(3)
+                                .Text((week + 1).ToString())
+                                .SemiBold();
+
+                            for (var day = 0; day < 6; day++)
+                            {
+                                table
+                                    .Cell()
+                                    .BorderBottom(0.5f)
+                                    .BorderColor("#e5e7eb")
+                                    .Padding(3)
+                                    .Text(cells[week, day]);
+                            }
+                        }
+                    });
+            });
+        });
+
+        var bytes = document.GeneratePdf();
+        var stamp = DateTime.UtcNow.ToString("dd.MM.yyyy_HH-mm-ss");
+        return Result<ExportResult>.Ok(
+            new ExportResult
+            {
+                FileContent = bytes,
+                ContentType = "application/pdf",
+                FileName = $"Расписание_семестр_{stamp}.pdf",
+            }
+        );
     }
 
     private static string CellText(Entities.ScheduleEntry e)

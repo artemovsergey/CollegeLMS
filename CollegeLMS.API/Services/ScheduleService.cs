@@ -156,7 +156,11 @@ public class ScheduleService(
         return Result<ScheduleContextResponse>.Ok(new ScheduleContextResponse { Role = "Other" });
     }
 
-    public async Task<Result<JournalResponse>> GetJournalAsync(Guid teacherId, CancellationToken ct)
+    public async Task<Result<JournalResponse>> GetJournalAsync(
+        Guid teacherId,
+        string? subject,
+        CancellationToken ct
+    )
     {
         var teacher = await db
             .Teachers.AsNoTracking()
@@ -165,9 +169,17 @@ public class ScheduleService(
         if (teacher is null)
             return Result<JournalResponse>.Fail("Преподаватель не найден.", 404);
 
-        var entries = await db
-            .ScheduleEntries.AsNoTracking()
-            .Where(e => e.TeacherId == teacherId)
+        var entriesQuery = db.ScheduleEntries.AsNoTracking().Where(e => e.TeacherId == teacherId);
+        var subjectFilter = subject?.Trim();
+        if (!string.IsNullOrEmpty(subjectFilter))
+            entriesQuery = entriesQuery.Where(e => e.Subject == subjectFilter);
+
+        var entries = await entriesQuery.ToListAsync(ct);
+
+        // Бейджи корректировок: изменения, где преподаватель — новый или снятый.
+        var history = await db
+            .ScheduleHistory.AsNoTracking()
+            .Where(h => h.TeacherId == teacherId || h.RemovedTeacherId == teacherId)
             .ToListAsync(ct);
 
         // Группировка по (предмет, неделя, день недели) с фактической датой дня.
@@ -209,6 +221,13 @@ public class ScheduleService(
                             (x.Key.Week - 1) * 7 + ((int)x.Key.DayOfWeek + 6) % 7
                         ),
                         NumberPairs = x.Value.Distinct().OrderBy(v => v).ToList(),
+                        ChangeTypes = BuildChangeTypes(
+                            history,
+                            x.Key.Subject,
+                            x.Key.Week,
+                            x.Key.DayOfWeek,
+                            teacherId
+                        ),
                     })
                     .ToList();
 
@@ -230,6 +249,37 @@ public class ScheduleService(
                 TotalPairCount = subjects.Sum(s => s.PairCount),
             }
         );
+    }
+
+    /// <summary>Бейджи корректировок для даты журнала: Add/Replace/Move/Remove/SelfStudy.</summary>
+    private static List<string> BuildChangeTypes(
+        List<Entities.ScheduleHistory> history,
+        string subject,
+        int week,
+        DayOfWeek day,
+        Guid teacherId
+    )
+    {
+        var types = new List<string>();
+
+        foreach (var h in history)
+        {
+            if (h.Week != week || h.DayOfWeek != day)
+                continue;
+            if (!string.Equals(h.Subject, subject, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (h.TeacherId != teacherId)
+                continue;
+
+            types.Add(h.ChangeType.ToString());
+            if (
+                h.ChangeType == Entities.Enums.ScheduleChangeType.Remove
+                && string.Equals(h.Note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase)
+            )
+                types.Add("SelfStudy");
+        }
+
+        return types.Distinct().ToList();
     }
 
     public async Task<Result<ScheduleSearchResponse>> SearchAsync(
@@ -610,6 +660,7 @@ public class ScheduleService(
         Guid? teacherId,
         string? room,
         string? period,
+        string? scope,
         ExportFormat format,
         ExportLayout layout,
         CancellationToken ct
@@ -620,6 +671,7 @@ public class ScheduleService(
             teacherId,
             room,
             period,
+            scope,
             format,
             layout,
             ct
