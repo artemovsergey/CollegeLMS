@@ -1,64 +1,110 @@
-﻿@startuml
+@startuml
 !theme plain
-title Пакет корректировок: применение → история → уведомление подписчиков
+title Пакет корректировок: валидация → транзакция → история → уведомления Max
+autonumber
 
 actor "Диспетчер" as Dispatcher
 boundary "Фронтенд (Next)" as UI
 participant "CorrectionBatchController" as Ctrl
-participant "CorrectionBatchService" as Draft
-participant "ScheduleCorrectionService" as Svc
+participant "CorrectionBatchService" as Batch
+participant "CorrectionApplyEngine" as Engine
 database "PostgreSQL (collegelms)" as DB
-participant "POST /notify (MaxBot)" as Notify
+participant "CorrectionImageService" as Img
+participant "MaxBotHttpClient" as Max
+participant "MaxBot: POST /notify" as Notify
+participant "ChangeNotifier" as Notifier
 database "PostgreSQL (collegelms_maxbot)" as MaxDB
-participant "Telegram Bot API" as TG
+participant "MaxBot: CorrectionImageSender" as ImgSender
+participant "Max API (канал)" as MaxApi
 actor "Подписчик" as Sub
 
-== Подготовленный пакет ==
+== Запрос на применение ==
 
-Dispatcher -> UI: «Применить»
+Dispatcher -> UI: «Применить» (подтверждение)
 UI -> Ctrl: POST /api/schedule/correction/batches/{id}/apply
-Ctrl -> Draft: ApplyAsync(id, idempotencyKey, appliedByUserId, ct)
-Draft -> Draft: статус = Draft? позиции = Draft? → иначе 409/400
-Draft -> Svc: ApplyEntriesAsync(entries, appliedByUserId, correctionDate, ct)
+Ctrl -> Batch: ApplyAsync(batchId, idempotencyKey, appliedByUserId, ct)
+Batch -> DB: SELECT CorrectionBatch + Positions
+DB --> Batch: batch
 
-== Применение (транзакция) ==
+alt Статус не Draft
+  Batch --> Ctrl: 409 «Пакет уже применён или отменён.»
+else Нет черновых позиций
+  Batch --> Ctrl: 400 «В пакете нет позиций для применения.»
+else
+  group Проверка ошибок — симуляция (AsNoTracking)
+    Batch -> Engine: ValidateBatchAsync(batch, ct)
+    Engine -> DB: чтение ScheduleEntries/Teachers (без записи)
+    Engine -> Engine: прогон позиций в порядке Row: Add/Remove/Replace/Move, «сам.р.»
+    Engine --> Batch: List<ScheduleValidationError> «Строка N: …»
+  end
 
-Svc -> DB: BEGIN
-loop по позициям
-  Svc -> Svc: валидация (группа/преподаватель/пара/сам.р.)
-  Svc -> DB: Update/Add ScheduleEntry (Remove+сам.р. → неделя сохраняется)
-  Svc -> DB: INSERT INTO schedule_history (note = «сам.р.» для снятия)
+  alt errors.Count > 0
+    Batch --> Ctrl: 400 (сообщения, join "\n")
+    Ctrl --> UI: 400 { errors }
+  else Ошибок нет
+    group Применение — одна транзакция
+      Batch -> DB: BEGIN
+      Batch -> Engine: ExecuteBatchAsync(batch, appliedByUserId, ct)
+      loop по позициям (OrderBy Row)
+        alt Add
+          Engine -> DB: INSERT ScheduleEntry (Weeks=[week])
+        else Remove, note = «сам.р.»
+          Engine -> DB: UPDATE ScheduleEntry (IsSelfStudy, неделя сохраняется)
+        else Remove без «сам.р.»
+          Engine -> Engine: RemoveWeekOrDelete (week -= week; пусто → DELETE)
+        else Replace / Move
+          Engine -> DB: source: RemoveWeekOrDelete
+          Engine -> DB: INSERT ScheduleEntry
+        end
+        Engine -> DB: INSERT ScheduleHistory (Removed*, note)
+        Engine -> Engine: position.Status=Applied, HistoryId=history.Id
+      end
+      Engine --> Batch: CorrectionApplyOutcome { history, changes }
+      Batch -> DB: batch.Status=Applied, AppliedByUserId, AppliedAt, UpdatedAt
+      Batch -> DB: SaveChanges
+      Batch -> DB: COMMIT
+    end
+
+    alt DbUpdateConcurrencyException
+      Batch --> Ctrl: 409 «Пакет уже применён другим пользователем.»
+    else commit успешен
+      note over Batch, Notify: Уведомления ниже — fail-safe, после COMMIT; сбой не откатывает применение
+      group Уведомление подписчиков
+        opt outcome.Changes.Count > 0
+          Batch -> Max: SendChangesAsync(changes, ct)
+          Max -> Notify: POST /notify (JSON changes)
+          Notify -> MaxDB: INSERT schedule_revisions
+          Notify -> Notifier: NotifyAsync(revisions, ct)
+          Notifier -> Notifier: SelectRecipients: TeacherName ИЛИ RemovedTeacherName
+          Notifier -> MaxApi: SendMessage — дайджест (дата + все позиции, «сам.р.»)
+          MaxApi --> Sub: уведомление (включая снятого преподавателя)
+        end
+      end
+      group PNG-картинка в канал
+        Batch -> Img: Render(batch)
+        Img --> Batch: PNG (QuestPDF, RasterDpi=144)
+        Batch -> Max: SendCorrectionImageAsync(png, caption, ct)
+        Max -> ImgSender: POST /notify/correction-image (multipart)
+        alt CorrectionChannelId не задан
+          ImgSender -> ImgSender: warning, отправка пропущена
+        else
+          ImgSender -> MaxApi: POST /uploads?type=image, затем POST /messages
+        end
+      end
+      Batch --> Ctrl: Result.Ok(CorrectionApplyResult)
+    end
+  end
 end
-Svc -> DB: COMMIT
-DB --> Svc: List<ScheduleHistory>
 
-== Фиксация пакета ==
+Ctrl --> UI: 200 { applied, batchId, history }
 
-Svc --> Draft: Result.Ok(changes)
-Draft -> DB: UPDATE correction_positions (status=Applied, history_id)
-Draft -> DB: UPDATE correction_batches (status=Applied, applied_at)
-DB --> Draft: ok
-
-note over Draft, Notify: Fail-safe — после COMMIT; сбой уведомления не откатывает применение
-
-== Уведомление (агрегированное) ==
-
-Draft -> Notify: POST /notify { changes, correctionDate }
-Notify -> Notify: SelectRecipientsGrouped → группировка по подписчику
-loop по каждому подписчику
-  Notify -> MaxDB: INSERT INTO schedule_revisions (foreign_id, correction_date)
-  Notify -> TG: SendMessage (FormatCorrectionDigest: дата + все позиции)
-  TG --> Sub: 🗓 Корректировка на дату: 3 изменения
-end
-
-== Ответ фронту ==
-
-Ctrl --> UI: 200 Result<CorrectionApplyResult> { applied, batchId, history }
+== Экспорт XLSX (по кнопке) ==
 
 Dispatcher -> UI: «Скачать XLSX»
 UI -> Ctrl: POST /api/schedule/correction/batches/{id}/export
-Ctrl -> Draft: ExportAsync(id, ct)
-Draft -> Svc: ExportManualAsync (ManualCorrectionRow: Move → «вм.X»)
-Ctrl --> UI: File .xlsx (имя с timestamp)
+Ctrl -> Batch: ExportAsync(id, ct)
+Batch -> DB: SELECT batch + positions
+Batch --> Ctrl: DocumentDownloadResult
+Ctrl --> UI: File .xlsx «Корректировка_dd.MM.yyyy_HH-mm-ss.xlsx»
 
 @enduml

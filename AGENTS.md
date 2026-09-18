@@ -21,7 +21,7 @@
 - Frontend: Next.js 14, TS, Tailwind CSS 4 (в `CollegeLMS.Next/`)
 - DB: PostgreSQL 16
 - Cache: Redis (только сессии) — контейнер поднят в compose, интеграция в коде ещё не реализована
-- Deploy: Docker Compose, GitHub Actions: deploy.yml (CD) + quality.yml (dotnet build, csharpier --check, frontend build; тесты — локально)
+- Deploy: Docker Compose, GitHub Actions: deploy.yml (CD) + quality.yml (dotnet build, csharpier --check, frontend build; тесты — локально). Локальный Docker не запускаем — стек собирается и проверяется в CI/CD.
 - LSP: включены встроенные серверы (C# через .NET SDK, TypeScript, ESLint) — секция `lsp` в opencode.json
 - Files: локальная ФС (позже MinIO)
 
@@ -231,7 +231,7 @@ scripts/                 # git-push, QA-ссылки, VPS-скрипты; legacy
 | **3: Tests** | dotnet-test, test-driven-development | dotnet test |
 | **4: Frontend** | impeccable, design-system, nextjs-page | npm run dev |
 | **5: E2E** | playwright, playwright-interactive | npx playwright test |
-| **6: DevOps** | docker-compose-dev, vps-deploy | docker compose up --build |
+| **6: DevOps** | docker-compose-dev, vps-deploy | Проверка конфигов; сборка стека — через CI/CD |
 | **7: Review** | verification-before-completion, requesting-code-review, yeet | Слияние + push |
 
 ### Полный цикл фичи (вертикальный срез)
@@ -326,17 +326,16 @@ Phase 5: E2E (TesterAgent)
   ⚠️ Локальная проверка: npx playwright test
   git add -A && git commit -m "phase 5: {feature} e2e"
 
-Phase 6: LOCAL VERIFICATION (DevOpsAgent)
+Phase 6: CI/CD VERIFICATION (DevOpsAgent)
   Load: docker-compose-dev, vps-deploy
-  Поднять полный compose:     docker compose up --build -d --profile max-bot
-  Проверить что всё работает: docker compose ps
-  Если Docker падает         → исправить
-  ⚠️ verification-before-completion: docker compose up --build проходит
+  ⚠️ Локальный Docker НЕ запускаем — сборка и запуск стека выполняются в CI/CD
+  Проверить статически: Dockerfile, docker-compose.yml, .github/workflows/*
+  Проверить, что переменные окружения и profiles описаны корректно
   git add -A && git commit -m "phase 6: {feature} devops"
 
 Phase 7: MERGE & DEPLOY (Architect)
   Load: verification-before-completion, requesting-code-review, yeet
-  ⚠️ verification-before-completion: проверить compose поднимается
+  ⚠️ verification-before-completion: проверены конфиги; реальная сборка стека — в CI/CD
   Load: requesting-code-review
   Code review               → peer review всех изменений
   Если есть замечания       → исправить, перезапустить фазы
@@ -400,7 +399,7 @@ git push                  → CD deploy сразу в production
 |------|----------|-----|------|
 | **G1** | `dotnet build` | BackendAgent | Phase 1 |
 | **G2** | `npm run dev` — страница рендерится | FrontendAgent | Phase 4 |
-| **G3** | `docker compose up --build` — все сервисы стартуют | DevOpsAgent | Phase 6 |
+| **G3** | Конфиги Docker/compose/workflow корректны; сборка стека — CI/CD после push | DevOpsAgent / CI | Phase 6 |
 
 ### Definition of Done
 
@@ -411,7 +410,7 @@ git push                  → CD deploy сразу в production
 - [ ] Postman-коллекция обновлена в docs/spec/
 - [ ] PlantUML диаграммы сгенерированы — ER, Class, Sequence для фичи
 - [ ] Security threat model проверен (если нужно)
-- [ ] `docker compose up --build -d --profile max-bot` работает локально
+- [ ] Конфиги Docker/compose/workflow проверены (сборка стека — в CI/CD, локальный Docker не запускаем)
 - [ ] Feature-ветка слита в master
 - [ ] Push в master → CD развернул на VPS
 
@@ -459,20 +458,13 @@ git push                  → CD deploy сразу в production
 
 ## Разработка
 
-### Docker-first подход
+### Docker и CI/CD
 
-Всё окружение (Postgres, Redis, API, фронтенд, nginx) работает в Docker — достаточно Docker Desktop. Локальные SDK (.NET, Node) нужны только для быстрых проверок: `dotnet build` / `dotnet test`, `npm run dev`.
+Локальный Docker **не запускаем**. Полный стек (Postgres, Redis, API, фронтенд, nginx, max-bot) собирается и запускается в CI/CD (GitHub Actions → VPS). Локальные SDK (.NET, Node) нужны только для быстрых проверок: `dotnet build` / `dotnet test`, `npm run dev`.
 
-```powershell
-# Старт полного стека (db + redis + api + frontend + nginx + max-bot)
-docker compose up --build -d --profile max-bot
-
-# API доступен через nginx: http://localhost/api/...
-# Swagger: http://localhost/swagger/
-# Frontend: http://localhost/
-```
-
-NuGet-пакеты кэшируются через BuildKit cache mount (`id=nuget`) — не теряются при пересборке.
+- Проверка Dockerfile / docker-compose.yml / workflows — статическая (Phase 6).
+- Реальный запуск и миграции — после push в master: `deploy.yml` на VPS.
+- NuGet-пакеты кэшируются через BuildKit cache mount (`id=nuget`) — не теряются при пересборке.
 
 ### Команды по фазам
 
@@ -480,10 +472,9 @@ NuGet-пакеты кэшируются через BuildKit cache mount (`id=nug
 |------|---------|----------|
 | **Phase 1** | `dotnet build` | Локальная проверка backend |
 | **Phase 1** | `dotnet ef migrations add Add{Name} --project CollegeLMS.API -- --provider Npgsql` | Миграция |
-| **Phase 4** | Открыть `http://localhost/` в браузере | Проверка frontend |
-| **Phase 6** | `docker compose up --build -d --profile max-bot` | Локальная проверка compose |
+| **Phase 4** | `npm run dev` / `npm run build` | Проверка frontend |
+| **Phase 6** | Проверка конфигов Docker/compose/workflow | Статически; сборка стека — CI/CD |
 | **Format** | `dotnet csharpier format .` | CSharpier |
-| **Stop** | `docker compose down` | Остановить всё |
 
 ## Соглашения по коду
 

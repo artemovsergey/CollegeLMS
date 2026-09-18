@@ -97,7 +97,7 @@ public sealed class CorrectionApplyOutcome
 **Поведение:**
 - Пустой пакет → `400`; повторный apply → `409`.
 - Валидация → `400` с сообщениями «Строка N: …» (join `\n`).
-- Транзакция: conditional UPDATE `Status Draft→Applied` (affected 0 → `409`), выполнение движком, `HistoryId` позициям, commit; откат при сбое.
+- Транзакция: `Status` пакета — concurrency token (`DbUpdateConcurrencyException` → `409`), выполнение движком, `HistoryId` позициям, commit; откат при сбое.
 - Уведомления MaxBot после commit (fail-safe).
 
 - [ ] Переписать `ApplyAsync`, обновить контроллер/Swagger.

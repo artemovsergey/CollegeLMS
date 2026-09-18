@@ -46,6 +46,22 @@
     {
       "key": "documentId",
       "value": ""
+    },
+    {
+      "key": "groupId",
+      "value": ""
+    },
+    {
+      "key": "teacherId",
+      "value": ""
+    },
+    {
+      "key": "batchId",
+      "value": ""
+    },
+    {
+      "key": "positionId",
+      "value": ""
     }
   ],
   "item": [
@@ -832,7 +848,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/schedule/history?page=1&pageSize=20",
+              "raw": "{{baseUrl}}/api/schedule/history?week=2&date=2026-09-10&from=2026-09-01&to=2026-09-30&changeType=Replace&groupId={{groupId}}&teacherId={{teacherId}}&page=1&pageSize=20",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -843,6 +859,34 @@
               ],
               "query": [
                 {
+                  "key": "week",
+                  "value": "2"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-09-10"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-09-30"
+                },
+                {
+                  "key": "changeType",
+                  "value": "Replace"
+                },
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                },
+                {
+                  "key": "teacherId",
+                  "value": "{{teacherId}}"
+                },
+                {
                   "key": "page",
                   "value": "1"
                 },
@@ -852,7 +896,8 @@
                 }
               ]
             }
-          }
+          },
+          "description": "Журнал корректировок с фильтрами и пагинацией (эндпоинт AllowAnonymous).\n- week — номер учебной недели; date — конкретная дата (преобразуется в week + день недели)\n- from/to — диапазон по AppliedAt; changeType — Add | Remove | Replace | Move\n- groupId; teacherId — совпадение по текущему ИЛИ снятому преподавателю\n- page/pageSize (1..100, по умолчанию 20)\nОтвет: { items, totalCount, page, pageSize, totalPages }. Для записей «сам.р.» note=\"сам.р.\", для переноса — removedNumberPair.\nПример: {\n  \"items\": [\n    {\n      \"id\": \"...\",\n      \"changeType\": \"Remove\",\n      \"appliedAt\": \"2026-09-05T10:00:00Z\",\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"teacherName\": \"Иванов Д.А.\",\n      \"subject\": \"Физика\",\n      \"dayOfWeek\": \"Thursday\",\n      \"numberPair\": 2,\n      \"week\": 2,\n      \"note\": \"сам.р.\"\n    }\n  ],\n  \"totalCount\": 1,\n  \"page\": 1,\n  \"pageSize\": 20,\n  \"totalPages\": 1\n}"
         },
         {
           "name": "Create correction batch",
@@ -889,7 +934,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/schedule/correction/batches?status=Draft",
+              "raw": "{{baseUrl}}/api/schedule/correction/batches?status=Draft&from=2026-09-01&to=2026-09-30&page=1&pageSize=20",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -903,11 +948,27 @@
                 {
                   "key": "status",
                   "value": "Draft"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-09-30"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
                 }
               ]
             }
           },
-          "description": "Список пакетов корректировок (status: Draft | Applied | Cancelled, опционально)"
+          "description": "Постраничный список пакетов корректировок с фильтрами.\n- status: Draft | Applied | Cancelled (опционально)\n- from/to: диапазон по дате корректировки (ДД.ММ.ГГГГ)\n- page: по умолчанию 1; pageSize: 1..100, по умолчанию 20\n\nОтвет: { items, totalCount, page, pageSize, totalPages }. Поля пакета: id, correctionDate, week, dayOfWeek, status, createdAt, appliedByUserId, appliedByName, appliedAt, positionCount, positions, errors.\n\nПример:\n{\n  \"items\": [\n    {\n      \"id\": \"...\",\n      \"correctionDate\": \"2026-09-10T00:00:00Z\",\n      \"week\": 2,\n      \"dayOfWeek\": 4,\n      \"status\": \"Draft\",\n      \"createdAt\": \"2026-09-05T10:00:00Z\",\n      \"appliedByUserId\": null,\n      \"appliedByName\": null,\n      \"appliedAt\": null,\n      \"positionCount\": 2,\n      \"positions\": [],\n      \"errors\": []\n    }\n  ],\n  \"totalCount\": 1,\n  \"page\": 1,\n  \"pageSize\": 20,\n  \"totalPages\": 1\n}"
         },
         {
           "name": "Get correction batch",
@@ -928,7 +989,7 @@
               ]
             }
           },
-          "description": "Пакет корректировки с позициями"
+          "description": "Пакет корректировки с позициями и ошибками. Для черновика поле errors содержит пакетные ошибки (сформированные чтением позиций через движок симуляции), а у каждой позиции — свои errors с сообщениями вида «Строка N: …». Поля appliedByUserId, appliedByName, appliedAt заполняются после применения. Пример: {\n  \"id\": \"...\",\n  \"correctionDate\": \"2026-09-10T00:00:00Z\",\n  \"week\": 2,\n  \"dayOfWeek\": 4,\n  \"status\": \"Draft\",\n  \"positionCount\": 2,\n  \"positions\": [\n    {\n      \"id\": \"...\",\n      \"row\": 1,\n      \"changeType\": \"Replace\",\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"dayOfWeek\": 4,\n      \"week\": 2,\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"removedSubject\": \"Физика\",\n      \"removedTeacherName\": \"Иванов Д.А.\",\n      \"note\": \"замена\",\n      \"status\": \"Draft\",\n      \"historyId\": null,\n      \"errors\": []\n    }\n  ],\n  \"errors\": []\n}"
         },
         {
           "name": "Delete correction batch",
@@ -1069,7 +1130,7 @@
               ]
             }
           },
-          "description": "Импорт XLSX: создаёт черновой пакет из файла (batchId возвращается в ответе). При ошибках валидации — детальные ошибки без создания пакета"
+          "description": "Импорт XLSX (multipart/form-data, поле file, до 10 МБ). Best-effort: при строчных ошибках пакет всё равно создаётся, в ответе возвращается batchId и массив errors («Строка N: …»), позиции можно исправить в редакторе. Пакет не создаётся (batchId: null) только при структурных ошибках (нет даты/шапки). Пример ответа: {\n  \"batchId\": \"...\",\n  \"correctionDate\": \"2026-09-10T00:00:00Z\",\n  \"week\": 2,\n  \"dayOfWeek\": 4,\n  \"totalEntries\": 3,\n  \"positions\": [ ... ],\n  \"errors\": [\n    { \"row\": 1, \"column\": 4, \"level\": \"logic\", \"message\": \"Строка 1: заполнен предмет, но не указан преподаватель (или наоборот).\" }\n  ]\n}"
         },
         {
           "name": "Export correction batch to XLSX",
@@ -1100,7 +1161,7 @@
               ]
             }
           },
-          "description": "Скачать XLSX с текущими позициями пакета"
+          "description": "Скачать XLSX с текущими позициями пакета. Имя файла — «Корректировка_dd.MM.yyyy_HH-mm-ss.xlsx» (передаётся в заголовке Content-Disposition). Для changeType=Move примечание выводится как «вм.X»."
         },
         {
           "name": "Apply correction batch",
@@ -1135,10 +1196,73 @@
               ]
             }
           },
-          "description": "Применить все позиции пакета: отметка Applied, связь с историей, уведомление MaxBot, авто-экспорт XLSX"
+          "description": "Применить пакет одной транзакцией (кнопка «Применить» после подтверждения). Заголовок Idempotency-Key опционален: при отсутствии генерируется GUID.\n- Пустой пакет (нет черновых позиций) → 400 «В пакете нет позиций для применения.»\n- Ошибки валидации движка → 400 со списком сообщений «Строка N: …», строки объединены символом \\n; частичных изменений нет.\n- Повторный apply или статус не Draft → 409 «Пакет уже применён или отменён.»\n\nПосле COMMIT (fail-safe, сбой не откатывает применение): POST /notify в бота Max с изменениями и POST /notify/correction-image с PNG-таблицей в канал MaxBot:CorrectionChannelId.\n\nПример успеха: {\n  \"applied\": 2,\n  \"batchId\": \"...\",\n  \"history\": [\n    {\n      \"id\": \"...\",\n      \"changeType\": \"Replace\",\n      \"appliedAt\": \"2026-09-05T10:00:00Z\",\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"subject\": \"Математика\",\n      \"dayOfWeek\": \"Thursday\",\n      \"numberPair\": 4,\n      \"week\": 2,\n      \"note\": \"замена\",\n      \"removedSubject\": \"Физика\",\n      \"removedNumberPair\": 2\n    }\n  ]\n}"
+        },
+        {
+          "name": "Correction day",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/day?groupId={{groupId}}&date=2026-09-10&batchId={{batchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "day"
+              ],
+              "query": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-09-10"
+                },
+                {
+                  "key": "batchId",
+                  "value": "{{batchId}}"
+                }
+              ]
+            }
+          },
+          "description": "Эффективное расписание группы на дату для флоу корректировки: базовое расписание + применённые изменения + неприменённые позиции пакета (если передан batchId).\nСнятые без «сам.р.» пары исключаются; для «сам.р.» isSelfStudy=true. Сортировка по номеру пары.\nНовая схема ответа: entries[].pendingChangeType (Add | Remove | Replace | Move | null), entries[].isSelfStudy, entries[].changeTags (история применённых изменений пары).\nПример: {\n  \"date\": \"2026-09-10T00:00:00Z\",\n  \"week\": 2,\n  \"dayOfWeek\": 4,\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"entries\": [\n    {\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"room\": \"204\",\n      \"teacherId\": \"{{teacherId}}\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"note\": \"замена\",\n      \"isSelfStudy\": false,\n      \"pendingChangeType\": \"Replace\",\n      \"changeTags\": [ { \"changeType\": \"Replace\", \"week\": 2, \"removedNumberPair\": 2, \"removedSubject\": \"Физика\", \"note\": \"замена\" } ]\n    }\n  ]\n}"
+        },
+        {
+          "name": "Schedule subjects (for correction)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/subjects?teacherId={{teacherId}}&q=Мат",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "subjects"
+              ],
+              "query": [
+                {
+                  "key": "teacherId",
+                  "value": "{{teacherId}}"
+                },
+                {
+                  "key": "q",
+                  "value": "Мат"
+                }
+              ]
+            }
+          },
+          "description": "Список предметов для выпадающих списков корректировок. Фильтры: q — поиск по подстроке; teacherId — только предметы выбранного преподавателя (по расписанию и истории). Пример ответа: { \"subjects\": [\"Математика\", \"Математический анализ\"] }"
         }
       ],
-      "description": "Корректировка расписания: превью, подтверждение, пакеты корректировок (пакеты/позиции/импорт/экспорт/применение), история"
+      "description": "Корректировка расписания. Канонический batch-флоу: POST /batches → позиции/импорт → GET /batches/{id} (ошибки) → POST /batches/{id}/apply → POST /batches/{id}/export; day-endpoint GET /correction/day, журнал GET /history, справочник GET /subjects. Legacy-маршруты POST /correction/preview|confirm|export используются мини-приложением Max."
     },
     {
       "name": "Dispatcher",
