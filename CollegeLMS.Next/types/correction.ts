@@ -1,3 +1,5 @@
+import type { PagedResponse } from "@/types"
+
 export type CorrectionChangeType = "Add" | "Remove" | "Replace" | "Move"
 
 export interface CorrectionPreviewEntry {
@@ -21,7 +23,7 @@ export interface CorrectionPreviewEntry {
 export interface ScheduleValidationError {
   row: number
   column: number
-  level: number
+  level: string
   message: string
 }
 
@@ -89,6 +91,7 @@ export interface CorrectionPosition {
   note: string | null
   status: CorrectionPositionStatus
   historyId: string | null
+  errors: ScheduleValidationError[]
 }
 
 export interface CorrectionBatch {
@@ -98,8 +101,36 @@ export interface CorrectionBatch {
   dayOfWeek: number
   status: CorrectionBatchStatus
   createdAt: string
+  appliedByUserId: string | null
+  appliedByName: string | null
+  appliedAt: string | null
   positionCount: number
   positions: CorrectionPosition[]
+  errors: ScheduleValidationError[]
+}
+
+/** Ответ списка пакетов: серверная пагинация. */
+export type CorrectionBatchPage = PagedResponse<CorrectionBatch>
+
+export interface CorrectionDayEntry {
+  numberPair: number
+  subject: string
+  room: string
+  teacherId: string | null
+  teacherName: string | null
+  note: string | null
+  isSelfStudy: boolean
+  pendingChangeType: CorrectionChangeType | null
+  changeTags: ChangeTag[]
+}
+
+export interface CorrectionDayResponse {
+  date: string
+  week: number
+  dayOfWeek: number
+  groupId: string
+  groupName: string
+  entries: CorrectionDayEntry[]
 }
 
 export interface CreateCorrectionPosition {

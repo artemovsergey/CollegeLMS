@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import {
   ArrowLeft,
   CheckCircle,
+  CircleAlert,
   Download,
   Pencil,
   Play,
@@ -13,7 +14,7 @@ import {
   WandSparkles,
 } from "lucide-react"
 import api, { unwrap } from "@/lib/api"
-import { fetchSubjects } from "@/api/schedule"
+import { fetchSubjects, normalizeDateOnly } from "@/api/schedule"
 import {
   addPosition,
   applyBatch,
@@ -27,6 +28,7 @@ import type {
   CorrectionChangeType,
   CorrectionPosition,
   CreateCorrectionPosition,
+  ScheduleValidationError,
 } from "@/types/correction"
 import type { GroupResponse, Result, TeacherResponse } from "@/types"
 import { DAYS } from "@/types/schedule"
@@ -60,6 +62,8 @@ const CHANGE_TYPE_META: Record<
   Move: { label: "Перенос", className: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300" },
 }
 
+const EMPTY_GUID = "00000000-0000-0000-0000-000000000000"
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
@@ -78,6 +82,13 @@ function PositionTypeBadge({ type }: { type: CorrectionChangeType }) {
       {meta.label}
     </Badge>
   )
+}
+
+function formatValidationError(error: ScheduleValidationError): string {
+  const message = error.message ?? ""
+  if (/^Строка\s+\d+/i.test(message)) return message
+  const row = error.row ? `Строка ${error.row}` : ""
+  return row ? `${row}: ${message}` : message
 }
 
 interface PositionForm {
@@ -113,8 +124,11 @@ const emptyForm = (): PositionForm => ({
 function formFromPosition(position: CorrectionPosition): PositionForm {
   return {
     changeType: position.changeType,
-    groupId: position.groupId,
-    groupName: position.groupName,
+    groupId:
+      position.groupId && position.groupId !== EMPTY_GUID
+        ? position.groupId
+        : "",
+    groupName: position.groupName ?? "",
     numberPair: String(position.numberPair),
     subject: position.subject ?? "",
     teacherId: position.teacherId ?? "",
@@ -204,6 +218,7 @@ export default function CorrectionPositionEditor({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [applying, setApplying] = useState(false)
+  const [applyErrors, setApplyErrors] = useState<string[]>([])
   const [busyRowId, setBusyRowId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -224,15 +239,35 @@ export default function CorrectionPositionEditor({
     Promise.all([
       api.get<Result<GroupResponse[]>>("/api/groups").then(unwrap),
       api.get<Result<TeacherResponse[]>>("/api/teachers").then(unwrap),
-      fetchSubjects().then((res) => unwrap({ data: res })),
     ])
-      .then(([g, t, s]) => {
+      .then(([g, t]) => {
         setGroups(g)
         setTeachers(t)
-        setSubjects(s.subjects)
       })
       .catch(() => toast.error("Не удалось загрузить справочники"))
   }, [])
+
+  // Предметы зависят от выбранного преподавателя: бэкенд отдаёт только его предметы.
+  useEffect(() => {
+    let cancelled = false
+    fetchSubjects(undefined, form.teacherId || undefined)
+      .then((res) => {
+        const list = res.data?.subjects ?? []
+        if (cancelled) return
+        setSubjects(list)
+        setForm((current) =>
+          current.subject && !list.includes(current.subject)
+            ? { ...current, subject: "" }
+            : current,
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setSubjects([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [form.teacherId])
 
   const patchForm = (patch: Partial<PositionForm>) => {
     setForm((current) => ({ ...current, ...patch }))
@@ -248,9 +283,15 @@ export default function CorrectionPositionEditor({
       toast.error("Выберите группу")
       return
     }
-    const pair = Number(form.numberPair)
-    if (!pair || pair < 1 || pair > 8) {
-      toast.error("Номер пары должен быть от 1 до 8")
+    if (form.changeType !== "Remove") {
+      const pair = Number(form.numberPair)
+      if (!pair || pair < 1 || pair > 8) {
+        toast.error("Номер пары должен быть от 1 до 8")
+        return
+      }
+    }
+    if (form.changeType !== "Add" && !form.removedSubject) {
+      toast.error("Выберите снимаемую пару")
       return
     }
     setSubmitting(true)
@@ -296,9 +337,8 @@ export default function CorrectionPositionEditor({
   const handleExport = async () => {
     if (!batch) return
     try {
-      const blob = await exportBatch(batch.id)
-      const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-")
-      downloadBlob(blob, `Корректировка_${stamp}.xlsx`)
+      const { blob, fileName } = await exportBatch(batch.id)
+      downloadBlob(blob, fileName)
     } catch (err) {
       toast.error(extractErrorMessage(err) ?? "Не удалось сформировать файл")
     }
@@ -308,22 +348,34 @@ export default function CorrectionPositionEditor({
     if (!batch) return
     if (!window.confirm("Применить все позиции пакета?")) return
     setApplying(true)
+    setApplyErrors([])
     try {
       const result = await applyBatch(batch.id, crypto.randomUUID())
       toast.success(`Применено изменений: ${result.applied}`)
-      let blob: Blob | null = null
       try {
-        blob = await exportBatch(batch.id)
+        const { blob, fileName } = await exportBatch(batch.id)
+        downloadBlob(blob, fileName)
       } catch {
-        blob = null
-      }
-      if (blob) {
-        const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-")
-        downloadBlob(blob, `Корректировка_${stamp}.xlsx`)
+        toast.message("Пакет применён, но файл не удалось сформировать")
       }
       onApplied()
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось применить пакет")
+      const message = extractErrorMessage(err)
+      const lines = message
+        ? message
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+        : []
+      if (lines.length > 0) {
+        setApplyErrors(lines)
+        toast.error("Не удалось применить пакет", {
+          description: lines[0],
+          duration: 8000,
+        })
+      } else {
+        toast.error("Не удалось применить пакет")
+      }
     } finally {
       setApplying(false)
     }
@@ -331,12 +383,25 @@ export default function CorrectionPositionEditor({
 
   const handleRemovedPair = (selection: RemovedPairSelection | null) => {
     if (!selection) return
+    if (form.changeType === "Remove") {
+      patchForm({
+        numberPair: String(selection.numberPair),
+        removedNumberPair: String(selection.numberPair),
+        removedSubject: selection.removedSubject,
+        removedTeacherId: selection.removedTeacherId ?? "",
+        removedTeacherName: selection.removedTeacherName ?? "",
+      })
+      return
+    }
+    const autoNote = /^вм\.\d+$/.test(form.note.trim())
     patchForm({
-      numberPair: String(selection.numberPair),
       removedNumberPair: String(selection.numberPair),
       removedSubject: selection.removedSubject,
       removedTeacherId: selection.removedTeacherId ?? "",
       removedTeacherName: selection.removedTeacherName ?? "",
+      ...(form.changeType === "Move" && (!form.note.trim() || autoNote)
+        ? { note: `вм.${selection.numberPair}` }
+        : {}),
     })
   }
 
@@ -356,7 +421,7 @@ export default function CorrectionPositionEditor({
         <CardContent className="py-8">
           <EmptyState message="Пакет не найден." />
           <Button variant="outline" className="mt-4" onClick={onBack}>
-            <ArrowLeft className="size-4 mr-2" /> К пакетам
+            <ArrowLeft className="size-4 mr-2" aria-hidden /> К пакетам
           </Button>
         </CardContent>
       </Card>
@@ -364,17 +429,37 @@ export default function CorrectionPositionEditor({
   }
 
   const batchIsDraft = batch.status === "Draft"
-  const hint = batchIsDraft ? batch.positionCount === 0
-    ? "Позиций пока нет"
-    : "Проверьте позиции и примените пакет"
-    : "Пакет уже применён"
+  const batchErrors = batch.errors ?? []
+  const dateOnly = normalizeDateOnly(batch.correctionDate)
+  const applyDisabled =
+    !batchIsDraft ||
+    applying ||
+    batch.positionCount === 0 ||
+    batchErrors.length > 0
+  const applyHint = !batchIsDraft
+    ? "Пакет уже применён или отменён"
+    : batchErrors.length > 0
+      ? "Сначала исправьте ошибки пакета"
+      : batch.positionCount === 0
+        ? "В пакете нет позиций"
+        : "Проверьте позиции и примените пакет"
+  const needsTarget = form.changeType !== "Remove"
+  const removedSelection: RemovedPairSelection | null = form.removedSubject
+    ? {
+        numberPair:
+          Number(form.removedNumberPair) || Number(form.numberPair) || 1,
+        removedSubject: form.removedSubject,
+        removedTeacherId: form.removedTeacherId || null,
+        removedTeacherName: form.removedTeacherName || null,
+      }
+    : null
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
           <span className="flex items-center gap-2">
-            <WandSparkles className="size-4" />
+            <WandSparkles className="size-4" aria-hidden />
             Редактор пакета
             <Badge
               variant="outline"
@@ -389,17 +474,18 @@ export default function CorrectionPositionEditor({
           </span>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={onBack}>
-              <ArrowLeft className="size-4 mr-2" /> Назад
+              <ArrowLeft className="size-4 mr-2" aria-hidden /> Назад
             </Button>
             <Button variant="outline" onClick={() => void handleExport()}>
-              <Download className="size-4 mr-2" /> XLSX
+              <Download className="size-4 mr-2" aria-hidden /> XLSX
             </Button>
             <Button
-              disabled={!batchIsDraft || applying || batch.positionCount === 0}
+              disabled={applyDisabled}
+              title={applyDisabled ? applyHint : undefined}
               onClick={() => void handleApply()}
             >
               {applying ? "Применение..." : "Применить"}
-              {!applying && <Play className="size-4 ml-2" />}
+              {!applying && <Play className="size-4 ml-2" aria-hidden />}
             </Button>
           </div>
         </CardTitle>
@@ -425,16 +511,48 @@ export default function CorrectionPositionEditor({
           <span>
             Позиций: <span className="font-medium">{batch.positionCount}</span>
           </span>
-          <span className="text-muted-foreground">
-            {hint}
-          </span>
+          <span className="text-muted-foreground">{applyHint}</span>
         </div>
+
+        {batchErrors.length > 0 && (
+          <div
+            role="alert"
+            className="grid gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-4"
+          >
+            <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
+              <CircleAlert className="size-4 shrink-0" aria-hidden />
+              Ошибки пакета ({batchErrors.length}) — применить нельзя
+            </p>
+            <ul className="grid max-h-48 gap-1 overflow-y-auto text-xs text-muted-foreground">
+              {batchErrors.map((error, index) => (
+                <li key={index}>{formatValidationError(error)}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {applyErrors.length > 0 && (
+          <div
+            role="alert"
+            className="grid gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-4"
+          >
+            <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
+              <CircleAlert className="size-4 shrink-0" aria-hidden />
+              Пакет не применён — бэкенд вернул ошибки
+            </p>
+            <ul className="grid max-h-48 gap-1 overflow-y-auto text-xs text-muted-foreground">
+              {applyErrors.map((line, index) => (
+                <li key={index}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {batch.positions.length === 0 ? (
           <EmptyState message="Позиций пока нет — добавьте первую ниже." />
         ) : (
           <div className="overflow-x-auto rounded-md border">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 text-left">№</th>
@@ -448,59 +566,20 @@ export default function CorrectionPositionEditor({
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {batch.positions.map((position) => (
-                  <tr
-                    key={position.id}
-                    className={position.status === "Applied" ? "opacity-60" : ""}
-                  >
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {position.row}
-                    </td>
-                    <td className="px-3 py-2">
-                      <PositionTypeBadge type={position.changeType} />
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      {position.groupName}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      {position.removedNumberPair != null &&
-                        position.changeType !== "Remove" &&
-                        position.removedNumberPair !== position.numberPair
-                        ? `${position.removedNumberPair} → ${position.numberPair}`
-                        : position.numberPair}
-                    </td>
-                    <td className="px-3 py-2">{renderTitle(position)}</td>
-                    <td className="px-3 py-2 max-w-[220px] truncate">
-                      {renderTeacher(position)}
-                    </td>
-                    <td className="px-3 py-2 max-w-[160px] truncate text-muted-foreground">
-                      {position.note ?? "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      {batchIsDraft && (
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(position)}
-                            aria-label="Редактировать позицию"
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={busyRowId === position.id}
-                            onClick={() => void handleDelete(position)}
-                            aria-label="Удалить позицию"
-                          >
-                            <Trash2 className="size-4 text-destructive" />
-                          </Button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {batch.positions.map((position) => {
+                  const positionErrors = position.errors ?? []
+                  return (
+                    <PositionRow
+                      key={position.id}
+                      position={position}
+                      errors={positionErrors}
+                      batchIsDraft={batchIsDraft}
+                      busy={busyRowId === position.id}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -509,7 +588,7 @@ export default function CorrectionPositionEditor({
         {batchIsDraft && (
           <div className="rounded-md border p-4 grid gap-4">
             <p className="flex items-center gap-2 text-sm font-medium">
-              <Plus className="size-4" />
+              <Plus className="size-4" aria-hidden />
               {editingId ? "Редактирование позиции" : "Новая позиция"}
             </p>
 
@@ -518,9 +597,16 @@ export default function CorrectionPositionEditor({
                 Тип операции
                 <NativeSelect
                   value={form.changeType}
-                  onValueChange={(value) =>
-                    patchForm({ changeType: value as CorrectionChangeType })
-                  }
+                  onValueChange={(value) => {
+                    const changeType = value as CorrectionChangeType
+                    patchForm({
+                      changeType,
+                      removedSubject: "",
+                      removedTeacherId: "",
+                      removedTeacherName: "",
+                      removedNumberPair: "",
+                    })
+                  }}
                 >
                   {(Object.keys(CHANGE_TYPE_META) as CorrectionChangeType[]).map(
                     (type) => (
@@ -541,6 +627,10 @@ export default function CorrectionPositionEditor({
                     patchForm({
                       groupId,
                       groupName: group?.name ?? form.groupName,
+                      removedSubject: "",
+                      removedTeacherId: "",
+                      removedTeacherName: "",
+                      removedNumberPair: "",
                     })
                   }}
                   placeholder="Выберите группу"
@@ -553,139 +643,94 @@ export default function CorrectionPositionEditor({
                 </NativeSelect>
               </label>
 
-              <label className="grid gap-1 text-sm font-medium">
-                № пары
-                <Input
-                  type="number"
-                  min={1}
-                  max={8}
-                  value={form.numberPair}
-                  disabled={form.changeType === "Remove" && Boolean(form.removedSubject)}
-                  onChange={(e) => patchForm({ numberPair: e.target.value })}
-                />
-              </label>
+              {needsTarget && (
+                <label className="grid gap-1 text-sm font-medium">
+                  {form.changeType === "Move" ? "Новая № пары" : "№ пары"}
+                  <Input
+                    type="number"
+                    min={1}
+                    max={8}
+                    value={form.numberPair}
+                    onChange={(e) => patchForm({ numberPair: e.target.value })}
+                  />
+                </label>
+              )}
 
-              {form.changeType === "Remove" ? (
-                <div className="grid gap-1 text-sm font-medium">
-                  <span>Снимаемая пара</span>
+              {needsTarget && (
+                <label className="grid gap-1 text-sm font-medium">
+                  Предмет (вводится)
+                  <NativeSelect
+                    value={form.subject}
+                    onValueChange={(value) => patchForm({ subject: value })}
+                    placeholder="Предмет"
+                  >
+                    {subjects.map((subject) => (
+                      <NativeSelectItem key={subject} value={subject}>
+                        {subject}
+                      </NativeSelectItem>
+                    ))}
+                  </NativeSelect>
+                </label>
+              )}
+
+              {needsTarget && (
+                <label className="grid gap-1 text-sm font-medium">
+                  Преподаватель (вводится)
+                  <NativeSelect
+                    value={form.teacherId}
+                    onValueChange={(teacherId) => {
+                      const teacher = teachers.find(
+                        (item) => item.id === teacherId,
+                      )
+                      patchForm({
+                        teacherId,
+                        teacherName: teacher?.fullName ?? "",
+                      })
+                    }}
+                    placeholder="Преподаватель"
+                  >
+                    <NativeSelectItem value="">Не указан</NativeSelectItem>
+                    {teachers.map((teacher) => (
+                      <NativeSelectItem key={teacher.id} value={teacher.id}>
+                        {teacher.fullName}
+                      </NativeSelectItem>
+                    ))}
+                  </NativeSelect>
+                </label>
+              )}
+
+              {form.changeType !== "Add" && (
+                <div className="grid gap-1 text-sm font-medium sm:col-span-2 lg:col-span-3">
+                  <span>
+                    {form.changeType === "Remove"
+                      ? "Снимаемая пара"
+                      : "Снимаемая пара (заменяется/переносится)"}
+                  </span>
                   <RemovePairPicker
                     groupId={form.groupId || null}
-                    week={batch.week}
-                    dayOfWeek={batch.dayOfWeek}
-                    value={
-                      form.removedSubject
-                        ? {
-                            numberPair: Number(form.numberPair) || 1,
-                            removedSubject: form.removedSubject,
-                            removedTeacherId: form.removedTeacherId || null,
-                            removedTeacherName: form.removedTeacherName || null,
-                          }
-                        : null
-                    }
+                    date={dateOnly}
+                    batchId={batch.id}
+                    value={removedSelection}
                     onChange={handleRemovedPair}
                   />
                 </div>
-              ) : (
-                <>
-                  <label className="grid gap-1 text-sm font-medium">
-                    Предмет (вводится)
-                    <NativeSelect
-                      value={form.subject}
-                      onValueChange={(value) => patchForm({ subject: value })}
-                      placeholder="Предмет"
-                    >
-                      {subjects.map((subject) => (
-                        <NativeSelectItem key={subject} value={subject}>
-                          {subject}
-                        </NativeSelectItem>
-                      ))}
-                    </NativeSelect>
-                  </label>
-
-                  <label className="grid gap-1 text-sm font-medium">
-                    Преподаватель (вводится)
-                    <NativeSelect
-                      value={form.teacherId}
-                      onValueChange={(teacherId) => {
-                        const teacher = teachers.find(
-                          (item) => item.id === teacherId,
-                        )
-                        patchForm({
-                          teacherId,
-                          teacherName: teacher?.fullName ?? "",
-                        })
-                      }}
-                      placeholder="Преподаватель"
-                    >
-                      <NativeSelectItem value="">Не указан</NativeSelectItem>
-                      {teachers.map((teacher) => (
-                        <NativeSelectItem key={teacher.id} value={teacher.id}>
-                          {teacher.fullName}
-                        </NativeSelectItem>
-                      ))}
-                    </NativeSelect>
-                  </label>
-                </>
               )}
 
               {(form.changeType === "Replace" ||
                 form.changeType === "Move") && (
-                <>
-                  <label className="grid gap-1 text-sm font-medium">
-                    Снимаемый предмет
-                    <NativeSelect
-                      value={form.removedSubject}
-                      onValueChange={(value) =>
-                        patchForm({ removedSubject: value })
-                      }
-                      placeholder="Предмет"
-                    >
-                      {subjects.map((subject) => (
-                        <NativeSelectItem key={subject} value={subject}>
-                          {subject}
-                        </NativeSelectItem>
-                      ))}
-                    </NativeSelect>
-                  </label>
-
-                  <label className="grid gap-1 text-sm font-medium">
-                    Снимаемый преподаватель
-                    <NativeSelect
-                      value={form.removedTeacherId}
-                      onValueChange={(value) => {
-                        const teacher = teachers.find(
-                          (item) => item.id === value,
-                        )
-                        patchForm({
-                          removedTeacherId: value,
-                          removedTeacherName: teacher?.fullName ?? "",
-                        })
-                      }}
-                      placeholder="Преподаватель"
-                    >
-                      <NativeSelectItem value="">Не указан</NativeSelectItem>
-                      {teachers.map((teacher) => (
-                        <NativeSelectItem key={teacher.id} value={teacher.id}>
-                          {teacher.fullName}
-                        </NativeSelectItem>
-                      ))}
-                    </NativeSelect>
-                  </label>
-
-                  <label className="grid gap-1 text-sm font-medium">
-                    Старый № пары (для переноса)
-                    <Input
-                      type="number"
-                      min={1}
-                      max={8}
-                      value={form.removedNumberPair}
-                      placeholder="Оставьте пустым"
-                      onChange={(e) =>
-                        patchForm({ removedNumberPair: e.target.value })
-                      }
-                    />
-                  </label>
-                </>
+                <label className="grid gap-1 text-sm font-medium">
+                  Старый № пары
+                  <Input
+                    type="number"
+                    min={1}
+                    max={8}
+                    value={form.removedNumberPair}
+                    placeholder="Из выбранной пары"
+                    onChange={(e) =>
+                      patchForm({ removedNumberPair: e.target.value })
+                    }
+                  />
+                </label>
               )}
 
               <label className="grid gap-1 text-sm font-medium">
@@ -704,7 +749,9 @@ export default function CorrectionPositionEditor({
               hints={
                 form.changeType === "Remove"
                   ? ["сам.р."]
-                  : ["замена", "перенос"]
+                  : form.changeType === "Move"
+                    ? ["перенос"]
+                    : ["замена"]
               }
             />
 
@@ -730,11 +777,112 @@ export default function CorrectionPositionEditor({
 
         {batch.status === "Applied" && (
           <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
-            <CheckCircle className="size-4 shrink-0" />
-            Пакет применён. Позиции зафиксированы в журнале изменений.
+            <CheckCircle className="size-4 shrink-0" aria-hidden />
+            <span>
+              Применён
+              {batch.appliedByName ? `: ${batch.appliedByName}` : ""}
+              {batch.appliedAt
+                ? `, ${new Date(batch.appliedAt).toLocaleString("ru-RU")}`
+                : ""}
+              . Позиции зафиксированы в журнале изменений.
+            </span>
           </div>
         )}
       </CardContent>
     </Card>
+  )
+}
+
+interface PositionRowProps {
+  position: CorrectionPosition
+  errors: ScheduleValidationError[]
+  batchIsDraft: boolean
+  busy: boolean
+  onEdit: (position: CorrectionPosition) => void
+  onDelete: (position: CorrectionPosition) => void
+}
+
+function PositionRow({
+  position,
+  errors,
+  batchIsDraft,
+  busy,
+  onEdit,
+  onDelete,
+}: PositionRowProps) {
+  const hasErrors = errors.length > 0
+  return (
+    <>
+      <tr
+        className={
+          hasErrors
+            ? "bg-destructive/5"
+            : position.status === "Applied"
+              ? "opacity-60"
+              : ""
+        }
+      >
+        <td className="px-3 py-2 text-muted-foreground">{position.row}</td>
+        <td className="px-3 py-2">
+          <PositionTypeBadge type={position.changeType} />
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap">
+          {position.groupName || (
+            <span className="text-destructive">Группа не указана</span>
+          )}
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap">
+          {position.removedNumberPair != null &&
+          position.changeType !== "Remove" &&
+          position.removedNumberPair !== position.numberPair
+            ? `${position.removedNumberPair} → ${position.numberPair}`
+            : position.numberPair || <span className="text-destructive">—</span>}
+        </td>
+        <td className="px-3 py-2">{renderTitle(position)}</td>
+        <td className="px-3 py-2 max-w-[220px] truncate">
+          {renderTeacher(position)}
+        </td>
+        <td className="px-3 py-2 max-w-[160px] truncate text-muted-foreground">
+          {position.note ?? "—"}
+        </td>
+        <td className="px-3 py-2">
+          {batchIsDraft && (
+            <div className="flex justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onEdit(position)}
+                aria-label={`Редактировать позицию ${position.row}`}
+              >
+                <Pencil className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={busy}
+                onClick={() => onDelete(position)}
+                aria-label={`Удалить позицию ${position.row}`}
+              >
+                <Trash2 className="size-4 text-destructive" />
+              </Button>
+            </div>
+          )}
+        </td>
+      </tr>
+      {hasErrors && (
+        <tr className="bg-destructive/5">
+          <td colSpan={8} className="px-3 pb-2">
+            <ul className="grid gap-1 text-xs text-destructive">
+              {errors.map((error, index) => (
+                <li key={index} className="flex items-start gap-1.5">
+                  <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  {formatValidationError(error)}
+                </li>
+              ))}
+            </ul>
+          </td>
+        </tr>
+      )}
+    </>
   )
 }

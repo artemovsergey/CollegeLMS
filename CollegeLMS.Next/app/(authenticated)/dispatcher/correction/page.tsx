@@ -23,6 +23,7 @@ import type {
   CorrectionChangeType,
   CorrectionImportResponse,
   ScheduleHistoryItem,
+  ScheduleValidationError,
 } from "@/types/correction"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -83,6 +84,13 @@ function ChangeTypeBadge({ type }: { type: CorrectionChangeType }) {
       <Icon /> {meta.label}
     </Badge>
   )
+}
+
+function formatValidationError(error: ScheduleValidationError): string {
+  const message = error.message ?? ""
+  if (/^Строка\s+\d+/i.test(message)) return message
+  const row = error.row ? `Строка ${error.row}` : ""
+  return row ? `${row}: ${message}` : message
 }
 
 type Tab = "batches" | "editor" | "import" | "journal"
@@ -159,7 +167,15 @@ export default function DispatcherCorrectionPage() {
     try {
       const result = await importCorrection(file)
       if (result.batchId) {
-        toast.success(`Импортировано позиций: ${result.totalEntries}`)
+        // Строчные ошибки не мешают созданию пакета — их покажет редактор.
+        if (result.errors.length > 0) {
+          toast.error(`Пакет создан с ошибками (${result.errors.length})`, {
+            description: "Открываем редактор — исправьте позиции и примените пакет",
+            duration: 6000,
+          })
+        } else {
+          toast.success(`Импортировано позиций: ${result.totalEntries}`)
+        }
         setFile(null)
         setImportResult(null)
         if (fileInputRef.current) fileInputRef.current.value = ""
@@ -404,14 +420,18 @@ export default function DispatcherCorrectionPage() {
             {importResult && (
               <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 grid gap-2">
                 <p className="flex items-center gap-1 text-sm font-semibold text-destructive">
-                  <AlertCircle className="size-3" />
-                  Файл содержит ошибки ({importResult.errors.length}) — пакет не
-                  создан
+                  <AlertCircle className="size-3" aria-hidden />
+                  Пакет не создан: структурные ошибки ({importResult.errors.length}
+                  )
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Не удалось определить дату, шапку или данные файла. Исправьте
+                  файл и повторите импорт.
                 </p>
                 <div className="max-h-40 overflow-y-auto text-xs space-y-1">
                   {importResult.errors.map((err, i) => (
                     <p key={i} className="text-muted-foreground">
-                      Строка {err.row}, стлб. {err.column}: {err.message}
+                      {formatValidationError(err)}
                     </p>
                   ))}
                 </div>

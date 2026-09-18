@@ -213,11 +213,14 @@ export interface SubjectsResponse {
 
 export async function fetchSubjects(
   q = "",
+  teacherId?: string,
 ): Promise<Result<SubjectsResponse>> {
   const qs = new URLSearchParams()
   if (q) qs.set("q", q)
+  if (teacherId) qs.set("teacherId", teacherId)
+  const suffix = qs.toString()
   const { data } = await api.get<Result<SubjectsResponse>>(
-    `/api/schedule/subjects${qs.toString() ? `?${qs.toString()}` : ""}`,
+    `/api/schedule/subjects${suffix ? `?${suffix}` : ""}`,
   )
   return data
 }
