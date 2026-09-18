@@ -173,6 +173,137 @@ public class MessageFormatterTests
         text.Should().Contain("🔄 перенос с пары 2");
     }
 
+    private static List<ScheduleInsertDto> Inserts() =>
+        [
+            new ScheduleInsertDto
+            {
+                Id = Guid.NewGuid(),
+                Title = "Линейка",
+                DayOfWeek = 1,
+                StartTime = new TimeSpan(8, 0, 0),
+                EndTime = new TimeSpan(8, 30, 0),
+                IsActive = true,
+            },
+        ];
+
+    [Fact]
+    public void FormatDaySchedule_WithInserts_AppendsBlockAfterPairs()
+    {
+        var text = MessageFormatter.FormatDaySchedule(
+            Entries(),
+            new DateTime(2026, 9, 7),
+            "Группа 101",
+            inserts: Inserts()
+        );
+
+        text.Should().Contain("🎓 *Вставки:*");
+        text.Should().Contain("*Линейка*");
+        text.Should().Contain("🕐 08:00–08:30");
+        text.IndexOf("🎓 *Вставки:*").Should().BeGreaterThan(text.IndexOf("*1.* 📖 Математика"));
+    }
+
+    [Fact]
+    public void FormatDaySchedule_EmptyEntriesWithInserts_ShowsHeaderAndInserts()
+    {
+        var text = MessageFormatter.FormatDaySchedule(
+            [],
+            new DateTime(2026, 9, 7),
+            "Группа 101",
+            inserts: Inserts()
+        );
+
+        text.Should().Contain("Пар нет.");
+        text.Should().Contain("🎓 *Вставки:*");
+        text.Should().NotContain("выходной!");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_Inserts_SortedByStartTime()
+    {
+        var inserts = new List<ScheduleInsertDto>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Title = "Поздняя",
+                DayOfWeek = 1,
+                StartTime = new TimeSpan(15, 0, 0),
+                EndTime = new TimeSpan(15, 30, 0),
+                IsActive = true,
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Title = "Ранняя",
+                DayOfWeek = 1,
+                StartTime = new TimeSpan(8, 0, 0),
+                EndTime = new TimeSpan(8, 30, 0),
+                IsActive = true,
+            },
+        };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            [],
+            new DateTime(2026, 9, 7),
+            "Группа 101",
+            inserts: inserts
+        );
+
+        text.IndexOf("*Ранняя*").Should().BeLessThan(text.IndexOf("*Поздняя*"));
+    }
+
+    [Fact]
+    public void FormatDaySchedule_PracticeLine_ReplacesPairs()
+    {
+        var text = MessageFormatter.FormatDaySchedule(
+            Entries(),
+            new DateTime(2026, 9, 7),
+            "Группа 101",
+            practiceLine: "УП: ПО-262 · Марченко И.А. (с 07.09.2026 по 11.09.2026)"
+        );
+
+        text.Should().Contain("🎓 *Практика*");
+        text.Should().Contain("УП: ПО-262 · Марченко И.А.");
+        text.Should().NotContain("Математика");
+    }
+
+    [Fact]
+    public void FormatPracticeLine_Up_IncludesOrganizationAndPeriod()
+    {
+        var practice = new PracticeDto
+        {
+            Id = Guid.NewGuid(),
+            Kind = "Up",
+            GroupName = "ПО-262",
+            TeacherName = "Марченко И.А.",
+            DateFrom = new DateTime(2026, 9, 7),
+            DateTo = new DateTime(2026, 9, 11),
+            Organization = "ООО Ромашка",
+        };
+
+        var line = MessageFormatter.FormatPracticeLine(practice);
+
+        line.Should().Be("УП: ПО-262 · Марченко И.А. · ООО Ромашка (с 07.09.2026 по 11.09.2026)");
+    }
+
+    [Fact]
+    public void FormatPracticeLine_Pp_WithoutOrganization_OmitsOrganization()
+    {
+        var practice = new PracticeDto
+        {
+            Id = Guid.NewGuid(),
+            Kind = "Pp",
+            GroupName = "ПО-263",
+            TeacherName = "Петренко В.Б.",
+            DateFrom = new DateTime(2026, 10, 1),
+            DateTo = new DateTime(2026, 10, 12),
+        };
+
+        var line = MessageFormatter.FormatPracticeLine(practice);
+
+        line.Should().Be("ПП: ПО-263 · Петренко В.Б. (с 01.10.2026 по 12.10.2026)");
+    }
+
     [Fact]
     public void FormatDaySchedule_HasHorizontalRuleBetweenSlots()
     {

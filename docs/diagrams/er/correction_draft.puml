@@ -62,7 +62,7 @@ CorrectionBatch ||--o{ CorrectionPosition : contains
 User ||--o{ CorrectionBatch : created
 User ||--o{ CorrectionBatch : applied
 CorrectionBatch o--o{ ScheduleHistory : apply_result
-CorrectionPosition o||--o| ScheduleHistory : history_id (после применения)
+CorrectionPosition |o--o| ScheduleHistory : history_id (после применения)
 
 note bottom of CorrectionPosition
   «сам.р.» допустимо только для

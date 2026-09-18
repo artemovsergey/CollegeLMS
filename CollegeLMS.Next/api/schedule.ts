@@ -230,6 +230,8 @@ export interface JournalEntryItem {
   dayOfWeek: number
   date: string
   numberPairs: number[]
+  /** Бейджи корректировок: Add, Replace, Move, Remove, SelfStudy. */
+  changeTypes: string[]
 }
 
 export interface JournalSubjectGroup {
@@ -247,13 +249,37 @@ export interface JournalResponse {
 
 export async function fetchJournal(
   teacherId?: string,
+  subject?: string,
 ): Promise<Result<JournalResponse>> {
-  const qs = teacherId ? `?teacherId=${teacherId}` : ""
+  const qs = new URLSearchParams()
+  if (teacherId) qs.set("teacherId", teacherId)
+  if (subject) qs.set("subject", subject)
+  const suffix = qs.toString()
   const { data } = await api.get<Result<JournalResponse>>(
-    `/api/schedule/journal${qs}`,
+    `/api/schedule/journal${suffix ? `?${suffix}` : ""}`,
   )
   return data
 }
+
+export interface ScheduleContextResponse {
+  teacherId: string | null
+  teacherName: string | null
+  groupId: string | null
+  groupName: string | null
+  role: string
+}
+
+/** Личный контекст расписания текущего пользователя (роль, группа, преподаватель). */
+export async function fetchScheduleContext(): Promise<
+  Result<ScheduleContextResponse>
+> {
+  const { data } = await api.get<Result<ScheduleContextResponse>>(
+    "/api/schedule/context",
+  )
+  return data
+}
+
+export type ScheduleExportScope = "day" | "week" | "semester"
 
 export async function createSchedule(
   body: CreateScheduleRequest,
@@ -281,6 +307,7 @@ export async function exportSchedule(
   filters: ScheduleFilters,
   format: "pdf" | "xlsx",
   layout: "grid" | "daycards" = "grid",
+  scope?: ScheduleExportScope,
 ): Promise<void> {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null
@@ -288,6 +315,7 @@ export async function exportSchedule(
   if (filters.groupId) params.set("groupId", filters.groupId)
   if (filters.teacherId) params.set("teacherId", filters.teacherId)
   if (filters.period) params.set("period", filters.period)
+  if (scope) params.set("scope", scope)
   params.set("format", format)
   params.set("layout", layout)
 

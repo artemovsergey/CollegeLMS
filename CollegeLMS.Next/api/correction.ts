@@ -1,6 +1,7 @@
 import api, { unwrap } from "@/lib/api"
 import type { Result, PagedResponse } from "@/types"
 import type {
+  CorrectionChangeType,
   CorrectionPreviewResponse,
   CorrectionPreviewEntry,
   ConfirmResult,
@@ -18,6 +19,13 @@ export interface HistoryParams {
   groupId?: string
   teacherId?: string
   week?: number
+  /** Дата проведения занятия (YYYY-MM-DD) — сервер сам вычисляет неделю и день. */
+  date?: string
+  /** Начало периода по дате применения изменения (YYYY-MM-DD). */
+  from?: string
+  /** Конец периода по дате применения изменения (YYYY-MM-DD). */
+  to?: string
+  changeType?: CorrectionChangeType
   page?: number
   pageSize?: number
 }
@@ -79,6 +87,10 @@ export async function getHistory(
   if (params.teacherId) urlParams.set("teacherId", params.teacherId)
   if (params.week !== undefined)
     urlParams.set("week", String(params.week))
+  if (params.date) urlParams.set("date", params.date)
+  if (params.from) urlParams.set("from", params.from)
+  if (params.to) urlParams.set("to", params.to)
+  if (params.changeType) urlParams.set("changeType", params.changeType)
   if (params.page) urlParams.set("page", String(params.page))
   if (params.pageSize) urlParams.set("pageSize", String(params.pageSize))
 

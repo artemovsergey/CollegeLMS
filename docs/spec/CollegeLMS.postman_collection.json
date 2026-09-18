@@ -62,6 +62,18 @@
     {
       "key": "positionId",
       "value": ""
+    },
+    {
+      "key": "nonWorkingDayId",
+      "value": ""
+    },
+    {
+      "key": "insertId",
+      "value": ""
+    },
+    {
+      "key": "practiceId",
+      "value": ""
     }
   ],
   "item": [
@@ -1425,7 +1437,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/schedule/journal",
+              "raw": "{{baseUrl}}/api/schedule/journal?teacherId={{teacherId}}&subject=Математика",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1437,12 +1449,16 @@
               "query": [
                 {
                   "key": "teacherId",
-                  "value": "00000000-0000-0000-0000-000000000000"
+                  "value": "{{teacherId}}"
+                },
+                {
+                  "key": "subject",
+                  "value": "Математика"
                 }
               ]
             }
           },
-          "description": "Журнал преподавателя: недели с числом пар по предмету"
+          "description": "Журнал преподавателя (Teacher/Admin/Dispatcher): subjects[] { subject, items[] { week, dayOfWeek, date, numberPairs[], changeTypes[] }, pairCount }, totalPairCount. Фильтр ?subject= по точному названию предмета. changeTypes — бейджи корректировок: Add, Replace, Move, Remove, SelfStudy (сам.р.). Показываются только проведённые занятия (дата <= сегодня). 400 — не определён преподаватель; 403 — чужой teacherId; 404 — преподаватель не найден."
         },
         {
           "name": "Get subjects",
@@ -1488,6 +1504,336 @@
             }
           },
           "description": "Контекст авторизованного пользователя: группа/преподаватель пользователя"
+        },
+        {
+          "name": "Export schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/export?scope=semester&format=xlsx&layout=grid&groupId={{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "export"],
+              "query": [
+                { "key": "scope", "value": "semester" },
+                { "key": "format", "value": "xlsx" },
+                { "key": "layout", "value": "grid" },
+                { "key": "groupId", "value": "{{groupId}}" },
+                { "key": "teacherId", "value": "" },
+                { "key": "room", "value": "" },
+                { "key": "period", "value": "" }
+              ]
+            }
+          },
+          "description": "Экспорт расписания (AllowAnonymous, rate-limit ExportPolicy). scope=day|week|semester, format=pdf|xlsx, layout=grid|daycards. scope=semester — матрица недели (1–16) × дни Пн–Сб; требуется ровно одна из groupId/teacherId, иначе 400 «Укажите одну группу или одного преподавателя.»; имя файла «Расписание_семестр_dd.MM.yyyy_HH-mm-ss.xlsx|pdf». period=day на нерабочую дату → 400 «Нерабочий день: {Title}»; нет данных → 404."
+        }
+      ]
+    },
+    {
+      "name": "Schedule reference data",
+      "description": "Справочники расписания: звонки, нерабочие дни, вставки, практики УП/ПП",
+      "item": [
+        {
+          "name": "Bells",
+          "description": "Справочник времени пар (звонков) и большая перемена",
+          "item": [
+            {
+              "name": "Get bells",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/bells",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bells"],
+                  "query": []
+                }
+              },
+              "description": "Справочник звонков (AllowAnonymous): slots[] { id, numberPair, startTime, endTime } и bigBreak { afterPair, startTime, endTime } | null. Время — HH:mm:ss. Если справочник пуст — используется время самих записей расписания."
+            },
+            {
+              "name": "Replace bells",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"slots\": [\n    { \"numberPair\": 1, \"startTime\": \"08:30:00\", \"endTime\": \"09:50:00\" },\n    { \"numberPair\": 2, \"startTime\": \"10:00:00\", \"endTime\": \"11:20:00\" },\n    { \"numberPair\": 3, \"startTime\": \"11:30:00\", \"endTime\": \"12:50:00\" },\n    { \"numberPair\": 4, \"startTime\": \"13:00:00\", \"endTime\": \"14:20:00\" },\n    { \"numberPair\": 5, \"startTime\": \"15:05:00\", \"endTime\": \"16:25:00\" },\n    { \"numberPair\": 6, \"startTime\": \"16:35:00\", \"endTime\": \"17:55:00\" },\n    { \"numberPair\": 7, \"startTime\": \"18:05:00\", \"endTime\": \"19:25:00\" },\n    { \"numberPair\": 8, \"startTime\": \"19:35:00\", \"endTime\": \"20:55:00\" }\n  ],\n  \"bigBreak\": { \"afterPair\": 4, \"startTime\": \"14:20:00\", \"endTime\": \"15:05:00\" }\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/bells",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bells"]
+                }
+              },
+              "description": "Полная замена справочника (Dispatcher/Admin). Тело UpdateBellScheduleRequest: slots[] (не 0 и не >8, номера 1–8 уникальны, StartTime<EndTime, 07:00–21:00, возрастание без пересечений) + bigBreak (AfterPair 1–8, Start<End). Нарушения → 400 с русским сообщением; 401/403."
+            }
+          ]
+        },
+        {
+          "name": "Non-working days",
+          "description": "Нерабочие даты (праздники и выходные), влияют на корректировки, расписание, экспорт и бота",
+          "item": [
+            {
+              "name": "List non-working days",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/non-working-days?from=2026-01-01&to=2026-12-31&page=1&pageSize=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "non-working-days"],
+                  "query": [
+                    { "key": "from", "value": "2026-01-01" },
+                    { "key": "to", "value": "2026-12-31" },
+                    { "key": "page", "value": "1" },
+                    { "key": "pageSize", "value": "20" }
+                  ]
+                }
+              },
+              "description": "Постраничный список нерабочих дат (любая авторизованная роль). Поля: id, dateFrom, dateTo, title. from/to — пересечение периода; pageSize 1–100 (default 20)."
+            },
+            {
+              "name": "Create non-working day",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dateFrom\": \"2026-01-01T00:00:00Z\",\n  \"dateTo\": \"2026-01-08T00:00:00Z\",\n  \"title\": \"Новогодние каникулы\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/non-working-days",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "non-working-days"]
+                }
+              },
+              "description": "Добавить нерабочую дату (Dispatcher/Admin). Валидации 400: title не пустой и ≤200; dateFrom/dateTo заданы; dateFrom.Date ≤ dateTo.Date (одиночная дата — совпадают)."
+            },
+            {
+              "name": "Update non-working day",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dateFrom\": \"2026-01-01T00:00:00Z\",\n  \"dateTo\": \"2026-01-08T00:00:00Z\",\n  \"title\": \"Новогодние каникулы (обновлено)\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/non-working-days/{{nonWorkingDayId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "non-working-days", "{{nonWorkingDayId}}"]
+                }
+              },
+              "description": "Изменить нерабочую дату (Dispatcher/Admin). 400 — некорректные данные; 404 — не найдено."
+            },
+            {
+              "name": "Delete non-working day",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/non-working-days/{{nonWorkingDayId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "non-working-days", "{{nonWorkingDayId}}"],
+                  "query": []
+                }
+              },
+              "description": "Удалить нерабочую дату (Dispatcher/Admin). 404 — не найдено."
+            }
+          ]
+        },
+        {
+          "name": "Schedule inserts",
+          "description": "Специальные вставки в расписание (без номера пары)",
+          "item": [
+            {
+              "name": "List inserts",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/schedule/inserts?dayOfWeek=1&course=1&activeOnly=true",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "schedule", "inserts"],
+                  "query": [
+                    { "key": "dayOfWeek", "value": "1" },
+                    { "key": "course", "value": "1" },
+                    { "key": "activeOnly", "value": "true" }
+                  ]
+                }
+              },
+              "description": "Список вставок (AllowAnonymous). dayOfWeek — число (0=Sunday..6=Saturday), course 1–4 (отдаются вставки курса и общие Course=null), activeOnly=true по умолчанию. В ответе: id, title, dayOfWeek (число), startTime, endTime, course?, isActive."
+            },
+            {
+              "name": "Create insert",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Разговор о важном\",\n  \"dayOfWeek\": 1,\n  \"startTime\": \"08:30:00\",\n  \"endTime\": \"09:00:00\",\n  \"course\": null,\n  \"isActive\": true\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/schedule/inserts",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "schedule", "inserts"]
+                }
+              },
+              "description": "Создать вставку (Dispatcher/Admin). Валидации 400: title ≤200; dayOfWeek ≠ Sunday (воскресенье запрещено); startTime < endTime; course 1–4 или null."
+            },
+            {
+              "name": "Update insert",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Классный час\",\n  \"dayOfWeek\": 4,\n  \"startTime\": \"12:10:00\",\n  \"endTime\": \"13:00:00\",\n  \"course\": null,\n  \"isActive\": true\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/schedule/inserts/{{insertId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "schedule", "inserts", "{{insertId}}"]
+                }
+              },
+              "description": "Изменить вставку (Dispatcher/Admin). 400 — некорректные данные; 404 — не найдено."
+            },
+            {
+              "name": "Delete insert",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/schedule/inserts/{{insertId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "schedule", "inserts", "{{insertId}}"],
+                  "query": []
+                }
+              },
+              "description": "Удалить вставку (Dispatcher/Admin). 404 — не найдено."
+            }
+          ]
+        },
+        {
+          "name": "Practices",
+          "description": "Практики УП/ПП: CRUD и импорт XLSX",
+          "item": [
+            {
+              "name": "List practices",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/practices?from=2026-10-01&to=2026-12-31&groupId={{groupId}}&teacherId={{teacherId}}&kind=Up&page=1&pageSize=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "practices"],
+                  "query": [
+                    { "key": "from", "value": "2026-10-01" },
+                    { "key": "to", "value": "2026-12-31" },
+                    { "key": "groupId", "value": "{{groupId}}" },
+                    { "key": "teacherId", "value": "{{teacherId}}" },
+                    { "key": "kind", "value": "Up" },
+                    { "key": "page", "value": "1" },
+                    { "key": "pageSize", "value": "20" }
+                  ]
+                }
+              },
+              "description": "Постраничный список практик (AllowAnonymous). kind = Up|Pp (строкой). Поля: id, kind, groupId, groupName, teacherId, teacherName, dateFrom, dateTo, organization?, note?. from/to — пересечение периода; pageSize 1–100 (default 20)."
+            },
+            {
+              "name": "Create practice",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"Up\",\n  \"groupId\": \"{{groupId}}\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"dateFrom\": \"2026-10-01T00:00:00Z\",\n  \"dateTo\": \"2026-10-14T00:00:00Z\",\n  \"organization\": \"ООО «Практика»\",\n  \"note\": \"\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/practices",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "practices"]
+                }
+              },
+              "description": "Создать практику (Dispatcher/Admin). Валидации 400: kind определён (Up/Pp); период задан; dateFrom.Date ≤ dateTo.Date; период в пределах семестра; группа и преподаватель существуют. Пересечение практик одной группы по периоду → 409 «У группы уже есть практика в этот период.»."
+            },
+            {
+              "name": "Update practice",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"Pp\",\n  \"groupId\": \"{{groupId}}\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"dateFrom\": \"2026-10-01T00:00:00Z\",\n  \"dateTo\": \"2026-10-21T00:00:00Z\",\n  \"organization\": \"АО «Завод»\",\n  \"note\": \"\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/practices/{{practiceId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "practices", "{{practiceId}}"]
+                }
+              },
+              "description": "Изменить практику (Dispatcher/Admin). 400 — некорректные данные; 404 — не найдено; 409 — пересечение практик группы."
+            },
+            {
+              "name": "Delete practice",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/practices/{{practiceId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "practices", "{{practiceId}}"],
+                  "query": []
+                }
+              },
+              "description": "Удалить практику (Dispatcher/Admin). 404 — не найдено."
+            },
+            {
+              "name": "Preview practice import",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "multipart/form-data" }],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "file", "type": "file", "src": "/path/to/практики.xlsx" }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/practices/import/preview",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "practices", "import", "preview"]
+                }
+              },
+              "description": "Превью импорта практик из XLSX (Dispatcher/Admin, multipart/form-data, поле file). Ограничения: .xlsx, ≤10 МБ. Шапка в строке 1: «Вид | Группа | Дата начала | Дата окончания | Преподаватель | Организация | Примечание»; данные со строки 2. Ответ: { totalRows, rows[] { row, kind, groupName, dateFrom, dateTo, teacherName, organization, note }, errors[] { row, column, level, message } } с сообщениями «строка N: …». 400 — не выбран файл / не XLSX / >10 МБ / повреждён / нет данных."
+            },
+            {
+              "name": "Confirm practice import",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rows\": [\n    {\n      \"row\": 2,\n      \"kind\": \"УП\",\n      \"groupName\": \"ИС-21\",\n      \"dateFrom\": \"01.10.2026\",\n      \"dateTo\": \"14.10.2026\",\n      \"teacherName\": \"Иванов Иван Иванович\",\n      \"organization\": \"ООО «Практика»\",\n      \"note\": \"\"\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/practices/import/confirm",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "practices", "import", "confirm"]
+                }
+              },
+              "description": "Подтвердить импорт практик (Dispatcher/Admin, транзакция). Вид: «УП»/«UP» → Up, «ПП»/«PP» → Pp; даты дд.мм.гггг. Повторная валидация строк: при ошибках → 400 списком «строка N: …»; пустой rows → 400 «Нет строк для импорта.». Ответ: { imported, practices[] }."
+            }
+          ]
         }
       ]
     },

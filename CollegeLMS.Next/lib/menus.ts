@@ -9,6 +9,8 @@ import {
   CalendarDays,
   BookType,
   BadgeInfo,
+  History,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react"
 
@@ -46,7 +48,11 @@ export const adminMenuSections: MenuSection[] = [
   },
   {
     label: "Расписание",
-    items: [{ href: "/schedule", label: "Расписание", icon: CalendarDays }],
+    items: [
+      { href: "/schedule", label: "Расписание", icon: CalendarDays },
+      { href: "/changes", label: "Изменения", icon: History },
+      { href: "/teacher/journal", label: "Журнал", icon: ClipboardList },
+    ],
   },
 ]
 

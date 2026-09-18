@@ -935,6 +935,25 @@ public class MaxBotService : BackgroundService
             return;
         }
 
+        var day = DateOnly.FromDateTime(date);
+        var nonWorking = await _api.GetNonWorkingDaysAsync(day, day, ct);
+        if (nonWorking.Count > 0)
+        {
+            var holidayText =
+                $"📋 *{MessageFormatter.FormatLongDate(date)}* — {entityName}\n\n"
+                + $"🎉 Нерабочий день: {nonWorking[0].Title}";
+            await _max.SendInlineKeyboardAsync(chatId, holidayText, buttons, ct: ct);
+            return;
+        }
+
+        var practices = await _api.GetPracticesAsync(
+            day,
+            day,
+            groupId: settings.GroupId,
+            teacherId: settings.TeacherId,
+            ct: ct
+        );
+
         var entries = await _api.GetScheduleAsync(
             groupId: settings.GroupId,
             teacherId: settings.TeacherId,
@@ -943,11 +962,30 @@ public class MaxBotService : BackgroundService
             ct: ct
         );
 
+        List<ScheduleInsertDto>? inserts = null;
+        if (practices.Count == 0)
+        {
+            inserts = await _api.GetInsertsAsync(MessageFormatter.ToApiDay(date.DayOfWeek), ct: ct);
+            if (settings.GroupId.HasValue)
+            {
+                var groups = await _api.GetGroupsAsync(ct);
+                var course = groups.FirstOrDefault(g => g.Id == settings.GroupId.Value)?.Course;
+                if (course.HasValue)
+                    inserts = inserts
+                        .Where(i => i.Course is null || i.Course == course.Value)
+                        .ToList();
+            }
+        }
+
         var text = MessageFormatter.FormatDaySchedule(
             entries,
             date,
             entityName,
-            showGroup: settings.Role == "teacher"
+            showGroup: settings.Role == "teacher",
+            inserts: inserts,
+            practiceLine: practices.Count > 0
+                ? MessageFormatter.FormatPracticeLine(practices[0])
+                : null
         );
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }

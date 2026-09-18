@@ -99,6 +99,7 @@ export default function SchedulePage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const requestIdRef = useRef(0)
   const hasLoadedRef = useRef(false)
+  const hasUrlWeekRef = useRef(false)
 
   const canManage = user?.roles ? user.roles.some(role => CAN_MANAGE_ROLES.includes(role)) : false
 
@@ -187,11 +188,26 @@ export default function SchedulePage() {
     }
   }, [authLoading, token, router])
 
+  // Переход из раздела «Изменения»: /schedule?week=5&day=3 открывает нужный день.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const searchParams = new URLSearchParams(window.location.search)
+    const weekParam = Number(searchParams.get("week"))
+    if (Number.isFinite(weekParam) && weekParam >= 1) {
+      setSelectedWeek(weekParam)
+      hasUrlWeekRef.current = true
+    }
+    const dayParam = Number(searchParams.get("day"))
+    if (Number.isFinite(dayParam) && dayParam >= 0 && dayParam <= 6) {
+      setSelectedDay(dayParam)
+    }
+  }, [])
+
   const loadMeta = useCallback(async () => {
     try {
       const body = await fetchScheduleMeta()
       if (body.isSuccess && body.data) {
-        setSelectedWeek(body.data.currentWeek)
+        if (!hasUrlWeekRef.current) setSelectedWeek(body.data.currentWeek)
         setTotalWeeks(body.data.totalWeeks)
       }
     } catch {
@@ -249,7 +265,8 @@ export default function SchedulePage() {
       if (selectedGroupId) params.groupId = selectedGroupId
       if (selectedTeacherId) params.teacherId = selectedTeacherId
       if (viewMode === "cards" && selectedWeek) params.week = selectedWeek
-      await exportSchedule(params, format, layout)
+      const scope = viewMode === "semester" ? "semester" : undefined
+      await exportSchedule(params, format, layout, scope)
       toast.success("Экспорт выполнен")
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Ошибка экспорта"

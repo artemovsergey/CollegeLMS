@@ -101,6 +101,18 @@ public class ScheduleNotifier : BackgroundService
         var dayOfWeek = (int)now.DayOfWeek;
         var week = StudyWeek.Current(_tz);
 
+        var nonWorking = await api.GetNonWorkingDaysAsync(today, today, ct);
+        if (nonWorking.Count > 0)
+        {
+            _logger.LogInformation(
+                "Сегодня нерабочий день ({Title}) — рассылка пропущена",
+                nonWorking[0].Title
+            );
+            foreach (var user in subscribers)
+                _lastSentPerUser[user.MaxUserId] = today;
+            return;
+        }
+
         foreach (var user in subscribers)
         {
             if (_lastSentPerUser.TryGetValue(user.MaxUserId, out var last) && last == today)

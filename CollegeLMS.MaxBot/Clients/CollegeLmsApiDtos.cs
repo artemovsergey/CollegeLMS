@@ -106,3 +106,48 @@ public record ScheduleMetaDto
     public int TotalWeeks { get; init; }
     public int CurrentWeek { get; init; }
 }
+
+/// <summary>Нерабочий день (праздник или каникулы) из справочника CollegeLMS.</summary>
+public record NonWorkingDayDto
+{
+    public Guid Id { get; init; }
+    public DateTime DateFrom { get; init; }
+    public DateTime DateTo { get; init; }
+    public string Title { get; init; } = "";
+}
+
+/// <summary>Специальная вставка в расписании дня (без номера пары).</summary>
+public record ScheduleInsertDto
+{
+    public Guid Id { get; init; }
+    public string Title { get; init; } = "";
+    public int DayOfWeek { get; init; }
+    public TimeSpan StartTime { get; init; }
+    public TimeSpan EndTime { get; init; }
+    public int? Course { get; init; }
+    public bool IsActive { get; init; }
+}
+
+/// <summary>Практика УП/ПП для группы и преподавателя.</summary>
+public record PracticeDto
+{
+    public Guid Id { get; init; }
+    public string Kind { get; init; } = "";
+    public Guid GroupId { get; init; }
+    public string GroupName { get; init; } = "";
+    public Guid TeacherId { get; init; }
+    public string TeacherName { get; init; } = "";
+    public DateTime DateFrom { get; init; }
+    public DateTime DateTo { get; init; }
+    public string? Organization { get; init; }
+    public string? Note { get; init; }
+}
+
+/// <summary>Постраничный ответ API CollegeLMS (items + пагинация).</summary>
+public record PagedResponse<T>
+{
+    public List<T> Items { get; init; } = [];
+    public int TotalCount { get; init; }
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+}

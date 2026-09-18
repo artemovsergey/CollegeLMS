@@ -1,9 +1,15 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { BookOpen } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import {
-  Button,
+  BookOpen,
+  Plus,
+  Minus,
+  Repeat,
+  ArrowRightLeft,
+} from "lucide-react"
+import {
   CellList,
   CellSimple,
   MaxUI,
@@ -17,10 +23,49 @@ import { dayLabelFromInt } from "@/lib/max-lesson"
 import ScheduleError from "@/components/max/ScheduleError"
 import ScheduleEmpty from "@/components/max/ScheduleEmpty"
 
+const CHANGE_BADGE: Record<
+  string,
+  { label: string; className: string; icon: LucideIcon }
+> = {
+  Add: { label: "Добавлено", className: "max-app__badge--add", icon: Plus },
+  Replace: { label: "Замена", className: "max-app__badge--replace", icon: Repeat },
+  Move: { label: "Перенос", className: "max-app__badge--move", icon: ArrowRightLeft },
+  Remove: { label: "Снято", className: "max-app__badge--remove", icon: Minus },
+  SelfStudy: {
+    label: "Сам.р.",
+    className: "max-app__badge--selfstudy",
+    icon: BookOpen,
+  },
+}
+
 function formatDate(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })
+}
+
+function JournalBadges({ types }: { types: string[] }) {
+  if (!types || types.length === 0) return null
+  return (
+    <span className="max-app__badges-row">
+      {types.map((type) => {
+        const meta = CHANGE_BADGE[type] ?? {
+          label: type,
+          className: "max-app__badge--replace",
+          icon: BookOpen,
+        }
+        const Icon = meta.icon
+        return (
+          <span
+            key={type}
+            className={`max-app__badge ${meta.className}`}
+          >
+            <Icon size={12} aria-hidden /> {meta.label}
+          </span>
+        )
+      })}
+    </span>
+  )
 }
 
 export default function JournalView() {
@@ -102,21 +147,31 @@ export default function JournalView() {
           <ScheduleEmpty />
         ) : (
           <>
-            <label className="max-app__note" htmlFor="max-journal-subject">
-              Предмет
-            </label>
-            <select
-              id="max-journal-subject"
-              className="max-app__select"
-              value={subject ?? ""}
-              onChange={(e) => setSubject(e.target.value)}
+            <div
+              className="max-app__chips"
+              role="group"
+              aria-label="Фильтр по предмету"
             >
-              {journal.subjects.map((s) => (
-                <option key={s.subject} value={s.subject}>
-                  {s.subject} — {s.pairCount} пар
-                </option>
-              ))}
-            </select>
+              {journal.subjects.map((group) => {
+                const active = group.subject === subject
+                return (
+                  <button
+                    key={group.subject}
+                    type="button"
+                    aria-pressed={active}
+                    className={
+                      active
+                        ? "max-app__chip max-app__chip--on"
+                        : "max-app__chip"
+                    }
+                    onClick={() => setSubject(group.subject)}
+                  >
+                    {group.subject}
+                    <span className="max-app__note">{group.pairCount}</span>
+                  </button>
+                )
+              })}
+            </div>
 
             {subjectGroup ? (
               <CellList
@@ -135,7 +190,14 @@ export default function JournalView() {
                     key={`${subjectGroup.subject}:${entry.week}:${entry.dayOfWeek}`}
                     separator
                     title={`Неделя ${entry.week} · ${dayLabelFromInt(entry.dayOfWeek)}`}
-                    subtitle={formatDate(entry.date)}
+                    subtitle={
+                      <span className="max-schedule__subtitle-wrap">
+                        <span className="max-app__note">
+                          {formatDate(entry.date)}
+                        </span>
+                        <JournalBadges types={entry.changeTypes ?? []} />
+                      </span>
+                    }
                     after={
                       <Typography.Body>Пар: {entry.numberPairs.length}</Typography.Body>
                     }

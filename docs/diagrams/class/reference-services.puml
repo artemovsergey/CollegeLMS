@@ -1,0 +1,161 @@
+@startuml
+!theme plain
+title Справочники расписания — Class
+
+interface IBellScheduleService {
+  + GetAsync(ct): Result<BellScheduleResponse>
+  + UpdateAsync(request, ct): Result<BellScheduleResponse>
+  + GetTimeMapAsync(ct): Task<Dictionary<int,(TimeSpan,TimeSpan)>>
+}
+
+class BellScheduleService {
+  - db: AppDbContext
+  - DayStart: TimeSpan = 07:00
+  - DayEnd: TimeSpan = 21:00
+  + GetAsync(ct): Result<BellScheduleResponse>
+  + UpdateAsync(request, ct): Result<BellScheduleResponse>
+  + GetTimeMapAsync(ct): Task<Dictionary<int,(TimeSpan,TimeSpan)>>
+  - Validate(request): string?
+  - ToDto(slots, bigBreak): BellScheduleResponse
+}
+
+interface INonWorkingDayService {
+  + GetAllAsync(from?, to?, page?, pageSize?, ct): Result<PagedResponse<NonWorkingDayResponse>>
+  + CreateAsync(request, ct): Result<NonWorkingDayResponse>
+  + UpdateAsync(id, request, ct): Result<NonWorkingDayResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class NonWorkingDayService {
+  - db: AppDbContext
+  + GetAllAsync(from?, to?, page?, pageSize?, ct): Result<PagedResponse<NonWorkingDayResponse>>
+  + CreateAsync(request, ct): Result<NonWorkingDayResponse>
+  + UpdateAsync(id, request, ct): Result<NonWorkingDayResponse>
+  + DeleteAsync(id, ct): Result
+  - Validate(request): string?      // DateFrom <= DateTo, Title <= 200
+}
+
+interface IScheduleInsertService {
+  + GetAllAsync(dayOfWeek?, course?, activeOnly, ct): Result<List<ScheduleInsertResponse>>
+  + CreateAsync(request, ct): Result<ScheduleInsertResponse>
+  + UpdateAsync(id, request, ct): Result<ScheduleInsertResponse>
+  + DeleteAsync(id, ct): Result
+}
+
+class ScheduleInsertService {
+  - db: AppDbContext
+  + GetAllAsync(dayOfWeek?, course?, activeOnly, ct): Result<List<ScheduleInsertResponse>>
+  + CreateAsync(request, ct): Result<ScheduleInsertResponse>
+  + UpdateAsync(id, request, ct): Result<ScheduleInsertResponse>
+  + DeleteAsync(id, ct): Result
+  - Validate(request): string?     // Sunday → 400, Start < End, Course 1..4
+}
+
+interface IPracticeService {
+  + GetAllAsync(groupId?, teacherId?, kind?, from?, to?, page?, pageSize?, ct): Result<PagedResponse<PracticeResponse>>
+  + CreateAsync(request, ct): Result<PracticeResponse>
+  + UpdateAsync(id, request, ct): Result<PracticeResponse>
+  + DeleteAsync(id, ct): Result
+  + PreviewImportAsync(fileStream, ct): Result<PracticeImportPreviewResponse>
+  + ConfirmImportAsync(request, ct): Result<PracticeImportConfirmResponse>
+}
+
+class PracticeService {
+  - db: AppDbContext
+  + GetAllAsync(...): Result<PagedResponse<PracticeResponse>>
+  + CreateAsync(request, ct): Result<PracticeResponse>
+  + UpdateAsync(id, request, ct): Result<PracticeResponse>
+  + DeleteAsync(id, ct): Result
+  + PreviewImportAsync(fileStream, ct): Result<PracticeImportPreviewResponse>
+  + ConfirmImportAsync(request, ct): Result<PracticeImportConfirmResponse>
+  - ValidateAsync(request, excludeId?, ct): Task<(string,int)?>   // overlap → 409, семестр → 400
+  - ParseRows(ws, lastRow): List<PracticeImportRow>
+  - ValidateImportRowsAsync(rows, ct): Task<List<ScheduleValidationError>>
+  - ParseKind(value): PracticeKind?
+  - ParseDate(value): DateTime?
+}
+
+class BellScheduleController {
+  + Get(ct): ActionResult             // GET /api/bells (AllowAnonymous)
+  + Update(request, ct): ActionResult // PUT /api/bells (Dispatcher,Admin)
+}
+
+class NonWorkingDayController {
+  + GetAll(from, to, page, pageSize, ct): ActionResult
+  + Create(request, ct): ActionResult
+  + Update(id, request, ct): ActionResult
+  + Delete(id, ct): ActionResult
+}
+
+class ScheduleInsertController {
+  + GetAll(dayOfWeek, course, activeOnly, ct): ActionResult
+  + Create(request, ct): ActionResult
+  + Update(id, request, ct): ActionResult
+  + Delete(id, ct): ActionResult
+}
+
+class PracticeController {
+  + GetAll(groupId, teacherId, kind, from, to, page, pageSize, ct): ActionResult
+  + Create(request, ct): ActionResult
+  + Update(id, request, ct): ActionResult
+  + Delete(id, ct): ActionResult
+  + PreviewImport(file, ct): ActionResult  // multipart XLSX, <=10MB
+  + ConfirmImport(request, ct): ActionResult
+}
+
+class ScheduleService {
+  - db: AppDbContext
+  - bells: IBellScheduleService
+  + GetAllAsync(...): ...             // подмена StartTime/EndTime из звонков
+  + GetJournalAsync(teacherId, subject?, ct): Result<JournalResponse>
+  - BuildChangeTypes(history, subject, week, day, teacherId): List<string>
+}
+
+class ScheduleExportService {
+  - db: AppDbContext
+  - bells: IBellScheduleService
+  + ExportAsync(groupId?, teacherId?, room?, period?, scope?, format, layout, ct): Result<ExportResult>
+  - ExportSemesterAsync(groupId?, teacherId?, format, ct): Result<ExportResult>
+  - BuildSemesterCell(date, day, week, entries, inserts, practices, nonWorking, history): string
+  - ExportSemesterXlsx(...): Result<ExportResult>  // Расписание_семестр_dd.MM.yyyy_HH-mm-ss.xlsx
+  - ExportSemesterPdf(...): Result<ExportResult>
+}
+
+class AppDbContext {
+  + BellSlots: DbSet<BellSlot>
+  + BigBreaks: DbSet<BigBreak>
+  + NonWorkingDays: DbSet<NonWorkingDay>
+  + ScheduleInserts: DbSet<ScheduleInsert>
+  + Practices: DbSet<Practice>
+}
+
+class ClosedXML {
+  <<external>>
+}
+
+IBellScheduleService <|.. BellScheduleService
+INonWorkingDayService <|.. NonWorkingDayService
+IScheduleInsertService <|.. ScheduleInsertService
+IPracticeService <|.. PracticeService
+
+BellScheduleController --> IBellScheduleService
+NonWorkingDayController --> INonWorkingDayService
+ScheduleInsertController --> IScheduleInsertService
+PracticeController --> IPracticeService
+
+BellScheduleService --> AppDbContext
+NonWorkingDayService --> AppDbContext
+ScheduleInsertService --> AppDbContext
+PracticeService --> AppDbContext
+PracticeService ..> ClosedXML : чтение XLSX (ClosedXML)
+
+ScheduleService --> IBellScheduleService : GetTimeMapAsync
+ScheduleExportService --> IBellScheduleService : GetTimeMapAsync
+ScheduleExportService --> Practice : читает практики семестра
+ScheduleExportService --> ScheduleInsert : активные вставки
+ScheduleExportService --> NonWorkingDay : читает нерабочие даты
+PracticeService --> Practice : CRUD
+PracticeService --> Group : поиск по имени
+PracticeService --> Teacher : поиск по ФИО
+
+@enduml

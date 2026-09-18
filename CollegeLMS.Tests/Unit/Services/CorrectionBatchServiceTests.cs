@@ -501,4 +501,72 @@ public class CorrectionBatchServiceTests : IDisposable
         _db.CorrectionBatches.Single().Status.Should().Be(CorrectionBatchStatus.Applied);
         _db.ScheduleHistory.Should().ContainSingle();
     }
+
+    // --- Нерабочие дни: создание и применение корректировки запрещены ---
+
+    private async Task SeedNonWorkingDayAsync(DateTime date, string title = "День города")
+    {
+        var utcNow = DateTime.UtcNow;
+        _db.NonWorkingDays.Add(
+            new NonWorkingDay
+            {
+                Id = Guid.NewGuid(),
+                DateFrom = date.Date,
+                DateTo = date.Date,
+                Title = title,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task CreateBatchAsync_NonWorkingDate_Returns400()
+    {
+        await SeedNonWorkingDayAsync(TestDate);
+
+        var result = await _sut.CreateBatchAsync(
+            new CreateCorrectionBatchRequest { CorrectionDate = TestDate },
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("Дата нерабочая: День города.");
+    }
+
+    [Fact]
+    public async Task ApplyAsync_NonWorkingDate_Returns400()
+    {
+        var group = await SeedGroupAsync();
+        var batch = await CreateBatchAsync();
+        var added = await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Add,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 3,
+                Subject = "Математика",
+            },
+            CancellationToken.None
+        );
+        added.IsSuccess.Should().BeTrue();
+
+        await SeedNonWorkingDayAsync(TestDate);
+
+        var result = await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("Дата нерабочая: День города.");
+    }
 }

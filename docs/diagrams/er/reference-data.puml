@@ -1,0 +1,118 @@
+@startuml
+!theme plain
+title Справочники расписания — ER
+
+entity BellSlot {
+  * id: GUID
+  --
+  * number_pair: int (unique, 1..8)
+  * start_time: time
+  * end_time: time
+  * created_at: datetime
+  * updated_at: datetime
+}
+
+entity BigBreak {
+  * id: GUID
+  --
+  * after_pair: int (1..8)
+  * start_time: time
+  * end_time: time
+  * created_at: datetime
+  * updated_at: datetime
+}
+
+entity NonWorkingDay {
+  * id: GUID
+  --
+  * date_from: date
+  * date_to: date
+  * title: string(200)
+  * created_at: datetime
+  * updated_at: datetime
+}
+
+entity ScheduleInsert {
+  * id: GUID
+  --
+  * title: string(200)
+  * day_of_week: string (Sunday..Saturday, хранится строкой)
+  * start_time: time
+  * end_time: time
+  course: int (nullable, 1..4; null — все курсы)
+  * is_active: bool
+  * created_at: datetime
+  * updated_at: datetime
+}
+
+enum PracticeKind {
+  Up
+  Pp
+}
+
+entity Practice {
+  * id: GUID
+  --
+  * kind: PracticeKind (Up|Pp)
+  * group_id: GUID (FK)
+  * teacher_id: GUID (FK)
+  * date_from: date
+  * date_to: date
+  organization: string(200)
+  note: string(500)
+  * created_at: datetime
+  * updated_at: datetime
+}
+
+entity Group {
+  * id: GUID
+  --
+  name: string
+  course: int
+}
+
+entity Teacher {
+  * id: GUID
+  --
+  user_id: GUID (FK)
+}
+
+Practice }o--|| Group : group
+Practice }o--|| Teacher : teacher
+Practice --> PracticeKind : kind
+
+note bottom of BellSlot
+  Сид: 8 пар 08:30–20:55.
+  ix_bell_slots_number_pair — UNIQUE.
+  Единый источник времени пар для
+  расписания, корректировок, экспорта
+  и бота (GetTimeMapAsync).
+end note
+
+note bottom of BigBreak
+  Сид: большая перемена после 4-й пары
+  14:20–15:05. Хранится не более одной
+  записи; PUT заменяет справочник целиком.
+end note
+
+note bottom of ScheduleInsert
+  Сид: «Разговор о важном» Пн 08:30–09:00,
+  «Классный час» Чт 12:10–13:00 (все курсы).
+  Воскресенье запрещено (валидация 400).
+  ix_schedule_inserts_day_of_week.
+end note
+
+note bottom of NonWorkingDay
+  Одиночная дата — DateFrom = DateTo.
+  Влияет на: корректировки (400),
+  расписание дня (пусто), экспорт дня (400),
+  рассылку бота (пропуск).
+end note
+
+note bottom of Practice
+  Пересечение практик одной группы → 409.
+  Период должен быть в пределах семестра
+  (StudyWeek.SemesterStart, 16 недель).
+end note
+
+@enduml

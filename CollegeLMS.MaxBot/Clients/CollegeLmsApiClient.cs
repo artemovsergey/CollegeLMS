@@ -256,4 +256,105 @@ public class CollegeLmsApiClient
             return null;
         }
     }
+
+    public async Task<List<NonWorkingDayDto>> GetNonWorkingDaysAsync(
+        DateOnly from,
+        DateOnly to,
+        CancellationToken ct = default
+    )
+    {
+        var url =
+            $"/api/non-working-days?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}&page=1&pageSize=100";
+
+        try
+        {
+            var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Non-working days API returned {Code}", resp.StatusCode);
+                return [];
+            }
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            var wrapper = JsonSerializer.Deserialize<
+                ResultWrapper<PagedResponse<NonWorkingDayDto>>
+            >(json, JsonOpts);
+            return wrapper?.Data?.Items ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch non-working days");
+            return [];
+        }
+    }
+
+    public async Task<List<ScheduleInsertDto>> GetInsertsAsync(
+        int dayOfWeek,
+        int? course = null,
+        CancellationToken ct = default
+    )
+    {
+        var url = $"/api/schedule/inserts?dayOfWeek={dayOfWeek}&activeOnly=true";
+        if (course.HasValue)
+            url += $"&course={course.Value}";
+
+        try
+        {
+            var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Inserts API returned {Code}", resp.StatusCode);
+                return [];
+            }
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            var wrapper = JsonSerializer.Deserialize<ResultWrapper<List<ScheduleInsertDto>>>(
+                json,
+                JsonOpts
+            );
+            return wrapper?.Data ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch schedule inserts");
+            return [];
+        }
+    }
+
+    public async Task<List<PracticeDto>> GetPracticesAsync(
+        DateOnly from,
+        DateOnly to,
+        Guid? groupId = null,
+        Guid? teacherId = null,
+        CancellationToken ct = default
+    )
+    {
+        var url = $"/api/practices?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}&page=1&pageSize=100";
+        if (groupId.HasValue)
+            url += $"&groupId={groupId.Value}";
+        if (teacherId.HasValue)
+            url += $"&teacherId={teacherId.Value}";
+
+        try
+        {
+            var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Practices API returned {Code}", resp.StatusCode);
+                return [];
+            }
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            var wrapper = JsonSerializer.Deserialize<ResultWrapper<PagedResponse<PracticeDto>>>(
+                json,
+                JsonOpts
+            );
+            return wrapper?.Data?.Items ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch practices");
+            return [];
+        }
+    }
 }

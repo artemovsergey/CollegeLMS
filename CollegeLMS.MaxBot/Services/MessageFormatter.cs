@@ -58,6 +58,17 @@ public static class MessageFormatter
         return sb.ToString().TrimEnd();
     }
 
+    /// <summary>Строка практики УП/ПП для расписания дня (заменяет пары).</summary>
+    public static string FormatPracticeLine(PracticeDto practice)
+    {
+        var kind = practice.Kind.Equals("Pp", StringComparison.OrdinalIgnoreCase) ? "ПП" : "УП";
+        var line = $"{kind}: {practice.GroupName} · {practice.TeacherName}";
+        if (!string.IsNullOrWhiteSpace(practice.Organization))
+            line += $" · {practice.Organization}";
+        line += $" (с {practice.DateFrom:dd.MM.yyyy} по {practice.DateTo:dd.MM.yyyy})";
+        return line;
+    }
+
     public static string FormatWeekSchedule(List<ScheduleResponse> entries, string entityName)
     {
         var sb = new System.Text.StringBuilder();
@@ -110,16 +121,36 @@ public static class MessageFormatter
         List<ScheduleResponse> entries,
         DateTime date,
         string entityName,
-        bool showGroup = false
+        bool showGroup = false,
+        List<ScheduleInsertDto>? inserts = null,
+        string? practiceLine = null
     )
     {
         var header = $"📋 *{FormatLongDate(date)}* — {entityName}";
-        if (entries.Count == 0)
+
+        if (practiceLine is not null)
+        {
+            var pb = new System.Text.StringBuilder();
+            pb.AppendLine(header);
+            pb.AppendLine();
+            pb.AppendLine("🎓 *Практика*");
+            pb.AppendLine(practiceLine);
+            return pb.ToString().TrimEnd();
+        }
+
+        var hasInsert = inserts is { Count: > 0 };
+        if (entries.Count == 0 && !hasInsert)
             return $"{header}\n\nРасписания нет — выходной!";
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(header);
         sb.AppendLine();
+
+        if (entries.Count == 0)
+        {
+            sb.AppendLine("Пар нет.");
+            sb.AppendLine();
+        }
 
         foreach (var e in entries.OrderBy(x => x.NumberPair))
         {
@@ -143,6 +174,17 @@ public static class MessageFormatter
 
             AppendChangeMarkers(sb, e);
             sb.AppendLine("────────");
+        }
+
+        if (hasInsert)
+        {
+            sb.AppendLine();
+            sb.AppendLine("🎓 *Вставки:*");
+            foreach (var ins in inserts!.OrderBy(x => x.StartTime))
+            {
+                sb.AppendLine($"*{ins.Title}*");
+                sb.AppendLine($"    🕐 {ins.StartTime:hh\\:mm}–{ins.EndTime:hh\\:mm}");
+            }
         }
 
         return sb.ToString().TrimEnd();

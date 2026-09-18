@@ -16,8 +16,9 @@ public class ScheduleServiceTests : IDisposable
     public ScheduleServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        var exportService = new ScheduleExportService(_db);
-        _sut = new ScheduleService(_db, exportService);
+        var bells = new BellScheduleServiceStub();
+        var exportService = new ScheduleExportService(_db, bells);
+        _sut = new ScheduleService(_db, exportService, bells);
     }
 
     public void Dispose() => _db.Dispose();
@@ -435,6 +436,7 @@ public class ScheduleServiceTests : IDisposable
             null,
             null,
             null,
+            null,
             ExportFormat.Pdf,
             ExportLayout.Grid,
             default
@@ -458,6 +460,7 @@ public class ScheduleServiceTests : IDisposable
             null,
             null,
             null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             default
@@ -475,6 +478,7 @@ public class ScheduleServiceTests : IDisposable
     public async Task ExportScheduleAsync_ReturnsFail_WhenNoData()
     {
         var result = await _sut.ExportScheduleAsync(
+            null,
             null,
             null,
             null,
@@ -799,7 +803,7 @@ public class ScheduleServiceTests : IDisposable
         );
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GetJournalAsync(teacher.Id, default);
+        var result = await _sut.GetJournalAsync(teacher.Id, null, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.TeacherName.Should().Be("Марченко И.А.");
@@ -814,9 +818,77 @@ public class ScheduleServiceTests : IDisposable
     [Fact]
     public async Task GetJournalAsync_ReturnsNotFound_WhenTeacherMissing()
     {
-        var result = await _sut.GetJournalAsync(Guid.NewGuid(), default);
+        var result = await _sut.GetJournalAsync(Guid.NewGuid(), null, default);
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_DateOnNonWorkingDay_ReturnsEmpty()
+    {
+        var utcNow = DateTime.UtcNow;
+        _db.NonWorkingDays.Add(
+            new NonWorkingDay
+            {
+                Id = Guid.NewGuid(),
+                DateFrom = new DateTime(2026, 9, 8),
+                DateTo = new DateTime(2026, 9, 8),
+                Title = "Праздник",
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        var entries = ScheduleEntryFixture.CreateFaker().Generate(2);
+        _db.ScheduleEntries.AddRange(entries);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetAllAsync(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            new DateTime(2026, 9, 8),
+            null,
+            null,
+            null,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Items.Should().BeEmpty();
+        result.Data.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_DateOffNonWorkingDay_ReturnsEntriesForThatDay()
+    {
+        var entries = ScheduleEntryFixture.CreateFaker().Generate(3);
+        foreach (var entry in entries)
+        {
+            entry.DayOfWeek = DayOfWeek.Tuesday;
+            entry.Weeks = [2];
+        }
+        _db.ScheduleEntries.AddRange(entries);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetAllAsync(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            new DateTime(2026, 9, 8),
+            null,
+            null,
+            null,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Items.Should().HaveCount(3);
     }
 }
