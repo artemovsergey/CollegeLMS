@@ -46,6 +46,15 @@ public static class DispatcherCorrectionWizard
 {
     private static readonly string[] DayAbbr = ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
+    /// <summary>Переводит номер недели и дня в дату по календарю API.</summary>
+    public static DateTime CalculateCorrectionDate(DateTime semesterStart, int week, int dayOfWeek)
+    {
+        var day = (int)semesterStart.DayOfWeek;
+        var offset = day == 0 ? 6 : day - 1;
+        var monday = semesterStart.Date.AddDays(-offset);
+        return monday.AddDays((week - 1) * 7 + dayOfWeek - 1);
+    }
+
     /// <summary>Собирает запись корректировки из состояния визарда.</summary>
     public static CorrectionEntryDto BuildEntry(DispatcherWizardState state)
     {

@@ -2278,8 +2278,70 @@ public class MaxBotService : BackgroundService
             return;
         }
 
+        var meta = await _api.GetScheduleMetaAsync(ct);
+        if (
+            meta?.SemesterStart is null
+            || !DateTime.TryParse(
+                meta.SemesterStart,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var semesterStart
+            )
+            || ws.Day is < 1 or > 6
+            || ws.Week < 1
+            || ws.Week > meta.TotalWeeks
+        )
+        {
+            await _max.SendMessageAsync(
+                chatId,
+                "❌ Не удалось определить дату корректировки по параметрам расписания.",
+                ct: ct
+            );
+            await ShowWizardConfirmAsync(chatId, userId, ws, ct);
+            return;
+        }
+
+        var correctionDate = DispatcherCorrectionWizard.CalculateCorrectionDate(
+            semesterStart,
+            ws.Week,
+            ws.Day
+        );
         var entry = DispatcherCorrectionWizard.BuildEntry(ws);
-        var result = await _api.ConfirmCorrectionAsync(entry, token, ct);
+        var batch = await _api.CreateCorrectionBatchAsync(correctionDate, token, ct);
+        if (batch is null)
+        {
+            await _max.SendMessageAsync(
+                chatId,
+                "❌ Не удалось создать пакет корректировки. Проверь данные и попробуй снова.",
+                ct: ct
+            );
+            await ShowWizardConfirmAsync(chatId, userId, ws, ct);
+            return;
+        }
+
+        var positionAdded = await _api.AddCorrectionPositionAsync(
+            batch.Id,
+            new CreateCorrectionPositionDto
+            {
+                ChangeType = entry.ChangeType,
+                GroupId = entry.GroupId,
+                GroupName = entry.GroupName,
+                NumberPair = entry.NumberPair,
+                Subject = entry.Subject,
+                TeacherId = entry.TeacherId,
+                TeacherName = entry.TeacherName,
+                RemovedSubject = entry.RemovedSubject,
+                RemovedTeacherId = entry.RemovedTeacherId,
+                RemovedTeacherName = entry.RemovedTeacherName,
+                RemovedNumberPair = entry.RemovedNumberPair,
+                Note = entry.Note ?? (entry.ChangeType == "Move" ? $"вм.{entry.NumberPair}" : null),
+            },
+            token,
+            ct
+        );
+        var result = positionAdded
+            ? await _api.ApplyCorrectionBatchAsync(batch.Id, token, Guid.NewGuid().ToString(), ct)
+            : null;
 
         if (result is null)
         {

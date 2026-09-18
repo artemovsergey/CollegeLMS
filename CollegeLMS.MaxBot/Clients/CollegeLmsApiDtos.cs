@@ -100,6 +100,40 @@ public record CorrectionConfirmResponse
     public int Applied { get; init; }
 }
 
+/// <summary>Пакет корректировки из канонического batch API.</summary>
+public record CorrectionBatchDto
+{
+    public Guid Id { get; init; }
+    public DateTime CorrectionDate { get; init; }
+    public int Week { get; init; }
+    public int DayOfWeek { get; init; }
+    public string Status { get; init; } = "";
+}
+
+/// <summary>Позиция для добавления в пакет корректировки.</summary>
+public record CreateCorrectionPositionDto
+{
+    public string ChangeType { get; init; } = "Add";
+    public Guid GroupId { get; init; }
+    public string GroupName { get; init; } = "";
+    public int NumberPair { get; init; }
+    public string? Subject { get; init; }
+    public Guid? TeacherId { get; init; }
+    public string? TeacherName { get; init; }
+    public string? RemovedSubject { get; init; }
+    public Guid? RemovedTeacherId { get; init; }
+    public string? RemovedTeacherName { get; init; }
+    public int? RemovedNumberPair { get; init; }
+    public string? Note { get; init; }
+}
+
+/// <summary>Результат применения пакета корректировки.</summary>
+public record CorrectionBatchApplyResponse
+{
+    public int Applied { get; init; }
+    public Guid BatchId { get; init; }
+}
+
 public record ScheduleMetaDto
 {
     public string? SemesterStart { get; init; }

@@ -3,12 +3,8 @@
 import { useRef, useState } from "react"
 import { Upload, AlertCircle, CheckCircle2, Pencil } from "lucide-react"
 import { Button, CellList, CellSimple, Input, MaxUI, Typography } from "@maxhub/max-ui"
-import { previewCorrection, confirmCorrection } from "@/api/correction"
-import type {
-  CorrectionPreviewResponse,
-  CorrectionPreviewEntry,
-} from "@/types/correction"
-import type { ConfirmResult } from "@/types/correction"
+import { applyBatch, importCorrection, updatePosition } from "@/api/correction"
+import type { CorrectionImportResponse, CorrectionPosition, CorrectionApplyResult } from "@/types/correction"
 import { extractErrorMessage } from "@/lib/utils"
 import { WEEKDAYS } from "@/lib/max-lesson"
 
@@ -16,14 +12,14 @@ function dayLabel(dayOfWeek: number): string {
   return WEEKDAYS.find((d) => d.value === dayOfWeek)?.full ?? String(dayOfWeek)
 }
 
-const CHANGE_SHORT: Record<CorrectionPreviewEntry["changeType"], string> = {
+const CHANGE_SHORT: Record<CorrectionPosition["changeType"], string> = {
   Add: "Добавлено",
   Remove: "Снято",
   Replace: "Замена",
   Move: "Перенос",
 }
 
-function entryTitle(entry: CorrectionPreviewEntry): string {
+function entryTitle(entry: CorrectionPosition): string {
   if (entry.changeType === "Replace" || entry.changeType === "Move") {
     return `${entry.removedSubject ?? "—"} → ${entry.subject ?? "—"}`
   }
@@ -31,18 +27,18 @@ function entryTitle(entry: CorrectionPreviewEntry): string {
   return entry.subject ?? "—"
 }
 
-function entryBadge(entry: CorrectionPreviewEntry): string {
+function entryBadge(entry: CorrectionPosition): string {
   return CHANGE_SHORT[entry.changeType]
 }
 
 export default function DispatcherImport({
   onApplied,
 }: {
-  onApplied: (result: ConfirmResult) => void
+  onApplied: (result: CorrectionApplyResult) => void
 }) {
   const fileRef = useRef<HTMLInputElement | null>(null)
-  const [preview, setPreview] = useState<CorrectionPreviewResponse | null>(null)
-  const [entries, setEntries] = useState<CorrectionPreviewEntry[]>([])
+  const [preview, setPreview] = useState<CorrectionImportResponse | null>(null)
+  const [entries, setEntries] = useState<CorrectionPosition[]>([])
   const [editing, setEditing] = useState<number | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -55,19 +51,44 @@ export default function DispatcherImport({
     setError(null)
     if (!file) return
     setPreviewing(true)
-    void previewCorrection(file)
+    void importCorrection(file)
       .then((result) => {
         setPreview(result)
-        setEntries(result.entries)
+        setEntries(result.positions)
       })
       .catch((err) => setError(extractErrorMessage(err) ?? "Ошибка превью"))
       .finally(() => setPreviewing(false))
   }
 
-  const updateEntry = (row: number, patch: Partial<CorrectionPreviewEntry>) => {
+  const updateEntry = (row: number, patch: Partial<CorrectionPosition>) => {
     setEntries((prev) =>
       prev.map((e) => (e.row === row ? { ...e, ...patch } : e))
     )
+  }
+
+  const saveEntry = async (entry: CorrectionPosition) => {
+    if (!preview?.batchId) return
+    setError(null)
+    try {
+      const saved = await updatePosition(preview.batchId, entry.id, {
+        changeType: entry.changeType,
+        groupId: entry.groupId,
+        groupName: entry.groupName,
+        numberPair: entry.numberPair,
+        subject: entry.subject,
+        teacherId: entry.teacherId,
+        teacherName: entry.teacherName,
+        removedSubject: entry.removedSubject,
+        removedTeacherId: entry.removedTeacherId,
+        removedTeacherName: entry.removedTeacherName,
+        removedNumberPair: entry.removedNumberPair,
+        note: entry.note,
+      })
+      setEntries((prev) => prev.map((item) => item.id === saved.id ? saved : item))
+      setEditing(null)
+    } catch (err) {
+      setError(extractErrorMessage(err) ?? "Не удалось сохранить строку")
+    }
   }
 
   const apply = async () => {
@@ -75,8 +96,8 @@ export default function DispatcherImport({
     setConfirming(true)
     setError(null)
     try {
-      const key = crypto.randomUUID()
-      const result = await confirmCorrection(entries, key)
+      if (!preview?.batchId) throw new Error("Сервер не создал пакет корректировки")
+      const result = await applyBatch(preview.batchId, crypto.randomUUID())
       onApplied(result)
       setPreview(null)
       setEntries([])
@@ -92,7 +113,7 @@ export default function DispatcherImport({
     }
   }
 
-  const hasErrors = (preview?.errors.length ?? 0) > 0
+  const hasErrors = (preview?.errors.length ?? 0) > 0 || entries.some((entry) => entry.errors.length > 0)
 
   return (
     <div className="max-app__dispatcher-import">
@@ -188,7 +209,10 @@ export default function DispatcherImport({
                     size="xsmall"
                     variant="ghost"
                     aria-label={editing === entry.row ? "Сохранить" : "Редактировать"}
-                    onClick={() => setEditing(editing === entry.row ? null : entry.row)}
+                    onClick={() => {
+                      if (editing === entry.row) void saveEntry(entry)
+                      else setEditing(entry.row)
+                    }}
                     iconBefore={<Pencil size={14} aria-hidden />}
                   />
                 }
@@ -203,7 +227,7 @@ export default function DispatcherImport({
           <Button
             stretched
             loading={confirming}
-            disabled={entries.length === 0}
+            disabled={entries.length === 0 || hasErrors || !preview.batchId}
             onClick={() => void apply()}
           >
             Применить изменения

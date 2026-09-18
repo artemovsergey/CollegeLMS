@@ -224,6 +224,140 @@ public class CollegeLmsApiClient
         }
     }
 
+    public async Task<CorrectionBatchDto?> CreateCorrectionBatchAsync(
+        DateTime correctionDate,
+        string token,
+        CancellationToken ct
+    )
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                "/api/schedule/correction/batches"
+            )
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new { correctionDate }, JsonOpts),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                ),
+            };
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer",
+                token
+            );
+
+            var resp = await _http.SendAsync(request, ct);
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Correction batch creation returned {Code}: {Body}",
+                    resp.StatusCode,
+                    json
+                );
+                return null;
+            }
+
+            var wrapper = JsonSerializer.Deserialize<ResultWrapper<CorrectionBatchDto>>(
+                json,
+                JsonOpts
+            );
+            return wrapper is { IsSuccess: true } ? wrapper.Data : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create correction batch");
+            return null;
+        }
+    }
+
+    public async Task<bool> AddCorrectionPositionAsync(
+        Guid batchId,
+        CreateCorrectionPositionDto position,
+        string token,
+        CancellationToken ct
+    )
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"/api/schedule/correction/batches/{batchId}/positions"
+            )
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(position, JsonOpts),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                ),
+            };
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer",
+                token
+            );
+
+            var resp = await _http.SendAsync(request, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Adding correction position returned {Code}", resp.StatusCode);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add correction position");
+            return false;
+        }
+    }
+
+    public async Task<CorrectionBatchApplyResponse?> ApplyCorrectionBatchAsync(
+        Guid batchId,
+        string token,
+        string idempotencyKey,
+        CancellationToken ct
+    )
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"/api/schedule/correction/batches/{batchId}/apply"
+            );
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer",
+                token
+            );
+            request.Headers.Add("Idempotency-Key", idempotencyKey);
+
+            var resp = await _http.SendAsync(request, ct);
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Correction batch apply returned {Code}: {Body}",
+                    resp.StatusCode,
+                    json
+                );
+                return null;
+            }
+
+            var wrapper = JsonSerializer.Deserialize<ResultWrapper<CorrectionBatchApplyResponse>>(
+                json,
+                JsonOpts
+            );
+            return wrapper is { IsSuccess: true } ? wrapper.Data : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to apply correction batch");
+            return null;
+        }
+    }
+
     public async Task<byte[]?> GetScheduleXlsxAsync(
         Guid? groupId,
         string token,

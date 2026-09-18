@@ -3,12 +3,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Plus, Search, Trash2, Users, GraduationCap } from "lucide-react"
 import { Button, Input, Typography } from "@maxhub/max-ui"
-import { fetchSchedule, fetchSubjects, fetchScheduleMeta, searchSchedule } from "@/api/schedule"
+import {
+  fetchSchedule,
+  fetchSubjects,
+  fetchScheduleMeta,
+  parseIsoDate,
+  searchSchedule,
+  toIsoDate,
+} from "@/api/schedule"
 import type { ScheduleResponse } from "@/types/schedule"
 import type {
   CorrectionChangeType,
+  CorrectionApplyResult,
   CorrectionPreviewEntry,
-  ConfirmResult,
 } from "@/types/correction"
 import { WEEKDAYS } from "@/lib/max-lesson"
 import { NoteChips } from "@/components/NoteChips"
@@ -43,7 +50,6 @@ const changeTypeOptions: {
 ]
 
 const PAIR_OPTIONS = Array.from({ length: 8 }, (_, i) => i + 1)
-const WEEK_OPTIONS = Array.from({ length: 16 }, (_, i) => i + 1)
 
 function dayLabel(dayOfWeek: number): string {
   return WEEKDAYS.find((d) => d.value === dayOfWeek)?.full ?? String(dayOfWeek)
@@ -52,7 +58,7 @@ function dayLabel(dayOfWeek: number): string {
 export default function DispatcherManual({
   onApplied,
 }: {
-  onApplied: (result: ConfirmResult) => void
+  onApplied: (result: CorrectionApplyResult) => void
 }) {
   const [changeType, setChangeType] =
     useState<CorrectionChangeType>("Add")
@@ -73,11 +79,15 @@ export default function DispatcherManual({
 
   const [schedule, setSchedule] = useState<ScheduleResponse[]>([])
   const [scheduleLoading, setScheduleLoading] = useState(false)
+  const [semesterStart, setSemesterStart] = useState<string | null>(null)
+  const [totalWeeks, setTotalWeeks] = useState(16)
 
   useEffect(() => {
     void fetchScheduleMeta().then((res) => {
       if (res.isSuccess && res.data) {
         setWeek(res.data.currentWeek)
+        setSemesterStart(res.data.semesterStart)
+        setTotalWeeks(res.data.totalWeeks)
       }
     })
   }, [])
@@ -103,6 +113,20 @@ export default function DispatcherManual({
       setScheduleLoading(false)
     }
   }, [groupId, dayOfWeek, week])
+
+  const weekOptions = useMemo(
+    () => Array.from({ length: totalWeeks }, (_, index) => index + 1),
+    [totalWeeks],
+  )
+
+  const correctionDate = useMemo(() => {
+    if (!semesterStart) return undefined
+    const start = parseIsoDate(semesterStart)
+    if (Number.isNaN(start.getTime())) return undefined
+    const offset = start.getDay() === 0 ? 6 : start.getDay() - 1
+    start.setDate(start.getDate() - offset + (week - 1) * 7 + (dayOfWeek - 1))
+    return toIsoDate(start)
+  }, [semesterStart, week, dayOfWeek])
 
   useEffect(() => {
     if (changeType === "Remove" || changeType === "Replace" || changeType === "Move") {
@@ -288,7 +312,7 @@ export default function DispatcherManual({
             value={week}
             onChange={(e) => setWeek(Number(e.target.value))}
           >
-            {WEEK_OPTIONS.map((w) => (
+            {weekOptions.map((w) => (
               <option key={w} value={w}>
                 {w}
               </option>
@@ -455,6 +479,7 @@ export default function DispatcherManual({
       <ConfirmOpsSheet
         open={confirmOpen}
         ops={entries}
+        correctionDate={correctionDate}
         onCancel={() => setConfirmOpen(false)}
         onApplied={(result) => {
           onApplied(result)

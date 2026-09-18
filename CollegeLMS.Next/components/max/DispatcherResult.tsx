@@ -10,18 +10,16 @@ import {
   Spinner,
   Typography,
 } from "@maxhub/max-ui"
-import { getHistory } from "@/api/correction"
-import { exportSchedule, fetchScheduleMeta } from "@/api/schedule"
-import type { ConfirmResult, ScheduleHistoryItem } from "@/types/correction"
+import { exportBatch, getHistory } from "@/api/correction"
+import { fetchScheduleMeta } from "@/api/schedule"
+import type { CorrectionApplyResult, ScheduleHistoryItem } from "@/types/correction"
 import ChangeCard from "@/components/max/ChangeCard"
 import ScheduleError from "@/components/max/ScheduleError"
 
 export default function DispatcherResult({
   applied,
-  groupId,
 }: {
-  applied: ConfirmResult
-  groupId?: string
+  applied: CorrectionApplyResult
 }) {
   const [items, setItems] = useState<ScheduleHistoryItem[]>([])
   const [page, setPage] = useState(1)
@@ -29,6 +27,7 @@ export default function DispatcherResult({
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
   const [semesterStart, setSemesterStart] = useState<string | undefined>(undefined)
 
   useEffect(() => {
@@ -67,6 +66,24 @@ export default function DispatcherResult({
 
   const hasMore = items.length < total
 
+  const downloadCorrection = async () => {
+    setDownloading(true)
+    setError(null)
+    try {
+      const { blob, fileName } = await exportBatch(applied.batchId)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = fileName
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось скачать корректировку")
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   return (
     <MaxUI className="max-app__dispatcher-result">
       <Typography.Title>Изменения применены</Typography.Title>
@@ -75,16 +92,15 @@ export default function DispatcherResult({
         {applied.applied}
       </div>
 
-      {groupId ? (
-        <Button
-          variant="secondary"
-          stretched
-          iconBefore={<Download size={16} aria-hidden />}
-          onClick={() => void exportSchedule({ groupId }, "xlsx")}
-        >
-          Скачать расписание (XLSX)
-        </Button>
-      ) : null}
+      <Button
+        variant="secondary"
+        stretched
+        loading={downloading}
+        iconBefore={<Download size={16} aria-hidden />}
+        onClick={() => void downloadCorrection()}
+      >
+        Скачать корректировку (XLSX)
+      </Button>
 
       {loading ? (
         <div className="max-app__state">

@@ -3,8 +3,12 @@
 import { useState } from "react"
 import { AlertCircle, X } from "lucide-react"
 import { Button, Typography } from "@maxhub/max-ui"
-import { confirmCorrection } from "@/api/correction"
-import type { CorrectionPreviewEntry, ConfirmResult } from "@/types/correction"
+import { addPosition, applyBatch, createBatch } from "@/api/correction"
+import type {
+  CorrectionApplyResult,
+  CorrectionPreviewEntry,
+  CreateCorrectionPosition,
+} from "@/types/correction"
 import { extractErrorMessage } from "@/lib/utils"
 import { WEEKDAYS } from "@/lib/max-lesson"
 
@@ -22,13 +26,17 @@ function dayLabel(dayOfWeek: number): string {
 export default function ConfirmOpsSheet({
   open,
   ops,
+  batchId,
+  correctionDate,
   onCancel,
   onApplied,
 }: {
   open: boolean
   ops: CorrectionPreviewEntry[]
+  batchId?: string
+  correctionDate?: string
   onCancel: () => void
-  onApplied: (result: ConfirmResult) => void
+  onApplied: (result: CorrectionApplyResult) => void
 }) {
   const [confirming, setConfirming] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -39,7 +47,29 @@ export default function ConfirmOpsSheet({
     setConfirming(true)
     setFormError(null)
     try {
-      const result = await confirmCorrection(ops, crypto.randomUUID())
+      let currentBatchId = batchId
+      if (!currentBatchId) {
+        if (!correctionDate) throw new Error("Не удалось определить дату корректировки")
+        currentBatchId = (await createBatch(correctionDate)).id
+        for (const op of ops) {
+          const position: CreateCorrectionPosition = {
+            changeType: op.changeType,
+            groupId: op.groupId,
+            groupName: op.groupName,
+            numberPair: op.numberPair,
+            subject: op.subject,
+            teacherId: op.teacherId,
+            teacherName: op.teacherName,
+            removedSubject: op.removedSubject,
+            removedTeacherId: op.removedTeacherId,
+            removedTeacherName: op.removedTeacherName,
+            removedNumberPair: op.removedNumberPair,
+            note: op.note || (op.changeType === "Move" ? `вм.${op.numberPair}` : null),
+          }
+          await addPosition(currentBatchId, position)
+        }
+      }
+      const result = await applyBatch(currentBatchId, crypto.randomUUID())
       onApplied(result)
     } catch (err) {
       setFormError(

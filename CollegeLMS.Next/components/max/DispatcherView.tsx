@@ -2,19 +2,17 @@
 
 import { useState } from "react"
 import { MaxUI, Typography } from "@maxhub/max-ui"
-import type { ConfirmResult } from "@/types/correction"
-import { useMaxContext } from "@/lib/max-context"
+import type { CorrectionApplyResult } from "@/types/correction"
 import DispatcherImport from "@/components/max/DispatcherImport"
 import DispatcherManual from "@/components/max/DispatcherManual"
 import DispatcherResult from "@/components/max/DispatcherResult"
 
 export default function DispatcherView() {
-  const { viewContext } = useMaxContext()
   const [mode, setMode] = useState<"file" | "manual">("file")
-  const [applied, setApplied] = useState<ConfirmResult | null>(null)
+  const [applied, setApplied] = useState<CorrectionApplyResult | null>(null)
   const [resultKey, setResultKey] = useState(0)
 
-  const onApplied = (result: ConfirmResult) => {
+  const onApplied = (result: CorrectionApplyResult) => {
     setApplied(result)
     setResultKey((k) => k + 1)
   }
@@ -64,7 +62,6 @@ export default function DispatcherView() {
           <DispatcherResult
             key={resultKey}
             applied={applied}
-            groupId={viewContext.groupId}
           />
         ) : null}
       </main>

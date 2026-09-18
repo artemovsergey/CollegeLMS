@@ -114,6 +114,27 @@ public class DispatcherCorrectionWizardTests
         entry.Note.Should().Be("кабинет заменить");
     }
 
+    [Theory]
+    [InlineData(1, 1, "2026-08-31")]
+    [InlineData(1, 2, "2026-09-01")]
+    [InlineData(2, 6, "2026-09-12")]
+    [InlineData(16, 6, "2026-12-19")]
+    public void CalculateCorrectionDate_UsesMondayBasedSemesterWeeks(
+        int week,
+        int day,
+        string expected
+    )
+    {
+        var date = DispatcherCorrectionWizard.CalculateCorrectionDate(
+            new DateTime(2026, 9, 1),
+            week,
+            day
+        );
+
+        date.Should()
+            .Be(DateTime.Parse(expected, System.Globalization.CultureInfo.InvariantCulture));
+    }
+
     [Fact]
     public void BuildWeekGrid_RowsOfFour()
     {

@@ -181,4 +181,115 @@ public class MaxBotDispatcherFlowTests
         meta!.TotalWeeks.Should().Be(16);
         meta.CurrentWeek.Should().Be(2);
     }
+
+    [Fact]
+    public async Task CreateCorrectionBatchAsync_SendsBearerAndDate()
+    {
+        var batchId = Guid.NewGuid();
+        string? auth = null;
+        string? body = null;
+        var client = BuildClient(
+            new StubHandler(request =>
+            {
+                auth = request.Headers.Authorization?.ToString();
+                body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                        JsonSerializer.Serialize(
+                            new { isSuccess = true, data = new { id = batchId } }
+                        ),
+                        Encoding.UTF8,
+                        "application/json"
+                    ),
+                };
+            })
+        );
+
+        var result = await client.CreateCorrectionBatchAsync(
+            new DateTime(2026, 9, 15),
+            "tok-batch",
+            CancellationToken.None
+        );
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(batchId);
+        auth.Should().Be(new AuthenticationHeaderValue("Bearer", "tok-batch").ToString());
+        body.Should().Contain("2026-09-15");
+    }
+
+    [Fact]
+    public async Task AddCorrectionPositionAsync_UsesBatchPositionRoute()
+    {
+        var batchId = Guid.NewGuid();
+        Uri? requestUri = null;
+        var client = BuildClient(
+            new StubHandler(request =>
+            {
+                requestUri = request.RequestUri;
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                        """{"isSuccess":true,"data":{}}""",
+                        Encoding.UTF8,
+                        "application/json"
+                    ),
+                };
+            })
+        );
+
+        var added = await client.AddCorrectionPositionAsync(
+            batchId,
+            new CreateCorrectionPositionDto
+            {
+                ChangeType = "Move",
+                GroupId = Guid.NewGuid(),
+                GroupName = "ИС-21",
+                NumberPair = 4,
+                Note = "вм.4",
+            },
+            "tok-batch",
+            CancellationToken.None
+        );
+
+        added.Should().BeTrue();
+        requestUri!
+            .AbsolutePath.Should()
+            .Be($"/api/schedule/correction/batches/{batchId}/positions");
+    }
+
+    [Fact]
+    public async Task ApplyCorrectionBatchAsync_SendsProvidedIdempotencyKey()
+    {
+        var batchId = Guid.NewGuid();
+        string? idempotencyKey = null;
+        var client = BuildClient(
+            new StubHandler(request =>
+            {
+                idempotencyKey = string.Join(",", request.Headers.GetValues("Idempotency-Key"));
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                        JsonSerializer.Serialize(
+                            new { isSuccess = true, data = new { applied = 1, batchId } }
+                        ),
+                        Encoding.UTF8,
+                        "application/json"
+                    ),
+                };
+            })
+        );
+
+        var result = await client.ApplyCorrectionBatchAsync(
+            batchId,
+            "tok-batch",
+            "idem-123",
+            CancellationToken.None
+        );
+
+        result.Should().NotBeNull();
+        result!.Applied.Should().Be(1);
+        result.BatchId.Should().Be(batchId);
+        idempotencyKey.Should().Be("idem-123");
+    }
 }
