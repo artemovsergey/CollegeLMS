@@ -21,7 +21,7 @@
 - Frontend: Next.js 14, TS, Tailwind CSS 4 (в `CollegeLMS.Next/`)
 - DB: PostgreSQL 16
 - Cache: Redis (только сессии) — контейнер поднят в compose, интеграция в коде ещё не реализована
-- Deploy: Docker Compose, GitHub Actions: deploy.yml (CD) + quality.yml (dotnet build, csharpier --check, frontend build; тесты — локально). Локальный Docker не запускаем — стек собирается и проверяется в CI/CD.
+- Deploy: Docker Compose, GitHub Actions: единый пайплайн `deploy.yml` (push в master) — reusable `quality.yml` (dotnet build, csharpier --check, frontend lint/build; тесты — локально) выполняется перед CD на VPS; на pull_request запускается только `quality.yml`. Локальный Docker не запускаем — стек собирается и проверяется в CI/CD.
 - LSP: включены встроенные серверы (C# через .NET SDK, TypeScript, ESLint) — секция `lsp` в opencode.json
 - Files: локальная ФС (позже MinIO)
 
@@ -105,7 +105,7 @@ CollegeLMS.MaxBot.Tests/  # Тесты MaxBot (xUnit + FluentAssertions)
 loadbalancer/            # Nginx-балансировщик (Dockerfile, nginx.conf)
 import/                  # Данные импорта
 scripts/                 # git-push, QA-ссылки, VPS-скрипты; legacy/ — разовые импорты WP/МДК
-.github/workflows/       # deploy.yml — CD на VPS; quality.yml — build + csharpier + frontend
+.github/workflows/       # deploy.yml — единый пайплайн: quality (reusable quality.yml) → CD на VPS; quality.yml — build + csharpier + frontend (PR)
 ```
 
 ## Роли агентов
