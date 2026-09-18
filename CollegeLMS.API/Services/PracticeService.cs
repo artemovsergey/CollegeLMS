@@ -350,6 +350,8 @@ public class PracticeService(AppDbContext db) : IPracticeService
                 ct
             );
 
+        var pending = new List<PendingImportPeriod>();
+
         foreach (var row in rows)
         {
             if (ParseKind(row.Kind) is null)
@@ -357,12 +359,15 @@ public class PracticeService(AppDbContext db) : IPracticeService
                     Error(row.Row, 1, $"строка {row.Row}: укажите вид практики «УП» или «ПП».")
                 );
 
+            Guid? groupId = null;
             if (row.GroupName.Length == 0)
                 errors.Add(Error(row.Row, 2, $"строка {row.Row}: не указана группа."));
             else if (!groups.ContainsKey(row.GroupName))
                 errors.Add(
                     Error(row.Row, 2, $"строка {row.Row}: группа «{row.GroupName}» не найдена.")
                 );
+            else
+                groupId = groups[row.GroupName];
 
             var dateFrom = ParseDate(row.DateFrom);
             var dateTo = ParseDate(row.DateTo);
@@ -399,10 +404,103 @@ public class PracticeService(AppDbContext db) : IPracticeService
                         $"строка {row.Row}: преподаватель «{row.TeacherName}» не найден."
                     )
                 );
+
+            if (
+                dateFrom is { } fromDate
+                && dateTo is { } toDate
+                && fromDate.Date <= toDate.Date
+                && groupId is { } resolvedGroupId
+            )
+            {
+                if (!StudyWeek.IsInSemester(fromDate) || !StudyWeek.IsInSemester(toDate))
+                    errors.Add(
+                        Error(
+                            row.Row,
+                            3,
+                            $"строка {row.Row}: период практики должен быть в пределах семестра."
+                        )
+                    );
+
+                pending.Add(
+                    new PendingImportPeriod(row.Row, resolvedGroupId, fromDate.Date, toDate.Date)
+                );
+            }
         }
+
+        await ValidateImportOverlapsAsync(pending, errors, ct);
 
         return errors;
     }
+
+    private async Task ValidateImportOverlapsAsync(
+        List<PendingImportPeriod> pending,
+        List<ScheduleValidationError> errors,
+        CancellationToken ct
+    )
+    {
+        if (pending.Count == 0)
+            return;
+
+        var groupIds = pending.Select(p => p.GroupId).Distinct().ToList();
+        var minFrom = pending.Min(p => p.DateFrom);
+        var maxTo = pending.Max(p => p.DateTo);
+        var existing = await db
+            .Practices.AsNoTracking()
+            .Where(p => groupIds.Contains(p.GroupId) && p.DateFrom <= maxTo && p.DateTo >= minFrom)
+            .Select(p => new
+            {
+                p.GroupId,
+                p.DateFrom,
+                p.DateTo,
+            })
+            .ToListAsync(ct);
+
+        foreach (var item in pending)
+        {
+            if (
+                existing.Any(e =>
+                    e.GroupId == item.GroupId
+                    && e.DateFrom.Date <= item.DateTo
+                    && e.DateTo.Date >= item.DateFrom
+                )
+            )
+                errors.Add(
+                    Error(
+                        item.Row,
+                        3,
+                        $"строка {item.Row}: у группы уже есть практика в этот период."
+                    )
+                );
+        }
+
+        foreach (var groupRows in pending.GroupBy(p => p.GroupId))
+        {
+            var ordered = groupRows.OrderBy(p => p.DateFrom).ThenBy(p => p.Row).ToList();
+            for (var i = 0; i < ordered.Count; i++)
+            {
+                for (var j = i + 1; j < ordered.Count; j++)
+                {
+                    if (ordered[j].DateFrom > ordered[i].DateTo)
+                        break;
+
+                    errors.Add(
+                        Error(
+                            ordered[j].Row,
+                            3,
+                            $"строка {ordered[j].Row}: период пересекается со строкой {ordered[i].Row}."
+                        )
+                    );
+                }
+            }
+        }
+    }
+
+    private sealed record PendingImportPeriod(
+        int Row,
+        Guid GroupId,
+        DateTime DateFrom,
+        DateTime DateTo
+    );
 
     private async Task<Dictionary<string, Guid>> ResolveGroupIdsAsync(
         List<PracticeImportRow> rows,

@@ -329,6 +329,28 @@ public class MessageFormatterTests
         text.Should().Contain("*2.* 📖 Физика");
     }
 
+    [Fact]
+    public void FormatDaySchedule_AfternoonTime_Uses24HourFormat()
+    {
+        var entries = new List<ScheduleResponse>
+        {
+            Entries()[0] with
+            {
+                StartTime = new TimeSpan(15, 5, 0),
+                EndTime = new TimeSpan(16, 25, 0),
+            },
+        };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            entries,
+            new DateTime(2026, 9, 7),
+            "Группа 101"
+        );
+
+        text.Should().Contain("15:05–16:25");
+        text.Should().NotContain("03:05");
+    }
+
     private static ScheduleRevision Revision(string changeType = "Replace") =>
         new()
         {

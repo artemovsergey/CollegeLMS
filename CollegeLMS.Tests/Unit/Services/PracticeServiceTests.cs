@@ -469,4 +469,88 @@ public class PracticeServiceTests : IDisposable
         result.StatusCode.Should().Be(400);
         result.ErrorMessage.Should().Contain("Нет строк");
     }
+
+    [Fact]
+    public async Task PreviewImportAsync_OutsideSemester_ReportsError()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+
+        using var stream = BuildWorkbook(ws =>
+        {
+            ws.Cell(2, 1).Value = "УП";
+            ws.Cell(2, 2).Value = group.Name;
+            ws.Cell(2, 3).Value = "01.02.2027";
+            ws.Cell(2, 4).Value = "05.02.2027";
+            ws.Cell(2, 5).Value = teacher.User.FullName;
+        });
+
+        var result = await _sut.PreviewImportAsync(stream, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Errors.Should().ContainSingle();
+        result.Data.Errors[0].Message.Should().Contain("в пределах семестра");
+    }
+
+    [Fact]
+    public async Task PreviewImportAsync_OverlappingRowsInFile_ReportsError()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+
+        using var stream = BuildWorkbook(ws =>
+        {
+            ws.Cell(2, 1).Value = "УП";
+            ws.Cell(2, 2).Value = group.Name;
+            ws.Cell(2, 3).Value = "07.09.2026";
+            ws.Cell(2, 4).Value = "11.09.2026";
+            ws.Cell(2, 5).Value = teacher.User.FullName;
+            ws.Cell(3, 1).Value = "ПП";
+            ws.Cell(3, 2).Value = group.Name;
+            ws.Cell(3, 3).Value = "10.09.2026";
+            ws.Cell(3, 4).Value = "14.09.2026";
+            ws.Cell(3, 5).Value = teacher.User.FullName;
+        });
+
+        var result = await _sut.PreviewImportAsync(stream, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Errors.Should().ContainSingle();
+        result.Data.Errors[0].Message.Should().Contain("строка 3");
+        result.Data.Errors[0].Message.Should().Contain("пересекается со строкой 2");
+    }
+
+    [Fact]
+    public async Task ConfirmImportAsync_OverlapsExistingPractice_Returns400()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        _db.Practices.Add(
+            new Practice
+            {
+                Id = Guid.NewGuid(),
+                Kind = PracticeKind.Up,
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                DateFrom = new DateTime(2026, 9, 7),
+                DateTo = new DateTime(2026, 9, 11),
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ConfirmImportAsync(
+            new PracticeImportConfirmRequest
+            {
+                Rows = [ValidRow(group.Name, teacher.User.FullName)],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("уже есть практика в этот период");
+        (await _db.Practices.CountAsync()).Should().Be(1);
+    }
 }

@@ -305,6 +305,43 @@ public class ScheduleExportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportSemester_InsertTime_Uses24HourFormat()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group, teacher, DayOfWeek.Tuesday, 2);
+        _db.ScheduleInserts.Add(
+            new ScheduleInsert
+            {
+                Id = Guid.NewGuid(),
+                Title = "Линейка",
+                DayOfWeek = DayOfWeek.Tuesday,
+                StartTime = new TimeSpan(15, 5, 0),
+                EndTime = new TimeSpan(16, 25, 0),
+                Course = null,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ExportAsync(
+            group.Id,
+            null,
+            null,
+            null,
+            "semester",
+            ExportFormat.Xlsx,
+            ExportLayout.Grid,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        Cell(result.Data!.FileContent, 3, 3).Should().Contain("15:05–16:25");
+    }
+
+    [Fact]
     public async Task ExportSemester_Entry_RendersPairAndMarks()
     {
         var group = await SeedGroupAsync();
