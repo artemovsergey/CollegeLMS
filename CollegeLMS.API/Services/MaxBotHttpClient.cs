@@ -1,9 +1,12 @@
+using System.Net.Http.Headers;
+using System.Text;
 using CollegeLMS.API.Dtos;
 
 namespace CollegeLMS.API.Services;
 
 /// <summary>
-/// HTTP-клиент к боту Max. Отправляет изменения расписания на POST /notify.
+/// HTTP-клиент к боту Max. Отправляет изменения расписания на POST /notify
+/// и PNG-картинку корректировки на POST /notify/correction-image.
 /// Fail-safe: недоступность бота не роняет подтверждение корректировки.
 /// </summary>
 public class MaxBotHttpClient(HttpClient http, ILogger<MaxBotHttpClient> logger)
@@ -32,6 +35,36 @@ public class MaxBotHttpClient(HttpClient http, ILogger<MaxBotHttpClient> logger)
         catch (Exception ex)
         {
             logger.LogWarning(ex, "MaxBot недоступен — уведомления об изменениях не отправлены");
+        }
+    }
+
+    public async Task SendCorrectionImageAsync(byte[] png, string caption, CancellationToken ct)
+    {
+        if (png.Length == 0)
+            return;
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var file = new ByteArrayContent(png);
+            file.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            content.Add(file, "file", "correction.png");
+            content.Add(new StringContent(caption, Encoding.UTF8), "caption");
+
+            var resp = await http.PostAsync("/notify/correction-image", content, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(ct);
+                logger.LogWarning(
+                    "MaxBot /notify/correction-image вернул {Code}: {Body}",
+                    resp.StatusCode,
+                    body.Length > 200 ? body[..200] : body
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "MaxBot недоступен — картинка корректировки не отправлена");
         }
     }
 }

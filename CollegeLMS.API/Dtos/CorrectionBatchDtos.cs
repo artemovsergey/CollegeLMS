@@ -10,8 +10,12 @@ public class CorrectionBatchResponse
     public int DayOfWeek { get; set; }
     public CorrectionBatchStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
+    public Guid? AppliedByUserId { get; set; }
+    public string? AppliedByName { get; set; }
+    public DateTime? AppliedAt { get; set; }
     public int PositionCount { get; set; }
     public List<CorrectionPositionResponse> Positions { get; set; } = [];
+    public List<ScheduleValidationError> Errors { get; set; } = [];
 }
 
 public class CorrectionPositionResponse
@@ -34,6 +38,32 @@ public class CorrectionPositionResponse
     public string? Note { get; set; }
     public CorrectionPositionStatus Status { get; set; }
     public Guid? HistoryId { get; set; }
+    public List<ScheduleValidationError> Errors { get; set; } = [];
+}
+
+/// <summary>Эффективное расписание группы на дату для флоу корректировки.</summary>
+public class CorrectionDayResponse
+{
+    public DateTime Date { get; set; }
+    public int Week { get; set; }
+    public int DayOfWeek { get; set; }
+    public Guid GroupId { get; set; }
+    public string GroupName { get; set; } = string.Empty;
+    public List<CorrectionDayEntry> Entries { get; set; } = [];
+}
+
+/// <summary>Строка расписания дня с учётом применённых и неприменённых корректировок.</summary>
+public class CorrectionDayEntry
+{
+    public int NumberPair { get; set; }
+    public string Subject { get; set; } = string.Empty;
+    public string Room { get; set; } = string.Empty;
+    public Guid? TeacherId { get; set; }
+    public string? TeacherName { get; set; }
+    public string? Note { get; set; }
+    public bool IsSelfStudy { get; set; }
+    public ScheduleChangeType? PendingChangeType { get; set; }
+    public List<ChangeTag> ChangeTags { get; set; } = [];
 }
 
 public class CreateCorrectionBatchRequest

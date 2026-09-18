@@ -40,21 +40,28 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Список пакетов корректировок (по умолчанию — подготовленные).</summary>
+    /// <summary>Список пакетов корректировок с фильтрами и пагинацией.</summary>
     [HttpGet]
     [SwaggerOperation(Summary = "Список пакетов корректировок")]
-    [SwaggerResponse(200, "Список получен", typeof(Result<List<CorrectionBatchResponse>>))]
+    [SwaggerResponse(200, "Список получен", typeof(Result<PagedResponse<CorrectionBatchResponse>>))]
     [SwaggerResponse(401, "Не авторизован", typeof(ErrorResponse))]
     [SwaggerResponse(403, "Доступ запрещён", typeof(ErrorResponse))]
-    [ProducesResponseType(typeof(Result<List<CorrectionBatchResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(Result<PagedResponse<CorrectionBatchResponse>>),
+        StatusCodes.Status200OK
+    )]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetBatches(
         [FromQuery] CorrectionBatchStatus? status,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
         CancellationToken ct
     )
     {
-        var result = await service.GetBatchesAsync(status, ct);
+        var result = await service.GetBatchesAsync(status, from, to, page, pageSize, ct);
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 

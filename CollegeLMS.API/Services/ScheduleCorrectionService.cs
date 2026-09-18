@@ -11,8 +11,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
-    : IScheduleCorrectionService
+public class ScheduleCorrectionService(
+    AppDbContext db,
+    MaxBotHttpClient maxBot,
+    CorrectionApplyEngine engine
+) : IScheduleCorrectionService
 {
     private readonly string templatesPath = Path.Combine("..", "import", "schedule");
 
@@ -71,7 +74,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
         using var output = new MemoryStream();
         workbook.SaveAs(output);
-        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+        var timestamp = DateTime.UtcNow.ToString("dd.MM.yyyy_HH-mm-ss");
         return Result<DocumentDownloadResult>.Ok(
             new DocumentDownloadResult
             {
@@ -130,6 +133,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                     DayOfWeek = (int)parsed.Date.DayOfWeek,
                     TotalEntries = parsed.Entries.Count,
                     Entries = parsed.Entries,
+                    AllEntries = parsed.AllEntries,
                     Errors = parsed.Errors,
                 }
             );
@@ -154,6 +158,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         DateTime Date,
         int Week,
         List<CorrectionPreviewEntry> Entries,
+        List<CorrectionPreviewEntry> AllEntries,
         List<ScheduleValidationError> Errors
     )> ParseWorkbookAsync(XLWorkbook workbook, CancellationToken ct)
     {
@@ -166,7 +171,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         if (lastRow < 7)
         {
             errors.Add(Error(0, 0, "structure", "В файле нет данных."));
-            return (default, 0, entries, errors);
+            return (default, 0, entries, [], errors);
         }
 
         var a3 = ws.Cell(3, 1).GetString().Trim();
@@ -183,7 +188,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                         : "Дата в A3 не распознана. Формат: «на ДД.ММ.ГГГГ г.»."
                 )
             );
-            return (default, 0, entries, errors);
+            return (default, 0, entries, [], errors);
         }
 
         DateTime date;
@@ -200,7 +205,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             errors.Add(
                 Error(3, 1, "structure", "Дата в A3 не распознана. Формат: «на ДД.ММ.ГГГГ г.».")
             );
-            return (default, 0, entries, errors);
+            return (default, 0, entries, [], errors);
         }
 
         if (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
@@ -213,14 +218,14 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                     "Указана дата на выходной день. Корректировка применяется к учебным дням."
                 )
             );
-            return (default, 0, entries, errors);
+            return (default, 0, entries, [], errors);
         }
 
         var a5 = ws.Cell(5, 1).GetString().Trim();
         if (!string.Equals(a5, "Группа", StringComparison.OrdinalIgnoreCase))
         {
             errors.Add(Error(5, 1, "structure", "Не найден заголовок «Группа» в ячейке A5."));
-            return (default, 0, entries, errors);
+            return (default, 0, entries, [], errors);
         }
 
         var b5 = ws.Cell(5, 2).GetString();
@@ -237,7 +242,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
                     "Не найдены колонки «Снимается по расписанию» или «Вводится в расписание»."
                 )
             );
-            return (default, 0, entries, errors);
+            return (default, 0, entries, [], errors);
         }
 
         var week = StudyWeek.ForDate(date);
@@ -530,7 +535,207 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
             entries.AddRange(rowEntries);
         }
 
-        return (date, week, entries, errors);
+        var allEntries = await BuildAllEntriesAsync(ws, lastRow, date, week, ct);
+
+        return (date, week, entries, allEntries, errors);
+    }
+
+    /// <summary>
+    /// Best-effort строки для импорта в пакет: каждая непустая строка файла
+    /// сохраняется (даже с ошибками данных), группы и преподаватели
+    /// сопоставляются по имени, если найдены.
+    /// </summary>
+    private async Task<List<CorrectionPreviewEntry>> BuildAllEntriesAsync(
+        IXLWorksheet ws,
+        int lastRow,
+        DateTime date,
+        int week,
+        CancellationToken ct
+    )
+    {
+        var all = new List<CorrectionPreviewEntry>();
+
+        for (int row = 7; row <= lastRow; row++)
+        {
+            var groupName = ws.Cell(row, 1).GetString().Trim();
+            var removeSubject = ws.Cell(row, 2).GetString().Trim();
+            var removeTeacher = ws.Cell(row, 3).GetString().Trim();
+            var addSubject = ws.Cell(row, 4).GetString().Trim();
+            var addTeacher = ws.Cell(row, 5).GetString().Trim();
+            var pairValue = ParsePair(ws.Cell(row, 6).Value);
+            var pair = pairValue ?? 0;
+            var note = ws.Cell(row, 7).GetString().Trim();
+
+            var anyContent =
+                groupName.Length > 0
+                || removeSubject.Length > 0
+                || removeTeacher.Length > 0
+                || addSubject.Length > 0
+                || addTeacher.Length > 0
+                || pairValue is not null;
+
+            if (!anyContent)
+                continue;
+
+            var hasRemove = removeSubject.Length > 0 || removeTeacher.Length > 0;
+            var hasAdd = addSubject.Length > 0 || addTeacher.Length > 0;
+            var changeType = (hasRemove, hasAdd) switch
+            {
+                (true, false) => ScheduleChangeType.Remove,
+                (false, true) => ScheduleChangeType.Add,
+                _ => ScheduleChangeType.Replace,
+            };
+
+            var oldPair = ParseNoteOldPair(note);
+
+            if (changeType == ScheduleChangeType.Add && oldPair is { } movePair)
+            {
+                // «вм.X»: перенос — снять D/E со старой пары X, ввести на пару F.
+                all.Add(
+                    new CorrectionPreviewEntry
+                    {
+                        Row = row,
+                        GroupName = groupName,
+                        ChangeType = ScheduleChangeType.Move,
+                        DayOfWeek = (int)date.DayOfWeek,
+                        Week = week,
+                        NumberPair = pair,
+                        Subject = ScheduleImportService.NormalizeSubject(addSubject),
+                        TeacherName = Normalize(addTeacher),
+                        RemovedSubject = ScheduleImportService.NormalizeSubject(addSubject),
+                        RemovedTeacherName = Normalize(addTeacher),
+                        RemovedNumberPair = movePair,
+                        Note = note,
+                    }
+                );
+                continue;
+            }
+
+            all.Add(
+                new CorrectionPreviewEntry
+                {
+                    Row = row,
+                    GroupName = groupName,
+                    ChangeType = changeType,
+                    DayOfWeek = (int)date.DayOfWeek,
+                    Week = week,
+                    NumberPair = pair,
+                    Subject =
+                        changeType != ScheduleChangeType.Remove && addSubject.Length > 0
+                            ? ScheduleImportService.NormalizeSubject(addSubject)
+                            : null,
+                    TeacherName =
+                        changeType != ScheduleChangeType.Remove && addTeacher.Length > 0
+                            ? Normalize(addTeacher)
+                            : null,
+                    RemovedSubject =
+                        changeType != ScheduleChangeType.Add && removeSubject.Length > 0
+                            ? ScheduleImportService.NormalizeSubject(removeSubject)
+                            : null,
+                    RemovedTeacherName =
+                        changeType != ScheduleChangeType.Add && removeTeacher.Length > 0
+                            ? Normalize(removeTeacher)
+                            : null,
+                    RemovedNumberPair = changeType
+                        is ScheduleChangeType.Replace
+                            or ScheduleChangeType.Move
+                        ? pair
+                        : null,
+                    Note = note,
+                }
+            );
+
+            if (changeType == ScheduleChangeType.Replace && oldPair is { } movedPair)
+            {
+                // Дополнительно снять D/E со старой пары X.
+                all.Add(
+                    new CorrectionPreviewEntry
+                    {
+                        Row = row,
+                        GroupName = groupName,
+                        ChangeType = ScheduleChangeType.Remove,
+                        DayOfWeek = (int)date.DayOfWeek,
+                        Week = week,
+                        NumberPair = movedPair,
+                        RemovedSubject = ScheduleImportService.NormalizeSubject(addSubject),
+                        RemovedTeacherName = Normalize(addTeacher),
+                        RemovedNumberPair = movedPair,
+                        Note = note,
+                    }
+                );
+            }
+        }
+
+        await ResolveReferencesAsync(all, ct);
+        return all;
+    }
+
+    /// <summary>Сопоставляет группы и преподавателей best-effort строк по имени.</summary>
+    private async Task ResolveReferencesAsync(
+        List<CorrectionPreviewEntry> entries,
+        CancellationToken ct
+    )
+    {
+        if (entries.Count == 0)
+            return;
+
+        var groupNames = entries
+            .Where(e => e.GroupId == Guid.Empty && e.GroupName.Length > 0)
+            .Select(e => e.GroupName)
+            .Distinct()
+            .ToList();
+        if (groupNames.Count > 0)
+        {
+            var groupIds = await db
+                .Groups.AsNoTracking()
+                .Where(g => groupNames.Contains(g.Name))
+                .ToDictionaryAsync(g => g.Name, g => g.Id, ct);
+            foreach (var entry in entries)
+            {
+                if (
+                    entry.GroupId == Guid.Empty
+                    && groupIds.TryGetValue(entry.GroupName, out var groupId)
+                )
+                    entry.GroupId = groupId;
+            }
+        }
+
+        var teacherNames = entries
+            .SelectMany(e => new[] { e.TeacherName, e.RemovedTeacherName })
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => ScheduleImportService.NormalizeTeacherName(n!))
+            .Distinct()
+            .ToList();
+        if (teacherNames.Count > 0)
+        {
+            var teacherIds = await db
+                .Teachers.AsNoTracking()
+                .Include(t => t.User)
+                .Where(t => teacherNames.Contains(t.User.FullName))
+                .ToDictionaryAsync(t => t.User.FullName, t => t.Id, ct);
+
+            foreach (var entry in entries)
+            {
+                if (entry.TeacherId is null && !string.IsNullOrWhiteSpace(entry.TeacherName))
+                {
+                    var normalized = ScheduleImportService.NormalizeTeacherName(entry.TeacherName);
+                    if (teacherIds.TryGetValue(normalized, out var teacherId))
+                        entry.TeacherId = teacherId;
+                }
+
+                if (
+                    entry.RemovedTeacherId is null
+                    && !string.IsNullOrWhiteSpace(entry.RemovedTeacherName)
+                )
+                {
+                    var normalized = ScheduleImportService.NormalizeTeacherName(
+                        entry.RemovedTeacherName
+                    );
+                    if (teacherIds.TryGetValue(normalized, out var removedTeacherId))
+                        entry.RemovedTeacherId = removedTeacherId;
+                }
+            }
+        }
     }
 
     private static int? ParsePair(XLCellValue pairValue)
@@ -859,10 +1064,82 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         return Result<List<ScheduleChangeDto>>.Ok(changes);
     }
 
+    public async Task<Result<CorrectionDayResponse>> GetDayAsync(
+        Guid groupId,
+        DateTime date,
+        Guid? batchId,
+        CancellationToken ct
+    )
+    {
+        var group = await db.Groups.AsNoTracking().FirstOrDefaultAsync(g => g.Id == groupId, ct);
+        if (group is null)
+            return Result<CorrectionDayResponse>.Fail("Группа не найдена.", 404);
+
+        var day = date.Date.DayOfWeek;
+        var week = StudyWeek.WeekOf(date);
+
+        var entries = await engine.BuildEffectiveEntriesAsync(groupId, day, week, batchId, ct);
+
+        var history = await db
+            .ScheduleHistory.AsNoTracking()
+            .Where(h => h.GroupId == groupId && h.DayOfWeek == day && h.Week == week)
+            .ToListAsync(ct);
+        var tagsByPair = history
+            .GroupBy(h => h.NumberPair)
+            .ToDictionary(
+                g => g.Key,
+                g =>
+                    g.OrderBy(h => h.AppliedAt)
+                        .Select(h => new ChangeTag
+                        {
+                            ChangeType = h.ChangeType,
+                            Week = h.Week,
+                            RemovedNumberPair = h.RemovedNumberPair,
+                            RemovedSubject = h.RemovedSubject,
+                            Note = h.Note,
+                        })
+                        .ToList()
+            );
+
+        var response = new CorrectionDayResponse
+        {
+            Date = date.Date,
+            Week = week,
+            DayOfWeek = (int)day,
+            GroupId = group.Id,
+            GroupName = group.Name,
+            Entries = entries
+                .OrderBy(e => e.NumberPair)
+                .ThenBy(e => e.Subject)
+                .Select(e => new CorrectionDayEntry
+                {
+                    NumberPair = e.NumberPair,
+                    Subject = e.Subject,
+                    Room = e.Room,
+                    TeacherId = e.TeacherId,
+                    TeacherName = e.TeacherName,
+                    Note = e.Note,
+                    IsSelfStudy = e.IsSelfStudy,
+                    PendingChangeType = ParseChangeType(e.PendingChangeType),
+                    ChangeTags = tagsByPair.GetValueOrDefault(e.NumberPair, []),
+                })
+                .ToList(),
+        };
+
+        return Result<CorrectionDayResponse>.Ok(response);
+    }
+
+    private static ScheduleChangeType? ParseChangeType(string? value) =>
+        Enum.TryParse<ScheduleChangeType>(value, ignoreCase: true, out var parsed) ? parsed : null;
+
     public async Task<Result<PagedResponse<ScheduleHistoryResponse>>> GetHistoryAsync(
         Guid? groupId,
         Guid? teacherId,
         int? week,
+        DateTime? date,
+        DateTime? from,
+        DateTime? to,
+        ScheduleChangeType? changeType,
         int? page,
         int? pageSize,
         CancellationToken ct
@@ -886,6 +1163,22 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
         if (week.HasValue)
             query = query.Where(h => h.Week == week.Value);
 
+        if (date.HasValue)
+        {
+            var lessonWeek = StudyWeek.WeekOf(date.Value);
+            var lessonDay = date.Value.DayOfWeek;
+            query = query.Where(h => h.Week == lessonWeek && h.DayOfWeek == lessonDay);
+        }
+
+        if (from.HasValue)
+            query = query.Where(h => h.AppliedAt >= from.Value.Date);
+
+        if (to.HasValue)
+            query = query.Where(h => h.AppliedAt < to.Value.Date.AddDays(1));
+
+        if (changeType.HasValue)
+            query = query.Where(h => h.ChangeType == changeType.Value);
+
         // Сортировка и пагинация выполняются в памяти: EF Core InMemory-провайдер
         // возвращает пустой список при Include + Skip/Take (баг тестового провайдера).
         // Для Postgres таблица истории небольшая, поэтому оверхед незначителен.
@@ -897,7 +1190,7 @@ public class ScheduleCorrectionService(AppDbContext db, MaxBotHttpClient maxBot)
 
         var total = items.Count;
         var p = Math.Max(page ?? 1, 1);
-        var ps = Math.Clamp(pageSize ?? 20, 1, 200);
+        var ps = Math.Clamp(pageSize ?? 20, 1, 100);
         items = items.Skip((p - 1) * ps).Take(ps).ToList();
 
         return Result<PagedResponse<ScheduleHistoryResponse>>.Ok(

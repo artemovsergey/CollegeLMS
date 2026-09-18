@@ -15,7 +15,12 @@ public class CorrectionBatchConfiguration : IEntityTypeConfiguration<CorrectionB
         builder.Property(x => x.CorrectionDate).IsRequired();
         builder.Property(x => x.Week).IsRequired();
         builder.Property(x => x.DayOfWeek).IsRequired();
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder
+            .Property(x => x.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired()
+            .IsConcurrencyToken();
 
         builder.HasIndex(x => x.Status).HasDatabaseName("ix_correction_batches_status");
         builder

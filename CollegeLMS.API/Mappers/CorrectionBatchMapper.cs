@@ -28,7 +28,10 @@ public static class CorrectionBatchMapper
             HistoryId = position.HistoryId,
         };
 
-    public static CorrectionBatchResponse ToDto(this CorrectionBatch batch) =>
+    public static CorrectionBatchResponse ToDto(
+        this CorrectionBatch batch,
+        bool includePositions = true
+    ) =>
         new()
         {
             Id = batch.Id,
@@ -37,8 +40,12 @@ public static class CorrectionBatchMapper
             DayOfWeek = batch.DayOfWeek,
             Status = batch.Status,
             CreatedAt = batch.CreatedAt,
+            AppliedByUserId = batch.AppliedByUserId,
+            AppliedAt = batch.AppliedAt,
             PositionCount = batch.Positions.Count,
-            Positions = batch.Positions.Select(p => p.ToDto()).ToList(),
+            Positions = includePositions
+                ? batch.Positions.OrderBy(p => p.Row).Select(p => p.ToDto()).ToList()
+                : [],
         };
 
     public static CorrectionPreviewEntry ToPreviewEntry(this CorrectionPosition position) =>

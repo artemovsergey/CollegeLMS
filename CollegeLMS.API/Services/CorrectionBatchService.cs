@@ -12,7 +12,10 @@ namespace CollegeLMS.API.Services;
 public class CorrectionBatchService(
     AppDbContext db,
     IScheduleCorrectionService correctionService,
-    MaxBotHttpClient maxBot
+    CorrectionApplyEngine engine,
+    CorrectionImageService imageService,
+    MaxBotHttpClient maxBot,
+    ILogger<CorrectionBatchService> logger
 ) : ICorrectionBatchService
 {
     private static bool IsSelfStudyNote(string? note) =>
@@ -55,18 +58,59 @@ public class CorrectionBatchService(
         return Result<CorrectionBatchResponse>.Ok(batch.ToDto());
     }
 
-    public async Task<Result<List<CorrectionBatchResponse>>> GetBatchesAsync(
+    public async Task<Result<PagedResponse<CorrectionBatchResponse>>> GetBatchesAsync(
         CorrectionBatchStatus? status,
+        DateTime? from,
+        DateTime? to,
+        int? page,
+        int? pageSize,
         CancellationToken ct
     )
     {
         var query = db.CorrectionBatches.AsNoTracking().Include(b => b.Positions).AsQueryable();
         if (status.HasValue)
             query = query.Where(b => b.Status == status.Value);
+        if (from.HasValue)
+            query = query.Where(b => b.CorrectionDate >= from.Value.Date);
+        if (to.HasValue)
+            query = query.Where(b => b.CorrectionDate <= to.Value.Date);
 
-        var batches = await query.OrderByDescending(b => b.CreatedAt).ToListAsync(ct);
+        var totalCount = await query.CountAsync(ct);
+        var p = Math.Max(page ?? 1, 1);
+        var ps = Math.Clamp(pageSize ?? 20, 1, 100);
 
-        return Result<List<CorrectionBatchResponse>>.Ok(batches.Select(b => b.ToDto()).ToList());
+        var batches = await query
+            .OrderByDescending(b => b.CreatedAt)
+            .Skip((p - 1) * ps)
+            .Take(ps)
+            .ToListAsync(ct);
+
+        var appliedByIds = batches
+            .Where(b => b.AppliedByUserId.HasValue)
+            .Select(b => b.AppliedByUserId!.Value)
+            .Distinct()
+            .ToList();
+        var appliedByNames =
+            appliedByIds.Count == 0
+                ? new Dictionary<Guid, string>()
+                : await db
+                    .Users.AsNoTracking()
+                    .Where(u => appliedByIds.Contains(u.Id))
+                    .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+
+        var items = batches
+            .Select(b =>
+            {
+                var dto = b.ToDto(includePositions: false);
+                if (b.AppliedByUserId.HasValue)
+                    dto.AppliedByName = appliedByNames.GetValueOrDefault(b.AppliedByUserId.Value);
+                return dto;
+            })
+            .ToList();
+
+        return Result<PagedResponse<CorrectionBatchResponse>>.Ok(
+            new PagedResponse<CorrectionBatchResponse>(items, totalCount, p, ps)
+        );
     }
 
     public async Task<Result<CorrectionBatchResponse>> GetBatchAsync(Guid id, CancellationToken ct)
@@ -78,7 +122,26 @@ public class CorrectionBatchService(
         if (batch is null)
             return Result<CorrectionBatchResponse>.Fail("Пакет корректировки не найден.", 404);
 
-        return Result<CorrectionBatchResponse>.Ok(batch.ToDto());
+        var dto = batch.ToDto();
+
+        if (batch.AppliedByUserId.HasValue)
+        {
+            dto.AppliedByName = await db
+                .Users.AsNoTracking()
+                .Where(u => u.Id == batch.AppliedByUserId.Value)
+                .Select(u => u.FullName)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        if (batch.Status == CorrectionBatchStatus.Draft)
+        {
+            var errors = await engine.ValidateBatchAsync(batch, ct);
+            dto.Errors = errors;
+            foreach (var position in dto.Positions)
+                position.Errors = errors.Where(e => e.Row == position.Row).ToList();
+        }
+
+        return Result<CorrectionBatchResponse>.Ok(dto);
     }
 
     public async Task<Result> DeleteBatchAsync(Guid id, CancellationToken ct)
@@ -136,7 +199,7 @@ public class CorrectionBatchService(
             RemovedTeacherId = request.RemovedTeacherId,
             RemovedTeacherName = request.RemovedTeacherName,
             RemovedNumberPair = request.RemovedNumberPair,
-            Note = request.Note,
+            Note = ResolveNote(request),
             Status = CorrectionPositionStatus.Draft,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -184,7 +247,7 @@ public class CorrectionBatchService(
         position.RemovedTeacherId = request.RemovedTeacherId;
         position.RemovedTeacherName = request.RemovedTeacherName;
         position.RemovedNumberPair = request.RemovedNumberPair;
-        position.Note = request.Note;
+        position.Note = ResolveNote(request);
         position.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
@@ -229,7 +292,8 @@ public class CorrectionBatchService(
 
         var data = preview.Data!;
 
-        if (data.Errors.Count > 0)
+        // Структурные ошибки (нет даты/шапки) — пакет создать нельзя.
+        if (data.CorrectionDate == default || data.Errors.Any(e => e.Level == "structure"))
         {
             return Result<CorrectionImportResponse>.Ok(
                 new CorrectionImportResponse
@@ -259,7 +323,7 @@ public class CorrectionBatchService(
 
         var row = 0;
         var positions = new List<CorrectionPosition>();
-        foreach (var entry in data.Entries)
+        foreach (var entry in data.AllEntries)
         {
             row++;
             positions.Add(
@@ -292,6 +356,10 @@ public class CorrectionBatchService(
         db.CorrectionPositions.AddRange(positions);
         await db.SaveChangesAsync(ct);
 
+        // Ошибки пересчитываются при чтении (в БД не хранятся).
+        batch.Positions = positions;
+        var errors = await engine.ValidateBatchAsync(batch, ct);
+
         return Result<CorrectionImportResponse>.Ok(
             new CorrectionImportResponse
             {
@@ -300,8 +368,15 @@ public class CorrectionBatchService(
                 Week = data.Week,
                 DayOfWeek = data.DayOfWeek,
                 TotalEntries = positions.Count,
-                Positions = positions.Select(p => p.ToDto()).ToList(),
-                Errors = [],
+                Positions = positions
+                    .Select(p =>
+                    {
+                        var dto = p.ToDto();
+                        dto.Errors = errors.Where(e => e.Row == p.Row).ToList();
+                        return dto;
+                    })
+                    .ToList(),
+                Errors = errors,
             }
         );
     }
@@ -353,59 +428,76 @@ public class CorrectionBatchService(
         if (positions.Count == 0)
             return Result<CorrectionApplyResult>.Fail("В пакете нет позиций для применения.", 400);
 
-        var entries = positions.Select(p => p.ToPreviewEntry()).ToList();
-
-        var applyResult = await correctionService.ApplyEntriesAsync(
-            entries,
-            appliedByUserId,
-            batch.CorrectionDate,
-            ct
-        );
-        if (!applyResult.IsSuccess)
+        // Валидация до транзакции: 400 со списком «Строка N: сообщение».
+        var errors = await engine.ValidateBatchAsync(batch, ct);
+        if (errors.Count > 0)
             return Result<CorrectionApplyResult>.Fail(
-                applyResult.ErrorMessage!,
-                applyResult.StatusCode
+                string.Join("\n", errors.Select(e => e.Message)),
+                400
             );
 
-        var changes = applyResult.Data!;
-
-        // Связываем позиции с историей (порядок 1:1) и помечаем применёнными.
-        for (var i = 0; i < positions.Count && i < changes.Count; i++)
+        try
         {
-            positions[i].Status = CorrectionPositionStatus.Applied;
-            positions[i].HistoryId = changes[i].Id;
-            positions[i].UpdatedAt = DateTime.UtcNow;
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+            var outcome = await engine.ExecuteBatchAsync(batch, appliedByUserId, ct);
+
+            batch.Status = CorrectionBatchStatus.Applied;
+            batch.AppliedByUserId = appliedByUserId;
+            batch.AppliedAt = DateTime.UtcNow;
+            batch.UpdatedAt = DateTime.UtcNow;
+
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+
+            if (outcome.Changes.Count > 0)
+                await maxBot.SendChangesAsync(outcome.Changes, ct);
+
+            await TrySendCorrectionImageAsync(batch, ct);
+
+            var ids = outcome.Changes.Select(c => c.Id).ToList();
+            var saved = await db
+                .ScheduleHistory.AsNoTracking()
+                .Include(h => h.Group)
+                .Include(h => h.Teacher!)
+                    .ThenInclude(t => t.User)
+                .Where(h => ids.Contains(h.Id))
+                .OrderBy(h => h.AppliedAt)
+                .ToListAsync(ct);
+
+            return Result<CorrectionApplyResult>.Ok(
+                new CorrectionApplyResult
+                {
+                    Applied = outcome.Changes.Count,
+                    BatchId = batchId,
+                    History = saved.Select(h => h.ToDto()).ToList(),
+                }
+            );
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result<CorrectionApplyResult>.Fail(
+                "Пакет уже применён другим пользователем.",
+                409
+            );
+        }
+    }
 
-        batch.Status = CorrectionBatchStatus.Applied;
-        batch.AppliedByUserId = appliedByUserId;
-        batch.AppliedAt = DateTime.UtcNow;
-        batch.UpdatedAt = DateTime.UtcNow;
+    private async Task TrySendCorrectionImageAsync(CorrectionBatch batch, CancellationToken ct)
+    {
+        try
+        {
+            var png = imageService.Render(batch);
+            if (png.Length == 0)
+                return;
 
-        await db.SaveChangesAsync(ct);
-
-        // Оповещение MaxBot — fail-safe.
-        if (changes.Count > 0)
-            await maxBot.SendChangesAsync(changes, ct);
-
-        var ids = changes.Select(c => c.Id).ToList();
-        var saved = await db
-            .ScheduleHistory.AsNoTracking()
-            .Include(h => h.Group)
-            .Include(h => h.Teacher!)
-                .ThenInclude(t => t.User)
-            .Where(h => ids.Contains(h.Id))
-            .OrderBy(h => h.AppliedAt)
-            .ToListAsync(ct);
-
-        return Result<CorrectionApplyResult>.Ok(
-            new CorrectionApplyResult
-            {
-                Applied = changes.Count,
-                BatchId = batchId,
-                History = saved.Select(h => h.ToDto()).ToList(),
-            }
-        );
+            var caption = $"🔔 Корректировка расписания на {batch.CorrectionDate:dd.MM.yyyy}";
+            await maxBot.SendCorrectionImageAsync(png, caption, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Сбой подготовки картинки корректировки для канала Max");
+        }
     }
 
     private async Task<string?> ValidatePositionAsync(
@@ -427,6 +519,21 @@ public class CorrectionBatchService(
             return "Примечание «сам.р.» допустимо только для снятия.";
 
         return null;
+    }
+
+    private static string? ResolveNote(CreateCorrectionPositionRequest request)
+    {
+        var note = request.Note;
+        if (
+            request.ChangeType == ScheduleChangeType.Move
+            && request.RemovedNumberPair.HasValue
+            && string.IsNullOrWhiteSpace(note)
+        )
+        {
+            note = $"вм.{request.RemovedNumberPair.Value}";
+        }
+
+        return note;
     }
 
     private static ManualCorrectionRow ToManualRow(CorrectionPosition p)

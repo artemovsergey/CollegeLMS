@@ -13,8 +13,12 @@ public interface ICorrectionBatchService
         CancellationToken ct
     );
 
-    Task<Result<List<CorrectionBatchResponse>>> GetBatchesAsync(
+    Task<Result<PagedResponse<CorrectionBatchResponse>>> GetBatchesAsync(
         CorrectionBatchStatus? status,
+        DateTime? from,
+        DateTime? to,
+        int? page,
+        int? pageSize,
         CancellationToken ct
     );
 

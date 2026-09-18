@@ -269,31 +269,65 @@ public class ScheduleService(AppDbContext db, ScheduleExportService exportServic
         );
     }
 
-    public async Task<Result<SubjectsResponse>> GetSubjectsAsync(string? q, CancellationToken ct)
+    public async Task<Result<SubjectsResponse>> GetSubjectsAsync(
+        string? q,
+        Guid? teacherId,
+        CancellationToken ct
+    )
     {
         var qTrim = (q ?? string.Empty).Trim();
         var subjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        var entrySubjects = await db
-            .ScheduleEntries.AsNoTracking()
-            .Where(e => !string.IsNullOrWhiteSpace(e.Subject))
-            .Select(e => e.Subject)
-            .ToListAsync(ct);
-        subjects.UnionWith(entrySubjects);
+        if (teacherId.HasValue)
+        {
+            var entrySubjects = await db
+                .ScheduleEntries.AsNoTracking()
+                .Where(e => e.TeacherId == teacherId.Value && !string.IsNullOrWhiteSpace(e.Subject))
+                .Select(e => e.Subject)
+                .ToListAsync(ct);
+            subjects.UnionWith(entrySubjects);
 
-        var historySubjects = await db
-            .ScheduleHistory.AsNoTracking()
-            .Where(h => !string.IsNullOrWhiteSpace(h.Subject))
-            .Select(h => h.Subject)
-            .ToListAsync(ct);
-        subjects.UnionWith(historySubjects);
+            var historySubjects = await db
+                .ScheduleHistory.AsNoTracking()
+                .Where(h => h.TeacherId == teacherId.Value && !string.IsNullOrWhiteSpace(h.Subject))
+                .Select(h => h.Subject)
+                .ToListAsync(ct);
+            subjects.UnionWith(historySubjects);
 
-        var removedSubjects = await db
-            .ScheduleHistory.AsNoTracking()
-            .Where(h => h.RemovedSubject != null && h.RemovedSubject.Trim().Length > 0)
-            .Select(h => h.RemovedSubject!)
-            .ToListAsync(ct);
-        subjects.UnionWith(removedSubjects);
+            var removedSubjects = await db
+                .ScheduleHistory.AsNoTracking()
+                .Where(h =>
+                    h.RemovedTeacherId == teacherId.Value
+                    && h.RemovedSubject != null
+                    && h.RemovedSubject.Trim().Length > 0
+                )
+                .Select(h => h.RemovedSubject!)
+                .ToListAsync(ct);
+            subjects.UnionWith(removedSubjects);
+        }
+        else
+        {
+            var entrySubjects = await db
+                .ScheduleEntries.AsNoTracking()
+                .Where(e => !string.IsNullOrWhiteSpace(e.Subject))
+                .Select(e => e.Subject)
+                .ToListAsync(ct);
+            subjects.UnionWith(entrySubjects);
+
+            var historySubjects = await db
+                .ScheduleHistory.AsNoTracking()
+                .Where(h => !string.IsNullOrWhiteSpace(h.Subject))
+                .Select(h => h.Subject)
+                .ToListAsync(ct);
+            subjects.UnionWith(historySubjects);
+
+            var removedSubjects = await db
+                .ScheduleHistory.AsNoTracking()
+                .Where(h => h.RemovedSubject != null && h.RemovedSubject.Trim().Length > 0)
+                .Select(h => h.RemovedSubject!)
+                .ToListAsync(ct);
+            subjects.UnionWith(removedSubjects);
+        }
 
         var result = subjects
             .Where(s => qTrim.Length == 0 || s.Contains(qTrim, StringComparison.OrdinalIgnoreCase))

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CollegeLMS.API.Dtos;
+using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Extensions;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
@@ -157,12 +158,56 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
         [FromQuery] Guid? groupId,
         [FromQuery] Guid? teacherId,
         [FromQuery] int? week,
+        [FromQuery] DateTime? date,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] ScheduleChangeType? changeType,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
         CancellationToken ct
     )
     {
-        var result = await service.GetHistoryAsync(groupId, teacherId, week, page, pageSize, ct);
+        var result = await service.GetHistoryAsync(
+            groupId,
+            teacherId,
+            week,
+            date,
+            from,
+            to,
+            changeType,
+            page,
+            pageSize,
+            ct
+        );
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Расписание группы на дату для флоу корректировки.
+    /// </summary>
+    /// <remarks>
+    /// Возвращает эффективные пары дня: базовое расписание, применённые изменения
+    /// и неприменённые позиции пакета (если передан batchId).
+    /// </remarks>
+    /// <response code="200">Расписание дня получено</response>
+    /// <response code="404">Группа не найдена</response>
+    [HttpGet("correction/day")]
+    [SwaggerOperation(Summary = "Расписание группы на дату для корректировки")]
+    [SwaggerResponse(200, "Расписание дня получено", typeof(Result<CorrectionDayResponse>))]
+    [SwaggerResponse(404, "Группа не найдена", typeof(ErrorResponse))]
+    [ProducesResponseType(typeof(Result<CorrectionDayResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCorrectionDay(
+        [FromQuery] Guid groupId,
+        [FromQuery] DateTime date,
+        [FromQuery] Guid? batchId,
+        CancellationToken ct
+    )
+    {
+        var result = await service.GetDayAsync(groupId, date, batchId, ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
 

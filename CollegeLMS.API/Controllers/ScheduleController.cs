@@ -169,10 +169,11 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetSubjects(
         [FromQuery] string? q,
+        [FromQuery] Guid? teacherId,
         CancellationToken ct = default
     )
     {
-        var result = await service.GetSubjectsAsync(q, ct);
+        var result = await service.GetSubjectsAsync(q, teacherId, ct);
         return Ok(result);
     }
 

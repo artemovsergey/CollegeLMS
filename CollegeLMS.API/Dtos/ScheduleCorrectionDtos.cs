@@ -29,6 +29,12 @@ public class CorrectionPreviewResponse
     public int TotalEntries { get; set; }
     public List<CorrectionPreviewEntry> Entries { get; set; } = [];
     public List<ScheduleValidationError> Errors { get; set; } = [];
+
+    /// <summary>
+    /// Best-effort строки превью: включают строки с ошибками данных, чтобы их
+    /// можно было сохранить в пакет и исправить в редакторе (UC-SCH-19/20).
+    /// </summary>
+    public List<CorrectionPreviewEntry> AllEntries { get; set; } = [];
 }
 
 public class CorrectionConfirmRequest
