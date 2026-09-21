@@ -493,46 +493,6 @@ public class ScheduleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetCalendarAsync_ReturnsCalendarWithDays()
-    {
-        var group = new Group
-        {
-            Id = Guid.NewGuid(),
-            Name = "ГР-11",
-            Course = 1,
-        };
-        _db.Groups.Add(group);
-        var entry = new ScheduleEntry
-        {
-            Id = Guid.NewGuid(),
-            GroupId = group.Id,
-            Subject = "Математика",
-            Room = "301",
-            DayOfWeek = DayOfWeek.Monday,
-            StartTime = new TimeSpan(9, 0, 0),
-            EndTime = new TimeSpan(10, 30, 0),
-            LessonType = LessonType.Lecture,
-            Group = group,
-        };
-        _db.ScheduleEntries.Add(entry);
-        await _db.SaveChangesAsync();
-
-        var result = await _sut.GetCalendarAsync(group.Id, null, null, default);
-
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Days.Should().Contain(d => d.Entries.Count > 0);
-    }
-
-    [Fact]
-    public async Task GetCalendarAsync_ReturnsEmptyDays_WhenNoFilter()
-    {
-        var result = await _sut.GetCalendarAsync(null, null, null, default);
-
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Days.Should().BeEmpty();
-    }
-
-    [Fact]
     public async Task GetSubjectsAsync_ReturnsDistinctSubjects_FromEntriesAndHistory()
     {
         _db.ScheduleEntries.Add(

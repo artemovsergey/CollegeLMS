@@ -39,13 +39,6 @@ public interface IScheduleService
         string? subject,
         CancellationToken ct = default
     );
-    Task<Result<CalendarResponse>> GetCalendarAsync(
-        Guid? groupId,
-        Guid? teacherId,
-        string? room,
-        CancellationToken ct = default
-    );
-
     Task<Result<ScheduleResponse>> GetByIdAsync(Guid id, CancellationToken ct = default);
 
     Task<Result<ScheduleResponse>> CreateAsync(

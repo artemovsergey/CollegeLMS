@@ -14,16 +14,51 @@ namespace CollegeLMS.API.Controllers;
 [ApiController]
 [Route("api/schedule")]
 [Produces("application/json")]
-public class ScheduleController(IScheduleService service, ScheduleImportService importService)
-    : ControllerBase
+public class ScheduleController(
+    IScheduleService service,
+    ScheduleImportService importService,
+    IScheduleViewService viewService
+) : ControllerBase
 {
+    /// <summary>
+    /// Получить расписание: серверный вид по параметру <c>view</c> или постраничный список.
+    /// </summary>
+    /// <remarks>
+    /// Значения <c>view</c>:
+    /// - `day` — день по `date` (по умолчанию сегодня) со слоями: вставки, практики, пары с бейджами;
+    /// - `week` — неделя Пн–Сб по `week` или `date` (по умолчанию текущая);
+    /// - `semester` — матрица семестра; требуется ровно один из `groupId`/`teacherId`, иначе 400;
+    /// - `calendar` — календарь месяца по `month` (YYYY-MM, по умолчанию текущий);
+    ///   любое другое значение — прежний постраничный список с фильтрами и пагинацией.
+    ///
+    /// Невалидные `date`/`month` → 400 с русским сообщением.
+    /// Пример успешного ответа для `view=day` — <see cref="ScheduleDayViewExample"/>.
+    /// </remarks>
+    /// <response code="200">Вид расписания или страница списка получены</response>
+    /// <response code="400">Неверные параметры вида (дата, месяц или фильтр семестра)</response>
+    /// <response code="500">Ошибка сервера</response>
     [HttpGet]
     [AllowAnonymous]
-    [SwaggerOperation(Summary = "Получить расписание с фильтрацией и пагинацией")]
-    [SwaggerResponse(200, "Расписание получено", typeof(Result<PagedResponse<ScheduleResponse>>))]
-    [SwaggerResponse(400, "Ошибка валидации")]
-    [SwaggerResponse(500, "Ошибка сервера")]
-    [ProducesResponseType(typeof(Result<PagedResponse<ScheduleResponse>>), StatusCodes.Status200OK)]
+    [SwaggerOperation(
+        Summary = "Получить расписание (виды: day, week, semester, calendar) или постраничный список",
+        Description = "view=day|week|semester|calendar — серверные виды; иначе — постраничный список."
+    )]
+    [SwaggerResponse(200, "День (view=day)", typeof(Result<ScheduleDayViewResponse>))]
+    [SwaggerResponse(200, "Неделя (view=week)", typeof(Result<ScheduleWeekViewResponse>))]
+    [SwaggerResponse(200, "Семестр (view=semester)", typeof(Result<ScheduleSemesterViewResponse>))]
+    [SwaggerResponse(
+        200,
+        "Календарь месяца (view=calendar)",
+        typeof(Result<ScheduleMonthViewResponse>)
+    )]
+    [SwaggerResponse(
+        200,
+        "Постраничный список (без view или неизвестный view)",
+        typeof(Result<PagedResponse<ScheduleResponse>>)
+    )]
+    [SwaggerResponse(400, "Неверные параметры вида", typeof(ErrorResponse))]
+    [SwaggerResponse(500, "Ошибка сервера", typeof(ErrorResponse))]
+    [ProducesResponseType(typeof(Result<ScheduleDayViewResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetAll(
@@ -34,16 +69,29 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
         [FromQuery] string? period,
         [FromQuery] int? week,
         [FromQuery] DateTime? date,
+        [FromQuery] string? month,
         [FromQuery] string? view,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
         CancellationToken ct
     )
     {
-        if (view == "calendar")
+        switch (view)
         {
-            var calendarResult = await service.GetCalendarAsync(groupId, teacherId, room, ct);
-            return Ok(calendarResult);
+            case "day":
+                return ToResponse(
+                    await viewService.GetDayAsync(groupId, teacherId, room, date, ct)
+                );
+            case "week":
+                return ToResponse(
+                    await viewService.GetWeekAsync(groupId, teacherId, room, week, date, ct)
+                );
+            case "semester":
+                return ToResponse(await viewService.GetSemesterAsync(groupId, teacherId, ct));
+            case "calendar":
+                return ToResponse(
+                    await viewService.GetMonthAsync(groupId, teacherId, room, month, ct)
+                );
         }
 
         var result = await service.GetAllAsync(
@@ -61,6 +109,9 @@ public class ScheduleController(IScheduleService service, ScheduleImportService 
         );
         return Ok(result);
     }
+
+    private IActionResult ToResponse<T>(Result<T> result) =>
+        result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
 
     [HttpGet("meta")]
     [AllowAnonymous]

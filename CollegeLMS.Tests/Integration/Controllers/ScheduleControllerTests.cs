@@ -9,6 +9,7 @@ using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
 using CollegeLMS.Tests.Fixtures;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CollegeLMS.Tests.Integration.Controllers;
@@ -341,12 +342,15 @@ public class ScheduleControllerTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task GetCalendar_ReturnsCalendar_WhenGroupFilter()
+    public async Task GetAll_DayView_ReturnsStructuredDay()
     {
         var groupId = Guid.NewGuid();
         var entry = ScheduleEntryFixture.CreateFaker().Generate();
         entry.GroupId = groupId;
         entry.Group!.Id = groupId;
+        entry.DayOfWeek = DayOfWeek.Tuesday;
+        entry.NumberPair = 1;
+        entry.Weeks = new List<int> { 1 };
 
         using (var scope = Factory.Services.CreateScope())
         {
@@ -355,11 +359,68 @@ public class ScheduleControllerTests : BaseIntegrationTest
             await db.SaveChangesAsync();
         }
 
-        var response = await Client.GetAsync($"/api/schedule?view=calendar&groupId={groupId}");
+        var response = await Client.GetAsync(
+            $"/api/schedule?view=day&date=2026-09-01&groupId={groupId}"
+        );
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await DeserializeWithEnumsAsync<Result<CalendarResponse>>(response);
-        Assert.NotNull(body);
-        Assert.True(body!.IsSuccess);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = await response.Content.ReadAsStringAsync();
+        json.Should().Contain("\"isSunday\":false").And.Contain("\"entries\"");
+    }
+
+    [Fact]
+    public async Task GetAll_WeekView_ReturnsSixDays()
+    {
+        var response = await Client.GetAsync("/api/schedule?view=week&week=1");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await DeserializeWithEnumsAsync<Result<ScheduleWeekViewResponse>>(response);
+        body.Should().NotBeNull();
+        body!.IsSuccess.Should().BeTrue();
+        body.Data!.Week.Should().Be(1);
+        body.Data.Days.Should().HaveCount(6);
+    }
+
+    [Fact]
+    public async Task GetAll_SemesterView_WithoutFilter_Returns400()
+    {
+        var response = await Client.GetAsync("/api/schedule?view=semester");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetAll_CalendarView_ReturnsMonthGrid()
+    {
+        var response = await Client.GetAsync("/api/schedule?view=calendar&month=2026-09");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await DeserializeWithEnumsAsync<Result<ScheduleMonthViewResponse>>(response);
+        body.Should().NotBeNull();
+        body!.IsSuccess.Should().BeTrue();
+        body.Data!.Month.Should().Be(9);
+        body.Data.Days.Should().HaveCount(30);
+    }
+
+    [Fact]
+    public async Task GetAll_UnknownView_FallsBackToPagedList()
+    {
+        var entries = ScheduleEntryFixture.CreateFaker().Generate(2);
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.ScheduleEntries.AddRange(entries);
+            await db.SaveChangesAsync();
+        }
+
+        var response = await Client.GetAsync("/api/schedule?view=unknown");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await DeserializeWithEnumsAsync<Result<PagedResponse<ScheduleResponse>>>(
+            response
+        );
+        body.Should().NotBeNull();
+        body!.IsSuccess.Should().BeTrue();
+        body.Data!.Items.Should().HaveCount(2);
     }
 }
