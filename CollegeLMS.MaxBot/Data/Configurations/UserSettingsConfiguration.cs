@@ -30,6 +30,11 @@ public class UserSettingsConfiguration : IEntityTypeConfiguration<UserSettings>
 
         builder.Property(x => x.NotifyTime).HasColumnName("notify_time").HasColumnType("interval");
 
+        builder
+            .Property(x => x.LastNotifiedOn)
+            .HasColumnName("last_notified_on")
+            .HasColumnType("date");
+
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
 
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");

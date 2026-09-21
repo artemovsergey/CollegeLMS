@@ -11,7 +11,6 @@ public class ScheduleNotifier : BackgroundService
     private readonly TimeZoneInfo _tz;
     private readonly ILogger<ScheduleNotifier> _logger;
 
-    private readonly Dictionary<long, DateOnly> _lastSentPerUser = new();
     private readonly TimeSpan _window = TimeSpan.FromMinutes(15);
 
     public ScheduleNotifier(IServiceProvider sp, TimeZoneInfo tz, ILogger<ScheduleNotifier> logger)
@@ -98,9 +97,6 @@ public class ScheduleNotifier : BackgroundService
         var api = scope.ServiceProvider.GetRequiredService<CollegeLmsApiClient>();
         var max = scope.ServiceProvider.GetRequiredService<MaxApiClient>();
 
-        var dayOfWeek = (int)now.DayOfWeek;
-        var week = StudyWeek.Current(_tz);
-
         var nonWorking = await api.GetNonWorkingDaysAsync(today, today, ct);
         if (nonWorking.Count > 0)
         {
@@ -108,22 +104,27 @@ public class ScheduleNotifier : BackgroundService
                 "Сегодня нерабочий день ({Title}) — рассылка пропущена",
                 nonWorking[0].Title
             );
-            foreach (var user in subscribers)
-                _lastSentPerUser[user.MaxUserId] = today;
             return;
         }
 
+        var date = today.ToDateTime(TimeOnly.MinValue);
+
         foreach (var user in subscribers)
         {
-            if (_lastSentPerUser.TryGetValue(user.MaxUserId, out var last) && last == today)
+            if (user.GroupId is null && user.TeacherId is null)
+            {
+                _logger.LogDebug(
+                    "У пользователя {UserId} не выбраны группа и преподаватель — рассылка пропущена",
+                    user.MaxUserId
+                );
+                continue;
+            }
+
+            if (user.LastNotifiedOn == today)
                 continue;
 
             if (!NotificationWindow.IsDue(now.TimeOfDay, user.NotifyTime, _window))
-            {
-                if (now.TimeOfDay > user.NotifyTime.Add(_window))
-                    _lastSentPerUser[user.MaxUserId] = today;
                 continue;
-            }
 
             if (!NotificationTimeRules.IsValid(user.NotifyTime))
             {
@@ -136,21 +137,40 @@ public class ScheduleNotifier : BackgroundService
 
             try
             {
-                var entries = await api.GetScheduleAsync(
-                    groupId: user.GroupId,
-                    teacherId: user.TeacherId,
-                    dayOfWeek: dayOfWeek,
-                    week: week,
-                    ct: ct
-                );
+                var day = await api.GetDayViewAsync(date, user.GroupId, user.TeacherId, ct);
+                if (day is null)
+                {
+                    _logger.LogWarning(
+                        "Не удалось загрузить расписание дня для пользователя {UserId} — повтор в следующем цикле",
+                        user.MaxUserId
+                    );
+                    continue;
+                }
+
+                if (day.IsNonWorking)
+                {
+                    _logger.LogInformation(
+                        "У пользователя {UserId} сегодня нерабочий день — рассылка пропущена",
+                        user.MaxUserId
+                    );
+                    continue;
+                }
 
                 var entityName = user.GroupId.HasValue ? "Группа" : "Преподаватель";
-                var text = MessageFormatter.FormatDaySchedule(entries, dayOfWeek, entityName);
+                var text = MessageFormatter.FormatDaySchedule(
+                    day,
+                    entityName,
+                    showGroup: user.Role == "teacher"
+                );
 
                 await max.SendMessageAsync(user.MaxChatId, text, ct: ct);
                 await Task.Delay(500, ct);
 
-                _lastSentPerUser[user.MaxUserId] = today;
+                user.LastNotifiedOn = today;
+                db.UserSettings.Attach(user);
+                db.Entry(user).Property(x => x.LastNotifiedOn).IsModified = true;
+                await db.SaveChangesAsync(ct);
+
                 _logger.LogInformation(
                     "Digest sent to user {UserId} at {Time}",
                     user.MaxUserId,
