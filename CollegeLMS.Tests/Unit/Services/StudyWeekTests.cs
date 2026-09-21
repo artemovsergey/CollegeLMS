@@ -19,6 +19,7 @@ public class StudyWeekTests
     [InlineData("2026-09-01", 1)]
     [InlineData("2026-09-07", 2)]
     [InlineData("2026-12-14", 16)]
+    [InlineData("2026-12-21", 17)]
     public void WeekOf_ReturnsExpected(string date, int expected)
     {
         StudyWeek.WeekOf(DateTime.Parse(date)).Should().Be(expected);
@@ -27,7 +28,8 @@ public class StudyWeekTests
     [Theory]
     [InlineData("2026-09-01", true)]
     [InlineData("2026-08-31", false)]
-    [InlineData("2026-12-21", false)]
+    [InlineData("2026-12-21", true)]
+    [InlineData("2026-12-28", false)]
     public void IsInSemester_ReturnsExpected(string date, bool expected)
     {
         StudyWeek.IsInSemester(DateTime.Parse(date)).Should().Be(expected);

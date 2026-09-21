@@ -564,9 +564,9 @@ public class ScheduleViewServiceTests : IDisposable
         var practiceDay = result.Data!.Days.Single(d => d.Date == new DateTime(2026, 12, 15));
         practiceDay.PracticeKinds.Should().ContainSingle().Which.Should().Be(PracticeKind.Up);
         practiceDay.PairCount.Should().Be(0);
-        // семестр: 31.08.2026 + 16 недель → конец 20.12.2026
+        // семестр: 31.08.2026 + 17 недель → конец 27.12.2026
         result
-            .Data.Days.Single(d => d.Date == new DateTime(2026, 12, 21))
+            .Data.Days.Single(d => d.Date == new DateTime(2026, 12, 28))
             .IsOutOfSemester.Should()
             .BeTrue();
     }

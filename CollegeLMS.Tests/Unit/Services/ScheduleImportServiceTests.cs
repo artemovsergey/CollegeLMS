@@ -315,7 +315,7 @@ public class ScheduleImportServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result
             .Errors.Should()
-            .Contain(e => e.Message.Contains("недели должны быть в диапазоне 1–16"));
+            .Contain(e => e.Message.Contains("недели должны быть в диапазоне 1–17"));
         _db.ScheduleEntries.Should().BeEmpty();
     }
 
@@ -489,7 +489,7 @@ public class ScheduleImportServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result
             .Errors.Should()
-            .Contain(e => e.Message.Contains("недели должны быть в диапазоне 1–16"));
+            .Contain(e => e.Message.Contains("недели должны быть в диапазоне 1–17"));
         _db.ScheduleEntries.Should().BeEmpty();
     }
 
@@ -834,7 +834,7 @@ public class ScheduleImportServiceTests : IDisposable
         var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
 
         entries.Should().BeEmpty();
-        errors.Should().Contain(e => e.Message.Contains("неделя 17 вне семестра (1–16)"));
+        errors.Should().Contain(e => e.Message.Contains("неделя 18 вне семестра (1–17)"));
     }
 
     [Fact]
@@ -856,7 +856,25 @@ public class ScheduleImportServiceTests : IDisposable
         error.Sheet.Should().Be("Расписание");
         error.Message.Should().StartWith("Лист Расписание, строка 6, столбец 3:");
         error.Message.Should().Contain("столбец");
-        error.Message.Should().Contain("вне семестра (1–16)");
+        error.Message.Should().Contain("вне семестра (1–17)");
+    }
+
+    [Fact]
+    public void ParseScheduleMatrix_Week17_Parsed()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "ПО 262";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        ws.Cell(6, 3).Value = "232 История (1-17) Петренко В.Б.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries.Should().ContainSingle();
+        entries[0].Weeks.Should().BeEquivalentTo(Enumerable.Range(1, 17));
     }
 
     [Fact]
@@ -942,7 +960,7 @@ public class ScheduleImportServiceTests : IDisposable
         entries.Should().ContainSingle();
         entries[0].GroupName.Should().Be("ПО 262");
         errors.Should().ContainSingle();
-        errors[0].Message.Should().Contain("вне семестра (1–16)");
+        errors[0].Message.Should().Contain("вне семестра (1–17)");
     }
 
     [Fact]

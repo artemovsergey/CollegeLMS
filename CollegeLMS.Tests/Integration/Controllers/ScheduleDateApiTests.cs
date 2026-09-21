@@ -55,7 +55,7 @@ public class ScheduleDateApiTests : BaseIntegrationTest
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
         Assert.Equal(new DateTime(2026, 9, 1), body.Data!.SemesterStart);
-        Assert.Equal(16, body.Data.TotalWeeks);
+        Assert.Equal(17, body.Data.TotalWeeks);
         Assert.True(body.Data.CurrentWeek >= 1);
     }
 

@@ -29,5 +29,5 @@ public static class StudyWeek
     }
 
     /// <summary>Количество учебных недель в семестре.</summary>
-    public static int TotalWeeks { get; } = 16;
+    public static int TotalWeeks { get; } = 17;
 }
