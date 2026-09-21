@@ -15,6 +15,11 @@ namespace CollegeLMS.API.Controllers;
 public class PracticeController(IPracticeService service) : ControllerBase
 {
     /// <summary>Список практик с фильтрами и пагинацией.</summary>
+    /// <remarks>
+    /// Возвращает постраничный список практик. Фильтр по преподавателю выполняется по связи
+    /// «практика — преподаватели» (многие-ко-многим). Ответ содержит название практики, список
+    /// преподавателей и дни УП с числом пар.
+    /// </remarks>
     [HttpGet]
     [AllowAnonymous]
     [SwaggerOperation(Summary = "Список практик")]
@@ -45,6 +50,12 @@ public class PracticeController(IPracticeService service) : ControllerBase
     }
 
     /// <summary>Создать практику.</summary>
+    /// <remarks>
+    /// Валидации (400): название не пустое и не длиннее 100 символов; вид определён (УП/ПП);
+    /// период задан, дата начала не позже окончания, период в пределах семестра; группа найдена;
+    /// минимум один существующий преподаватель; для УП список дней непуст, даты внутри периода,
+    /// число пар 1–8, даты без дублей. Пересечение периода практик одной группы → 409.
+    /// </remarks>
     [HttpPost]
     [Authorize(Roles = "Dispatcher,Admin")]
     [SwaggerOperation(Summary = "Создать практику")]
@@ -61,6 +72,10 @@ public class PracticeController(IPracticeService service) : ControllerBase
     }
 
     /// <summary>Изменить практику.</summary>
+    /// <remarks>
+    /// Правила такие же, как при создании. Преподаватели и дни УП заменяются целиком;
+    /// для ПП список дней игнорируется. 404 — практика не найдена; 409 — пересечение периода.
+    /// </remarks>
     [HttpPut("{id:guid}")]
     [Authorize(Roles = "Dispatcher,Admin")]
     [SwaggerOperation(Summary = "Изменить практику")]

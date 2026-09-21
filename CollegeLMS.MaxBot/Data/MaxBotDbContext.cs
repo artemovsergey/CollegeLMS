@@ -14,6 +14,8 @@ public class MaxBotDbContext : DbContext
 
     public DbSet<BotFavorite> BotFavorites => Set<BotFavorite>();
 
+    public DbSet<PracticeNotification> PracticeNotifications => Set<PracticeNotification>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MaxBotDbContext).Assembly);

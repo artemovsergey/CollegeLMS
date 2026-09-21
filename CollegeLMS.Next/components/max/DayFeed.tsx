@@ -5,7 +5,12 @@ import { BellRing, CalendarCheck, CalendarOff, Clock3, Coffee } from "lucide-rea
 import { CellList, CellSimple, Typography } from "@maxhub/max-ui"
 import type { ScheduleBigBreak, ScheduleResponse } from "@/types/schedule"
 import type { Practice } from "@/api/practices"
-import { PRACTICE_KIND_LABELS, PRACTICE_KIND_SHORT } from "@/api/practices"
+import {
+  PRACTICE_KIND_LABELS,
+  PRACTICE_KIND_SHORT,
+  practiceName,
+  practiceTeacherNames,
+} from "@/api/practices"
 import type { ScheduleInsert } from "@/api/inserts"
 import {
   formatTime,
@@ -120,33 +125,37 @@ export default function DayFeed({
                 </div>
               ) : null}
 
-              {practices.map((practice) => (
-                <div
-                  key={practice.id}
-                  className={`max-layers__practice max-layers__practice--${practice.kind.toLowerCase()}`}
-                >
-                  <span
-                    className={`max-app__badge max-layers__practice-badge--${practice.kind.toLowerCase()}`}
-                    title={PRACTICE_KIND_LABELS[practice.kind]}
+              {practices.map((practice) => {
+                const name = practiceName(practice)
+                const teachers = practiceTeacherNames(practice)
+                return (
+                  <div
+                    key={practice.id}
+                    className={`max-layers__practice max-layers__practice--${practice.kind.toLowerCase()}`}
                   >
-                    {PRACTICE_KIND_SHORT[practice.kind]}
-                  </span>
-                  <span className="max-layers__practice-body">
-                    <Typography.Body>
-                      <strong>{practice.groupName}</strong>
-                      {` · ${practice.teacherName}`}
-                      {practice.organization
-                        ? ` · ${practice.organization}`
-                        : ""}
-                    </Typography.Body>
-                    {practice.note ? (
-                      <Typography.Body className="max-layers__practice-note">
-                        Примечание: {practice.note}
+                    <span
+                      className={`max-app__badge max-layers__practice-badge--${practice.kind.toLowerCase()}`}
+                      title={PRACTICE_KIND_LABELS[practice.kind]}
+                    >
+                      {PRACTICE_KIND_SHORT[practice.kind]}
+                    </span>
+                    <span className="max-layers__practice-body">
+                      <Typography.Body>
+                        <strong>{name}</strong>
                       </Typography.Body>
-                    ) : null}
-                  </span>
-                </div>
-              ))}
+                      <Typography.Body className="max-layers__practice-note">
+                        {practice.groupName}
+                        {teachers ? ` · ${teachers}` : ""}
+                      </Typography.Body>
+                      {practice.note ? (
+                        <Typography.Body className="max-layers__practice-note">
+                          Примечание: {practice.note}
+                        </Typography.Body>
+                      ) : null}
+                    </span>
+                  </div>
+                )
+              })}
 
               {inserts.length > 0 ? (
                 <div className="max-layers__inserts">
@@ -206,6 +215,12 @@ export default function DayFeed({
                       {counterpart ? ` · ${counterpart}` : ""}
                       {entry.room ? ` · ${entry.room}` : ""}
                     </span>
+                    {entry.practiceName &&
+                    entry.practiceName.trim() !== entry.subject.trim() ? (
+                      <span className="max-schedule__practice-name">
+                        {entry.practiceName}
+                      </span>
+                    ) : null}
                     {entry.changeTags.length > 0 ? (
                       <span className="max-schedule__tag-row">
                         {entry.changeTags.map((tag, i) => (

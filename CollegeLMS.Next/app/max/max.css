@@ -385,6 +385,16 @@
   font-weight: 600;
 }
 
+.max-schedule__practice-name {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-positive);
+  background: color-mix(in srgb, var(--text-positive) 16%, var(--color-card));
+}
+
 .max-schedule__context {
   flex: 1;
   min-width: 0;

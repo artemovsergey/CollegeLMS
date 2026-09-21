@@ -61,12 +61,45 @@ public static class MessageFormatter
     /// <summary>Строка практики УП/ПП для расписания дня (заменяет пары).</summary>
     public static string FormatPracticeLine(PracticeDto practice)
     {
-        var kind = practice.Kind.Equals("Pp", StringComparison.OrdinalIgnoreCase) ? "ПП" : "УП";
-        var line = $"{kind}: {practice.GroupName} · {practice.TeacherName}";
-        if (!string.IsNullOrWhiteSpace(practice.Organization))
-            line += $" · {practice.Organization}";
+        var kind = PracticeKindLabel(practice);
+        var line = $"{kind}: {practice.GroupName} · {PracticeTeachers(practice)}";
         line += $" (с {practice.DateFrom:dd.MM.yyyy} по {practice.DateTo:dd.MM.yyyy})";
         return line;
+    }
+
+    /// <summary>Уведомление о начале практики (день начала периода).</summary>
+    public static string FormatPracticeStarted(PracticeDto practice) =>
+        FormatPracticeEvent(practice, "🎓", "Началась практика");
+
+    /// <summary>Уведомление об окончании практики (день окончания периода).</summary>
+    public static string FormatPracticeFinished(PracticeDto practice) =>
+        FormatPracticeEvent(practice, "🏁", "Закончилась практика");
+
+    private static string FormatPracticeEvent(PracticeDto practice, string icon, string title)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"{icon} *{title} {PracticeDisplayName(practice)}*");
+        sb.AppendLine(
+            $"{PracticeKindLabel(practice)}: {practice.GroupName} · {PracticeTeachers(practice)} (с {practice.DateFrom:dd.MM.yyyy} по {practice.DateTo:dd.MM.yyyy})"
+        );
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>Метка вида практики: УП (учебная) или ПП (производственная).</summary>
+    private static string PracticeKindLabel(PracticeDto practice) =>
+        practice.Kind.Equals("Pp", StringComparison.OrdinalIgnoreCase) ? "ПП" : "УП";
+
+    /// <summary>Название практики; при отсутствии — метка вида (legacy-контракт).</summary>
+    private static string PracticeDisplayName(PracticeDto practice) =>
+        string.IsNullOrWhiteSpace(practice.Name)
+            ? PracticeKindLabel(practice)
+            : practice.Name.Trim();
+
+    /// <summary>ФИО преподавателей практики через запятую (новый и legacy-контракты).</summary>
+    private static string PracticeTeachers(PracticeDto practice)
+    {
+        var names = practice.TeacherNameList();
+        return names.Count > 0 ? string.Join(", ", names) : "—";
     }
 
     public static int DayIndex(int apiDay) => apiDay == 0 ? 7 : apiDay;

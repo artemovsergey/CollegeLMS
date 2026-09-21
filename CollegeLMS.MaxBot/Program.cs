@@ -61,6 +61,9 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<MaxBotService>());
 builder.Services.AddSingleton<ScheduleNotifier>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ScheduleNotifier>());
 
+builder.Services.AddSingleton<PracticeNotifier>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<PracticeNotifier>());
+
 builder.Services.AddScoped<ChangeNotifier>();
 builder.Services.AddScoped<CorrectionImageSender>();
 
@@ -126,6 +129,17 @@ using (var scope = app.Services.CreateScope())
 
         CREATE UNIQUE INDEX IF NOT EXISTS ix_bot_favorites_user_type_target
             ON bot_favorites (max_user_id, target_type, target_id);
+
+        CREATE TABLE IF NOT EXISTS practice_notifications (
+            id UUID PRIMARY KEY,
+            practice_id UUID NOT NULL,
+            event VARCHAR(20) NOT NULL,
+            sent_on DATE NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL
+        );
+
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_practice_notifications_practice_event
+            ON practice_notifications (practice_id, event);
         """
     );
 }

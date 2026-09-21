@@ -214,7 +214,14 @@ export default function ScheduleMonthCalendar({
                       ? "— выходной"
                       : day.pairCount > 0
                         ? `— ${pluralPairs(day.pairCount)}`
-                        : ""
+                        : day.practiceKinds.length > 0
+                          ? `— практика: ${
+                              day.practiceName?.trim() ||
+                              day.practiceKinds
+                                .map((kind) => PRACTICE_KIND_SHORT[kind])
+                                .join(", ")
+                            }`
+                          : ""
               }`
 
               return (
@@ -263,18 +270,30 @@ export default function ScheduleMonthCalendar({
 
                   {day.practiceKinds.length > 0 && (
                     <span className="flex flex-wrap gap-0.5">
-                      {day.practiceKinds.map((kind) => (
-                        <span
-                          key={kind}
-                          title={PRACTICE_KIND_LABELS[kind]}
-                          className={cn(
-                            "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                            PRACTICE_BADGE[kind],
-                          )}
-                        >
-                          {PRACTICE_KIND_SHORT[kind]}
-                        </span>
-                      ))}
+                      {day.practiceKinds.map((kind) => {
+                        const name =
+                          kind === "Up" ? day.practiceName?.trim() : undefined
+                        const label =
+                          name && name.length > 0
+                            ? name
+                            : PRACTICE_KIND_SHORT[kind]
+                        return (
+                          <span
+                            key={kind}
+                            title={
+                              name && name.length > 0
+                                ? `${PRACTICE_KIND_LABELS[kind]} · ${name}`
+                                : PRACTICE_KIND_LABELS[kind]
+                            }
+                            className={cn(
+                              "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                              PRACTICE_BADGE[kind],
+                            )}
+                          >
+                            {label}
+                          </span>
+                        )
+                      })}
                     </span>
                   )}
                 </button>

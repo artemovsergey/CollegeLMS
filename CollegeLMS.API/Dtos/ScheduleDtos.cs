@@ -18,6 +18,12 @@ public class ScheduleResponse
     public List<int> Weeks { get; set; } = new();
     public string LessonType { get; set; } = string.Empty;
     public List<ChangeTag> ChangeTags { get; set; } = new();
+
+    /// <summary>Признак пары практики (УП), синтезированной в расписании дня.</summary>
+    public bool IsPractice { get; set; }
+
+    /// <summary>Название практики для пар УП (null для обычных пар).</summary>
+    public string? PracticeName { get; set; }
 }
 
 public class ChangeTag

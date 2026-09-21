@@ -2,6 +2,7 @@ using System.Globalization;
 using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
+using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Response;
@@ -153,10 +154,20 @@ public class ScheduleViewService(
             var effectiveDay = overrideDay?.SubstituteDayOfWeek is int s and >= 1 and <= 7
                 ? (DayOfWeek)s
                 : date.DayOfWeek;
+            var upDay = coversPractice
+                .Where(p => p.Kind == PracticeKind.Up)
+                .SelectMany(p => p.Days)
+                .FirstOrDefault(d => d.Date.Date == date);
             var pairCount =
-                (isSunday || nwd is not null || coversPractice.Count > 0 || isOutOfSemester)
-                    ? 0
-                    : entries.Count(e => e.DayOfWeek == effectiveDay && e.Weeks.Contains(week));
+                upDay is not null && !isSunday && nwd is null && !isOutOfSemester
+                    ? upDay.PairCount
+                    : (
+                        isSunday || nwd is not null || coversPractice.Count > 0 || isOutOfSemester
+                            ? 0
+                            : entries.Count(e =>
+                                e.DayOfWeek == effectiveDay && e.Weeks.Contains(week)
+                            )
+                    );
             days.Add(
                 new ScheduleMonthDayResponse
                 {
@@ -169,6 +180,9 @@ public class ScheduleViewService(
                     SubstituteDayOfWeek = overrideDay?.SubstituteDayOfWeek,
                     WorkingDayTitle = overrideDay?.Title,
                     PracticeKinds = coversPractice.Select(p => p.Kind).Distinct().ToList(),
+                    PracticeName = coversPractice
+                        .FirstOrDefault(p => p.Kind == PracticeKind.Up)
+                        ?.Name,
                     IsOutOfSemester = isOutOfSemester,
                     PairCount = pairCount,
                 }
@@ -399,7 +413,9 @@ public class ScheduleViewService(
                         ? []
                         : data.InsertsByDay.GetValueOrDefault(effectiveDay) ?? [],
                 Entries =
-                    practicesToday.Count > 0 ? [] : BuildEntries(data, target, week, effectiveDay),
+                    practicesToday.Count > 0
+                        ? PracticeEntries(data, target, week, practicesToday)
+                        : BuildEntries(data, target, week, effectiveDay),
             };
         }
 
@@ -437,6 +453,7 @@ public class ScheduleViewService(
                 Week = week,
                 DayOfWeek = (int)target.DayOfWeek,
                 Practices = practiceList,
+                Entries = PracticeEntries(data, target, week, practiceList),
             };
 
         var dayBell = data.BellByDate.GetValueOrDefault(target.Date);
@@ -477,6 +494,60 @@ public class ScheduleViewService(
                 return dto;
             })
             .ToList();
+    }
+
+    /// <summary>Пары УП: синтезируются по PracticeDay (номера 1..PairCount, время из звонков дня).</summary>
+    private static List<ScheduleResponse> PracticeEntries(
+        ScheduleRangeData data,
+        DateTime target,
+        int week,
+        List<PracticeResponse> practicesToday
+    )
+    {
+        var times = data.BellByDate.GetValueOrDefault(target.Date)?.Times ?? new();
+        var entries = new List<ScheduleResponse>();
+
+        foreach (var practice in practicesToday.Where(p => p.Kind == PracticeKind.Up))
+        {
+            var day = practice.Days.FirstOrDefault(d => d.Date.Date == target.Date);
+            if (day is null)
+                continue;
+
+            var teacherName = string.Join(
+                ", ",
+                practice.Teachers.Select(t => t.Name).Where(n => n.Length > 0)
+            );
+
+            for (var number = 1; number <= day.PairCount; number++)
+            {
+                var entry = new ScheduleResponse
+                {
+                    Id = Guid.NewGuid(),
+                    GroupId = practice.GroupId,
+                    GroupName = practice.GroupName,
+                    TeacherId = practice.TeacherIds.Count > 0 ? practice.TeacherIds[0] : null,
+                    TeacherName = teacherName.Length == 0 ? null : teacherName,
+                    Subject = practice.Name,
+                    Room = string.Empty,
+                    DayOfWeek = (int)target.DayOfWeek,
+                    NumberPair = number,
+                    Weeks = [week],
+                    LessonType = nameof(LessonType.Practice),
+                    IsPractice = true,
+                    PracticeName = practice.Name,
+                };
+
+                if (times.TryGetValue(number, out var time))
+                {
+                    entry.StartTime = time.Start;
+                    entry.EndTime = time.End;
+                }
+
+                entries.Add(entry);
+            }
+        }
+
+        return entries.OrderBy(e => e.NumberPair).ToList();
     }
 
     private static ScheduleDayViewResponse Empty(DateTime target, int week, bool isSunday) =>

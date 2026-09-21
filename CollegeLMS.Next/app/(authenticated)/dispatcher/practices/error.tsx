@@ -9,7 +9,5 @@ export default function PracticesError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  return (
-    <ReferenceErrorState error={error} reset={reset} title="Учебные практики" />
-  )
+  return <ReferenceErrorState error={error} reset={reset} title="Практики" />
 }

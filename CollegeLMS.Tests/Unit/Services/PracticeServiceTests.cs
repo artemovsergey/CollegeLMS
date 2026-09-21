@@ -66,35 +66,53 @@ public class PracticeServiceTests : IDisposable
         return teacher;
     }
 
+    private static List<PracticeDayRequest> UpDays(DateTime from, DateTime to)
+    {
+        var days = new List<PracticeDayRequest>();
+        for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
+        {
+            if (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                continue;
+            days.Add(new PracticeDayRequest { Date = date, PairCount = 6 });
+        }
+        return days;
+    }
+
     private static PracticeRequest Request(
         Guid groupId,
         Guid teacherId,
-        PracticeKind kind = PracticeKind.Up,
+        PracticeKind kind = PracticeKind.Pp,
         DateTime? from = null,
         DateTime? to = null,
-        string? organization = null
-    ) =>
-        new()
+        string name = "УП 01",
+        List<PracticeDayRequest>? days = null
+    )
+    {
+        var dateFrom = from ?? new DateTime(2026, 9, 7);
+        var dateTo = to ?? new DateTime(2026, 9, 11);
+        return new()
         {
             Kind = kind,
+            Name = name,
             GroupId = groupId,
-            TeacherId = teacherId,
-            DateFrom = from ?? new DateTime(2026, 9, 7),
-            DateTo = to ?? new DateTime(2026, 9, 11),
-            Organization = organization,
+            TeacherIds = [teacherId],
+            DateFrom = dateFrom,
+            DateTo = dateTo,
             Note = "примечание",
+            Days = kind == PracticeKind.Up ? days ?? UpDays(dateFrom, dateTo) : null,
         };
+    }
 
     private static MemoryStream BuildWorkbook(Action<IXLWorksheet> fill)
     {
         var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Практики");
         ws.Cell(1, 1).Value = "Вид";
-        ws.Cell(1, 2).Value = "Группа";
-        ws.Cell(1, 3).Value = "Дата с";
-        ws.Cell(1, 4).Value = "Дата по";
-        ws.Cell(1, 5).Value = "Преподаватель";
-        ws.Cell(1, 6).Value = "Организация";
+        ws.Cell(1, 2).Value = "Название";
+        ws.Cell(1, 3).Value = "Группа";
+        ws.Cell(1, 4).Value = "Дата начала";
+        ws.Cell(1, 5).Value = "Дата окончания";
+        ws.Cell(1, 6).Value = "Преподаватель";
         ws.Cell(1, 7).Value = "Примечание";
         fill(ws);
 
@@ -110,30 +128,153 @@ public class PracticeServiceTests : IDisposable
         {
             Row = 2,
             Kind = "УП",
+            Name = "УП 01",
             GroupName = groupName,
             DateFrom = "07.09.2026",
             DateTo = "11.09.2026",
             TeacherName = teacherName,
-            Organization = "ООО Ромашка",
             Note = "выезд",
         };
 
+    // ---------- CRUD ----------
+
     [Fact]
-    public async Task CreateAsync_Valid_ReturnsSuccess()
+    public async Task CreateAsync_ValidUp_ReturnsNameTeachersAndDays()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
 
         var result = await _sut.CreateAsync(
-            Request(group.Id, teacher.Id, organization: "  ООО Ромашка  "),
+            Request(group.Id, teacher.Id, PracticeKind.Up, name: "  УП 01  "),
             CancellationToken.None
         );
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.GroupName.Should().Be(group.Name);
-        result.Data.TeacherName.Should().Be(teacher.User.FullName);
-        result.Data.Organization.Should().Be("ООО Ромашка");
+        result.Data!.Name.Should().Be("УП 01");
+        result.Data.GroupName.Should().Be(group.Name);
+        result.Data.TeacherIds.Should().ContainSingle().Which.Should().Be(teacher.Id);
+        result.Data.Teachers[0].Name.Should().Be(teacher.User.FullName);
+        result.Data.Days.Should().NotBeEmpty();
+        result.Data.Days.Should().OnlyContain(d => d.PairCount == 6);
         (await _db.Practices.CountAsync()).Should().Be(1);
+        (await _db.PracticeTeachers.CountAsync()).Should().Be(1);
+        (await _db.PracticeDays.CountAsync()).Should().Be(result.Data.Days.Count);
+    }
+
+    [Fact]
+    public async Task CreateAsync_MultipleTeachers_ReturnsAll()
+    {
+        var group = await SeedGroupAsync();
+        var teacherA = await SeedTeacherAsync("Марченко И.А.");
+        var teacherB = await SeedTeacherAsync("Петрова М.С.");
+
+        var request = Request(group.Id, teacherA.Id, PracticeKind.Pp);
+        request.TeacherIds = [teacherA.Id, teacherB.Id];
+
+        var result = await _sut.CreateAsync(request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.TeacherIds.Should().HaveCount(2).And.Contain([teacherA.Id, teacherB.Id]);
+        result.Data.Teachers.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task CreateAsync_NoTeachers_Returns400()
+    {
+        var group = await SeedGroupAsync();
+        var request = Request(group.Id, Guid.NewGuid(), PracticeKind.Pp);
+        request.TeacherIds = [];
+
+        var result = await _sut.CreateAsync(request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("хотя бы одного преподавателя");
+    }
+
+    [Fact]
+    public async Task CreateAsync_EmptyName_Returns400()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+
+        var result = await _sut.CreateAsync(
+            Request(group.Id, teacher.Id, PracticeKind.Pp, name: "   "),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("название");
+    }
+
+    [Fact]
+    public async Task CreateAsync_UpWithoutDays_Returns400()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var request = Request(group.Id, teacher.Id, PracticeKind.Up);
+        request.Days = [];
+
+        var result = await _sut.CreateAsync(request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("дни с числом пар");
+    }
+
+    [Fact]
+    public async Task CreateAsync_DayOutsidePeriod_Returns400()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var request = Request(group.Id, teacher.Id, PracticeKind.Up);
+        request.Days = [new PracticeDayRequest { Date = new DateTime(2026, 9, 20), PairCount = 6 }];
+
+        var result = await _sut.CreateAsync(request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("вне периода");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(9)]
+    public async Task CreateAsync_InvalidPairCount_Returns400(int pairCount)
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var request = Request(group.Id, teacher.Id, PracticeKind.Up);
+        request.Days =
+        [
+            new PracticeDayRequest { Date = new DateTime(2026, 9, 7), PairCount = pairCount },
+        ];
+
+        var result = await _sut.CreateAsync(request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("от 1 до 8");
+    }
+
+    [Fact]
+    public async Task CreateAsync_DuplicateDays_Returns400()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var request = Request(group.Id, teacher.Id, PracticeKind.Up);
+        request.Days =
+        [
+            new PracticeDayRequest { Date = new DateTime(2026, 9, 7), PairCount = 6 },
+            new PracticeDayRequest { Date = new DateTime(2026, 9, 7), PairCount = 4 },
+        ];
+
+        var result = await _sut.CreateAsync(request, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain("не должны повторяться");
     }
 
     [Fact]
@@ -260,20 +401,25 @@ public class PracticeServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateAsync_SamePeriod_DoesNotConflictWithItself()
+    public async Task UpdateAsync_SamePeriod_DoesNotConflictWithItselfAndReplacesDays()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
-        var created = await _sut.CreateAsync(Request(group.Id, teacher.Id), CancellationToken.None);
-
-        var result = await _sut.UpdateAsync(
-            created.Data!.Id,
-            Request(group.Id, teacher.Id, organization: "Обновлено"),
+        var created = await _sut.CreateAsync(
+            Request(group.Id, teacher.Id, PracticeKind.Up),
             CancellationToken.None
         );
 
+        var update = Request(group.Id, teacher.Id, PracticeKind.Up, name: "УП 02");
+        update.Days = [new PracticeDayRequest { Date = new DateTime(2026, 9, 7), PairCount = 3 }];
+
+        var result = await _sut.UpdateAsync(created.Data!.Id, update, CancellationToken.None);
+
         result.IsSuccess.Should().BeTrue();
-        result.Data!.Organization.Should().Be("Обновлено");
+        result.Data!.Name.Should().Be("УП 02");
+        result.Data.Days.Should().ContainSingle();
+        result.Data.Days[0].PairCount.Should().Be(3);
+        (await _db.PracticeDays.CountAsync()).Should().Be(1);
     }
 
     [Fact]
@@ -347,6 +493,34 @@ public class PracticeServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetAllAsync_FiltersByTeacherViaJoin()
+    {
+        var groupA = await SeedGroupAsync("ПО-262");
+        var groupB = await SeedGroupAsync("ПО-263");
+        var teacherA = await SeedTeacherAsync("Марченко И.А.");
+        var teacherB = await SeedTeacherAsync("Петрова М.С.");
+        await _sut.CreateAsync(Request(groupA.Id, teacherA.Id), CancellationToken.None);
+        await _sut.CreateAsync(Request(groupB.Id, teacherB.Id), CancellationToken.None);
+
+        var result = await _sut.GetAllAsync(
+            null,
+            teacherA.Id,
+            null,
+            null,
+            null,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Items.Should().ContainSingle();
+        result.Data.Items[0].GroupName.Should().Be("ПО-262");
+    }
+
+    // ---------- Импорт XLSX ----------
+
+    [Fact]
     public async Task PreviewImportAsync_ValidFile_ParsesRows()
     {
         var group = await SeedGroupAsync();
@@ -355,11 +529,11 @@ public class PracticeServiceTests : IDisposable
         using var stream = BuildWorkbook(ws =>
         {
             ws.Cell(2, 1).Value = "УП";
-            ws.Cell(2, 2).Value = group.Name;
-            ws.Cell(2, 3).Value = "07.09.2026";
-            ws.Cell(2, 4).Value = "11.09.2026";
-            ws.Cell(2, 5).Value = teacher.User.FullName;
-            ws.Cell(2, 6).Value = "ООО Ромашка";
+            ws.Cell(2, 2).Value = "УП 01";
+            ws.Cell(2, 3).Value = group.Name;
+            ws.Cell(2, 4).Value = "07.09.2026";
+            ws.Cell(2, 5).Value = "11.09.2026";
+            ws.Cell(2, 6).Value = teacher.User.FullName;
             ws.Cell(2, 7).Value = "выезд";
         });
 
@@ -368,8 +542,55 @@ public class PracticeServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.TotalRows.Should().Be(1);
         result.Data.Errors.Should().BeEmpty();
+        result.Data.Rows[0].Name.Should().Be("УП 01");
         result.Data.Rows[0].GroupName.Should().Be(group.Name);
         result.Data.Rows[0].Row.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task PreviewImportAsync_TeacherListWithSemicolon_ParsesAndValidates()
+    {
+        var group = await SeedGroupAsync();
+        var teacherA = await SeedTeacherAsync("Марченко И.А.");
+        var teacherB = await SeedTeacherAsync("Петрова М.С.");
+
+        using var stream = BuildWorkbook(ws =>
+        {
+            ws.Cell(2, 1).Value = "ПП";
+            ws.Cell(2, 2).Value = "ПП 09";
+            ws.Cell(2, 3).Value = group.Name;
+            ws.Cell(2, 4).Value = "07.09.2026";
+            ws.Cell(2, 5).Value = "11.09.2026";
+            ws.Cell(2, 6).Value = $"{teacherA.User.FullName}; {teacherB.User.FullName}";
+        });
+
+        var result = await _sut.PreviewImportAsync(stream, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task PreviewImportAsync_UnknownTeacherInList_ReportsError()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync("Марченко И.А.");
+
+        using var stream = BuildWorkbook(ws =>
+        {
+            ws.Cell(2, 1).Value = "ПП";
+            ws.Cell(2, 2).Value = "ПП 09";
+            ws.Cell(2, 3).Value = group.Name;
+            ws.Cell(2, 4).Value = "07.09.2026";
+            ws.Cell(2, 5).Value = "11.09.2026";
+            ws.Cell(2, 6).Value = $"{teacher.User.FullName}; Нет Такого";
+        });
+
+        var result = await _sut.PreviewImportAsync(stream, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Errors.Should().ContainSingle();
+        result.Data.Errors[0].Message.Should().Contain("«Нет Такого» не найден");
     }
 
     [Fact]
@@ -381,10 +602,11 @@ public class PracticeServiceTests : IDisposable
         using var stream = BuildWorkbook(ws =>
         {
             ws.Cell(2, 1).Value = "XX";
-            ws.Cell(2, 2).Value = "НЕТ-ТАКОЙ";
-            ws.Cell(2, 3).Value = "не-дата";
+            ws.Cell(2, 2).Value = "";
+            ws.Cell(2, 3).Value = "НЕТ-ТАКОЙ";
             ws.Cell(2, 4).Value = "не-дата";
-            ws.Cell(2, 5).Value = "Нет Такого";
+            ws.Cell(2, 5).Value = "не-дата";
+            ws.Cell(2, 6).Value = "Нет Такого";
         });
 
         var result = await _sut.PreviewImportAsync(stream, CancellationToken.None);
@@ -419,7 +641,31 @@ public class PracticeServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ConfirmImportAsync_ValidRows_CreatesPractices()
+    public async Task ConfirmImportAsync_ValidRows_CreatesPracticesWithTeachers()
+    {
+        var group = await SeedGroupAsync();
+        var teacherA = await SeedTeacherAsync("Марченко И.А.");
+        var teacherB = await SeedTeacherAsync("Петрова М.С.");
+        var row = ValidRow(group.Name, $"{teacherA.User.FullName}; {teacherB.User.FullName}");
+        row.Kind = "ПП";
+
+        var result = await _sut.ConfirmImportAsync(
+            new PracticeImportConfirmRequest { Rows = [row] },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Imported.Should().Be(1);
+        result.Data.Practices[0].GroupName.Should().Be(group.Name);
+        result.Data.Practices[0].Name.Should().Be("УП 01");
+        result.Data.Practices[0].Teachers.Should().HaveCount(2);
+        result.Data.Practices[0].TeacherIds.Should().Contain([teacherA.Id, teacherB.Id]);
+        (await _db.Practices.CountAsync()).Should().Be(1);
+        (await _db.PracticeTeachers.CountAsync()).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ConfirmImportAsync_UpRows_CreateDefaultDays()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
@@ -433,10 +679,10 @@ public class PracticeServiceTests : IDisposable
         );
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.Imported.Should().Be(1);
-        result.Data.Practices[0].GroupName.Should().Be(group.Name);
-        result.Data.Practices[0].TeacherName.Should().Be(teacher.User.FullName);
-        (await _db.Practices.CountAsync()).Should().Be(1);
+        var practice = result.Data!.Practices[0];
+        practice.Days.Should().NotBeEmpty();
+        practice.Days.Should().OnlyContain(d => d.PairCount == 6);
+        (await _db.PracticeDays.CountAsync()).Should().Be(practice.Days.Count);
     }
 
     [Fact]
@@ -479,10 +725,11 @@ public class PracticeServiceTests : IDisposable
         using var stream = BuildWorkbook(ws =>
         {
             ws.Cell(2, 1).Value = "УП";
-            ws.Cell(2, 2).Value = group.Name;
-            ws.Cell(2, 3).Value = "01.02.2027";
-            ws.Cell(2, 4).Value = "05.02.2027";
-            ws.Cell(2, 5).Value = teacher.User.FullName;
+            ws.Cell(2, 2).Value = "УП 01";
+            ws.Cell(2, 3).Value = group.Name;
+            ws.Cell(2, 4).Value = "01.02.2027";
+            ws.Cell(2, 5).Value = "05.02.2027";
+            ws.Cell(2, 6).Value = teacher.User.FullName;
         });
 
         var result = await _sut.PreviewImportAsync(stream, CancellationToken.None);
@@ -501,15 +748,17 @@ public class PracticeServiceTests : IDisposable
         using var stream = BuildWorkbook(ws =>
         {
             ws.Cell(2, 1).Value = "УП";
-            ws.Cell(2, 2).Value = group.Name;
-            ws.Cell(2, 3).Value = "07.09.2026";
-            ws.Cell(2, 4).Value = "11.09.2026";
-            ws.Cell(2, 5).Value = teacher.User.FullName;
+            ws.Cell(2, 2).Value = "УП 01";
+            ws.Cell(2, 3).Value = group.Name;
+            ws.Cell(2, 4).Value = "07.09.2026";
+            ws.Cell(2, 5).Value = "11.09.2026";
+            ws.Cell(2, 6).Value = teacher.User.FullName;
             ws.Cell(3, 1).Value = "ПП";
-            ws.Cell(3, 2).Value = group.Name;
-            ws.Cell(3, 3).Value = "10.09.2026";
-            ws.Cell(3, 4).Value = "14.09.2026";
-            ws.Cell(3, 5).Value = teacher.User.FullName;
+            ws.Cell(3, 2).Value = "ПП 09";
+            ws.Cell(3, 3).Value = group.Name;
+            ws.Cell(3, 4).Value = "10.09.2026";
+            ws.Cell(3, 5).Value = "14.09.2026";
+            ws.Cell(3, 6).Value = teacher.User.FullName;
         });
 
         var result = await _sut.PreviewImportAsync(stream, CancellationToken.None);
@@ -529,9 +778,9 @@ public class PracticeServiceTests : IDisposable
             new Practice
             {
                 Id = Guid.NewGuid(),
-                Kind = PracticeKind.Up,
+                Kind = PracticeKind.Pp,
+                Name = "ПП 09",
                 GroupId = group.Id,
-                TeacherId = teacher.Id,
                 DateFrom = new DateTime(2026, 9, 7),
                 DateTo = new DateTime(2026, 9, 11),
                 CreatedAt = DateTime.UtcNow,

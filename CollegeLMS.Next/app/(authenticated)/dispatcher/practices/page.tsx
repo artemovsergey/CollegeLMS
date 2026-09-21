@@ -5,8 +5,10 @@ import { toast } from "sonner"
 import {
   AlertTriangle,
   Briefcase,
+  CalendarDays,
   FileSpreadsheet,
   Inbox,
+  Minus,
   Pencil,
   Plus,
   SearchX,
@@ -47,25 +49,46 @@ import ErrorBanner from "@/components/ErrorBanner"
 import EmptyState from "@/components/EmptyState"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import api from "@/lib/api"
-import { extractErrorMessage } from "@/lib/utils"
-import { formatDateRange, toDateInput } from "@/lib/reference"
+import { cn, extractErrorMessage } from "@/lib/utils"
+import { formatDate, formatDateRange, toDateInput } from "@/lib/reference"
+import {
+  fetchScheduleMeta,
+  normalizeDateOnly,
+  parseIsoDate,
+  toIsoDate,
+} from "@/api/schedule"
+import {
+  fetchNonWorkingDays,
+  type NonWorkingDay,
+} from "@/api/nonWorkingDays"
 import type { GroupResponse, TeacherResponse, Result } from "@/types"
 import {
   confirmPracticeImport,
   createPractice,
   deletePractice,
   fetchPractices,
+  practiceDays,
+  practiceName,
+  practiceTeacherNames,
+  practiceTeachers,
   previewPracticeImport,
   updatePractice,
   PRACTICE_KIND_LABELS,
   PRACTICE_KIND_SHORT,
   type Practice,
+  type PracticeDay,
   type PracticeImportPreview,
   type PracticeImportRow,
   type PracticeKind,
 } from "@/api/practices"
 
 const PAGE_SIZE = 20
+const DEFAULT_PAIR_COUNT = 6
+const MIN_PAIR_COUNT = 1
+const MAX_PAIR_COUNT = 8
+const MAX_RANGE_DAYS = 400
+
+const WEEKDAY_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
 
 function normalizeImportMessage(message: string, row: number): string {
   return /^Строка\s+\d+/i.test(message) ? message : `Строка ${row}: ${message}`
@@ -74,16 +97,90 @@ function normalizeImportMessage(message: string, row: number): string {
 const IMPORT_FIELD_LABELS: Record<keyof PracticeImportRow, string> = {
   row: "Строка",
   kind: "Вид",
+  name: "Название",
   groupName: "Группа",
   dateFrom: "Дата начала",
   dateTo: "Дата окончания",
   teacherName: "Преподаватель",
-  organization: "Организация",
   note: "Примечание",
+}
+
+const IMPORT_EDITABLE_FIELDS: (keyof PracticeImportRow)[] = [
+  "kind",
+  "name",
+  "groupName",
+  "dateFrom",
+  "dateTo",
+  "teacherName",
+  "note",
+]
+
+/** Черновик дня УП: включён ли день и сколько в нём пар. */
+interface DayDraft {
+  date: string
+  included: boolean
+  pairCount: number
+}
+
+function clampPairs(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_PAIR_COUNT
+  return Math.min(MAX_PAIR_COUNT, Math.max(MIN_PAIR_COUNT, Math.round(value)))
+}
+
+function addDaysIso(iso: string, days: number): string {
+  const date = parseIsoDate(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  date.setDate(date.getDate() + days)
+  return toIsoDate(date)
+}
+
+function isNonWorkingDate(iso: string, ranges: NonWorkingDay[]): boolean {
+  return ranges.some((range) => {
+    const from = toDateInput(range.dateFrom)
+    const to = toDateInput(range.dateTo)
+    return iso >= from && iso <= to
+  })
+}
+
+/** Учебные дни периода: Пн–Сб без нерабочих и внесеместровых дат. */
+function buildStudyDays(
+  from: string,
+  to: string,
+  ranges: NonWorkingDay[],
+  semester: { start: string; end: string } | null,
+): string[] {
+  const start = toDateInput(from)
+  const end = toDateInput(to)
+  if (!start || !end || start > end) return []
+  const result: string[] = []
+  let cursor = start
+  let guard = 0
+  while (cursor <= end && guard < MAX_RANGE_DAYS) {
+    guard += 1
+    const date = parseIsoDate(cursor)
+    const inSemester =
+      semester === null || (cursor >= semester.start && cursor <= semester.end)
+    if (
+      date.getDay() !== 0 &&
+      inSemester &&
+      !isNonWorkingDate(cursor, ranges)
+    ) {
+      result.push(cursor)
+    }
+    cursor = addDaysIso(cursor, 1)
+  }
+  return result
+}
+
+function formatDayLabel(iso: string): string {
+  const date = parseIsoDate(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  return `${WEEKDAY_SHORT[date.getDay()]} · ${formatDate(iso)}`
 }
 
 export default function DispatcherPracticesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const daySeedRef = useRef<PracticeDay[]>([])
 
   const [groups, setGroups] = useState<GroupResponse[]>([])
   const [teachers, setTeachers] = useState<TeacherResponse[]>([])
@@ -103,14 +200,22 @@ export default function DispatcherPracticesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formKind, setFormKind] = useState<PracticeKind>("Up")
+  const [formName, setFormName] = useState("")
   const [formGroup, setFormGroup] = useState("")
-  const [formTeacher, setFormTeacher] = useState("")
+  const [formTeacherIds, setFormTeacherIds] = useState<string[]>([])
   const [formDateFrom, setFormDateFrom] = useState("")
   const [formDateTo, setFormDateTo] = useState("")
-  const [formOrganization, setFormOrganization] = useState("")
   const [formNote, setFormNote] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const [dayDrafts, setDayDrafts] = useState<DayDraft[]>([])
+  const [nonWorking, setNonWorking] = useState<NonWorkingDay[]>([])
+  const [semester, setSemester] = useState<{
+    start: string
+    end: string
+  } | null>(null)
+  const [daysLoading, setDaysLoading] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<Practice | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -166,6 +271,77 @@ export default function DispatcherPracticesPage() {
     })()
   }, [])
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetchScheduleMeta()
+        const start = normalizeDateOnly(res.data?.semesterStart)
+        if (res.isSuccess && start && res.data) {
+          setSemester({
+            start,
+            end: addDaysIso(start, Math.max(res.data.totalWeeks, 1) * 7 - 1),
+          })
+        }
+      } catch {
+        // Метаданные семестра необязательны: без них дни строятся без фильтра.
+      }
+    })()
+  }, [])
+
+  useEffect(() => {
+    if (!dialogOpen || !formDateFrom || !formDateTo || formDateFrom > formDateTo) {
+      setNonWorking([])
+      return
+    }
+    let cancelled = false
+    setDaysLoading(true)
+    void (async () => {
+      try {
+        const result = await fetchNonWorkingDays({
+          from: formDateFrom,
+          to: formDateTo,
+          pageSize: 200,
+        })
+        if (!cancelled) setNonWorking(result.items)
+      } catch {
+        if (!cancelled) setNonWorking([])
+      } finally {
+        if (!cancelled) setDaysLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [dialogOpen, formDateFrom, formDateTo])
+
+  useEffect(() => {
+    if (!dialogOpen || formKind !== "Up") {
+      setDayDrafts([])
+      return
+    }
+    const candidates = buildStudyDays(
+      formDateFrom,
+      formDateTo,
+      nonWorking,
+      semester,
+    )
+    const seed = new Map(
+      daySeedRef.current.map((day) => [toDateInput(day.date), day.pairCount]),
+    )
+    const drafts: DayDraft[] = candidates.map((date) => ({
+      date,
+      included: true,
+      pairCount: clampPairs(seed.get(date) ?? DEFAULT_PAIR_COUNT),
+    }))
+    for (const [date, pairCount] of seed) {
+      if (!drafts.some((draft) => draft.date === date)) {
+        drafts.push({ date, included: true, pairCount: clampPairs(pairCount) })
+      }
+    }
+    drafts.sort((a, b) => a.date.localeCompare(b.date))
+    setDayDrafts(drafts)
+  }, [dialogOpen, formKind, formDateFrom, formDateTo, nonWorking, semester])
+
   const resetPageAnd = (setter: (value: string) => void) => (value: string) => {
     setter(value)
     setPage(1)
@@ -190,12 +366,13 @@ export default function DispatcherPracticesPage() {
   const openCreate = () => {
     setEditingId(null)
     setFormKind("Up")
+    setFormName("")
     setFormGroup(groups[0]?.id ?? "")
-    setFormTeacher(teachers[0]?.id ?? "")
+    setFormTeacherIds([])
     setFormDateFrom("")
     setFormDateTo("")
-    setFormOrganization("")
     setFormNote("")
+    daySeedRef.current = []
     setFormError(null)
     setDialogOpen(true)
   }
@@ -203,24 +380,67 @@ export default function DispatcherPracticesPage() {
   const openEdit = (practice: Practice) => {
     setEditingId(practice.id)
     setFormKind(practice.kind)
+    setFormName(practice.name ?? "")
     setFormGroup(practice.groupId)
-    setFormTeacher(practice.teacherId)
+    const teacherIds = practiceTeachers(practice)
+      .map((teacher) => teacher.id)
+      .filter((id) => id.length > 0)
+    setFormTeacherIds(
+      teacherIds.length > 0 ? teacherIds : (practice.teacherIds ?? []),
+    )
     setFormDateFrom(toDateInput(practice.dateFrom))
     setFormDateTo(toDateInput(practice.dateTo))
-    setFormOrganization(practice.organization ?? "")
     setFormNote(practice.note ?? "")
+    daySeedRef.current = practiceDays(practice)
     setFormError(null)
     setDialogOpen(true)
   }
 
+  const toggleTeacher = (id: string, checked: boolean) => {
+    setFormTeacherIds((prev) =>
+      checked ? [...prev, id] : prev.filter((value) => value !== id),
+    )
+  }
+
+  const updateDay = (index: number, patch: Partial<DayDraft>) => {
+    setDayDrafts((prev) =>
+      prev.map((day, i) => (i === index ? { ...day, ...patch } : day)),
+    )
+  }
+
+  const fillAllDays = () => {
+    setDayDrafts((prev) =>
+      prev.map((day) => ({
+        ...day,
+        included: true,
+        pairCount: DEFAULT_PAIR_COUNT,
+      })),
+    )
+  }
+
+  const clearAllDays = () => {
+    setDayDrafts((prev) => prev.map((day) => ({ ...day, included: false })))
+  }
+
+  const includedDays = dayDrafts.filter((day) => day.included)
+  const totalDraftPairs = includedDays.reduce(
+    (sum, day) => sum + day.pairCount,
+    0,
+  )
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const name = formName.trim()
+    if (!name) {
+      setFormError("Укажите название практики (например, «УП 01»).")
+      return
+    }
     if (!formGroup) {
       setFormError("Выберите группу.")
       return
     }
-    if (!formTeacher) {
-      setFormError("Выберите преподавателя.")
+    if (formTeacherIds.length === 0) {
+      setFormError("Выберите хотя бы одного преподавателя.")
       return
     }
     if (!formDateFrom || !formDateTo) {
@@ -231,16 +451,27 @@ export default function DispatcherPracticesPage() {
       setFormError("Дата начала не может быть позже даты окончания.")
       return
     }
+    if (formKind === "Up" && includedDays.length === 0) {
+      setFormError("Для УП выберите хотя бы один день практики с числом пар.")
+      return
+    }
 
     setSubmitting(true)
     setFormError(null)
     const body = {
       kind: formKind,
+      name,
       groupId: formGroup,
-      teacherId: formTeacher,
+      teacherIds: formTeacherIds,
       dateFrom: formDateFrom,
       dateTo: formDateTo,
-      organization: formOrganization.trim() || null,
+      days:
+        formKind === "Up"
+          ? includedDays.map((day) => ({
+              date: day.date,
+              pairCount: clampPairs(day.pairCount),
+            }))
+          : undefined,
       note: formNote.trim() || null,
     }
     try {
@@ -371,10 +602,10 @@ export default function DispatcherPracticesPage() {
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">Учебные практики</h1>
+          <h1 className="text-2xl font-semibold">Практики</h1>
           <p className="text-sm text-muted-foreground">
             Периоды УП и ПП: в это время обычные пары группы заменяются
-            карточкой практики.
+            карточкой практики. Для УП задаются учебные дни и число пар.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -528,18 +759,16 @@ export default function DispatcherPracticesPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[860px] text-sm">
+                <table className="w-full min-w-[980px] text-sm">
                   <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-fg">
                     <tr>
                       <th className="px-4 py-3 text-left font-medium">Вид</th>
+                      <th className="px-4 py-3 text-left font-medium">Название</th>
                       <th className="px-4 py-3 text-left font-medium">Группа</th>
                       <th className="px-4 py-3 text-left font-medium">
-                        Преподаватель
+                        Преподаватели
                       </th>
                       <th className="px-4 py-3 text-left font-medium">Период</th>
-                      <th className="px-4 py-3 text-left font-medium">
-                        Организация
-                      </th>
                       <th className="px-4 py-3 text-left font-medium">
                         Примечание
                       </th>
@@ -549,51 +778,77 @@ export default function DispatcherPracticesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((practice) => (
-                      <tr key={practice.id} className="border-b last:border-0">
-                        <td className="px-4 py-3">
-                          <Badge variant="outline">
-                            {PRACTICE_KIND_SHORT[practice.kind] ??
-                              practice.kind}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 font-medium">
-                          {practice.groupName}
-                        </td>
-                        <td className="px-4 py-3">{practice.teacherName}</td>
-                        <td className="px-4 py-3 font-mono text-xs tabular-nums whitespace-nowrap">
-                          {formatDateRange(practice.dateFrom, practice.dateTo)}
-                        </td>
-                        <td className="max-w-[200px] truncate px-4 py-3 text-muted-fg">
-                          {practice.organization ?? "—"}
-                        </td>
-                        <td className="max-w-[220px] truncate px-4 py-3 text-muted-fg">
-                          {practice.note ?? "—"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-11"
-                              onClick={() => openEdit(practice)}
-                              aria-label={`Редактировать практику «${practice.groupName}»`}
-                            >
-                              <Pencil className="size-4" aria-hidden="true" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              onClick={() => setDeleteTarget(practice)}
-                              aria-label={`Удалить практику «${practice.groupName}»`}
-                            >
-                              <Trash2 className="size-4" aria-hidden="true" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {items.map((practice) => {
+                      const days = practiceDays(practice)
+                      const totalPairs = days.reduce(
+                        (sum, day) => sum + day.pairCount,
+                        0,
+                      )
+                      const teacherList = practiceTeachers(practice)
+                      return (
+                        <tr key={practice.id} className="border-b last:border-0">
+                          <td className="px-4 py-3">
+                            <Badge variant="outline">
+                              {PRACTICE_KIND_SHORT[practice.kind] ??
+                                practice.kind}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 font-medium">
+                            {practiceName(practice)}
+                            {practice.kind === "Up" && days.length > 0 && (
+                              <span className="block text-xs font-normal text-muted-fg">
+                                {days.length} дн. · {totalPairs} пар
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">{practice.groupName}</td>
+                          <td className="px-4 py-3">
+                            {teacherList.length > 0 ? (
+                              <div className="flex max-w-[240px] flex-wrap gap-1">
+                                {teacherList.map((teacher, index) => (
+                                  <Badge
+                                    key={`${teacher.id}-${index}`}
+                                    variant="secondary"
+                                  >
+                                    {teacher.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-fg">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs tabular-nums whitespace-nowrap">
+                            {formatDateRange(practice.dateFrom, practice.dateTo)}
+                          </td>
+                          <td className="max-w-[220px] truncate px-4 py-3 text-muted-fg">
+                            {practice.note ?? "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-11"
+                                onClick={() => openEdit(practice)}
+                                aria-label={`Редактировать практику «${practiceName(practice)}»`}
+                              >
+                                <Pencil className="size-4" aria-hidden="true" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => setDeleteTarget(practice)}
+                                aria-label={`Удалить практику «${practiceName(practice)}»`}
+                              >
+                                <Trash2 className="size-4" aria-hidden="true" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -608,7 +863,7 @@ export default function DispatcherPracticesPage() {
 
       {/* Форма создания/правки практики */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingId ? "Изменить практику" : "Добавить практику"}
@@ -646,22 +901,63 @@ export default function DispatcherPracticesPage() {
                 </NativeSelect>
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label htmlFor="pr-teacher">Преподаватель *</Label>
-                <NativeSelect
-                  value={formTeacher}
-                  onValueChange={setFormTeacher}
-                  className="w-full"
-                >
-                  <NativeSelectItem value="">
-                    Выберите преподавателя
-                  </NativeSelectItem>
-                  {teachers.map((t) => (
-                    <NativeSelectItem key={t.id} value={t.id}>
-                      {t.fullName}
-                    </NativeSelectItem>
-                  ))}
-                </NativeSelect>
+                <Label htmlFor="pr-name">Название *</Label>
+                <Input
+                  id="pr-name"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  maxLength={100}
+                  placeholder="Например, «УП 01» или «ПП 09»"
+                  className="h-11 bg-card sm:h-9"
+                />
               </div>
+
+              <div
+                role="group"
+                aria-labelledby="pr-teachers-label"
+                className="flex flex-col gap-1.5 sm:col-span-2"
+              >
+                <span id="pr-teachers-label" className="text-sm font-medium">
+                  Преподаватели *
+                </span>
+                {teachers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Справочник преподавателей пуст.
+                  </p>
+                ) : (
+                  <div className="grid max-h-44 gap-1.5 overflow-y-auto rounded-md border bg-card p-2 sm:grid-cols-2">
+                    {teachers.map((teacher) => {
+                      const checked = formTeacherIds.includes(teacher.id)
+                      return (
+                        <label
+                          key={teacher.id}
+                          className={cn(
+                            "flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm transition-colors",
+                            checked
+                              ? "border-primary bg-primary/[0.06]"
+                              : "border-border hover:bg-muted",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) =>
+                              toggleTeacher(teacher.id, e.target.checked)
+                            }
+                            className="size-4 accent-primary"
+                          />
+                          {teacher.fullName}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Можно выбрать несколько преподавателей.
+                </p>
+              </div>
+
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="pr-date-from">Дата начала *</Label>
                 <Input
@@ -684,17 +980,157 @@ export default function DispatcherPracticesPage() {
                   className="h-11 bg-card sm:h-9"
                 />
               </div>
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label htmlFor="pr-organization">Организация</Label>
-                <Input
-                  id="pr-organization"
-                  value={formOrganization}
-                  onChange={(e) => setFormOrganization(e.target.value)}
-                  maxLength={200}
-                  placeholder="Например, ООО «Связь-Сервис»"
-                  className="h-11 bg-card sm:h-9"
-                />
-              </div>
+
+              {formKind === "Up" && (
+                <div
+                  role="group"
+                  aria-labelledby="pr-days-label"
+                  className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3 sm:col-span-2"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div
+                      id="pr-days-label"
+                      className="flex items-center gap-1.5 text-sm font-medium"
+                    >
+                      <CalendarDays className="size-4" aria-hidden="true" />
+                      Дни практики *
+                      {daysLoading && (
+                        <LoadingSpinner size="sm" className="ml-1" />
+                      )}
+                    </div>
+                    <div className="flex gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        onClick={fillAllDays}
+                        disabled={dayDrafts.length === 0}
+                      >
+                        Заполнить все
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-9"
+                        onClick={clearAllDays}
+                        disabled={dayDrafts.length === 0}
+                      >
+                        Очистить
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Учебные дни периода (Пн–Сб без нерабочих). По умолчанию 6
+                    пар, допустимо 1–8.
+                  </p>
+                  {dayDrafts.length === 0 ? (
+                    <p className="rounded-md border border-dashed bg-card px-3 py-4 text-center text-sm text-muted-foreground">
+                      {!formDateFrom || !formDateTo
+                        ? "Укажите период, чтобы раскрыть учебные дни."
+                        : "В выбранном периоде нет учебных дней."}
+                    </p>
+                  ) : (
+                    <div className="max-h-64 overflow-y-auto rounded-md border bg-card">
+                      <ul className="divide-y">
+                        {dayDrafts.map((day, index) => {
+                          const label = formatDayLabel(day.date)
+                          return (
+                            <li
+                              key={day.date}
+                              className="flex items-center gap-2 px-3 py-2"
+                            >
+                              <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={day.included}
+                                  onChange={(e) =>
+                                    updateDay(index, {
+                                      included: e.target.checked,
+                                    })
+                                  }
+                                  className="size-4 accent-primary"
+                                />
+                                <span
+                                  className={cn(
+                                    !day.included &&
+                                      "text-muted-foreground line-through",
+                                  )}
+                                >
+                                  {label}
+                                </span>
+                              </label>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="size-9"
+                                  aria-label={`Уменьшить число пар: ${label}`}
+                                  disabled={!day.included || day.pairCount <= 1}
+                                  onClick={() =>
+                                    updateDay(index, {
+                                      pairCount: Math.max(
+                                        1,
+                                        day.pairCount - 1,
+                                      ),
+                                    })
+                                  }
+                                >
+                                  <Minus className="size-4" aria-hidden="true" />
+                                </Button>
+                                <Input
+                                  type="number"
+                                  min={MIN_PAIR_COUNT}
+                                  max={MAX_PAIR_COUNT}
+                                  step={1}
+                                  value={day.pairCount}
+                                  disabled={!day.included}
+                                  onChange={(e) =>
+                                    updateDay(index, {
+                                      pairCount: clampPairs(
+                                        Number(e.target.value),
+                                      ),
+                                    })
+                                  }
+                                  aria-label={`Число пар: ${label}`}
+                                  className="h-9 w-16 text-center"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="size-9"
+                                  aria-label={`Увеличить число пар: ${label}`}
+                                  disabled={!day.included || day.pairCount >= 8}
+                                  onClick={() =>
+                                    updateDay(index, {
+                                      pairCount: Math.min(
+                                        8,
+                                        day.pairCount + 1,
+                                      ),
+                                    })
+                                  }
+                                >
+                                  <Plus className="size-4" aria-hidden="true" />
+                                </Button>
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  {includedDays.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Выбрано дней: {includedDays.length} · всего пар:{" "}
+                      {totalDraftPairs}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <Label htmlFor="pr-note">Примечание</Label>
                 <Textarea
@@ -737,9 +1173,9 @@ export default function DispatcherPracticesPage() {
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
-              Шапка в строке 1: «Вид | Группа | Дата начала | Дата окончания |
-              Преподаватель | Организация | Примечание». Даты — в формате
-              ДД.ММ.ГГГГ, вид — УП или ПП.
+              Шапка в строке 1: «Вид | Название | Группа | Дата начала | Дата
+              окончания | Преподаватель | Примечание». Даты — в формате
+              ДД.ММ.ГГГГ, вид — УП или ПП, несколько преподавателей — через «;».
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -813,6 +1249,7 @@ export default function DispatcherPracticesPage() {
                         <tr>
                           <th className="px-2 py-2 font-medium">Строка</th>
                           <th className="px-2 py-2 font-medium">Вид</th>
+                          <th className="px-2 py-2 font-medium">Название</th>
                           <th className="px-2 py-2 font-medium">Группа</th>
                           <th className="px-2 py-2 font-medium">Дата начала</th>
                           <th className="px-2 py-2 font-medium">
@@ -821,7 +1258,6 @@ export default function DispatcherPracticesPage() {
                           <th className="px-2 py-2 font-medium">
                             Преподаватель
                           </th>
-                          <th className="px-2 py-2 font-medium">Организация</th>
                           <th className="px-2 py-2 font-medium">Примечание</th>
                         </tr>
                       </thead>
@@ -838,17 +1274,7 @@ export default function DispatcherPracticesPage() {
                             <td className="px-2 py-1 font-mono tabular-nums text-muted-fg">
                               {row.row}
                             </td>
-                            {(
-                              [
-                                "kind",
-                                "groupName",
-                                "dateFrom",
-                                "dateTo",
-                                "teacherName",
-                                "organization",
-                                "note",
-                              ] as (keyof PracticeImportRow)[]
-                            ).map((field) => (
+                            {IMPORT_EDITABLE_FIELDS.map((field) => (
                               <td key={field} className="px-2 py-1">
                                 <Input
                                   value={(row[field] as string | null) ?? ""}
@@ -869,7 +1295,8 @@ export default function DispatcherPracticesPage() {
 
                 <p className="text-xs text-muted-foreground">
                   Можно исправить значения прямо в таблице, затем подтвердить
-                  импорт. Импорт выполняется одной транзакцией.
+                  импорт. Импорт выполняется одной транзакцией. Дни УП задаются
+                  вручную после импорта (по умолчанию 6 пар).
                 </p>
               </>
             )}
@@ -905,7 +1332,7 @@ export default function DispatcherPracticesPage() {
             <AlertDialogTitle>Удалить практику?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget
-                ? `${PRACTICE_KIND_LABELS[deleteTarget.kind]} · ${deleteTarget.groupName} (${formatDateRange(deleteTarget.dateFrom, deleteTarget.dateTo)}). Действие необратимо.`
+                ? `${PRACTICE_KIND_LABELS[deleteTarget.kind]} · ${practiceName(deleteTarget)} · ${deleteTarget.groupName} (${formatDateRange(deleteTarget.dateFrom, deleteTarget.dateTo)}). Действие необратимо.`
                 : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>

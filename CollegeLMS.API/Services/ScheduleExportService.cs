@@ -268,11 +268,15 @@ public class ScheduleExportService(
     private static string PracticeLine(PracticeResponse practice)
     {
         var kind = practice.Kind == PracticeKind.Up ? "УП" : "ПП";
-        var parts = new List<string> { $"{kind}: {practice.GroupName}" };
-        if (!string.IsNullOrWhiteSpace(practice.TeacherName))
-            parts.Add(practice.TeacherName);
-        if (!string.IsNullOrWhiteSpace(practice.Organization))
-            parts.Add(practice.Organization);
+        var parts = new List<string> { $"{kind}: {practice.Name}" };
+        if (!string.IsNullOrWhiteSpace(practice.GroupName))
+            parts.Add(practice.GroupName);
+        var teachers = string.Join(
+            ", ",
+            practice.Teachers.Select(t => t.Name).Where(n => !string.IsNullOrWhiteSpace(n))
+        );
+        if (teachers.Length > 0)
+            parts.Add(teachers);
         return string.Join(" · ", parts);
     }
 
@@ -685,13 +689,16 @@ public class ScheduleExportService(
         var practicesQuery = db
             .Practices.AsNoTracking()
             .Include(p => p.Group)
-            .Include(p => p.Teacher!)
-                .ThenInclude(t => t.User)
+            .Include(p => p.Teachers)
+                .ThenInclude(t => t.Teacher!)
+                    .ThenInclude(t => t.User)
             .AsQueryable();
         if (groupId.HasValue)
             practicesQuery = practicesQuery.Where(p => p.GroupId == groupId.Value);
         if (teacherId.HasValue)
-            practicesQuery = practicesQuery.Where(p => p.TeacherId == teacherId.Value);
+            practicesQuery = practicesQuery.Where(p =>
+                p.Teachers.Any(t => t.TeacherId == teacherId.Value)
+            );
         var practices = await practicesQuery.ToListAsync(ct);
 
         var monday = StudyWeek.MondayOf(StudyWeek.SemesterStart);
@@ -842,11 +849,17 @@ public class ScheduleExportService(
         if (practice is not null)
         {
             var kind = practice.Kind == Entities.Enums.PracticeKind.Up ? "УП" : "ПП";
-            var parts = new List<string> { $"{kind}: {practice.Group?.Name ?? string.Empty}" };
-            if (!string.IsNullOrEmpty(practice.Teacher?.User?.FullName))
-                parts.Add(practice.Teacher.User.FullName);
-            if (!string.IsNullOrEmpty(practice.Organization))
-                parts.Add(practice.Organization);
+            var parts = new List<string> { $"{kind}: {practice.Name}" };
+            if (!string.IsNullOrEmpty(practice.Group?.Name))
+                parts.Add(practice.Group.Name);
+            var teachers = string.Join(
+                ", ",
+                practice
+                    .Teachers.Select(t => t.Teacher?.User?.FullName)
+                    .Where(n => !string.IsNullOrEmpty(n))
+            );
+            if (teachers.Length > 0)
+                parts.Add(teachers);
             return string.Join("\n", parts);
         }
 

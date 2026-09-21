@@ -12,13 +12,12 @@ public class PracticeConfiguration : IEntityTypeConfiguration<Practice>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Kind).HasConversion<string>().HasMaxLength(10).IsRequired();
-        builder.Property(x => x.Organization).HasMaxLength(200);
+        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Note).HasMaxLength(500);
         builder.Property(x => x.DateFrom).IsRequired();
         builder.Property(x => x.DateTo).IsRequired();
 
         builder.HasIndex(x => x.GroupId).HasDatabaseName("ix_practices_group_id");
-        builder.HasIndex(x => x.TeacherId).HasDatabaseName("ix_practices_teacher_id");
         builder.HasIndex(x => x.DateFrom).HasDatabaseName("ix_practices_date_from");
 
         builder
@@ -28,9 +27,15 @@ public class PracticeConfiguration : IEntityTypeConfiguration<Practice>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder
-            .HasOne(x => x.Teacher)
-            .WithMany()
-            .HasForeignKey(x => x.TeacherId)
+            .HasMany(x => x.Teachers)
+            .WithOne(t => t.Practice)
+            .HasForeignKey(t => t.PracticeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasMany(x => x.Days)
+            .WithOne(d => d.Practice)
+            .HasForeignKey(d => d.PracticeId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

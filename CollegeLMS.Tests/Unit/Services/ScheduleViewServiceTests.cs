@@ -89,23 +89,47 @@ public class ScheduleViewServiceTests : IDisposable
         Guid groupId,
         Guid teacherId,
         DateTime date,
-        PracticeKind kind = PracticeKind.Pp
+        PracticeKind kind = PracticeKind.Pp,
+        string name = "УП 01",
+        int? pairCount = null
     )
     {
         var utcNow = DateTime.UtcNow;
-        _db.Practices.Add(
-            new Practice
-            {
-                Id = Guid.NewGuid(),
-                Kind = kind,
-                GroupId = groupId,
-                TeacherId = teacherId,
-                DateFrom = date.Date,
-                DateTo = date.Date,
-                CreatedAt = utcNow,
-                UpdatedAt = utcNow,
-            }
-        );
+        var practice = new Practice
+        {
+            Id = Guid.NewGuid(),
+            Kind = kind,
+            Name = name,
+            GroupId = groupId,
+            DateFrom = date.Date,
+            DateTo = date.Date,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+            Teachers =
+            [
+                new PracticeTeacher
+                {
+                    Id = Guid.NewGuid(),
+                    TeacherId = teacherId,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                },
+            ],
+        };
+        if (kind == PracticeKind.Up && pairCount is int count)
+            practice.Days =
+            [
+                new PracticeDay
+                {
+                    Id = Guid.NewGuid(),
+                    Date = date.Date,
+                    PairCount = count,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                },
+            ];
+
+        _db.Practices.Add(practice);
         await _db.SaveChangesAsync();
     }
 
@@ -227,6 +251,56 @@ public class ScheduleViewServiceTests : IDisposable
         result.Data.Practices[0].Kind.Should().Be(PracticeKind.Pp);
         result.Data.Entries.Should().BeEmpty();
         result.Data.Inserts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetDayAsync_PpPractice_HasNoSynthesizedPairs()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Pp, "ПП 09");
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result.Data!.Practices.Should().ContainSingle().Which.Name.Should().Be("ПП 09");
+        result.Data.Entries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetDayAsync_UpPractice_ReturnsPairsFromPracticeDay()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Up, "УП 01", pairCount: 3);
+        await SeedEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 1, 1);
+        _bells.TimeMap[1] = (new TimeSpan(8, 30, 0), new TimeSpan(9, 50, 0));
+        _bells.TimeMap[2] = (new TimeSpan(10, 0, 0), new TimeSpan(11, 20, 0));
+        _bells.TimeMap[3] = (new TimeSpan(11, 30, 0), new TimeSpan(12, 50, 0));
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result.Data!.Practices.Should().ContainSingle();
+        result.Data.Entries.Should().HaveCount(3);
+        result.Data.Entries.Should().OnlyContain(e => e.IsPractice);
+        result.Data.Entries.Should().OnlyContain(e => e.PracticeName == "УП 01");
+        result.Data.Entries.Should().OnlyContain(e => e.Subject == "УП 01");
+        result.Data.Entries.Should().OnlyContain(e => e.LessonType == "Practice");
+        result.Data.Entries[0].StartTime.Should().Be(new TimeSpan(8, 30, 0));
+        result.Data.Entries[0].EndTime.Should().Be(new TimeSpan(9, 50, 0));
+        result.Data.Entries.Select(e => e.NumberPair).Should().Equal(1, 2, 3);
+    }
+
+    [Fact]
+    public async Task GetDayAsync_UpPracticeWithoutDay_HasNoPairs()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Up, "УП 01");
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result.Data!.Practices.Should().ContainSingle();
+        result.Data.Entries.Should().BeEmpty();
     }
 
     [Fact]
@@ -495,6 +569,32 @@ public class ScheduleViewServiceTests : IDisposable
             .Data.Days.Single(d => d.Date == new DateTime(2026, 12, 21))
             .IsOutOfSemester.Should()
             .BeTrue();
+    }
+
+    [Fact]
+    public async Task GetMonthAsync_UpPractice_PairCountFromPracticeDay()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        await SeedPracticeAsync(
+            group.Id,
+            teacher.Id,
+            new DateTime(2026, 12, 15),
+            PracticeKind.Up,
+            "УП 01",
+            pairCount: 4
+        );
+
+        var result = await _sut.GetMonthAsync(
+            group.Id,
+            null,
+            null,
+            "2026-12",
+            CancellationToken.None
+        );
+
+        var practiceDay = result.Data!.Days.Single(d => d.Date == new DateTime(2026, 12, 15));
+        practiceDay.PairCount.Should().Be(4);
+        practiceDay.PracticeName.Should().Be("УП 01");
     }
 
     [Fact]

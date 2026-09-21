@@ -17,7 +17,9 @@ import {
   BigBreakRow,
   InsertRow,
   PracticeCard,
+  PracticePairBadge,
   WorkingDayBadge,
+  practicePairName,
 } from "@/components/ScheduleLayers"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
 import LoadingSpinner from "@/components/LoadingSpinner"
@@ -113,6 +115,8 @@ function DayColumn({
 
             const entry = row.entry
             const isNow = isToday && isEntryNow(entry, day.dayOfWeek, week)
+            const isPractice = entry.lessonType === "Practice"
+            const practicePair = practicePairName(entry)
             const showBreak =
               day.bigBreak != null && day.bigBreak.afterPair === entry.numberPair
 
@@ -123,11 +127,20 @@ function DayColumn({
                   "rounded-md border-l-2 px-2 py-1.5 text-xs",
                   isNow
                     ? "border-primary bg-primary/[0.06] dark:bg-primary/[0.12]"
-                    : "border-primary/40 bg-muted/30",
+                    : isPractice
+                      ? "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20"
+                      : "border-primary/40 bg-muted/30",
                 )}
               >
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold">{entry.numberPair}</span>
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      isPractice && "text-emerald-700 dark:text-emerald-300",
+                    )}
+                  >
+                    {entry.numberPair}
+                  </span>
                   <span className="whitespace-nowrap text-muted-foreground">
                     {formatTime(entry.startTime)}–
                     {formatTime(entry.endTime)}
@@ -136,6 +149,14 @@ function DayColumn({
                 <p className="mt-0.5 font-medium leading-tight">
                   {entry.subject}
                 </p>
+                {practicePair && (
+                  <div className="mt-0.5">
+                    <PracticePairBadge
+                      name={practicePair}
+                      subject={entry.subject}
+                    />
+                  </div>
+                )}
                 <p className="mt-0.5 truncate text-muted-foreground">
                   {entry.room}
                   {entry.teacherName ? ` · ${entry.teacherName}` : ""}

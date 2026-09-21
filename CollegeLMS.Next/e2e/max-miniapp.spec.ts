@@ -47,13 +47,13 @@ const INSERT = {
 const PRACTICE = {
   id: "p1",
   kind: "Pp",
+  name: "ПП 09",
   groupId: "g1",
   groupName: "ПО262",
-  teacherId: "t1",
-  teacherName: "Петренко В.Б.",
+  teachers: [{ id: "t1", name: "Петренко В.Б." }],
   dateFrom: "2026-09-11T00:00:00Z",
   dateTo: "2026-09-11T00:00:00Z",
-  organization: "АО «Завод»",
+  days: [],
   note: null,
 }
 

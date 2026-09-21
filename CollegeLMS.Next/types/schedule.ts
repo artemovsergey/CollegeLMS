@@ -18,6 +18,10 @@ export interface ScheduleResponse {
   endTime: string
   weeks: number[]
   lessonType: LessonType
+  /** Пара синтезирована из дня УП. */
+  isPractice?: boolean
+  /** Название практики для пар, синтезированных из дней УП. */
+  practiceName?: string | null
   changeTags: ChangeTag[]
 }
 
@@ -106,6 +110,8 @@ export interface ScheduleMonthDay {
   isNonWorking: boolean
   nonWorkingTitle: string | null
   practiceKinds: PracticeKind[]
+  /** Название практики в дне (первая), если есть. */
+  practiceName?: string | null
   isOutOfSemester: boolean
   pairCount: number
   /** День сделан рабочим (перенос с другого дня недели). */

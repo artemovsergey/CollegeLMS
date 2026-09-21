@@ -53,7 +53,7 @@ const dispatcherMenu = [
   {
     label: "Учебный процесс", items: [
       { href: "/dispatcher/documents", label: "Документы", icon: FileText },
-      { href: "/dispatcher/practices", label: "Учебные практики", icon: Briefcase },
+      { href: "/dispatcher/practices", label: "Практики", icon: Briefcase },
       { href: "/teacher/journal", label: "Журнал преподавателя", icon: ClipboardList },
     ]
   },

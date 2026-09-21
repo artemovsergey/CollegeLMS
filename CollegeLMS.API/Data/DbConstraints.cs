@@ -150,5 +150,17 @@ public static class DbConstraints
                 END $$;
             """
         );
+
+        // Practice days (число пар учебной практики — 1..8)
+        await db.Database.ExecuteSqlRawAsync(
+            """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_practice_days_pair_count_range') THEN
+                        ALTER TABLE practice_days ADD CONSTRAINT ck_practice_days_pair_count_range CHECK (pair_count BETWEEN 1 AND 8);
+                    END IF;
+                END $$;
+            """
+        );
     }
 }

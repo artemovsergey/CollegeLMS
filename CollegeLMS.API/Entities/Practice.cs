@@ -7,16 +7,23 @@ namespace CollegeLMS.API.Entities;
 public class Practice : Entity
 {
     public PracticeKind Kind { get; set; }
+
+    /// <summary>Название практики, например «УП 01» или «ПП 09».</summary>
+    public string Name { get; set; } = string.Empty;
+
     public Guid GroupId { get; set; }
-    public Guid TeacherId { get; set; }
     public DateTime DateFrom { get; set; }
     public DateTime DateTo { get; set; }
-    public string? Organization { get; set; }
     public string? Note { get; set; }
 
     [JsonIgnore]
     public Group? Group { get; set; }
 
+    /// <summary>Преподаватели практики (многие-ко-многим).</summary>
     [JsonIgnore]
-    public Teacher? Teacher { get; set; }
+    public ICollection<PracticeTeacher> Teachers { get; set; } = new List<PracticeTeacher>();
+
+    /// <summary>Учебные дни УП с числом пар (только для учебной практики).</summary>
+    [JsonIgnore]
+    public ICollection<PracticeDay> Days { get; set; } = new List<PracticeDay>();
 }

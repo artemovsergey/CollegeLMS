@@ -250,13 +250,22 @@ public class ScheduleExportServiceTests : IDisposable
             {
                 Id = Guid.NewGuid(),
                 Kind = PracticeKind.Up,
+                Name = "УП 01",
                 GroupId = group.Id,
                 Group = group,
-                TeacherId = teacher.Id,
-                Teacher = teacher,
                 DateFrom = new DateTime(2026, 9, 8),
                 DateTo = new DateTime(2026, 9, 9),
-                Organization = "ООО Ромашка",
+                Teachers =
+                [
+                    new PracticeTeacher
+                    {
+                        Id = Guid.NewGuid(),
+                        TeacherId = teacher.Id,
+                        Teacher = teacher,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    },
+                ],
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             }
@@ -279,8 +288,9 @@ public class ScheduleExportServiceTests : IDisposable
         // Неделя 2, вторник (08.09) → строка 3, колонка 3.
         var text = Cell(result.Data!.FileContent, 3, 3);
         text.Should().Contain("УП:");
+        text.Should().Contain("УП 01");
         text.Should().Contain(group.Name);
-        text.Should().Contain("ООО Ромашка");
+        text.Should().Contain(teacher.User.FullName);
     }
 
     [Fact]
@@ -508,7 +518,6 @@ public class ScheduleExportServiceTests : IDisposable
     {
         var utcNow = DateTime.UtcNow;
         var group = await SeedGroupAsync();
-        var teacher = await SeedTeacherAsync();
         _db.ScheduleInserts.Add(
             new ScheduleInsert
             {
@@ -527,8 +536,8 @@ public class ScheduleExportServiceTests : IDisposable
             {
                 Id = Guid.NewGuid(),
                 Kind = PracticeKind.Up,
+                Name = "УП 01",
                 GroupId = group.Id,
-                TeacherId = teacher.Id,
                 DateFrom = new DateTime(2026, 9, 2),
                 DateTo = new DateTime(2026, 9, 2),
                 CreatedAt = utcNow,

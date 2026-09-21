@@ -13,6 +13,10 @@ namespace CollegeLMS.API.Services;
 /// <summary>Практики УП/ПП: CRUD, фильтры и импорт из XLSX.</summary>
 public class PracticeService(AppDbContext db) : IPracticeService
 {
+    private const int DefaultPairCount = 6;
+    private const int MinPairCount = 1;
+    private const int MaxPairCount = 8;
+
     public async Task<Result<PagedResponse<PracticeResponse>>> GetAllAsync(
         Guid? groupId,
         Guid? teacherId,
@@ -27,14 +31,16 @@ public class PracticeService(AppDbContext db) : IPracticeService
         var query = db
             .Practices.AsNoTracking()
             .Include(p => p.Group)
-            .Include(p => p.Teacher!)
-                .ThenInclude(t => t.User)
+            .Include(p => p.Teachers)
+                .ThenInclude(t => t.Teacher!)
+                    .ThenInclude(t => t.User)
+            .Include(p => p.Days)
             .AsQueryable();
 
         if (groupId.HasValue)
             query = query.Where(p => p.GroupId == groupId.Value);
         if (teacherId.HasValue)
-            query = query.Where(p => p.TeacherId == teacherId.Value);
+            query = query.Where(p => p.Teachers.Any(t => t.TeacherId == teacherId.Value));
         if (kind.HasValue)
             query = query.Where(p => p.Kind == kind.Value);
         if (from.HasValue)
@@ -67,19 +73,21 @@ public class PracticeService(AppDbContext db) : IPracticeService
         if (error is not null)
             return Result<PracticeResponse>.Fail(error.Value.Message, error.Value.StatusCode);
 
+        var now = DateTime.UtcNow;
         var entity = new Practice
         {
             Id = Guid.NewGuid(),
             Kind = request.Kind,
+            Name = request.Name.Trim(),
             GroupId = request.GroupId,
-            TeacherId = request.TeacherId,
             DateFrom = request.DateFrom.Date,
             DateTo = request.DateTo.Date,
-            Organization = Normalize(request.Organization),
             Note = Normalize(request.Note),
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
+            CreatedAt = now,
+            UpdatedAt = now,
         };
+        entity.Teachers = BuildTeachers(request.TeacherIds, now);
+        entity.Days = request.Kind == PracticeKind.Up ? BuildDays(request.Days, now) : [];
 
         db.Practices.Add(entity);
         await db.SaveChangesAsync(ct);
@@ -93,7 +101,10 @@ public class PracticeService(AppDbContext db) : IPracticeService
         CancellationToken ct
     )
     {
-        var entity = await db.Practices.FirstOrDefaultAsync(p => p.Id == id, ct);
+        var entity = await db
+            .Practices.Include(p => p.Teachers)
+            .Include(p => p.Days)
+            .FirstOrDefaultAsync(p => p.Id == id, ct);
         if (entity is null)
             return Result<PracticeResponse>.Fail("Практика не найдена.", 404);
 
@@ -101,14 +112,20 @@ public class PracticeService(AppDbContext db) : IPracticeService
         if (error is not null)
             return Result<PracticeResponse>.Fail(error.Value.Message, error.Value.StatusCode);
 
+        var now = DateTime.UtcNow;
         entity.Kind = request.Kind;
+        entity.Name = request.Name.Trim();
         entity.GroupId = request.GroupId;
-        entity.TeacherId = request.TeacherId;
         entity.DateFrom = request.DateFrom.Date;
         entity.DateTo = request.DateTo.Date;
-        entity.Organization = Normalize(request.Organization);
         entity.Note = Normalize(request.Note);
-        entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedAt = now;
+
+        db.PracticeTeachers.RemoveRange(entity.Teachers);
+        entity.Teachers = BuildTeachers(request.TeacherIds, now);
+
+        db.PracticeDays.RemoveRange(entity.Days);
+        entity.Days = request.Kind == PracticeKind.Up ? BuildDays(request.Days, now) : [];
 
         await db.SaveChangesAsync(ct);
 
@@ -185,18 +202,32 @@ public class PracticeService(AppDbContext db) : IPracticeService
 
         var now = DateTime.UtcNow;
         var entities = request
-            .Rows.Select(row => new Practice
+            .Rows.Select(row =>
             {
-                Id = Guid.NewGuid(),
-                Kind = ParseKind(row.Kind)!.Value,
-                GroupId = groupIds[row.GroupName],
-                TeacherId = teacherIds[row.TeacherName],
-                DateFrom = ParseDate(row.DateFrom)!.Value.Date,
-                DateTo = ParseDate(row.DateTo)!.Value.Date,
-                Organization = Normalize(row.Organization),
-                Note = Normalize(row.Note),
-                CreatedAt = now,
-                UpdatedAt = now,
+                var kind = ParseKind(row.Kind)!.Value;
+                var from = ParseDate(row.DateFrom)!.Value.Date;
+                var to = ParseDate(row.DateTo)!.Value.Date;
+                var entity = new Practice
+                {
+                    Id = Guid.NewGuid(),
+                    Kind = kind,
+                    Name = row.Name.Trim(),
+                    GroupId = groupIds[row.GroupName],
+                    DateFrom = from,
+                    DateTo = to,
+                    Note = Normalize(row.Note),
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+                entity.Teachers = BuildTeachers(
+                    ParseTeacherNames(row.TeacherName)
+                        .Select(n => teacherIds[ScheduleImportService.TeacherLookupKey(n)])
+                        .Distinct()
+                        .ToList(),
+                    now
+                );
+                entity.Days = kind == PracticeKind.Up ? BuildDefaultDays(from, to, now) : [];
+                return entity;
             })
             .ToList();
 
@@ -217,8 +248,10 @@ public class PracticeService(AppDbContext db) : IPracticeService
         var saved = await db
             .Practices.AsNoTracking()
             .Include(p => p.Group)
-            .Include(p => p.Teacher!)
-                .ThenInclude(t => t.User)
+            .Include(p => p.Teachers)
+                .ThenInclude(t => t.Teacher!)
+                    .ThenInclude(t => t.User)
+            .Include(p => p.Days)
             .Where(p => ids.Contains(p.Id))
             .OrderBy(p => p.DateFrom)
             .ToListAsync(ct);
@@ -237,10 +270,59 @@ public class PracticeService(AppDbContext db) : IPracticeService
         var entity = await db
             .Practices.AsNoTracking()
             .Include(p => p.Group)
-            .Include(p => p.Teacher!)
-                .ThenInclude(t => t.User)
+            .Include(p => p.Teachers)
+                .ThenInclude(t => t.Teacher!)
+                    .ThenInclude(t => t.User)
+            .Include(p => p.Days)
             .FirstAsync(p => p.Id == id, ct);
         return ToDto(entity);
+    }
+
+    private static List<PracticeTeacher> BuildTeachers(List<Guid> teacherIds, DateTime now) =>
+        teacherIds
+            .Distinct()
+            .Select(id => new PracticeTeacher
+            {
+                Id = Guid.NewGuid(),
+                TeacherId = id,
+                CreatedAt = now,
+                UpdatedAt = now,
+            })
+            .ToList();
+
+    private static List<PracticeDay> BuildDays(List<PracticeDayRequest>? days, DateTime now) =>
+        (days ?? [])
+            .Select(d => new PracticeDay
+            {
+                Id = Guid.NewGuid(),
+                Date = d.Date.Date,
+                PairCount = d.PairCount,
+                CreatedAt = now,
+                UpdatedAt = now,
+            })
+            .ToList();
+
+    /// <summary>Для УП по умолчанию пары расставляются по учебным дням (Пн–Пт) периода (6 пар в день).</summary>
+    private static List<PracticeDay> BuildDefaultDays(DateTime from, DateTime to, DateTime now)
+    {
+        var days = new List<PracticeDay>();
+        for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
+        {
+            if (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                continue;
+
+            days.Add(
+                new PracticeDay
+                {
+                    Id = Guid.NewGuid(),
+                    Date = date,
+                    PairCount = DefaultPairCount,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                }
+            );
+        }
+        return days;
     }
 
     private async Task<(string Message, int StatusCode)?> ValidateAsync(
@@ -251,6 +333,11 @@ public class PracticeService(AppDbContext db) : IPracticeService
     {
         if (!Enum.IsDefined(request.Kind))
             return ("Вид практики должен быть УП или ПП.", 400);
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return ("Укажите название практики.", 400);
+        if (request.Name.Trim().Length > 100)
+            return ("Название практики не должно превышать 100 символов.", 400);
 
         if (request.DateFrom == default || request.DateTo == default)
             return ("Укажите период практики.", 400);
@@ -267,11 +354,44 @@ public class PracticeService(AppDbContext db) : IPracticeService
         if (group is null)
             return ("Группа не найдена.", 400);
 
-        var teacherExists = await db
+        var teacherIds = request.TeacherIds.Distinct().ToList();
+        if (teacherIds.Count == 0)
+            return ("Укажите хотя бы одного преподавателя.", 400);
+
+        var existingTeachers = await db
             .Teachers.AsNoTracking()
-            .AnyAsync(t => t.Id == request.TeacherId, ct);
-        if (!teacherExists)
+            .Where(t => teacherIds.Contains(t.Id))
+            .Select(t => t.Id)
+            .ToListAsync(ct);
+        if (existingTeachers.Count != teacherIds.Count)
             return ("Преподаватель не найден.", 400);
+
+        if (request.Kind == PracticeKind.Up)
+        {
+            var days = request.Days ?? [];
+            if (days.Count == 0)
+                return ("Для учебной практики укажите дни с числом пар.", 400);
+
+            var seenDates = new HashSet<DateTime>();
+            foreach (var day in days)
+            {
+                if (day.Date == default)
+                    return ("Укажите дату учебного дня.", 400);
+
+                var date = day.Date.Date;
+                if (date < request.DateFrom.Date || date > request.DateTo.Date)
+                    return ("Дата учебного дня вне периода практики.", 400);
+
+                if (!StudyWeek.IsInSemester(date))
+                    return ("Дата учебного дня должна быть в пределах семестра.", 400);
+
+                if (day.PairCount < MinPairCount || day.PairCount > MaxPairCount)
+                    return ("Число пар в дне должно быть от 1 до 8.", 400);
+
+                if (!seenDates.Add(date))
+                    return ("Даты учебных дней не должны повторяться.", 400);
+            }
+        }
 
         var overlapQuery = db.Practices.Where(p =>
             p.GroupId == request.GroupId
@@ -293,15 +413,16 @@ public class PracticeService(AppDbContext db) : IPracticeService
         for (var row = 2; row <= lastRow; row++)
         {
             var kind = ws.Cell(row, 1).GetString().Trim();
-            var group = ws.Cell(row, 2).GetString().Trim();
-            var dateFrom = CellText(ws.Cell(row, 3));
-            var dateTo = CellText(ws.Cell(row, 4));
-            var teacher = ws.Cell(row, 5).GetString().Trim();
-            var organization = ws.Cell(row, 6).GetString().Trim();
+            var name = ws.Cell(row, 2).GetString().Trim();
+            var group = ws.Cell(row, 3).GetString().Trim();
+            var dateFrom = CellText(ws.Cell(row, 4));
+            var dateTo = CellText(ws.Cell(row, 5));
+            var teacher = ws.Cell(row, 6).GetString().Trim();
             var note = ws.Cell(row, 7).GetString().Trim();
 
             var isEmpty =
                 kind.Length == 0
+                && name.Length == 0
                 && group.Length == 0
                 && dateFrom.Length == 0
                 && dateTo.Length == 0
@@ -314,11 +435,11 @@ public class PracticeService(AppDbContext db) : IPracticeService
                 {
                     Row = row,
                     Kind = kind,
+                    Name = name,
                     GroupName = group,
                     DateFrom = dateFrom,
                     DateTo = dateTo,
                     TeacherName = teacher,
-                    Organization = organization.Length == 0 ? null : organization,
                     Note = note.Length == 0 ? null : note,
                 }
             );
@@ -344,7 +465,7 @@ public class PracticeService(AppDbContext db) : IPracticeService
             .Teachers.AsNoTracking()
             .Include(t => t.User)
             .ToDictionaryAsync(
-                t => t.User.FullName,
+                t => ScheduleImportService.TeacherLookupKey(t.User.FullName),
                 t => t.Id,
                 StringComparer.OrdinalIgnoreCase,
                 ct
@@ -359,12 +480,23 @@ public class PracticeService(AppDbContext db) : IPracticeService
                     Error(row.Row, 1, $"строка {row.Row}: укажите вид практики «УП» или «ПП».")
                 );
 
+            if (row.Name.Length == 0)
+                errors.Add(Error(row.Row, 2, $"строка {row.Row}: не указано название практики."));
+            else if (row.Name.Trim().Length > 100)
+                errors.Add(
+                    Error(
+                        row.Row,
+                        2,
+                        $"строка {row.Row}: название практики не должно превышать 100 символов."
+                    )
+                );
+
             Guid? groupId = null;
             if (row.GroupName.Length == 0)
-                errors.Add(Error(row.Row, 2, $"строка {row.Row}: не указана группа."));
+                errors.Add(Error(row.Row, 3, $"строка {row.Row}: не указана группа."));
             else if (!groups.ContainsKey(row.GroupName))
                 errors.Add(
-                    Error(row.Row, 2, $"строка {row.Row}: группа «{row.GroupName}» не найдена.")
+                    Error(row.Row, 3, $"строка {row.Row}: группа «{row.GroupName}» не найдена.")
                 );
             else
                 groupId = groups[row.GroupName];
@@ -375,7 +507,7 @@ public class PracticeService(AppDbContext db) : IPracticeService
                 errors.Add(
                     Error(
                         row.Row,
-                        3,
+                        4,
                         $"строка {row.Row}: неверная дата начала (формат дд.мм.гггг)."
                     )
                 );
@@ -383,27 +515,27 @@ public class PracticeService(AppDbContext db) : IPracticeService
                 errors.Add(
                     Error(
                         row.Row,
-                        4,
+                        5,
                         $"строка {row.Row}: неверная дата окончания (формат дд.мм.гггг)."
                     )
                 );
             if (dateFrom is { } from && dateTo is { } to && from.Date > to.Date)
                 errors.Add(
-                    Error(row.Row, 4, $"строка {row.Row}: дата окончания раньше даты начала.")
+                    Error(row.Row, 5, $"строка {row.Row}: дата окончания раньше даты начала.")
                 );
 
-            if (row.TeacherName.Length == 0)
-                errors.Add(Error(row.Row, 5, $"строка {row.Row}: не указан преподаватель."));
-            else if (
-                !teachers.ContainsKey(ScheduleImportService.NormalizeTeacherName(row.TeacherName))
-            )
-                errors.Add(
-                    Error(
-                        row.Row,
-                        5,
-                        $"строка {row.Row}: преподаватель «{row.TeacherName}» не найден."
+            var teacherNames = ParseTeacherNames(row.TeacherName);
+            if (teacherNames.Count == 0)
+                errors.Add(Error(row.Row, 6, $"строка {row.Row}: не указан преподаватель."));
+            else
+                foreach (
+                    var name in teacherNames.Where(name =>
+                        !teachers.ContainsKey(ScheduleImportService.TeacherLookupKey(name))
                     )
-                );
+                )
+                    errors.Add(
+                        Error(row.Row, 6, $"строка {row.Row}: преподаватель «{name}» не найден.")
+                    );
 
             if (
                 dateFrom is { } fromDate
@@ -416,7 +548,7 @@ public class PracticeService(AppDbContext db) : IPracticeService
                     errors.Add(
                         Error(
                             row.Row,
-                            3,
+                            4,
                             $"строка {row.Row}: период практики должен быть в пределах семестра."
                         )
                     );
@@ -467,7 +599,7 @@ public class PracticeService(AppDbContext db) : IPracticeService
                 errors.Add(
                     Error(
                         item.Row,
-                        3,
+                        4,
                         $"строка {item.Row}: у группы уже есть практика в этот период."
                     )
                 );
@@ -486,7 +618,7 @@ public class PracticeService(AppDbContext db) : IPracticeService
                     errors.Add(
                         Error(
                             ordered[j].Row,
-                            3,
+                            4,
                             $"строка {ordered[j].Row}: период пересекается со строкой {ordered[i].Row}."
                         )
                     );
@@ -519,15 +651,29 @@ public class PracticeService(AppDbContext db) : IPracticeService
         CancellationToken ct
     )
     {
-        var names = rows.Select(r => ScheduleImportService.NormalizeTeacherName(r.TeacherName))
-            .Distinct()
+        var keys = rows.SelectMany(r => ParseTeacherNames(r.TeacherName))
+            .Select(ScheduleImportService.TeacherLookupKey)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-        return await db
-            .Teachers.AsNoTracking()
-            .Include(t => t.User)
-            .Where(t => names.Contains(t.User.FullName))
-            .ToDictionaryAsync(t => t.User.FullName, t => t.Id, ct);
+
+        var teachers = await db.Teachers.AsNoTracking().Include(t => t.User).ToListAsync(ct);
+        return teachers
+            .Where(t =>
+                keys.Contains(
+                    ScheduleImportService.TeacherLookupKey(t.User.FullName),
+                    StringComparer.OrdinalIgnoreCase
+                )
+            )
+            .ToDictionary(
+                t => ScheduleImportService.TeacherLookupKey(t.User.FullName),
+                t => t.Id,
+                StringComparer.OrdinalIgnoreCase
+            );
     }
+
+    private static List<string> ParseTeacherNames(string raw) =>
+        raw.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
 
     private static PracticeKind? ParseKind(string value) =>
         value.Trim().ToUpperInvariant() switch
@@ -571,18 +717,33 @@ public class PracticeService(AppDbContext db) : IPracticeService
             Message = message,
         };
 
-    private static PracticeResponse ToDto(Practice entity) =>
-        new()
+    private static PracticeResponse ToDto(Practice entity)
+    {
+        var teachers = entity
+            .Teachers.OrderBy(t => t.Teacher?.User?.FullName ?? string.Empty)
+            .Select(t => new PracticeTeacherResponse
+            {
+                Id = t.TeacherId,
+                Name = t.Teacher?.User?.FullName ?? string.Empty,
+            })
+            .ToList();
+
+        return new()
         {
             Id = entity.Id,
             Kind = entity.Kind,
+            Name = entity.Name,
             GroupId = entity.GroupId,
             GroupName = entity.Group?.Name ?? string.Empty,
-            TeacherId = entity.TeacherId,
-            TeacherName = entity.Teacher?.User?.FullName ?? string.Empty,
+            TeacherIds = teachers.Select(t => t.Id).ToList(),
+            Teachers = teachers,
             DateFrom = entity.DateFrom,
             DateTo = entity.DateTo,
-            Organization = entity.Organization,
+            Days = entity
+                .Days.OrderBy(d => d.Date)
+                .Select(d => new PracticeDayDto { Date = d.Date, PairCount = d.PairCount })
+                .ToList(),
             Note = entity.Note,
         };
+    }
 }

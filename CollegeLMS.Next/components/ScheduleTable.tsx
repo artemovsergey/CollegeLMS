@@ -15,7 +15,12 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
-import { BigBreakRow, InsertRow } from "@/components/ScheduleLayers"
+import {
+  BigBreakRow,
+  InsertRow,
+  PracticePairBadge,
+  practicePairName,
+} from "@/components/ScheduleLayers"
 import { isEntryNow, mergeDayRows, type DayRow } from "@/lib/schedule-merge"
 import { cn } from "@/lib/utils"
 
@@ -111,6 +116,8 @@ export default function ScheduleCards({
 
         const entry = row.entry
         const isCurrent = entry.id === currentId
+        const isPractice = entry.lessonType === "Practice"
+        const practicePair = practicePairName(entry)
         const showBreak = bigBreak !== null && bigBreak.afterPair === entry.numberPair
 
         return (
@@ -120,11 +127,20 @@ export default function ScheduleCards({
               "group relative flex items-stretch gap-3 rounded-lg border-t-2 bg-card p-3 transition-colors",
               isCurrent
                 ? "border-primary bg-primary/[0.06] dark:bg-primary/[0.12]"
-                : "border-t-transparent",
+                : isPractice
+                  ? "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20"
+                  : "border-t-transparent",
             )}
           >
             <div className="flex min-w-[40px] flex-col items-center justify-center">
-              <span className="text-lg font-bold leading-none text-primary">
+              <span
+                className={cn(
+                  "text-lg font-bold leading-none",
+                  isPractice
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-primary",
+                )}
+              >
                 {entry.numberPair}
               </span>
             </div>
@@ -133,6 +149,14 @@ export default function ScheduleCards({
               <p className="font-semibold text-sm leading-tight truncate">
                 {entry.subject}
               </p>
+              {practicePair && (
+                <div className="mt-1">
+                  <PracticePairBadge
+                    name={practicePair}
+                    subject={entry.subject}
+                  />
+                </div>
+              )}
               {isCurrent && (
                 <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary">
                   <Radio className="size-3 animate-pulse" aria-hidden />

@@ -47,6 +47,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<NonWorkingDay> NonWorkingDays => Set<NonWorkingDay>();
     public DbSet<ScheduleInsert> ScheduleInserts => Set<ScheduleInsert>();
     public DbSet<Practice> Practices => Set<Practice>();
+    public DbSet<PracticeTeacher> PracticeTeachers => Set<PracticeTeacher>();
+    public DbSet<PracticeDay> PracticeDays => Set<PracticeDay>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

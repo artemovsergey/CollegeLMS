@@ -14,30 +14,56 @@ export const PRACTICE_KIND_SHORT: Record<PracticeKind, string> = {
   Pp: "ПП",
 }
 
+/** Преподаватель практики (ответ API). */
+export interface PracticeTeacher {
+  id: string
+  name: string
+}
+
+/** День учебной практики с числом пар (1..8). */
+export interface PracticeDay {
+  /** Дата (ISO). */
+  date: string
+  /** Количество пар. */
+  pairCount: number
+}
+
 export interface Practice {
   id: string
   kind: PracticeKind
+  /** Название: «УП 01», «ПП 09». Может отсутствовать в старых данных. */
+  name?: string | null
   groupId: string
   groupName: string
-  teacherId: string
-  teacherName: string
+  /** Идентификаторы преподавателей практики (≥1). */
+  teacherIds?: string[] | null
+  /** Преподаватели практики (≥1). */
+  teachers?: PracticeTeacher[] | null
+  /** Legacy-поле до контракта 3B — fallback для деградации. */
+  teacherName?: string | null
   dateFrom: string
   dateTo: string
-  organization: string | null
+  /** Дни УП с числом пар (только для вида УП). */
+  days?: PracticeDay[] | null
   note: string | null
 }
 
 export interface PracticeRequest {
   kind: PracticeKind
+  /** Название обязательно: «УП 01», «ПП 09». */
+  name: string
   groupId: string
-  teacherId: string
+  /** Список преподавателей (≥1). */
+  teacherIds: string[]
   dateFrom: string
   dateTo: string
-  organization?: string | null
+  /** Дни УП с числом пар (только для вида УП). */
+  days?: PracticeDay[]
   note?: string | null
 }
 
 export interface PracticeFilters {
+  name?: string
   groupId?: string
   teacherId?: string
   kind?: PracticeKind
@@ -47,15 +73,41 @@ export interface PracticeFilters {
   pageSize?: number
 }
 
+/** Название практики с безопасным fallback на метку вида. */
+export function practiceName(practice: Practice): string {
+  const name = practice.name?.trim()
+  return name && name.length > 0 ? name : PRACTICE_KIND_SHORT[practice.kind]
+}
+
+/** Преподаватели практики: новый список или legacy-поле. */
+export function practiceTeachers(practice: Practice): PracticeTeacher[] {
+  if (practice.teachers && practice.teachers.length > 0) return practice.teachers
+  const legacy = practice.teacherName?.trim()
+  return legacy ? [{ id: "", name: legacy }] : []
+}
+
+/** Преподаватели одной строкой через запятую. */
+export function practiceTeacherNames(practice: Practice): string {
+  return practiceTeachers(practice)
+    .map((teacher) => teacher.name)
+    .join(", ")
+}
+
+/** Дни УП практики (пустой список для ПП). */
+export function practiceDays(practice: Practice): PracticeDay[] {
+  return practice.days ?? []
+}
+
 /** Строка импорта XLSX (сырые значения; используется и в preview, и в confirm). */
 export interface PracticeImportRow {
   row: number
   kind: string
+  name: string
   groupName: string
   dateFrom: string
   dateTo: string
+  /** Преподаватели одной ячейкой; несколько — через «;». */
   teacherName: string
-  organization?: string | null
   note?: string | null
 }
 
@@ -82,6 +134,7 @@ export async function fetchPractices(
   filters: PracticeFilters = {},
 ): Promise<PagedResponse<Practice>> {
   const params = new URLSearchParams()
+  if (filters.name) params.set("name", filters.name)
   if (filters.groupId) params.set("groupId", filters.groupId)
   if (filters.teacherId) params.set("teacherId", filters.teacherId)
   if (filters.kind) params.set("kind", filters.kind)

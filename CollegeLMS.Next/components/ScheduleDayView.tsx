@@ -125,7 +125,7 @@ export default function ScheduleDayView({
             workingDayTitle={data.workingDayTitle ?? null}
             substituteDayOfWeek={data.substituteDayOfWeek ?? null}
           />
-          {(isOrdinaryDay || (data.isWorkingDay && data.entries.length > 0)) && (
+          {(isOrdinaryDay || data.entries.length > 0) && (
             <ScheduleTable
               entries={data.entries}
               inserts={data.inserts}

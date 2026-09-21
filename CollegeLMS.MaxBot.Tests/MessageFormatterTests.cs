@@ -467,7 +467,7 @@ public class MessageFormatterTests
     }
 
     [Fact]
-    public void FormatPracticeLine_Up_IncludesOrganizationAndPeriod()
+    public void FormatPracticeLine_Up_IncludesPeriod()
     {
         var practice = new PracticeDto
         {
@@ -477,16 +477,15 @@ public class MessageFormatterTests
             TeacherName = "Марченко И.А.",
             DateFrom = new DateTime(2026, 9, 7),
             DateTo = new DateTime(2026, 9, 11),
-            Organization = "ООО Ромашка",
         };
 
         var line = MessageFormatter.FormatPracticeLine(practice);
 
-        line.Should().Be("УП: ПО-262 · Марченко И.А. · ООО Ромашка (с 07.09.2026 по 11.09.2026)");
+        line.Should().Be("УП: ПО-262 · Марченко И.А. (с 07.09.2026 по 11.09.2026)");
     }
 
     [Fact]
-    public void FormatPracticeLine_Pp_WithoutOrganization_OmitsOrganization()
+    public void FormatPracticeLine_Pp_IncludesPeriod()
     {
         var practice = new PracticeDto
         {
@@ -501,6 +500,71 @@ public class MessageFormatterTests
         var line = MessageFormatter.FormatPracticeLine(practice);
 
         line.Should().Be("ПП: ПО-263 · Петренко В.Б. (с 01.10.2026 по 12.10.2026)");
+    }
+
+    [Fact]
+    public void FormatPracticeStarted_IncludesNameKindGroupAndPeriod()
+    {
+        var practice = new PracticeDto
+        {
+            Id = Guid.NewGuid(),
+            Kind = "Up",
+            Name = "УП 01",
+            GroupName = "ПО-262",
+            Teachers = [new PracticeTeacherDto { Id = Guid.NewGuid(), FullName = "Марченко И.А." }],
+            DateFrom = new DateTime(2026, 9, 7),
+            DateTo = new DateTime(2026, 9, 11),
+        };
+
+        var text = MessageFormatter.FormatPracticeStarted(practice);
+
+        text.Should().Contain("Началась практика").And.Contain("УП 01");
+        text.Should().Contain("УП: ПО-262 · Марченко И.А.");
+        text.Should().Contain("(с 07.09.2026 по 11.09.2026)");
+    }
+
+    [Fact]
+    public void FormatPracticeFinished_UsesFallbackNameAndLegacyTeacher()
+    {
+        var practice = new PracticeDto
+        {
+            Id = Guid.NewGuid(),
+            Kind = "Pp",
+            GroupName = "ПО-263",
+            TeacherName = "Петренко В.Б.",
+            DateFrom = new DateTime(2026, 10, 1),
+            DateTo = new DateTime(2026, 10, 12),
+        };
+
+        var text = MessageFormatter.FormatPracticeFinished(practice);
+
+        text.Should().Contain("Закончилась практика").And.Contain("ПП");
+        text.Should().Contain("ПП: ПО-263 · Петренко В.Б.");
+        text.Should().Contain("(с 01.10.2026 по 12.10.2026)");
+    }
+
+    [Fact]
+    public void FormatPracticeLine_NewContract_UsesTeachersList()
+    {
+        var practice = new PracticeDto
+        {
+            Id = Guid.NewGuid(),
+            Kind = "Up",
+            Name = "УП 01",
+            GroupName = "ПО-262",
+            TeacherIds = [Guid.NewGuid(), Guid.NewGuid()],
+            Teachers =
+            [
+                new PracticeTeacherDto { Id = Guid.NewGuid(), FullName = "Марченко И.А." },
+                new PracticeTeacherDto { Id = Guid.NewGuid(), Name = "Сидоров С.С." },
+            ],
+            DateFrom = new DateTime(2026, 9, 7),
+            DateTo = new DateTime(2026, 9, 11),
+        };
+
+        var line = MessageFormatter.FormatPracticeLine(practice);
+
+        line.Should().Be("УП: ПО-262 · Марченко И.А., Сидоров С.С. (с 07.09.2026 по 11.09.2026)");
     }
 
     private static ScheduleRevision Revision(string changeType = "Replace") =>

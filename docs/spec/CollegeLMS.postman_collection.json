@@ -1420,7 +1420,7 @@
               ]
             }
           },
-          "description": "Серверный вид дня (AllowAnonymous). Параметры: date=YYYY-MM-DD (по умолчанию — сегодня), фильтры groupId/teacherId/room. week и dayOfWeek вычисляются по date, week клампится в 1…TotalWeeks (16). Слои по приоритету: воскресенье → нерабочий день → практика (entries и inserts пусты) → обычный день (inserts + entries с временем из звонков и бейджами корректировок). Пустой день вне семестра (до 31.08.2026 или после 20.12.2026). Пример ответа (200): {\"isSuccess\":true,\"data\":{\"date\":\"2026-09-21T00:00:00Z\",\"week\":4,\"dayOfWeek\":1,\"isSunday\":false,\"isNonWorking\":false,\"nonWorkingTitle\":null,\"practices\":[],\"inserts\":[{\"id\":\"...\",\"title\":\"Разговор о важном\",\"dayOfWeek\":1,\"startTime\":\"08:30:00\",\"endTime\":\"09:00:00\",\"course\":null,\"isActive\":true}],\"entries\":[{\"id\":\"...\",\"groupId\":\"...\",\"groupName\":\"ИС-21\",\"teacherId\":\"...\",\"teacherName\":\"Иванов И.И.\",\"subject\":\"Математика\",\"room\":\"301\",\"dayOfWeek\":1,\"numberPair\":1,\"startTime\":\"08:30:00\",\"endTime\":\"09:50:00\",\"weeks\":[1,2,3,4],\"lessonType\":\"Lecture\",\"changeTags\":[{\"changeType\":\"Add\",\"week\":4,\"removedNumberPair\":null,\"removedSubject\":null,\"note\":null}]}]}}"
+          "description": "Серверный вид дня (AllowAnonymous). Параметры: date=YYYY-MM-DD (по умолчанию — сегодня), фильтры groupId/teacherId/room. week и dayOfWeek вычисляются по date, week клампится в 1…TotalWeeks (16). Слои по приоритету: воскресенье → нерабочий день → практика (карточка; для УП в entries синтезируются пары 1..pairCount с временем из звонков, lessonType=Practice, isPractice=true и practiceName; для ПП пар нет) → обычный день (inserts + entries с временем из звонков и бейджами корректировок). Пустой день вне семестра (до 31.08.2026 или после 20.12.2026). Пример ответа (200): {\"isSuccess\":true,\"data\":{\"date\":\"2026-09-21T00:00:00Z\",\"week\":4,\"dayOfWeek\":1,\"isSunday\":false,\"isNonWorking\":false,\"nonWorkingTitle\":null,\"practices\":[],\"inserts\":[{\"id\":\"...\",\"title\":\"Разговор о важном\",\"dayOfWeek\":1,\"startTime\":\"08:30:00\",\"endTime\":\"09:00:00\",\"course\":null,\"isActive\":true}],\"entries\":[{\"id\":\"...\",\"groupId\":\"...\",\"groupName\":\"ИС-21\",\"teacherId\":\"...\",\"teacherName\":\"Иванов И.И.\",\"subject\":\"Математика\",\"room\":\"301\",\"dayOfWeek\":1,\"numberPair\":1,\"startTime\":\"08:30:00\",\"endTime\":\"09:50:00\",\"weeks\":[1,2,3,4],\"lessonType\":\"Lecture\",\"changeTags\":[{\"changeType\":\"Add\",\"week\":4,\"removedNumberPair\":null,\"removedSubject\":null,\"note\":null}]}]}}"
         },
         {
           "name": "Get schedule (view=week)",
@@ -1461,7 +1461,7 @@
               ]
             }
           },
-          "description": "Серверный вид календаря месяца (AllowAnonymous). month=YYYY-MM (по умолчанию — текущий; невалидный формат → 400 «Неверный формат месяца.»). Месячный вид заменил старый возврат «шаблона недели» для view=calendar (CalendarResponse удалён). Ответ: year, month и days[] всех дат месяца: dayOfWeek, isSunday, isNonWorking + nonWorkingTitle, practiceKinds (Up/Pp), isOutOfSemester, pairCount (0 в воскресенье, нерабочий день, практику и вне семестра). Сетка 7×N достраивается на клиенте. Пример ответа (200): {\"isSuccess\":true,\"data\":{\"year\":2026,\"month\":9,\"days\":[{\"date\":\"2026-09-01T00:00:00Z\",\"dayOfWeek\":2,\"isSunday\":false,\"isNonWorking\":false,\"nonWorkingTitle\":null,\"practiceKinds\":[],\"isOutOfSemester\":false,\"pairCount\":4}]}}"
+          "description": "Серверный вид календаря месяца (AllowAnonymous). month=YYYY-MM (по умолчанию — текущий; невалидный формат → 400 «Неверный формат месяца.»). Месячный вид заменил старый возврат «шаблона недели» для view=calendar (CalendarResponse удалён). Ответ: year, month и days[] всех дат месяца: dayOfWeek, isSunday, isNonWorking + nonWorkingTitle, practiceKinds (Up/Pp), practiceName?, isOutOfSemester, pairCount (для УП — число пар из PracticeDay; 0 в воскресенье, нерабочий день, ПП и вне семестра). Сетка 7×N достраивается на клиенте. Пример ответа (200): {\"isSuccess\":true,\"data\":{\"year\":2026,\"month\":9,\"days\":[{\"date\":\"2026-09-01T00:00:00Z\",\"dayOfWeek\":2,\"isSunday\":false,\"isNonWorking\":false,\"nonWorkingTitle\":null,\"practiceKinds\":[],\"isOutOfSemester\":false,\"pairCount\":4}]}}"
         },
         {
           "name": "Get schedule (view=semester)",
@@ -2130,7 +2130,7 @@
                   ]
                 }
               },
-              "description": "Постраничный список практик (AllowAnonymous). kind = Up|Pp (строкой). Поля: id, kind, groupId, groupName, teacherId, teacherName, dateFrom, dateTo, organization?, note?. from/to — пересечение периода; pageSize 1–100 (default 20)."
+              "description": "Постраничный список практик (AllowAnonymous). kind = Up|Pp (строкой). Фильтр teacherId — по связи практики с преподавателями (многие-ко-многим). Поля: id, kind, name, groupId, groupName, teacherIds[], teachers[] { id, name }, dateFrom, dateTo, days[] { date, pairCount }, note?. from/to — пересечение периода; pageSize 1–100 (default 20)."
             },
             {
               "name": "Create practice",
@@ -2139,7 +2139,7 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"kind\": \"Up\",\n  \"groupId\": \"{{groupId}}\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"dateFrom\": \"2026-10-01T00:00:00Z\",\n  \"dateTo\": \"2026-10-14T00:00:00Z\",\n  \"organization\": \"ООО «Практика»\",\n  \"note\": \"\"\n}",
+                  "raw": "{\n  \"kind\": \"Up\",\n  \"name\": \"УП 01\",\n  \"groupId\": \"{{groupId}}\",\n  \"teacherIds\": [\"{{teacherId}}\"],\n  \"dateFrom\": \"2026-10-01T00:00:00Z\",\n  \"dateTo\": \"2026-10-14T00:00:00Z\",\n  \"note\": \"\",\n  \"days\": [\n    { \"date\": \"2026-10-01T00:00:00Z\", \"pairCount\": 6 },\n    { \"date\": \"2026-10-02T00:00:00Z\", \"pairCount\": 6 }\n  ]\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": {
@@ -2148,7 +2148,7 @@
                   "path": ["api", "practices"]
                 }
               },
-              "description": "Создать практику (Dispatcher/Admin). Валидации 400: kind определён (Up/Pp); период задан; dateFrom.Date ≤ dateTo.Date; период в пределах семестра; группа и преподаватель существуют. Пересечение практик одной группы по периоду → 409 «У группы уже есть практика в этот период.»."
+              "description": "Создать практику (Dispatcher/Admin). Валидации 400: kind определён (Up/Pp); name не пусто и ≤100; период задан; dateFrom.Date ≤ dateTo.Date; период в пределах семестра; группа найдена; ≥1 преподаватель и все существуют; для УП days[] непуст, даты внутри периода и семестра, pairCount 1–8, без дублей; для ПП days игнорируется. Пересечение практик одной группы по периоду → 409 «У группы уже есть практика в этот период.»."
             },
             {
               "name": "Update practice",
@@ -2157,7 +2157,7 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"kind\": \"Pp\",\n  \"groupId\": \"{{groupId}}\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"dateFrom\": \"2026-10-01T00:00:00Z\",\n  \"dateTo\": \"2026-10-21T00:00:00Z\",\n  \"organization\": \"АО «Завод»\",\n  \"note\": \"\"\n}",
+                  "raw": "{\n  \"kind\": \"Pp\",\n  \"name\": \"ПП 09\",\n  \"groupId\": \"{{groupId}}\",\n  \"teacherIds\": [\"{{teacherId}}\"],\n  \"dateFrom\": \"2026-10-01T00:00:00Z\",\n  \"dateTo\": \"2026-10-21T00:00:00Z\",\n  \"note\": \"\",\n  \"days\": []\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": {
@@ -2199,7 +2199,7 @@
                   "path": ["api", "practices", "import", "preview"]
                 }
               },
-              "description": "Превью импорта практик из XLSX (Dispatcher/Admin, multipart/form-data, поле file). Ограничения: .xlsx, ≤10 МБ. Шапка в строке 1: «Вид | Группа | Дата начала | Дата окончания | Преподаватель | Организация | Примечание»; данные со строки 2. Ответ: { totalRows, rows[] { row, kind, groupName, dateFrom, dateTo, teacherName, organization, note }, errors[] { row, column, level, message } } с сообщениями «строка N: …». 400 — не выбран файл / не XLSX / >10 МБ / повреждён / нет данных."
+              "description": "Превью импорта практик из XLSX (Dispatcher/Admin, multipart/form-data, поле file). Ограничения: .xlsx, ≤10 МБ. Шапка в строке 1: «Вид | Название | Группа | Дата начала | Дата окончания | Преподаватель | Примечание»; данные со строки 2. В колонке «Преподаватель» допускается несколько ФИО через «;». Ответ: { totalRows, rows[] { row, kind, name, groupName, dateFrom, dateTo, teacherName, note }, errors[] { row, column, level, message } } с сообщениями «строка N: …». 400 — не выбран файл / не XLSX / >10 МБ / повреждён / нет данных."
             },
             {
               "name": "Confirm practice import",
@@ -2208,7 +2208,7 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"rows\": [\n    {\n      \"row\": 2,\n      \"kind\": \"УП\",\n      \"groupName\": \"ИС-21\",\n      \"dateFrom\": \"01.10.2026\",\n      \"dateTo\": \"14.10.2026\",\n      \"teacherName\": \"Иванов Иван Иванович\",\n      \"organization\": \"ООО «Практика»\",\n      \"note\": \"\"\n    }\n  ]\n}",
+                  "raw": "{\n  \"rows\": [\n    {\n      \"row\": 2,\n      \"kind\": \"УП\",\n      \"name\": \"УП 01\",\n      \"groupName\": \"ИС-21\",\n      \"dateFrom\": \"01.10.2026\",\n      \"dateTo\": \"14.10.2026\",\n      \"teacherName\": \"Иванов Иван Иванович; Петров Пётр Петрович\",\n      \"note\": \"\"\n    }\n  ]\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": {
@@ -2217,7 +2217,7 @@
                   "path": ["api", "practices", "import", "confirm"]
                 }
               },
-              "description": "Подтвердить импорт практик (Dispatcher/Admin, транзакция). Вид: «УП»/«UP» → Up, «ПП»/«PP» → Pp; даты дд.мм.гггг. Повторная валидация строк: при ошибках → 400 списком «строка N: …»; пустой rows → 400 «Нет строк для импорта.». Ответ: { imported, practices[] }."
+              "description": "Подтвердить импорт практик (Dispatcher/Admin, транзакция). Вид: «УП»/«UP» → Up, «ПП»/«PP» → Pp; даты дд.мм.гггг; в «teacherName» допускается несколько ФИО через «;». Для УП число пар по дням не импортируется — дни создаются автоматически (Пн–Пт периода по 6 пар). Повторная валидация строк: при ошибках → 400 списком «строка N: …»; пустой rows → 400 «Нет строк для импорта.». Ответ: { imported, practices[] }."
             }
           ]
         }

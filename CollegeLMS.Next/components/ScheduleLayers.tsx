@@ -1,10 +1,21 @@
 "use client"
 
 import type { Practice } from "@/api/practices"
-import { PRACTICE_KIND_LABELS, PRACTICE_KIND_SHORT } from "@/api/practices"
+import {
+  PRACTICE_KIND_LABELS,
+  PRACTICE_KIND_SHORT,
+  practiceName,
+  practiceTeacherNames,
+} from "@/api/practices"
 import type { ScheduleInsert } from "@/api/inserts"
-import type { ScheduleBigBreak } from "@/types/schedule"
-import { BellRing, CalendarCheck, CalendarOff, Coffee } from "lucide-react"
+import type { ScheduleBigBreak, ScheduleResponse } from "@/types/schedule"
+import {
+  BellRing,
+  Briefcase,
+  CalendarCheck,
+  CalendarOff,
+  Coffee,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { workingDayLabel } from "@/lib/reference"
 
@@ -119,7 +130,43 @@ export function WorkingDayBadge({
   )
 }
 
-/** Карточка практики: «УП/ПП: группа · преподаватель · организация». */
+/** Название практики у пары УП (если бэкенд его отдал). */
+export function practicePairName(entry: ScheduleResponse): string | null {
+  const name = entry.practiceName?.trim()
+  return name && name.length > 0 ? name : null
+}
+
+/**
+ * Бейдж пары УП. Показывает название практики, если оно не дублирует
+ * предмет пары, иначе — общую метку «Практика».
+ */
+export function PracticePairBadge({
+  name,
+  subject,
+  className,
+}: {
+  name: string
+  subject?: string
+  className?: string
+}) {
+  const trimmed = name.trim()
+  const label = trimmed.length > 0 && trimmed !== subject?.trim()
+    ? trimmed
+    : "Практика"
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+        className,
+      )}
+    >
+      <Briefcase className="size-3" aria-hidden />
+      {label}
+    </span>
+  )
+}
+
+/** Карточка практики: «УП/ПП · название · группа · преподаватели». */
 export function PracticeCard({
   practice,
   compact = false,
@@ -127,6 +174,8 @@ export function PracticeCard({
   practice: Practice
   compact?: boolean
 }) {
+  const name = practiceName(practice)
+  const teachers = practiceTeacherNames(practice)
   return (
     <div
       className={cn(
@@ -135,16 +184,23 @@ export function PracticeCard({
         PRACTICE_BORDER[practice.kind],
       )}
     >
-      <span
-        className={cn(
-          "inline-flex items-center rounded-full px-2 py-0.5 font-medium",
-          compact ? "text-[10px]" : "text-[11px]",
-          PRACTICE_BADGE[practice.kind],
-        )}
-        title={PRACTICE_KIND_LABELS[practice.kind]}
-      >
-        {PRACTICE_KIND_SHORT[practice.kind]}
-      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full px-2 py-0.5 font-medium",
+            compact ? "text-[10px]" : "text-[11px]",
+            PRACTICE_BADGE[practice.kind],
+          )}
+          title={PRACTICE_KIND_LABELS[practice.kind]}
+        >
+          {PRACTICE_KIND_SHORT[practice.kind]}
+        </span>
+        <span
+          className={cn("font-medium", compact ? "text-[11px]" : "text-sm")}
+        >
+          {name}
+        </span>
+      </div>
       <p
         className={cn(
           "mt-1 break-words",
@@ -152,9 +208,7 @@ export function PracticeCard({
         )}
       >
         <span className="font-medium">{practice.groupName}</span>
-        {" · "}
-        {practice.teacherName}
-        {practice.organization ? ` · ${practice.organization}` : ""}
+        {teachers ? ` · ${teachers}` : ""}
       </p>
       {practice.note && (
         <p

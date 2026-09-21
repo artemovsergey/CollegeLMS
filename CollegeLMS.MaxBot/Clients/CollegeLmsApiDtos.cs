@@ -198,19 +198,72 @@ public record ScheduleInsertDto
     public bool IsActive { get; init; }
 }
 
-/// <summary>Практика УП/ПП для группы и преподавателя.</summary>
+/// <summary>Преподаватель практики (элемент Teachers[] в ответе API).</summary>
+public record PracticeTeacherDto
+{
+    public Guid Id { get; init; }
+
+    /// <summary>ФИО преподавателя (поле fullName).</summary>
+    public string FullName { get; init; } = "";
+
+    /// <summary>ФИО преподавателя (альтернативное поле name).</summary>
+    public string Name { get; init; } = "";
+}
+
+/// <summary>
+/// Практика УП/ПП для группы и преподавателей. Терпима к обоим контрактам:
+/// legacy (TeacherId/TeacherName) и новому (Name/TeacherIds/Teachers).
+/// </summary>
 public record PracticeDto
 {
     public Guid Id { get; init; }
     public string Kind { get; init; } = "";
+
+    /// <summary>Название практики («УП 01», «ПП 09»); может отсутствовать в старом контракте.</summary>
+    public string? Name { get; init; }
+
     public Guid GroupId { get; init; }
     public string GroupName { get; init; } = "";
-    public Guid TeacherId { get; init; }
-    public string TeacherName { get; init; } = "";
+
+    /// <summary>Legacy-идентификатор одиночного преподавателя (может отсутствовать).</summary>
+    public Guid? TeacherId { get; init; }
+
+    /// <summary>Legacy-ФИО одиночного преподавателя (может отсутствовать).</summary>
+    public string? TeacherName { get; init; }
+
+    /// <summary>Идентификаторы преподавателей практики (новый контракт).</summary>
+    public List<Guid> TeacherIds { get; init; } = [];
+
+    /// <summary>Преподаватели практики с ФИО (новый контракт).</summary>
+    public List<PracticeTeacherDto> Teachers { get; init; } = [];
+
     public DateTime DateFrom { get; init; }
     public DateTime DateTo { get; init; }
-    public string? Organization { get; init; }
+
     public string? Note { get; init; }
+
+    /// <summary>Все идентификаторы преподавателей: TeacherIds + Teachers + legacy TeacherId.</summary>
+    public List<Guid> TeacherIdList()
+    {
+        var ids = new List<Guid>();
+        ids.AddRange(TeacherIds.Where(id => id != Guid.Empty));
+        ids.AddRange(Teachers.Select(t => t.Id).Where(id => id != Guid.Empty));
+        if (TeacherId is { } legacy && legacy != Guid.Empty)
+            ids.Add(legacy);
+        return ids.Distinct().ToList();
+    }
+
+    /// <summary>Все ФИО преподавателей: Teachers (fullName/name) + legacy TeacherName.</summary>
+    public List<string> TeacherNameList()
+    {
+        var names = Teachers
+            .Select(t => t.FullName.Length > 0 ? t.FullName : t.Name)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToList();
+        if (names.Count == 0 && !string.IsNullOrWhiteSpace(TeacherName))
+            names.Add(TeacherName!);
+        return names;
+    }
 }
 
 /// <summary>Постраничный ответ API CollegeLMS (items + пагинация).</summary>

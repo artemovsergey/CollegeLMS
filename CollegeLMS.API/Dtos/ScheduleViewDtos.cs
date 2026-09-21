@@ -57,6 +57,10 @@ public class ScheduleMonthDayResponse
     public int? SubstituteDayOfWeek { get; set; }
     public string? WorkingDayTitle { get; set; }
     public List<PracticeKind> PracticeKinds { get; set; } = [];
+
+    /// <summary>Название УП-практики на дату (для бейджа), если есть.</summary>
+    public string? PracticeName { get; set; }
+
     public bool IsOutOfSemester { get; set; }
     public int PairCount { get; set; }
 }
