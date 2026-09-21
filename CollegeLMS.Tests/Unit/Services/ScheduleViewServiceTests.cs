@@ -305,6 +305,22 @@ public class ScheduleViewServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetMonthAsync_AugustBoundary_Week1MondayInSemester()
+    {
+        var result = await _sut.GetMonthAsync(null, null, null, "2026-08", CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result
+            .Data!.Days.Single(d => d.Date == new DateTime(2026, 8, 28))
+            .IsOutOfSemester.Should()
+            .BeTrue();
+        result
+            .Data.Days.Single(d => d.Date == new DateTime(2026, 8, 31))
+            .IsOutOfSemester.Should()
+            .BeFalse();
+    }
+
+    [Fact]
     public async Task GetMonthAsync_PracticeKindAndOutOfSemester()
     {
         var (group, teacher) = await SeedGroupAndTeacherAsync();

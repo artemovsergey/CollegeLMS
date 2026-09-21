@@ -17,6 +17,12 @@ public class ScheduleViewService(
     IScheduleInsertService inserts
 ) : IScheduleViewService
 {
+    /// <summary>Понедельник недели 1 — нижняя граница семестра во всех видах.</summary>
+    private static DateTime SemesterMonday => StudyWeek.MondayOf(StudyWeek.SemesterStart);
+
+    /// <summary>Последний день семестра (включительно).</summary>
+    private static DateTime SemesterLastDay => SemesterMonday.AddDays(StudyWeek.TotalWeeks * 7 - 1);
+
     public async Task<Result<ScheduleDayViewResponse>> GetDayAsync(
         Guid? groupId,
         Guid? teacherId,
@@ -27,9 +33,8 @@ public class ScheduleViewService(
     {
         var target = (date ?? DateTime.UtcNow).Date;
         var week = Math.Clamp(StudyWeek.WeekOf(target), 1, StudyWeek.TotalWeeks);
-        return Result<ScheduleDayViewResponse>.Ok(
-            await BuildDayAsync(groupId, teacherId, room, target, week, ct)
-        );
+        var data = await LoadRangeAsync(groupId, teacherId, room, target, target, ct);
+        return Result<ScheduleDayViewResponse>.Ok(BuildDay(data, target, week));
     }
 
     public async Task<Result<ScheduleWeekViewResponse>> GetWeekAsync(
@@ -43,12 +48,12 @@ public class ScheduleViewService(
     {
         var derived = week ?? StudyWeek.WeekOf(date ?? DateTime.UtcNow);
         var effectiveWeek = Math.Clamp(derived, 1, StudyWeek.TotalWeeks);
-        var monday = StudyWeek.MondayOf(StudyWeek.SemesterStart).AddDays((effectiveWeek - 1) * 7);
+        var monday = SemesterMonday.AddDays((effectiveWeek - 1) * 7);
+        var data = await LoadRangeAsync(groupId, teacherId, room, monday, monday.AddDays(5), ct);
+
         var days = new List<ScheduleDayViewResponse>();
         for (var i = 0; i < 6; i++) // Пн–Сб
-            days.Add(
-                await BuildDayAsync(groupId, teacherId, room, monday.AddDays(i), effectiveWeek, ct)
-            );
+            days.Add(BuildDay(data, monday.AddDays(i), effectiveWeek));
         return Result<ScheduleWeekViewResponse>.Ok(
             new ScheduleWeekViewResponse
             {
@@ -98,9 +103,6 @@ public class ScheduleViewService(
         );
         var practiceList = practiceResult.Data?.Items ?? [];
         var entries = await GetMonthEntriesAsync(groupId, teacherId, room, ct); // все записи фильтра, без недельного среза
-        var semesterEnd = StudyWeek
-            .MondayOf(StudyWeek.SemesterStart)
-            .AddDays(StudyWeek.TotalWeeks * 7 - 1);
 
         var days = new List<ScheduleMonthDayResponse>();
         for (var date = first; date <= last; date = date.AddDays(1))
@@ -124,7 +126,7 @@ public class ScheduleViewService(
                     IsNonWorking = nwd is not null,
                     NonWorkingTitle = nwd?.Title,
                     PracticeKinds = coversPractice.Select(p => p.Kind).Distinct().ToList(),
-                    IsOutOfSemester = date < StudyWeek.SemesterStart.Date || date > semesterEnd,
+                    IsOutOfSemester = date < SemesterMonday || date > SemesterLastDay,
                     PairCount = pairCount,
                 }
             );
@@ -151,16 +153,22 @@ public class ScheduleViewService(
                 400
             );
 
-        var monday = StudyWeek.MondayOf(StudyWeek.SemesterStart);
+        var data = await LoadRangeAsync(
+            groupId,
+            teacherId,
+            null,
+            SemesterMonday,
+            SemesterLastDay,
+            ct
+        );
+
         var weeks = new List<ScheduleSemesterWeekResponse>();
         for (var week = 1; week <= StudyWeek.TotalWeeks; week++)
         {
-            var weekStart = monday.AddDays((week - 1) * 7);
+            var weekStart = SemesterMonday.AddDays((week - 1) * 7);
             var days = new List<ScheduleDayViewResponse>();
             for (var i = 0; i < 6; i++)
-                days.Add(
-                    await BuildDayAsync(groupId, teacherId, null, weekStart.AddDays(i), week, ct)
-                );
+                days.Add(BuildDay(data, weekStart.AddDays(i), week));
             weeks.Add(
                 new ScheduleSemesterWeekResponse
                 {
@@ -175,21 +183,85 @@ public class ScheduleViewService(
         );
     }
 
-    private async Task<ScheduleDayViewResponse> BuildDayAsync(
+    /// <summary>Однократная загрузка слоёв на диапазон дат (без запросов на каждый день).</summary>
+    private async Task<ScheduleRangeData> LoadRangeAsync(
         Guid? groupId,
         Guid? teacherId,
         string? room,
-        DateTime target,
-        int week,
+        DateTime from,
+        DateTime to,
         CancellationToken ct
+    )
+    {
+        var nonWorking = await db
+            .NonWorkingDays.AsNoTracking()
+            .Where(d => d.DateFrom <= to && d.DateTo >= from)
+            .ToListAsync(ct);
+
+        var practiceResult = await practices.GetAllAsync(
+            groupId,
+            teacherId,
+            null,
+            from,
+            to,
+            1,
+            100,
+            ct
+        );
+        var practiceList = practiceResult.Data?.Items ?? [];
+
+        var entriesQuery = db
+            .ScheduleEntries.AsNoTracking()
+            .Include(s => s.Group)
+            .Include(s => s.Teacher!)
+                .ThenInclude(t => t.User)
+            .AsQueryable();
+        if (groupId.HasValue)
+            entriesQuery = entriesQuery.Where(s => s.GroupId == groupId.Value);
+        if (teacherId.HasValue)
+            entriesQuery = entriesQuery.Where(s => s.TeacherId == teacherId.Value);
+        if (!string.IsNullOrEmpty(room))
+            entriesQuery = entriesQuery.Where(s => s.Room == room);
+
+        var entries = await entriesQuery.OrderBy(s => s.NumberPair).ToListAsync(ct);
+        var changeTags = await ScheduleChangeTags.BuildAsync(db, entries, null, ct);
+        var bellTimes = await bells.GetTimeMapAsync(ct);
+
+        int? course = null;
+        if (groupId.HasValue)
+            course = await db
+                .Groups.AsNoTracking()
+                .Where(g => g.Id == groupId.Value)
+                .Select(g => (int?)g.Course)
+                .FirstOrDefaultAsync(ct);
+        var insertResult = await inserts.GetAllAsync(null, course, activeOnly: true, ct);
+        var insertsByDay = (insertResult.Data ?? [])
+            .GroupBy(i => (DayOfWeek)i.DayOfWeek)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        return new ScheduleRangeData(
+            nonWorking,
+            practiceList,
+            entries,
+            changeTags,
+            bellTimes,
+            insertsByDay
+        );
+    }
+
+    /// <summary>Сборка дня из предзагруженных слоёв (без обращений к БД).</summary>
+    private static ScheduleDayViewResponse BuildDay(
+        ScheduleRangeData data,
+        DateTime target,
+        int week
     )
     {
         if (target.DayOfWeek == DayOfWeek.Sunday)
             return Empty(target, week, isSunday: true);
 
-        var nonWorking = await db
-            .NonWorkingDays.AsNoTracking()
-            .FirstOrDefaultAsync(d => d.DateFrom <= target && d.DateTo >= target, ct);
+        var nonWorking = data.NonWorking.FirstOrDefault(d =>
+            d.DateFrom <= target && d.DateTo >= target
+        );
         if (nonWorking is not null)
             return new ScheduleDayViewResponse
             {
@@ -200,17 +272,9 @@ public class ScheduleViewService(
                 NonWorkingTitle = nonWorking.Title,
             };
 
-        var practiceResult = await practices.GetAllAsync(
-            groupId,
-            teacherId,
-            null,
-            target,
-            target,
-            1,
-            50,
-            ct
-        );
-        var practiceList = practiceResult.Data?.Items ?? [];
+        var practiceList = data
+            .Practices.Where(p => p.DateFrom <= target && p.DateTo >= target)
+            .ToList();
         if (practiceList.Count > 0)
             return new ScheduleDayViewResponse
             {
@@ -225,9 +289,37 @@ public class ScheduleViewService(
             Date = target,
             Week = week,
             DayOfWeek = (int)target.DayOfWeek,
-            Inserts = await GetInsertsAsync(target.DayOfWeek, groupId, ct),
-            Entries = await GetEntriesAsync(groupId, teacherId, room, target, week, ct),
+            Inserts = data.InsertsByDay.GetValueOrDefault(target.DayOfWeek) ?? [],
+            Entries = BuildEntries(data, target, week),
         };
+    }
+
+    private static List<ScheduleResponse> BuildEntries(
+        ScheduleRangeData data,
+        DateTime target,
+        int week
+    )
+    {
+        if (target < SemesterMonday || target > SemesterLastDay)
+            return [];
+
+        return data
+            .Entries.Where(e => e.DayOfWeek == target.DayOfWeek && e.Weeks.Contains(week))
+            .Select(e =>
+            {
+                var tags = data
+                    .ChangeTags.GetValueOrDefault((e.GroupId, e.DayOfWeek, e.NumberPair))
+                    ?.Where(t => t.Week == week)
+                    .ToList();
+                var dto = e.ToDto(tags);
+                if (data.BellTimes.TryGetValue(e.NumberPair, out var time))
+                {
+                    dto.StartTime = time.Start;
+                    dto.EndTime = time.End;
+                }
+                return dto;
+            })
+            .ToList();
     }
 
     private static ScheduleDayViewResponse Empty(DateTime target, int week, bool isSunday) =>
@@ -238,68 +330,6 @@ public class ScheduleViewService(
             DayOfWeek = (int)target.DayOfWeek,
             IsSunday = isSunday,
         };
-
-    private async Task<List<ScheduleInsertResponse>> GetInsertsAsync(
-        DayOfWeek day,
-        Guid? groupId,
-        CancellationToken ct
-    )
-    {
-        int? course = null;
-        if (groupId.HasValue)
-            course = await db
-                .Groups.AsNoTracking()
-                .Where(g => g.Id == groupId.Value)
-                .Select(g => (int?)g.Course)
-                .FirstOrDefaultAsync(ct);
-        var result = await inserts.GetAllAsync(day, course, activeOnly: true, ct);
-        return result.Data ?? [];
-    }
-
-    private async Task<List<ScheduleResponse>> GetEntriesAsync(
-        Guid? groupId,
-        Guid? teacherId,
-        string? room,
-        DateTime date,
-        int week,
-        CancellationToken ct
-    )
-    {
-        var query = db
-            .ScheduleEntries.AsNoTracking()
-            .Include(s => s.Group)
-            .Include(s => s.Teacher!)
-                .ThenInclude(t => t.User)
-            .Where(s =>
-                s.DayOfWeek == date.DayOfWeek
-                && s.Weeks.Contains(week)
-                && date >= StudyWeek.MondayOf(StudyWeek.SemesterStart)
-                && date
-                    < StudyWeek.MondayOf(StudyWeek.SemesterStart).AddDays(StudyWeek.TotalWeeks * 7)
-            );
-        if (groupId.HasValue)
-            query = query.Where(s => s.GroupId == groupId.Value);
-        if (teacherId.HasValue)
-            query = query.Where(s => s.TeacherId == teacherId.Value);
-        if (!string.IsNullOrEmpty(room))
-            query = query.Where(s => s.Room == room);
-
-        var items = await query.OrderBy(s => s.NumberPair).ToListAsync(ct);
-        var tags = await ScheduleChangeTags.BuildAsync(db, items, week, ct);
-        var bellTimes = await bells.GetTimeMapAsync(ct);
-        return items
-            .Select(s =>
-            {
-                var dto = s.ToDto(tags.GetValueOrDefault((s.GroupId, s.DayOfWeek, s.NumberPair)));
-                if (bellTimes.TryGetValue(s.NumberPair, out var time))
-                {
-                    dto.StartTime = time.Start;
-                    dto.EndTime = time.End;
-                }
-                return dto;
-            })
-            .ToList();
-    }
 
     private async Task<List<ScheduleEntry>> GetMonthEntriesAsync(
         Guid? groupId,
@@ -318,4 +348,13 @@ public class ScheduleViewService(
 
         return await query.ToListAsync(ct);
     }
+
+    private sealed record ScheduleRangeData(
+        List<NonWorkingDay> NonWorking,
+        List<PracticeResponse> Practices,
+        List<ScheduleEntry> Entries,
+        Dictionary<(Guid GroupId, DayOfWeek DayOfWeek, int NumberPair), List<ChangeTag>> ChangeTags,
+        Dictionary<int, (TimeSpan Start, TimeSpan End)> BellTimes,
+        Dictionary<DayOfWeek, List<ScheduleInsertResponse>> InsertsByDay
+    );
 }
