@@ -226,11 +226,9 @@ export default function ScheduleMonthCalendar({
                   {day.isNonWorking ? (
                     <span
                       title={day.nonWorkingTitle ?? "Нерабочий день"}
-                      aria-label={`Нерабочий день: ${day.nonWorkingTitle ?? ""}`}
-                      className="inline-flex items-center gap-0.5 text-[11px] text-amber-700 dark:text-amber-300"
+                      className="inline-flex items-center text-amber-700 dark:text-amber-300"
                     >
-                      <AlertTriangle className="size-3 shrink-0" aria-hidden />
-                      Праздник
+                      <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
                     </span>
                   ) : day.pairCount > 0 ? (
                     <span className="text-[11px] text-muted-foreground">
