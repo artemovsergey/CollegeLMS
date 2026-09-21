@@ -558,4 +558,30 @@ public class ScheduleExportServiceTests : IDisposable
         );
         text.Should().Contain("УП").And.Contain("Разговор о важном");
     }
+
+    [Fact]
+    public async Task ExportAsync_NoScope_LegacyGrid_ReturnsFile()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group, teacher, DayOfWeek.Tuesday, 1);
+
+        var result = await _sut.ExportAsync(
+            group.Id,
+            null,
+            null,
+            null,
+            null,
+            null,
+            ExportFormat.Xlsx,
+            ExportLayout.Grid,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.FileContent.Should().NotBeEmpty();
+        result
+            .Data.FileName.Should()
+            .MatchRegex(@"^Расписание_\d{2}\.\d{2}\.\d{4}_\d{2}-\d{2}-\d{2}\.xlsx$");
+    }
 }

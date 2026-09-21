@@ -504,4 +504,30 @@ public class ScheduleControllerTests : BaseIntegrationTest
         var json = await response.Content.ReadAsStringAsync();
         json.Should().Contain("Укажите scope: day, week или semester.");
     }
+
+    [Fact]
+    public async Task Export_LegacyNoScope_ReturnsXlsxWithFile3Name()
+    {
+        var groupId = Guid.NewGuid();
+        var entry = ScheduleEntryFixture.CreateFaker().Generate();
+        entry.GroupId = groupId;
+        entry.Group!.Id = groupId;
+        entry.DayOfWeek = DayOfWeek.Tuesday;
+        entry.NumberPair = 1;
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.ScheduleEntries.Add(entry);
+            await db.SaveChangesAsync();
+        }
+
+        var response = await Client.GetAsync($"/api/schedule/export?format=xlsx&groupId={groupId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var disposition = Uri.UnescapeDataString(
+            response.Content.Headers.GetValues("Content-Disposition").Single()
+        );
+        disposition.Should().MatchRegex(@"Расписание_\d{2}\.\d{2}\.\d{4}_\d{2}-\d{2}-\d{2}\.xlsx");
+    }
 }
