@@ -1824,7 +1824,7 @@ public class MaxBotService : BackgroundService
             var payload = await _max.UploadFileAsync(
                 upload.Url,
                 bytes,
-                $"Расписание_{DateTime.Now:dd.MM.yyyy_HH-mm-ss}.xlsx",
+                $"schedule_{DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss", System.Globalization.CultureInfo.InvariantCulture)}.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 ct
             );
@@ -1849,13 +1849,15 @@ public class MaxBotService : BackgroundService
                 buttons,
                 ct
             );
-            await _max.SendMessageAsync(chatId, "✅ XLSX отправлен.", ct: ct);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send XLSX file");
             await _max.SendMessageAsync(chatId, "❌ Не удалось отправить XLSX.", ct: ct);
+            return;
         }
+
+        await _max.SendMessageAsync(chatId, "✅ XLSX отправлен.", ct: ct);
     }
 
     private async Task HandleNotifyTimeAsync(

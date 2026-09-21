@@ -86,6 +86,38 @@ public class MaxApiFileTests
     }
 
     [Fact]
+    public async Task UploadFileAsync_MultipartFileName_IsAscii()
+    {
+        string? fieldName = null;
+        string? fileName = null;
+        var handler = new RecordingHandler(request =>
+        {
+            var multipart = (MultipartFormDataContent)request.Content!;
+            var part = multipart.Single();
+            fieldName = part.Headers.ContentDisposition!.Name!.Trim('"');
+            fileName =
+                part.Headers.ContentDisposition.FileName?.Trim('"')
+                ?? part.Headers.ContentDisposition.FileNameStar?.Trim('"');
+            return Json("""{"token":"file-token"}""");
+        });
+        var client = BuildClient(handler);
+
+        const string asciiName = "schedule_2026-09-21_14-35-00.xlsx";
+
+        await client.UploadFileAsync(
+            "https://cdn.example/upload/file",
+            [1, 2, 3],
+            asciiName,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            CancellationToken.None
+        );
+
+        fieldName.Should().Be("data");
+        fileName.Should().Be(asciiName);
+        fileName.Should().MatchRegex("^[\\x20-\\x7E]+$");
+    }
+
+    [Fact]
     public async Task UploadImageAsync_UsesPngContentType()
     {
         string? contentType = null;
