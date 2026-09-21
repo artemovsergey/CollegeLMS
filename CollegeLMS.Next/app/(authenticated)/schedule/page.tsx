@@ -9,7 +9,6 @@ import { useAuth } from "@/lib/auth"
 import {
   fetchScheduleContext,
   fetchScheduleMeta,
-  fetchSemesterView,
   exportSchedule,
   deleteSchedule,
   normalizeDateOnly,
@@ -26,12 +25,11 @@ import WeekNavigation from "@/components/WeekNavigation"
 import ScheduleDayView from "@/components/ScheduleDayView"
 import ScheduleWeekView from "@/components/ScheduleWeekView"
 import ScheduleMonthCalendar from "@/components/ScheduleMonthCalendar"
-import SemesterView from "@/components/SemesterView"
+import ScheduleSemesterMatrix from "@/components/ScheduleSemesterMatrix"
 import ScheduleEntryDialog from "@/components/ScheduleEntryDialog"
 import ScheduleImportDialog from "@/components/ScheduleImportDialog"
 import { CAN_MANAGE_ROLES } from "@/lib/constants"
 import LoadingSpinner from "@/components/LoadingSpinner"
-import ErrorBanner from "@/components/ErrorBanner"
 import { CalendarDays, Filter, SearchX, Upload } from "lucide-react"
 import { toast } from "sonner"
 
@@ -63,9 +61,6 @@ export default function SchedulePage() {
   const [defaultGroupId, setDefaultGroupId] = useState("")
   const [defaultTeacherId, setDefaultTeacherId] = useState("")
 
-  const [semesterEntries, setSemesterEntries] = useState<ScheduleResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [urlReady, setUrlReady] = useState(false)
 
@@ -76,7 +71,6 @@ export default function SchedulePage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
-  const requestIdRef = useRef(0)
   const legacyRef = useRef<{ week: number; day: number } | null>(null)
   const hasUrlDateRef = useRef(false)
   const hasUrlWeekRef = useRef(false)
@@ -88,8 +82,6 @@ export default function SchedulePage() {
   const hasCustomFilters =
     selectedGroupId !== defaultGroupId ||
     selectedTeacherId !== defaultTeacherId
-  const semesterFilterMissing =
-    Boolean(selectedGroupId) === Boolean(selectedTeacherId)
 
   // Разбор URL: view|date|week|month и миграция старых ?week=&day=.
   useEffect(() => {
@@ -244,59 +236,6 @@ export default function SchedulePage() {
     )
   }, [urlReady, view, selectedDate, selectedWeek, selectedMonth])
 
-  // Переходное состояние: до Tasks 10–13 источник данных — постраничный список
-  // и старый семестровый вид.
-  const loadViewData = useCallback(async () => {
-    if (!token) return
-    if (view !== "semester") {
-      setLoading(false)
-      return
-    }
-    if (semesterFilterMissing) {
-      setSemesterEntries([])
-      setError(null)
-      setLoading(false)
-      return
-    }
-
-    const requestId = ++requestIdRef.current
-    setLoading(true)
-    setError(null)
-    try {
-      const body = await fetchSemesterView({
-        groupId: selectedGroupId || undefined,
-        teacherId: selectedTeacherId || undefined,
-      })
-      if (requestId !== requestIdRef.current) return
-      if (body.isSuccess && body.data) {
-        setSemesterEntries(
-          body.data.weeks.flatMap((week) =>
-            week.days.flatMap((day) => day.entries),
-          ),
-        )
-      } else {
-        setError(body.errorMessage ?? "Ошибка загрузки расписания")
-      }
-    } catch {
-      if (requestId === requestIdRef.current) {
-        setError("Ошибка загрузки расписания")
-      }
-    } finally {
-      if (requestId === requestIdRef.current) setLoading(false)
-    }
-  }, [
-    token,
-    view,
-    selectedGroupId,
-    selectedTeacherId,
-    semesterFilterMissing,
-    refreshKey,
-  ])
-
-  useEffect(() => {
-    loadViewData()
-  }, [loadViewData])
-
   const handleViewChange = (mode: ScheduleViewMode) => {
     setView(mode)
   }
@@ -310,14 +249,6 @@ export default function SchedulePage() {
     const normalized = normalizeDateOnly(date)
     if (normalized) setSelectedDate(normalized)
     setView("day")
-  }
-
-  const handleSemesterCellClick = (week: number, day: number) => {
-    if (!meta) return
-    const monday = mondayOf(parseIsoDate(normalizeDateOnly(meta.semesterStart)))
-    const date = new Date(monday)
-    date.setDate(date.getDate() + (week - 1) * 7 + (day - 1))
-    handleDayOpen(toIsoDate(date))
   }
 
   const handleClear = () => {
@@ -500,8 +431,6 @@ export default function SchedulePage() {
         />
       )}
 
-      {error && <ErrorBanner message={error} />}
-
       {view === "day" && (
         <ScheduleDayView
           date={selectedDate}
@@ -537,22 +466,14 @@ export default function SchedulePage() {
         />
       )}
 
-      {view === "semester" &&
-        (semesterFilterMissing ? (
-          <div className="flex min-h-[40vh] items-center justify-center rounded-lg border bg-card p-10 text-center text-muted-foreground">
-            Выберите группу или преподавателя
-          </div>
-        ) : loading ? (
-          <div className="flex min-h-[60vh] items-center justify-center">
-            <LoadingSpinner size="lg" />
-          </div>
-        ) : (
-          <SemesterView
-            entries={semesterEntries}
-            selectedWeek={selectedWeek}
-            onCellClick={handleSemesterCellClick}
-          />
-        ))}
+      {view === "semester" && (
+        <ScheduleSemesterMatrix
+          groupId={selectedGroupId || undefined}
+          teacherId={selectedTeacherId || undefined}
+          refreshKey={refreshKey}
+          onDayClick={handleDayOpen}
+        />
+      )}
 
       <ScheduleEntryDialog
         open={entryDialogOpen}
