@@ -12,7 +12,8 @@ namespace CollegeLMS.API.Controllers;
 [Produces("application/json")]
 public class DashboardController(
     IDashboardService service,
-    IDispatcherDashboardService dispatcherService
+    IDispatcherDashboardService dispatcherService,
+    ILiveDashboardService liveService
 ) : ControllerBase
 {
     [HttpGet("api/teacher/dashboard")]
@@ -99,6 +100,27 @@ public class DashboardController(
     )
     {
         var result = await dispatcherService.GetDailyAsync(date ?? DateTime.UtcNow.Date, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+        return Ok(result);
+    }
+
+    [HttpGet("api/dispatcher/live")]
+    [Authorize(Roles = "Dispatcher,Admin")]
+    [SwaggerOperation(Summary = "Получить live-состояние пар по преподавателям и группам")]
+    [SwaggerResponse(200, "Состояние получено", typeof(Result<LiveDashboardResponse>))]
+    [SwaggerResponse(401, "Не авторизован")]
+    [SwaggerResponse(403, "Доступ запрещён")]
+    [ProducesResponseType(typeof(Result<LiveDashboardResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<Result<LiveDashboardResponse>>> GetLive(
+        [FromQuery] DateTime? date,
+        [FromQuery] DateTime? at,
+        CancellationToken ct
+    )
+    {
+        var result = await liveService.GetLiveAsync(date, at, ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
         return Ok(result);

@@ -1309,6 +1309,37 @@
           "description": "Дашборд диспетчера: преподаватели и слоты пар на дату"
         },
         {
+          "name": "Get live dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dispatcher/live?date=2026-09-22&at=2026-09-22T09:00:00",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dispatcher",
+                "live"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-09-22",
+                  "description": "Дата состояния (необязательно; по умолчанию текущая дата UTC)"
+                },
+                {
+                  "key": "at",
+                  "value": "2026-09-22T09:00:00",
+                  "description": "Момент времени UTC для расчёта статусов (необязательно; для тестируемости)"
+                }
+              ]
+            }
+          },
+          "description": "Live-состояние пар по всем преподавателям и группам (Dispatcher/Admin). Ответ Result<LiveDashboardResponse>: now (HH:mm:ss), date, week, dayOfWeek, isWorkingDay, isNonWorking, workingDayTitle, nonWorkingTitle, counts { inLesson, finished, noPairs, waiting }, teachers[] и groups[] — элементы LiveEntityStatus { id, name, status (InLesson|Finished|NoPairs|Waiting), totalPairs, currentPair, nextPair, entries[] }. Время пар берётся из разрешённого на дату профиля звонков; в элементы попадают только преподаватели/группы с записями или практикой на дату. Пример: {\"isSuccess\":true,\"data\":{\"now\":\"09:00:00\",\"date\":\"2026-09-22T00:00:00\",\"week\":4,\"dayOfWeek\":2,\"isWorkingDay\":true,\"isNonWorking\":false,\"workingDayTitle\":null,\"nonWorkingTitle\":null,\"counts\":{\"inLesson\":3,\"finished\":5,\"noPairs\":10,\"waiting\":2},\"teachers\":[],\"groups\":[]},\"errorMessage\":null,\"statusCode\":200}."
+        },
+        {
           "name": "Get document templates",
           "request": {
             "method": "GET",

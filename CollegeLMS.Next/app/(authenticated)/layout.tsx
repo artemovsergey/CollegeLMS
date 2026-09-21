@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth"
 import AuthenticatedShell from "@/components/AuthenticatedShell"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import { adminMenuSections, type MenuSection } from "@/lib/menus"
-import { LayoutDashboard, BookOpen, CalendarDays, GraduationCap, Settings, FileText, Briefcase, Bell, CalendarX2, CalendarClock, History, ClipboardList } from "lucide-react"
+import { LayoutDashboard, BookOpen, CalendarDays, GraduationCap, Settings, FileText, Briefcase, Bell, CalendarX2, CalendarClock, History, ClipboardList, Activity } from "lucide-react"
 
 const studentMenu = [
   {
@@ -55,6 +55,11 @@ const dispatcherMenu = [
       { href: "/dispatcher/documents", label: "Документы", icon: FileText },
       { href: "/dispatcher/practices", label: "Практики", icon: Briefcase },
       { href: "/teacher/journal", label: "Журнал преподавателя", icon: ClipboardList },
+    ]
+  },
+  {
+    label: "Экспериментальное", items: [
+      { href: "/dispatcher/live", label: "Текущие пары", icon: Activity },
     ]
   },
 ]
