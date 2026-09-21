@@ -38,5 +38,8 @@ public class ConfirmResult
 {
     public bool IsSuccess { get; set; }
     public int Imported { get; set; }
+    public int Groups { get; set; }
+    public int Teachers { get; set; }
+    public List<ScheduleValidationError> Errors { get; set; } = [];
     public List<ScheduleResponse> Schedule { get; set; } = [];
 }

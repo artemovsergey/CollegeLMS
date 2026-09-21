@@ -431,6 +431,42 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         }
     }
 
+    private static List<ScheduleValidationError> ValidateConfirmEntries(
+        List<SchedulePreviewEntry> entries
+    )
+    {
+        var errors = new List<ScheduleValidationError>();
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i];
+            if (entry.Pair < 1 || entry.Pair > 8)
+                errors.Add(ConfirmError(i, "номер пары должен быть от 1 до 8"));
+            if (!Enum.TryParse<DayOfWeek>(entry.Day, true, out _))
+                errors.Add(ConfirmError(i, $"неизвестный день недели \"{entry.Day}\""));
+            if (string.IsNullOrWhiteSpace(entry.GroupName))
+                errors.Add(ConfirmError(i, "не указана группа"));
+            if (string.IsNullOrWhiteSpace(entry.Subject))
+                errors.Add(ConfirmError(i, "не указан предмет"));
+            if (string.IsNullOrWhiteSpace(entry.Room))
+                errors.Add(ConfirmError(i, "не указана аудитория"));
+            if (entry.Weeks.Count == 0 || entry.Weeks.Any(w => w < 1 || w > StudyWeek.TotalWeeks))
+                errors.Add(
+                    ConfirmError(i, $"недели должны быть в диапазоне 1–{StudyWeek.TotalWeeks}")
+                );
+        }
+        return errors;
+    }
+
+    private static ScheduleValidationError ConfirmError(int index, string message) =>
+        Error("импорт", index + 2, 0, "data", message);
+
+    private static int ParseCourse(string groupName)
+    {
+        var digits = new string(groupName.Where(char.IsDigit).ToArray());
+        var course = digits.Length > 0 ? digits[0] - '0' : 1;
+        return Math.Clamp(course, 1, 4);
+    }
+
     public async Task<ConfirmResult> ConfirmAsync(
         ConfirmImportRequest request,
         CancellationToken ct
@@ -440,10 +476,25 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         {
             return new ConfirmResult
             {
-                IsSuccess = true,
-                Imported = 0,
-                Schedule = [],
+                IsSuccess = false,
+                Errors =
+                [
+                    new ScheduleValidationError
+                    {
+                        Sheet = "импорт",
+                        Row = 0,
+                        Column = 0,
+                        Level = "structure",
+                        Message = "Нет позиций для импорта",
+                    },
+                ],
             };
+        }
+
+        var errors = ValidateConfirmEntries(request.Entries);
+        if (errors.Count > 0)
+        {
+            return new ConfirmResult { IsSuccess = false, Errors = errors };
         }
 
         var bellTimes = await bells.GetTimeMapAsync(ct);
@@ -458,12 +509,8 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
             db.ScheduleHistory.RemoveRange(existingHistory);
 
             var uniqueGroups = request.Entries.Select(e => e.GroupName).Distinct().ToList();
-            var uniqueTeachers = request
-                .Entries.Where(e => !string.IsNullOrEmpty(e.TeacherName))
-                .Select(e => e.TeacherName.Trim())
-                .Distinct()
-                .ToList();
 
+            var createdGroups = 0;
             var existingGroups = await db
                 .Groups.Where(g => uniqueGroups.Contains(g.Name))
                 .ToDictionaryAsync(g => g.Name, g => g.Id, ct);
@@ -475,52 +522,92 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                 {
                     Id = Guid.NewGuid(),
                     Name = name,
-                    Course = Math.Clamp(
-                        int.TryParse(new string(name.Where(char.IsDigit).ToArray()), out var c)
-                            ? c / 100
-                            : 1,
-                        1,
-                        4
-                    ),
+                    Course = ParseCourse(name),
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                 };
                 db.Groups.Add(group);
                 groupMap[name] = group.Id;
+                createdGroups++;
             }
 
-            var existingTeachers = await db
-                .Teachers.Include(t => t.User)
-                .Where(t => uniqueTeachers.Contains(t.User.FullName))
-                .ToDictionaryAsync(t => t.User.FullName, t => t.Id, ct);
+            var uniqueTeachers = request
+                .Entries.Where(e => !string.IsNullOrWhiteSpace(e.TeacherName))
+                .Select(e => NormalizeTeacherName(e.TeacherName))
+                .Distinct()
+                .ToList();
 
-            var teacherMap = new Dictionary<string, Guid>(existingTeachers);
-            foreach (var name in uniqueTeachers.Where(n => !existingTeachers.ContainsKey(n)))
+            var createdTeachers = 0;
+            var teacherMap = new Dictionary<string, Guid>();
+
+            if (uniqueTeachers.Count > 0)
             {
-                var user = new User
-                {
-                    Id = Guid.NewGuid(),
-                    FullName = name,
-                    Login = name.Replace(" ", ".").ToLowerInvariant(),
-                    Email = $"{name.Replace(" ", ".").ToLowerInvariant()}@temp.local",
-                    PasswordHash = "",
-                    Role = UserRole.Teacher,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                };
-                db.Users.Add(user);
+                var teacherUsers = await db
+                    .Users.Where(u => u.Role == UserRole.Teacher)
+                    .Select(u => new { u.Id, u.FullName })
+                    .ToListAsync(ct);
 
-                var teacher = new Teacher
+                var userMap = new Dictionary<string, Guid>();
+                foreach (var item in teacherUsers)
+                    userMap.TryAdd(NormalizeTeacherName(item.FullName), item.Id);
+
+                var profileMap = (
+                    await db.Teachers.Select(t => new { t.Id, t.UserId }).ToListAsync(ct)
+                ).ToDictionary(t => t.UserId, t => t.Id);
+
+                foreach (var name in uniqueTeachers)
                 {
-                    Id = Guid.NewGuid(),
-                    UserId = user.Id,
-                    CyclicalCommission = "Не указана",
-                    Position = "Преподаватель",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                };
-                db.Teachers.Add(teacher);
-                teacherMap[name] = teacher.Id;
+                    if (userMap.TryGetValue(name, out var userId))
+                    {
+                        if (profileMap.TryGetValue(userId, out var profileId))
+                        {
+                            teacherMap[name] = profileId;
+                            continue;
+                        }
+
+                        var profile = new Teacher
+                        {
+                            Id = Guid.NewGuid(),
+                            UserId = userId,
+                            CyclicalCommission = "Не указана",
+                            Position = "Преподаватель",
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow,
+                        };
+                        db.Teachers.Add(profile);
+                        profileMap[userId] = profile.Id;
+                        teacherMap[name] = profile.Id;
+                        createdTeachers++;
+                        continue;
+                    }
+
+                    var user = new User
+                    {
+                        Id = Guid.NewGuid(),
+                        FullName = name,
+                        Login = name.Replace(" ", ".").ToLowerInvariant(),
+                        Email = $"{name.Replace(" ", ".").ToLowerInvariant()}@temp.local",
+                        PasswordHash = "",
+                        Role = UserRole.Teacher,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    };
+                    db.Users.Add(user);
+
+                    var teacher = new Teacher
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = user.Id,
+                        CyclicalCommission = "Не указана",
+                        Position = "Преподаватель",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    };
+                    db.Teachers.Add(teacher);
+                    userMap[name] = user.Id;
+                    teacherMap[name] = teacher.Id;
+                    createdTeachers++;
+                }
             }
 
             await db.SaveChangesAsync(ct);
@@ -531,12 +618,11 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                 var groupId = groupMap[entry.GroupName];
 
                 Guid? teacherId = null;
-                if (
-                    !string.IsNullOrEmpty(entry.TeacherName)
-                    && teacherMap.TryGetValue(entry.TeacherName, out var tid)
-                )
+                if (!string.IsNullOrWhiteSpace(entry.TeacherName))
                 {
-                    teacherId = tid;
+                    var teacherKey = NormalizeTeacherName(entry.TeacherName);
+                    if (teacherMap.TryGetValue(teacherKey, out var tid))
+                        teacherId = tid;
                 }
 
                 Enum.TryParse<DayOfWeek>(entry.Day, true, out var dayOfWeek);
@@ -556,7 +642,7 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                         NumberPair = entry.Pair,
                         StartTime = startTime,
                         EndTime = endTime,
-                        Weeks = entry.Weeks.Count > 0 ? entry.Weeks : [1],
+                        Weeks = entry.Weeks,
                         LessonType = LessonType.None,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow,
@@ -580,6 +666,8 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
             {
                 IsSuccess = true,
                 Imported = entriesToAdd.Count,
+                Groups = createdGroups,
+                Teachers = createdTeachers,
                 Schedule = allEntries.Select(e => e.ToDto()).ToList(),
             };
         }

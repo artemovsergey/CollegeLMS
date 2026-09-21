@@ -466,13 +466,13 @@ public class ScheduleController(
     [HttpPost("import/confirm")]
     [Authorize(Roles = "Dispatcher,Admin")]
     [SwaggerOperation(Summary = "Подтвердить импорт расписания")]
-    [SwaggerResponse(200, "Импорт выполнен", typeof(Result<ConfirmResult>))]
-    [SwaggerResponse(400, "Ошибка валидации")]
+    [SwaggerResponse(200, "Импорт выполнен", typeof(ConfirmResult))]
+    [SwaggerResponse(400, "Ошибки позиций импорта", typeof(ConfirmResult))]
     [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(403, "Доступ запрещён")]
     [SwaggerResponse(500, "Ошибка сервера")]
-    [ProducesResponseType(typeof(Result<ConfirmResult>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ConfirmResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ConfirmResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -482,7 +482,9 @@ public class ScheduleController(
     )
     {
         var result = await importService.ConfirmAsync(request, ct);
-        return Ok(Result<ConfirmResult>.Ok(result));
+        if (!result.IsSuccess)
+            return BadRequest(result);
+        return Ok(result);
     }
 
     [HttpDelete("{id:guid}")]

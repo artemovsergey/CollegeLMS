@@ -212,8 +212,28 @@ public class ScheduleImportServiceTests : IDisposable
         result.Preview.Errors.Should().BeEmpty();
     }
 
+    private static SchedulePreviewEntry Entry(
+        string groupName = "ПО 262",
+        string day = "Monday",
+        int pair = 1,
+        string subject = "История",
+        string room = "232",
+        string teacherName = "",
+        List<int>? weeks = null
+    ) =>
+        new()
+        {
+            GroupName = groupName,
+            Day = day,
+            Pair = pair,
+            Subject = subject,
+            Room = room,
+            TeacherName = teacherName,
+            Weeks = weeks ?? [1],
+        };
+
     [Fact]
-    public async Task ConfirmAsync_ClearsPreviousScheduleHistory()
+    public async Task ConfirmAsync_ReplacesScheduleAndHistory()
     {
         var group = new Group
         {
@@ -222,6 +242,21 @@ public class ScheduleImportServiceTests : IDisposable
             Course = 2,
         };
         _db.Groups.Add(group);
+        _db.ScheduleEntries.Add(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                Subject = "Старая дисциплина",
+                Room = "101",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 2,
+                StartTime = new TimeSpan(10, 50, 0),
+                EndTime = new TimeSpan(12, 20, 0),
+                Weeks = [1, 2, 3],
+                LessonType = LessonType.None,
+            }
+        );
         _db.ScheduleHistory.Add(
             new ScheduleHistory
             {
@@ -241,26 +276,196 @@ public class ScheduleImportServiceTests : IDisposable
         var result = await _sut.ConfirmAsync(
             new ConfirmImportRequest
             {
+                Entries = [Entry(groupName: group.Name, teacherName: "Петров П.П.")],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Imported.Should().Be(1);
+        _db.ScheduleHistory.Should().BeEmpty();
+        _db.ScheduleEntries.Should().ContainSingle(e => e.Subject == "История");
+        _db.ScheduleEntries.Should().NotContain(e => e.Subject == "Старая дисциплина");
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_InvalidPair_ReturnsErrors()
+    {
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest { Entries = [Entry(pair: 9)] },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Message.Contains("номер пары"));
+        result.Errors[0].Sheet.Should().Be("импорт");
+        result.Errors[0].Row.Should().Be(2);
+        _db.ScheduleEntries.Should().BeEmpty();
+        _db.Groups.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_InvalidWeeks_ReturnsErrors()
+    {
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest { Entries = [Entry(weeks: [0, 17])] },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result
+            .Errors.Should()
+            .Contain(e => e.Message.Contains("недели должны быть в диапазоне 1–16"));
+        _db.ScheduleEntries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_EmptyEntries_ReturnsError()
+    {
+        var result = await _sut.ConfirmAsync(new ConfirmImportRequest(), CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Errors.Should().ContainSingle();
+        result.Errors[0].Message.Should().Contain("Нет позиций для импорта");
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_CreatesGroupsWithCourseFromFirstDigit()
+    {
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest
+            {
                 Entries =
                 [
-                    new SchedulePreviewEntry
-                    {
-                        GroupName = group.Name,
-                        Day = "Monday",
-                        Pair = 1,
-                        Subject = "История",
-                        Room = "232",
-                        TeacherName = "Петров П.П.",
-                        Weeks = [1],
-                    },
+                    Entry(groupName: "ИС-21"),
+                    Entry(groupName: "1-11"),
+                    Entry(groupName: "ПО"),
+                    Entry(groupName: "ИС-99"),
                 ],
             },
             CancellationToken.None
         );
 
         result.IsSuccess.Should().BeTrue();
-        _db.ScheduleHistory.Should().BeEmpty();
-        _db.ScheduleEntries.Should().ContainSingle(e => e.Subject == "История");
+        result.Groups.Should().Be(4);
+        _db.Groups.Single(g => g.Name == "ИС-21").Course.Should().Be(2);
+        _db.Groups.Single(g => g.Name == "1-11").Course.Should().Be(1);
+        _db.Groups.Single(g => g.Name == "ПО").Course.Should().Be(1);
+        _db.Groups.Single(g => g.Name == "ИС-99").Course.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_LinksTeacherToExistingUser()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Login = "ivanov.i.i",
+            Email = "ivanov@college.local",
+            FullName = "Иванов И. И.",
+            Role = UserRole.Teacher,
+        };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest { Entries = [Entry(teacherName: "Иванов И.И.")] },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Teachers.Should().Be(1);
+        _db.Users.Should().ContainSingle();
+        var teacher = _db.Teachers.Should().ContainSingle().Subject;
+        teacher.UserId.Should().Be(user.Id);
+        _db.ScheduleEntries.Should().ContainSingle().Which.TeacherId.Should().Be(teacher.Id);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_CreatesTeacherWhenUserMissing()
+    {
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest { Entries = [Entry(teacherName: "Петров П.П.")] },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Teachers.Should().Be(1);
+        var user = _db.Users.Should().ContainSingle().Subject;
+        user.FullName.Should().Be("Петров П.П.");
+        user.Role.Should().Be(UserRole.Teacher);
+        var teacher = _db.Teachers.Should().ContainSingle().Subject;
+        teacher.UserId.Should().Be(user.Id);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_Report_CountsCreatedGroupsAndTeachers()
+    {
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ПО 262",
+            Course = 2,
+        };
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Login = "petrov.p.p",
+            Email = "petrov@college.local",
+            FullName = "Петров П.П.",
+            Role = UserRole.Teacher,
+        };
+        _db.Groups.Add(group);
+        _db.Users.Add(user);
+        _db.Teachers.Add(
+            new Teacher
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                CyclicalCommission = "Не указана",
+                Position = "Преподаватель",
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest
+            {
+                Entries =
+                [
+                    Entry(groupName: "ПО 262", subject: "История", teacherName: "Петров П.П."),
+                    Entry(groupName: "ИС-21", subject: "Математика", teacherName: "Новиков Н.Н."),
+                ],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Imported.Should().Be(2);
+        result.Groups.Should().Be(1);
+        result.Teachers.Should().Be(1);
+        _db.Users.Should().HaveCount(2);
+        _db.Teachers.Should().HaveCount(2);
+        _db.ScheduleEntries.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_UsesBellTimesMap()
+    {
+        _bells.TimeMap = new Dictionary<int, (TimeSpan Start, TimeSpan End)>
+        {
+            [1] = (new TimeSpan(10, 0, 0), new TimeSpan(11, 20, 0)),
+        };
+
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest { Entries = [Entry()] },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.StartTime.Should().Be(new TimeSpan(10, 0, 0));
+        entry.EndTime.Should().Be(new TimeSpan(11, 20, 0));
     }
 
     [Fact]
