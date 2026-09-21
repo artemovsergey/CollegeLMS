@@ -484,6 +484,7 @@ export default function SchedulePage() {
         entry={editingEntry}
         groups={groups}
         teachers={teachers}
+        totalWeeks={meta?.totalWeeks ?? 0}
       />
 
       <ScheduleImportDialog

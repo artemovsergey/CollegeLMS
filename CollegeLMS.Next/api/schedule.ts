@@ -25,8 +25,6 @@ export interface CreateScheduleRequest {
   room: string
   dayOfWeek: number
   numberPair: number
-  startTime: string
-  endTime: string
   weeks: number[]
   lessonType: string
 }
@@ -38,8 +36,6 @@ export interface UpdateScheduleRequest {
   room: string
   dayOfWeek: number
   numberPair: number
-  startTime: string
-  endTime: string
   weeks: number[]
   lessonType: string
 }
@@ -57,8 +53,10 @@ export interface SchedulePreviewEntry {
 }
 
 export interface ScheduleValidationError {
+  sheet: string
   row: number
   column: number
+  level: string
   message: string
 }
 
@@ -69,8 +67,28 @@ export interface SchedulePreviewResult {
 }
 
 export interface ScheduleImportResult {
+  isSuccess: boolean
   imported: number
+  groups: number
+  teachers: number
   schedule: ScheduleResponse[]
+  errors: ScheduleValidationError[]
+}
+
+export class ScheduleImportError extends Error {
+  readonly result: ScheduleImportResult
+
+  constructor(result: ScheduleImportResult) {
+    super(result.errors[0]?.message ?? "Не удалось загрузить расписание")
+    this.name = "ScheduleImportError"
+    this.result = result
+  }
+}
+
+function isScheduleImportResult(value: unknown): value is ScheduleImportResult {
+  if (typeof value !== "object" || value === null) return false
+  const candidate = value as ScheduleImportResult
+  return candidate.isSuccess === false && Array.isArray(candidate.errors)
 }
 
 export async function fetchSchedule(
@@ -412,7 +430,20 @@ export async function previewScheduleImport(
 
 export async function confirmScheduleImport(
   entries: SchedulePreviewEntry[],
-): Promise<Result<ScheduleImportResult>> {
-  const { data } = await api.post("/api/schedule/import/confirm", { entries })
-  return data
+): Promise<ScheduleImportResult> {
+  try {
+    const { data } = await api.post<ScheduleImportResult>(
+      "/api/schedule/import/confirm",
+      { entries },
+    )
+    return data
+  } catch (err: unknown) {
+    const response = (
+      err as { response?: { status?: number; data?: unknown } }
+    )?.response
+    if (response?.status === 400 && isScheduleImportResult(response.data)) {
+      throw new ScheduleImportError(response.data)
+    }
+    throw err
+  }
 }

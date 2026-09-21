@@ -6,6 +6,7 @@ import type { GroupResponse, TeacherResponse } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
 import { DAYS, LESSON_TYPE_LABELS } from "@/types/schedule"
 import { extractErrorMessage } from "@/lib/utils"
+import { fetchBells, type BellSlot } from "@/api/bells"
 import {
   createSchedule,
   updateSchedule,
@@ -27,6 +28,7 @@ import {
   NativeSelect,
   NativeSelectItem,
 } from "@/components/ui/native-select"
+import { Clock } from "lucide-react"
 
 interface ScheduleEntryDialogProps {
   open: boolean
@@ -35,6 +37,7 @@ interface ScheduleEntryDialogProps {
   entry: ScheduleResponse | null
   groups: GroupResponse[]
   teachers: TeacherResponse[]
+  totalWeeks: number
 }
 
 const LESSON_TYPES = ["Lecture", "Practice", "Lab", "Exam"] as const
@@ -46,6 +49,7 @@ export default function ScheduleEntryDialog({
   entry,
   groups,
   teachers,
+  totalWeeks,
 }: ScheduleEntryDialogProps) {
   const isEdit = !!entry
 
@@ -55,10 +59,11 @@ export default function ScheduleEntryDialog({
   const [room, setRoom] = useState("")
   const [dayOfWeek, setDayOfWeek] = useState("")
   const [numberPair, setNumberPair] = useState("1")
-  const [startTime, setStartTime] = useState("")
-  const [endTime, setEndTime] = useState("")
   const [weeksInput, setWeeksInput] = useState("")
   const [lessonType, setLessonType] = useState("")
+  const [bells, setBells] = useState<BellSlot[]>([])
+  const [bellsLoading, setBellsLoading] = useState(false)
+  const [bellsError, setBellsError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
@@ -72,8 +77,6 @@ export default function ScheduleEntryDialog({
         setRoom(entry.room)
         setDayOfWeek(String(entry.dayOfWeek))
         setNumberPair(String(entry.numberPair))
-        setStartTime(entry.startTime.slice(0, 5))
-        setEndTime(entry.endTime.slice(0, 5))
         setWeeksInput(entry.weeks.join(", "))
         setLessonType(entry.lessonType)
       } else {
@@ -83,20 +86,55 @@ export default function ScheduleEntryDialog({
         setRoom("")
         setDayOfWeek("")
         setNumberPair("1")
-        setStartTime("")
-        setEndTime("")
         setWeeksInput("")
         setLessonType("")
       }
     }
   }, [open, entry])
 
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    setBellsLoading(true)
+    setBellsError(false)
+    fetchBells()
+      .then((schedule) => {
+        if (!cancelled) setBells(schedule.slots)
+      })
+      .catch(() => {
+        if (!cancelled) setBellsError(true)
+      })
+      .finally(() => {
+        if (!cancelled) setBellsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
+  const weeksLimit = totalWeeks > 0 ? totalWeeks : null
+
   const parseWeeks = (input: string): number[] => {
-    return input
+    const values = input
       .split(/[,.\s]+/)
       .map((s) => parseInt(s, 10))
-      .filter((n) => !isNaN(n) && n >= 1 && n <= 52)
+      .filter((n) => !isNaN(n))
+    return [...new Set(values)].sort((a, b) => a - b)
   }
+
+  const pairNumber = parseInt(numberPair, 10)
+  const bellSlot = bells.find((slot) => slot.numberPair === pairNumber)
+  const pairTime = bellSlot
+    ? `${bellSlot.startTime.slice(0, 5)}–${bellSlot.endTime.slice(0, 5)}`
+    : null
+
+  const pairTimeLabel = pairTime
+    ? `${pairTime} (из справочника звонков)`
+    : bellsLoading
+      ? "Загрузка справочника звонков…"
+      : bellsError
+        ? "Не удалось загрузить справочник звонков"
+        : "Время для этой пары не задано — будет использовано время по умолчанию"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,10 +147,6 @@ export default function ScheduleEntryDialog({
     if (!dayOfWeek) errors.dayOfWeek = "День недели обязателен"
     if (!lessonType) errors.lessonType = "Тип занятия обязателен"
 
-    if (!startTime) errors.startTime = "Время начала обязательно"
-    if (!endTime) errors.endTime = "Время окончания обязательно"
-    else if (startTime && startTime >= endTime) errors.endTime = "Время начала должно быть раньше времени окончания"
-
     const np = parseInt(numberPair, 10)
     if (isNaN(np) || np < 1 || np > 8) {
       errors.numberPair = "Номер пары должен быть от 1 до 8"
@@ -121,6 +155,13 @@ export default function ScheduleEntryDialog({
     const weeks = parseWeeks(weeksInput)
     if (weeks.length === 0) {
       errors.weeks = "Укажите хотя бы одну неделю"
+    } else if (
+      weeks.some((w) => w < 1 || (weeksLimit !== null && w > weeksLimit))
+    ) {
+      errors.weeks =
+        weeksLimit !== null
+          ? `Неделя должна быть в диапазоне 1–${weeksLimit}`
+          : "Номер недели должен быть не меньше 1"
     }
 
     if (Object.keys(errors).length > 0) {
@@ -138,8 +179,6 @@ export default function ScheduleEntryDialog({
         room,
         dayOfWeek: Number(dayOfWeek),
         numberPair: np,
-        startTime: `${startTime}:00`,
-        endTime: `${endTime}:00`,
         weeks,
         lessonType,
       }
@@ -243,24 +282,25 @@ export default function ScheduleEntryDialog({
           </FormField>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField id="schedule-start" label="Начало" required error={fieldErrors.startTime}>
-            <Input id="schedule-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-          </FormField>
-          <FormField id="schedule-end" label="Конец" required error={fieldErrors.endTime}>
-            <Input id="schedule-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-          </FormField>
-        </div>
+        <p
+          className="flex items-center gap-1.5 text-xs text-muted-foreground"
+          aria-live="polite"
+        >
+          <Clock className="size-3.5 shrink-0" aria-hidden />
+          {pairTimeLabel}
+        </p>
 
         <FormField id="schedule-weeks" label="Недели" required error={fieldErrors.weeks}>
           <Input
             id="schedule-weeks"
             value={weeksInput}
             onChange={(e) => setWeeksInput(e.target.value)}
-            placeholder="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
+            placeholder={weeksLimit !== null ? `1…${weeksLimit}` : "1, 3, 5, 7"}
           />
           <p className="text-xs text-muted-foreground">
-            Номера недель через запятую. Например: 1,3,5,7,9,11,13,15 — нечётные
+            {weeksLimit !== null
+              ? `Недели семестра: 1…${weeksLimit}. Например: 1,3,5,7,9,11,13,15 — нечётные`
+              : "Номера недель через запятую. Например: 1,3,5,7,9,11,13,15 — нечётные"}
           </p>
         </FormField>
 

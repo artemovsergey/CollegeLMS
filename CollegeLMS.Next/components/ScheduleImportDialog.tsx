@@ -5,7 +5,10 @@ import { toast } from "sonner"
 import {
   previewScheduleImport,
   confirmScheduleImport,
+  ScheduleImportError,
   type SchedulePreviewResult,
+  type ScheduleImportResult,
+  type ScheduleValidationError,
 } from "@/api/schedule"
 import { extractErrorMessage } from "@/lib/utils"
 import {
@@ -34,11 +37,6 @@ interface ScheduleImportDialogProps {
 
 type Step = "upload" | "preview" | "result"
 
-interface ConfirmResult {
-  imported: number
-  schedule: unknown[]
-}
-
 export default function ScheduleImportDialog({
   open,
   onOpenChange,
@@ -50,13 +48,15 @@ export default function ScheduleImportDialog({
   const [previewing, setPreviewing] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [preview, setPreview] = useState<SchedulePreviewResult | null>(null)
-  const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null)
+  const [confirmResult, setConfirmResult] = useState<ScheduleImportResult | null>(null)
+  const [confirmErrors, setConfirmErrors] = useState<ScheduleValidationError[]>([])
 
   const reset = () => {
     setStep("upload")
     setFile(null)
     setPreview(null)
     setConfirmResult(null)
+    setConfirmErrors([])
   }
 
   const handleClose = () => {
@@ -78,6 +78,7 @@ export default function ScheduleImportDialog({
       setFile(f)
       setPreview(null)
       setConfirmResult(null)
+      setConfirmErrors([])
     }
   }
 
@@ -88,6 +89,7 @@ export default function ScheduleImportDialog({
       const response = await previewScheduleImport(file)
       if (response.isSuccess && response.data) {
         setPreview(response.data)
+        setConfirmErrors([])
         setStep("preview")
       } else {
         toast.error(response.errorMessage ?? "Ошибка превью")
@@ -103,23 +105,30 @@ export default function ScheduleImportDialog({
     if (!preview) return
     setConfirming(true)
     try {
-      const response = await confirmScheduleImport(preview.entries)
-      if (response.isSuccess && response.data) {
-        setConfirmResult(response.data)
+      const result = await confirmScheduleImport(preview.entries)
+      if (result.isSuccess) {
+        setConfirmResult(result)
+        setConfirmErrors(result.errors)
         setStep("result")
-        if (response.data.imported > 0) {
-          toast.success(`Импортировано: ${response.data.imported}`)
-          onImported()
-        }
+        toast.success(`Загружено пар: ${result.imported}`)
+        onImported()
       } else {
-        toast.error(response.errorMessage ?? "Ошибка импорта")
+        setConfirmErrors(result.errors)
+        toast.error(result.errors[0]?.message ?? "Ошибка импорта")
       }
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Ошибка импорта")
+      if (err instanceof ScheduleImportError) {
+        setConfirmErrors(err.result.errors)
+        toast.error(err.message)
+      } else {
+        toast.error(extractErrorMessage(err) ?? "Ошибка импорта")
+      }
     } finally {
       setConfirming(false)
     }
   }
+
+  const importErrors = [...(preview?.errors ?? []), ...confirmErrors]
 
   return (
     <NativeDialog open={open} onOpenChange={handleClose} className="sm:max-w-lg w-full">
@@ -195,22 +204,22 @@ export default function ScheduleImportDialog({
                 <p className="text-xs text-muted-foreground">Валидных</p>
               </div>
               <div className="rounded-lg border bg-card p-3">
-                <p className={`text-2xl font-bold ${preview.errors.length > 0 ? "text-destructive" : "text-success"}`}>
-                  {preview.errors.length}
+                <p className={`text-2xl font-bold ${importErrors.length > 0 ? "text-destructive" : "text-success"}`}>
+                  {importErrors.length}
                 </p>
                 <p className="text-xs text-muted-foreground">Ошибок</p>
               </div>
             </div>
 
-            {preview.errors.length > 0 && (
+            {importErrors.length > 0 && (
               <div className="max-h-40 overflow-y-auto rounded-md border p-3 text-xs space-y-2">
                 <p className="font-semibold flex items-center gap-1 text-destructive">
                   <AlertCircle className="size-3" />
-                  Ошибки ({preview.errors.length})
+                  Ошибки ({importErrors.length})
                 </p>
-                {preview.errors.map((err, i) => (
+                {importErrors.map((err, i) => (
                   <p key={i} className="text-muted-foreground">
-                    Строка {err.row}, стлб. {err.column}: {err.message}
+                    {err.message}
                   </p>
                 ))}
               </div>
@@ -223,10 +232,10 @@ export default function ScheduleImportDialog({
               </Button>
               <Button
                 onClick={handleConfirm}
-                disabled={confirming}
+                disabled={confirming || importErrors.length > 0}
                 className="flex-1"
               >
-                {confirming ? "Импорт..." : "Импортировать"}
+                {confirming ? "Загрузка..." : "Загрузить"}
               </Button>
             </div>
           </div>
@@ -238,10 +247,14 @@ export default function ScheduleImportDialog({
               <CheckCircle className="size-4 shrink-0" />
               Импорт завершён
             </div>
-            <div className="rounded-lg border bg-card p-3 text-center">
-              <p className="text-2xl font-bold text-success">{confirmResult.imported}</p>
-              <p className="text-xs text-muted-foreground">Импортировано записей</p>
-            </div>
+            <p className="text-center text-sm">
+              Загружено пар:{" "}
+              <span className="font-semibold text-success">{confirmResult.imported}</span>
+              {" · "}Группы:{" "}
+              <span className="font-semibold">{confirmResult.groups}</span>
+              {" · "}Преподаватели:{" "}
+              <span className="font-semibold">{confirmResult.teachers}</span>
+            </p>
             <Button variant="outline" onClick={handleClose} className="w-full">
               Закрыть
             </Button>
