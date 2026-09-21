@@ -141,6 +141,28 @@ public record ScheduleMetaDto
     public int CurrentWeek { get; init; }
 }
 
+/// <summary>Вид расписания на день (view=day) со слоями практик, вставок и пар.</summary>
+public record ScheduleDayViewDto
+{
+    public DateTime Date { get; init; }
+    public int Week { get; init; }
+    public int DayOfWeek { get; init; }
+    public bool IsSunday { get; init; }
+    public bool IsNonWorking { get; init; }
+    public string? NonWorkingTitle { get; init; }
+    public List<PracticeDto> Practices { get; init; } = [];
+    public List<ScheduleInsertDto> Inserts { get; init; } = [];
+    public List<ScheduleResponse> Entries { get; init; } = [];
+}
+
+/// <summary>Вид расписания на неделю (view=week): шесть дней Пн–Сб.</summary>
+public record ScheduleWeekViewDto
+{
+    public int Week { get; init; }
+    public DateTime WeekStart { get; init; }
+    public List<ScheduleDayViewDto> Days { get; init; } = [];
+}
+
 /// <summary>Нерабочий день (праздник или каникулы) из справочника CollegeLMS.</summary>
 public record NonWorkingDayDto
 {

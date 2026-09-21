@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -170,6 +171,90 @@ public class CollegeLmsApiClient
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch schedule meta");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Получает день расписания через серверный вид view=day (слои практик, вставок и пар).
+    /// null — ошибка запроса или невалидный ответ (отличается от валидного пустого дня).
+    /// </summary>
+    public async Task<ScheduleDayViewDto?> GetDayViewAsync(
+        DateTime? date,
+        Guid? groupId,
+        Guid? teacherId,
+        CancellationToken ct
+    )
+    {
+        var query = new List<string> { "view=day" };
+        if (date.HasValue)
+            query.Add($"date={date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
+        if (groupId.HasValue)
+            query.Add($"groupId={groupId.Value}");
+        if (teacherId.HasValue)
+            query.Add($"teacherId={teacherId.Value}");
+
+        try
+        {
+            var resp = await _http.GetAsync($"/api/schedule?{string.Join("&", query)}", ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Schedule day view API returned {Code}", resp.StatusCode);
+                return null;
+            }
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            var wrapper = JsonSerializer.Deserialize<ResultWrapper<ScheduleDayViewDto>>(
+                json,
+                JsonOpts
+            );
+            return wrapper is { IsSuccess: true } ? wrapper.Data : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch schedule day view");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Получает неделю расписания через серверный вид view=week (дни Пн–Сб со слоями).
+    /// null — ошибка запроса или невалидный ответ (отличается от валидной пустой недели).
+    /// </summary>
+    public async Task<ScheduleWeekViewDto?> GetWeekViewAsync(
+        int? week,
+        Guid? groupId,
+        Guid? teacherId,
+        CancellationToken ct
+    )
+    {
+        var query = new List<string> { "view=week" };
+        if (week.HasValue)
+            query.Add($"week={week.Value}");
+        if (groupId.HasValue)
+            query.Add($"groupId={groupId.Value}");
+        if (teacherId.HasValue)
+            query.Add($"teacherId={teacherId.Value}");
+
+        try
+        {
+            var resp = await _http.GetAsync($"/api/schedule?{string.Join("&", query)}", ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Schedule week view API returned {Code}", resp.StatusCode);
+                return null;
+            }
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            var wrapper = JsonSerializer.Deserialize<ResultWrapper<ScheduleWeekViewDto>>(
+                json,
+                JsonOpts
+            );
+            return wrapper is { IsSuccess: true } ? wrapper.Data : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch schedule week view");
             return null;
         }
     }
