@@ -1,19 +1,10 @@
 "use client"
 
-import type { ScheduleResponse } from "@/types/schedule"
+import type { ScheduleWeekView } from "@/types/schedule"
 import { DAYS } from "@/types/schedule"
-import { parseIsoDate, toIsoDate } from "@/api/schedule"
+import { normalizeDateOnly } from "@/api/schedule"
 import { formatDay, pluralPairs } from "@/lib/max-lesson"
 import DayFeed from "@/components/max/DayFeed"
-
-// Порядок дней недели: Пн → Сб, затем Воскресенье (резерв).
-const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
-
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date)
-  result.setDate(result.getDate() + days)
-  return result
-}
 
 function isoDayOfWeek(date: Date): number {
   const day = date.getDay()
@@ -21,54 +12,59 @@ function isoDayOfWeek(date: Date): number {
 }
 
 export default function WeekFeed({
-  entries,
-  weekStart,
+  data,
   highlightToday = false,
 }: {
-  entries: ScheduleResponse[]
-  weekStart: string
+  data: ScheduleWeekView
   highlightToday?: boolean
 }) {
-  const byDay = new Map<number, ScheduleResponse[]>()
-  for (const entry of entries) {
-    const list = byDay.get(entry.dayOfWeek)
-    if (list) list.push(entry)
-    else byDay.set(entry.dayOfWeek, [entry])
-  }
-
   const today = isoDayOfWeek(new Date())
-  const weekStartDate = parseIsoDate(weekStart)
 
   return (
     <div className="max-week">
-      {DAY_ORDER.map((dayValue, index) => {
-        const list = byDay.get(dayValue)
-        const day = DAYS.find((d) => d.value === dayValue)
-        const dayDate = formatDay(toIsoDate(addDays(weekStartDate, index)))
-        if (!list || list.length === 0) {
+      {data.days.map((day) => {
+        const iso = normalizeDateOnly(day.date)
+        const info = DAYS.find((d) => d.value === day.dayOfWeek)
+        const dayLabel = info?.full ?? String(day.dayOfWeek)
+        const dayDate = formatDay(iso)
+        const hasContent =
+          day.entries.length > 0 ||
+          day.inserts.length > 0 ||
+          day.practices.length > 0 ||
+          day.isNonWorking ||
+          day.isSunday
+
+        if (!hasContent) {
           return (
-            <div key={dayValue} className="max-week__day max-week__day--empty">
-              <span className="max-week__day--strong">
-                {day?.full ?? String(dayValue)}
-              </span>
-              <span className="max-app__note">
-                {dayDate} · нет пар
-              </span>
+            <div
+              key={iso || String(day.dayOfWeek)}
+              className="max-week__day max-week__day--empty"
+            >
+              <span className="max-week__day--strong">{dayLabel}</span>
+              <span className="max-app__note">{dayDate} · нет пар</span>
             </div>
           )
         }
+
         return (
           <DayFeed
-            key={dayValue}
-            entries={list}
-            today={highlightToday && dayValue === today}
+            key={iso || String(day.dayOfWeek)}
+            entries={day.entries}
+            inserts={day.inserts}
+            practices={day.practices}
+            isSunday={day.isSunday}
+            isNonWorking={day.isNonWorking}
+            nonWorkingTitle={day.nonWorkingTitle}
+            nonWorkingLabel="Не работает"
+            today={highlightToday && day.dayOfWeek === today}
             header={
               <div className="max-week__day">
-                <span className="max-week__day--strong">
-                  {day?.full ?? String(dayValue)}
-                </span>
+                <span className="max-week__day--strong">{dayLabel}</span>
                 <span className="max-app__note">
-                  {dayDate} · {list.length} {pluralPairs(list.length)}
+                  {dayDate}
+                  {day.entries.length > 0
+                    ? ` · ${day.entries.length} ${pluralPairs(day.entries.length)}`
+                    : ""}
                 </span>
               </div>
             }

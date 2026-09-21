@@ -518,6 +518,144 @@
   color: var(--color-text-faint);
 }
 
+/* Слои расписания: вставки, практики, нерабочие дни */
+.max-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Отступ как у island-списка пар, чтобы слои и карточки были выровнены. */
+.max-feed__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-inline: var(--spacing-size-xl, 12px);
+}
+
+.max-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.max-layers__notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.max-layers__notice--attention {
+  border-color: color-mix(
+    in srgb,
+    var(--background-accent-attention-primary) 45%,
+    transparent
+  );
+  background: var(--color-tint-attention);
+  color: var(--background-accent-attention-primary);
+}
+
+.max-layers__notice svg {
+  flex: none;
+}
+
+.max-layers__practice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card);
+}
+
+.max-layers__practice--up {
+  border-color: color-mix(in srgb, var(--text-positive) 40%, transparent);
+  background: var(--color-tint-positive);
+}
+
+.max-layers__practice--pp {
+  border-color: color-mix(
+    in srgb,
+    var(--background-accent-attention-primary) 40%,
+    transparent
+  );
+  background: var(--color-tint-attention);
+}
+
+.max-layers__practice-badge--up {
+  color: var(--text-positive);
+  background: color-mix(in srgb, var(--text-positive) 18%, var(--color-card));
+}
+
+.max-layers__practice-badge--pp {
+  color: var(--background-accent-attention-primary);
+  background: color-mix(
+    in srgb,
+    var(--background-accent-attention-primary) 18%,
+    var(--color-card)
+  );
+}
+
+.max-layers__practice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.max-layers__practice-note {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.max-layers__inserts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.max-layers__label {
+  color: var(--color-text-muted);
+}
+
+.max-layers__insert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-subtle);
+  font-size: 14px;
+}
+
+.max-layers__insert svg {
+  flex: none;
+  color: var(--color-primary);
+}
+
+.max-layers__insert-time {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.max-layers__insert-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.max-feed__empty {
+  margin: 0;
+}
+
 /* Шторка поиска */
 .max-app__sheet {
   position: fixed;

@@ -9,16 +9,16 @@ import {
   Typography,
 } from "@maxhub/max-ui"
 import {
-  fetchDaySchedule,
-  fetchSchedule,
+  fetchDayView,
   fetchScheduleMeta,
+  fetchWeekView,
   isValidDate,
   normalizeDateOnly,
   parseIsoDate,
   toIsoDate,
 } from "@/api/schedule"
 import type { ScheduleMeta } from "@/api/schedule"
-import type { ScheduleResponse } from "@/types/schedule"
+import type { ScheduleDayView, ScheduleWeekView } from "@/types/schedule"
 import { DAYS } from "@/types/schedule"
 import { useMaxContext } from "@/lib/max-context"
 import { parseMaxDeepLink } from "@/lib/max-deeplink"
@@ -60,7 +60,8 @@ export default function ScheduleView() {
   const [meta, setMeta] = useState<ScheduleMeta | null>(null)
   const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()))
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
-  const [entries, setEntries] = useState<ScheduleResponse[]>([])
+  const [dayData, setDayData] = useState<ScheduleDayView | null>(null)
+  const [weekData, setWeekData] = useState<ScheduleWeekView | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -115,21 +116,20 @@ export default function ScheduleView() {
     try {
       if (view === "week" && selectedWeek !== null) {
         if (meta && (selectedWeek < 1 || selectedWeek > meta.totalWeeks)) {
-          setEntries([])
+          setWeekData(null)
           return
         }
-        const res = await fetchSchedule({
+        const res = await fetchWeekView({
           week: selectedWeek,
           groupId: viewContext.groupId,
           teacherId: viewContext.teacherId,
-          pageSize: 300,
         })
         if (!res.isSuccess) {
           throw new Error(res.errorMessage ?? "Не удалось загрузить расписание")
         }
-        setEntries(res.data?.items ?? [])
+        setWeekData(res.data ?? null)
       } else {
-        const res = await fetchDaySchedule({
+        const res = await fetchDayView({
           date: selectedDate,
           groupId: viewContext.groupId,
           teacherId: viewContext.teacherId,
@@ -137,7 +137,7 @@ export default function ScheduleView() {
         if (!res.isSuccess) {
           throw new Error(res.errorMessage ?? "Не удалось загрузить расписание")
         }
-        setEntries(res.data?.items ?? [])
+        setDayData(res.data ?? null)
       }
     } catch (err) {
       setError(
@@ -162,17 +162,28 @@ export default function ScheduleView() {
     return `${formatDay(toIsoDate(start))} – ${formatDay(toIsoDate(end))}`
   }, [meta, selectedWeek])
 
-  const weekStartIso = useMemo(() => {
-    if (!meta || selectedWeek === null) return ""
-    const semesterStart = normalizeDateOnly(meta.semesterStart)
-    if (!semesterStart) return ""
-    const w1 = mondayOf(parseIsoDate(semesterStart))
-    return toIsoDate(addDays(w1, (selectedWeek - 1) * 7))
-  }, [meta, selectedWeek])
-
   const dateIsToday = selectedDate === toIsoDate(new Date())
   const isCurrentWeek =
     meta !== null && selectedWeek === meta.currentWeek
+
+  const dayHasContent =
+    dayData !== null &&
+    (dayData.entries.length > 0 ||
+      dayData.inserts.length > 0 ||
+      dayData.practices.length > 0 ||
+      dayData.isNonWorking ||
+      dayData.isSunday)
+
+  const weekHasContent =
+    weekData !== null &&
+    weekData.days.some(
+      (day) =>
+        day.entries.length > 0 ||
+        day.inserts.length > 0 ||
+        day.practices.length > 0 ||
+        day.isNonWorking ||
+        day.isSunday,
+    )
 
   const isOutsideSemester =
     view === "week" &&
@@ -352,32 +363,37 @@ export default function ScheduleView() {
             </Typography.Body>
             <Button onClick={() => setSearchOpen(true)}>Поиск</Button>
           </div>
-        ) : entries.length === 0 ? (
-          <ScheduleEmpty />
         ) : view === "week" ? (
-          <WeekFeed
-            entries={entries}
-            weekStart={weekStartIso}
-            highlightToday={isCurrentWeek}
-          />
-        ) : (
+          weekData && weekHasContent ? (
+            <WeekFeed data={weekData} highlightToday={isCurrentWeek} />
+          ) : (
+            <ScheduleEmpty />
+          )
+        ) : dayData && dayHasContent ? (
           <DayFeed
-            entries={entries}
+            entries={dayData.entries}
+            inserts={dayData.inserts}
+            practices={dayData.practices}
+            isSunday={dayData.isSunday}
+            isNonWorking={dayData.isNonWorking}
+            nonWorkingTitle={dayData.nonWorkingTitle}
             today={dateIsToday}
             header={
               <div className="max-week__day">
                 <span className="max-week__day--strong">
-                  {DAYS.find(
-                    (d) => d.value === parseIsoDate(selectedDate).getDay(),
-                  )?.full ?? ""}
+                  {DAYS.find((d) => d.value === dayData.dayOfWeek)?.full ?? ""}
                 </span>
                 <span className="max-app__note">
-                  {formatDay(selectedDate)} · {entries.length}{" "}
-                  {pluralPairs(entries.length)}
+                  {formatDay(selectedDate)}
+                  {dayData.entries.length > 0
+                    ? ` · ${dayData.entries.length} ${pluralPairs(dayData.entries.length)}`
+                    : ""}
                 </span>
               </div>
             }
           />
+        ) : (
+          <ScheduleEmpty />
         )}
 
         {contextName ? (
