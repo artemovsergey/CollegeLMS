@@ -49,6 +49,28 @@ public class CallbackPayloadTests
         CallbackPayload.Cal(d).Should().Be("cal:2026-09");
         CallbackPayload.CalPrev(d).Should().Be("calprev:2026-09");
         CallbackPayload.CalNext(d).Should().Be("calnext:2026-09");
+        CallbackPayload.RetryDay(d).Should().Be("dayretry:2026-09-08");
+        CallbackPayload.RetryWeek(d).Should().Be("weekretry:2026-09-08");
+        CallbackPayload.RetryCal(d).Should().Be("calretry:2026-09");
+    }
+
+    [Fact]
+    public void RetryPayloads_ParseBackWithSameContext()
+    {
+        var p = CallbackPayload.Parse(CallbackPayload.RetryDay(new DateTime(2026, 9, 8)));
+
+        p!.Action.Should().Be("dayretry");
+        CallbackPayload.TryParseDate(p.Param1).Should().Be(new DateTime(2026, 9, 8));
+
+        var w = CallbackPayload.Parse(CallbackPayload.RetryWeek(new DateTime(2026, 9, 7)));
+
+        w!.Action.Should().Be("weekretry");
+        CallbackPayload.TryParseDate(w.Param1).Should().Be(new DateTime(2026, 9, 7));
+
+        var c = CallbackPayload.Parse(CallbackPayload.RetryCal(new DateTime(2026, 9, 1)));
+
+        c!.Action.Should().Be("calretry");
+        CallbackPayload.TryParseMonth(c.Param1).Should().Be(new DateTime(2026, 9, 1));
     }
 
     [Fact]

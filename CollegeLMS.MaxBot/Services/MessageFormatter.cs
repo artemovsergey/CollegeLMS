@@ -69,38 +69,6 @@ public static class MessageFormatter
         return line;
     }
 
-    public static string FormatWeekSchedule(List<ScheduleResponse> entries, string entityName)
-    {
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"📅 *Расписание на неделю* — {entityName}");
-        sb.AppendLine();
-
-        var grouped = entries.GroupBy(x => x.DayOfWeek).OrderBy(x => x.Key);
-
-        foreach (var group in grouped)
-        {
-            sb.AppendLine($"*{DayNames[group.Key]}*");
-            foreach (var e in group.OrderBy(x => x.NumberPair))
-            {
-                var type = e.LessonType switch
-                {
-                    "Lecture" => "📖",
-                    "Practice" => "✏️",
-                    "Lab" => "🔬",
-                    "Exam" => "📝",
-                    _ => "📚",
-                };
-                sb.AppendLine(
-                    $"*{e.NumberPair}.* {type} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})"
-                );
-                AppendChangeMarkers(sb, e);
-            }
-            sb.AppendLine();
-        }
-
-        return sb.ToString().TrimEnd();
-    }
-
     public static int DayIndex(int apiDay) => apiDay == 0 ? 7 : apiDay;
 
     public static int DayOffset(int apiDay) => apiDay == 0 ? 6 : apiDay - 1;
@@ -117,53 +85,57 @@ public static class MessageFormatter
 
     public static string DayAbbrForDate(DateTime date) => DayAbbr[DayIndex((int)date.DayOfWeek)];
 
+    /// <summary>
+    /// День расписания из серверного вида view=day: практика заменяет пары,
+    /// вставки идут перед парами, нерабочий день и воскресенье — отдельными строками.
+    /// </summary>
     public static string FormatDaySchedule(
-        List<ScheduleResponse> entries,
-        DateTime date,
+        ScheduleDayViewDto day,
         string entityName,
-        bool showGroup = false,
-        List<ScheduleInsertDto>? inserts = null,
-        string? practiceLine = null
+        bool showGroup
     )
     {
-        var header = $"📋 *{FormatLongDate(date)}* — {entityName}";
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"📋 *{FormatLongDate(day.Date)}* — {entityName}");
 
-        if (practiceLine is not null)
+        if (day.IsSunday)
         {
-            var pb = new System.Text.StringBuilder();
-            pb.AppendLine(header);
-            pb.AppendLine();
-            pb.AppendLine("🎓 *Практика*");
-            pb.AppendLine(practiceLine);
-            return pb.ToString().TrimEnd();
+            sb.AppendLine();
+            sb.AppendLine("Расписания нет — выходной!");
+            return sb.ToString().TrimEnd();
         }
 
-        var hasInsert = inserts is { Count: > 0 };
-        if (entries.Count == 0 && !hasInsert)
-            return $"{header}\n\nРасписания нет — выходной!";
-
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine(header);
-        sb.AppendLine();
-
-        if (entries.Count == 0)
+        if (day.IsNonWorking)
         {
-            sb.AppendLine("Пар нет.");
+            sb.AppendLine();
+            sb.AppendLine(FormatNonWorkingLine(day.NonWorkingTitle));
+            return sb.ToString().TrimEnd();
+        }
+
+        if (day.Practices.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("🎓 *Практика*");
+            sb.AppendLine(FormatPracticeLine(day.Practices[0]));
+            return sb.ToString().TrimEnd();
+        }
+
+        sb.AppendLine();
+        if (day.Inserts.Count > 0)
+        {
+            AppendInsertLines(sb, day.Inserts);
             sb.AppendLine();
         }
 
-        foreach (var e in entries.OrderBy(x => x.NumberPair))
+        if (day.Entries.Count == 0)
         {
-            var type = e.LessonType switch
-            {
-                "Lecture" => "📖",
-                "Practice" => "✏️",
-                "Lab" => "🔬",
-                "Exam" => "📝",
-                _ => "📚",
-            };
+            sb.AppendLine("Пар нет.");
+            return sb.ToString().TrimEnd();
+        }
 
-            sb.AppendLine($"*{e.NumberPair}.* {type} {e.Subject}");
+        foreach (var e in day.Entries.OrderBy(x => x.NumberPair))
+        {
+            sb.AppendLine($"*{e.NumberPair}.* {LessonTypeIcon(e.LessonType)} {e.Subject}");
             sb.AppendLine($"    🕐 {e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}  📍 {e.Room}");
 
             if (showGroup && e.GroupName.Length > 0)
@@ -176,61 +148,95 @@ public static class MessageFormatter
             sb.AppendLine("────────");
         }
 
-        if (hasInsert)
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// Неделя расписания из серверного вида view=week: заголовок с номером недели
+    /// и диапазоном дат, блоки дней Пн–Сб со слоями.
+    /// </summary>
+    public static string FormatWeekSchedule(
+        ScheduleWeekViewDto week,
+        string entityName,
+        bool showGroup
+    )
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(
+            $"📅 *Неделя {week.Week} · {FormatShortDate(week.WeekStart)}–{FormatShortDate(week.WeekStart.AddDays(6))}* — {entityName}"
+        );
+        sb.AppendLine();
+
+        foreach (var day in week.Days.OrderBy(d => DayIndex(d.DayOfWeek)))
         {
-            sb.AppendLine();
-            sb.AppendLine("🎓 *Вставки:*");
-            foreach (var ins in inserts!.OrderBy(x => x.StartTime))
+            var date =
+                day.Date != default ? day.Date : DateForWeekDay(week.WeekStart, day.DayOfWeek);
+            sb.AppendLine($"*{DayNames[DayIndex(day.DayOfWeek)]}, {FormatShortDate(date)}*");
+
+            if (day.IsNonWorking)
             {
-                sb.AppendLine($"*{ins.Title}*");
-                sb.AppendLine($"    🕐 {ins.StartTime:hh\\:mm}–{ins.EndTime:hh\\:mm}");
+                sb.AppendLine(FormatNonWorkingLine(day.NonWorkingTitle));
             }
+            else if (day.IsSunday)
+            {
+                sb.AppendLine("Расписания нет — выходной!");
+            }
+            else if (day.Practices.Count > 0)
+            {
+                sb.AppendLine("🎓 *Практика*");
+                sb.AppendLine(FormatPracticeLine(day.Practices[0]));
+            }
+            else
+            {
+                if (day.Inserts.Count > 0)
+                    AppendInsertLines(sb, day.Inserts);
+
+                if (day.Entries.Count == 0)
+                {
+                    sb.AppendLine("Пар нет.");
+                }
+                else
+                {
+                    foreach (var e in day.Entries.OrderBy(x => x.NumberPair))
+                    {
+                        var pairLine =
+                            $"*{e.NumberPair}.* {LessonTypeIcon(e.LessonType)} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})";
+                        if (showGroup && e.GroupName.Length > 0)
+                            pairLine += $" — {e.GroupName}";
+                        sb.AppendLine(pairLine);
+                        AppendChangeMarkers(sb, e);
+                    }
+                }
+            }
+
+            sb.AppendLine();
         }
 
         return sb.ToString().TrimEnd();
     }
 
-    public static string FormatWeekSchedule(
-        List<ScheduleResponse> entries,
-        DateTime weekStart,
-        string entityName,
-        bool showGroup = false
+    private static string LessonTypeIcon(string lessonType) =>
+        lessonType switch
+        {
+            "Lecture" => "📖",
+            "Practice" => "✏️",
+            "Lab" => "🔬",
+            "Exam" => "📝",
+            _ => "📚",
+        };
+
+    private static string FormatNonWorkingLine(string? title) =>
+        string.IsNullOrWhiteSpace(title) ? "🎉 Нерабочий день" : $"🎉 Нерабочий день: {title}";
+
+    private static void AppendInsertLines(
+        System.Text.StringBuilder sb,
+        List<ScheduleInsertDto> inserts
     )
     {
-        var weekEnd = weekStart.AddDays(6);
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine(
-            $"📅 *Неделя {FormatShortDate(weekStart)}–{FormatShortDate(weekEnd)}* — {entityName}"
-        );
-        sb.AppendLine();
-
-        var grouped = entries.GroupBy(x => x.DayOfWeek).OrderBy(x => x.Key);
-
-        foreach (var group in grouped)
+        foreach (var ins in inserts.OrderBy(x => x.StartTime))
         {
-            var date = DateForWeekDay(weekStart, group.Key);
-            sb.AppendLine($"*{DayNames[DayIndex(group.Key)]}, {FormatShortDate(date)}*");
-            foreach (var e in group.OrderBy(x => x.NumberPair))
-            {
-                var type = e.LessonType switch
-                {
-                    "Lecture" => "📖",
-                    "Practice" => "✏️",
-                    "Lab" => "🔬",
-                    "Exam" => "📝",
-                    _ => "📚",
-                };
-                var pairLine =
-                    $"*{e.NumberPair}.* {type} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})";
-                if (showGroup && e.GroupName.Length > 0)
-                    pairLine += $" — {e.GroupName}";
-                sb.AppendLine(pairLine);
-                AppendChangeMarkers(sb, e);
-            }
-            sb.AppendLine();
+            sb.AppendLine($"{ins.StartTime:hh\\:mm}–{ins.EndTime:hh\\:mm} {ins.Title}");
         }
-
-        return sb.ToString().TrimEnd();
     }
 
     public static string GetDayLabel(int dayOfWeek) => DayNames[dayOfWeek];

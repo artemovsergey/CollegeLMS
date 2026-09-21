@@ -35,6 +35,12 @@ public sealed record CallbackPayload(string Action, string? Param1, string? Para
 
     public static string CalNext(DateTime month) => $"calnext:{month:yyyy-MM}";
 
+    public static string RetryDay(DateTime date) => $"dayretry:{date:yyyy-MM-dd}";
+
+    public static string RetryWeek(DateTime date) => $"weekretry:{date:yyyy-MM-dd}";
+
+    public static string RetryCal(DateTime month) => $"calretry:{month:yyyy-MM}";
+
     public static string Changes() => "changes";
 
     public static string ChangesPage(int page) => $"changes_page:{page}";

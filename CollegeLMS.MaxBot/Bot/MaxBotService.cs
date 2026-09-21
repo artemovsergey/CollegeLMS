@@ -365,6 +365,23 @@ public class MaxBotService : BackgroundService
             case "calnext":
                 await ShowCalendarAfterParse(chatId, userId, p.Param1, +1, ct);
                 break;
+            case "dayretry":
+                var retryDay = CallbackPayload.TryParseDate(p.Param1);
+                if (retryDay is not null)
+                    await ShowDayAsync(chatId, userId, retryDay.Value, ct);
+                else
+                    await ShowMainMenuAsync(chatId, userId, ct);
+                break;
+            case "weekretry":
+                await ShowWeekAfterParse(chatId, userId, p.Param1, 0, ct);
+                break;
+            case "calretry":
+                var retryMonth = CallbackPayload.TryParseMonth(p.Param1);
+                if (retryMonth is not null)
+                    await ShowCalendarAsync(chatId, userId, retryMonth.Value, ct);
+                else
+                    await ShowMainMenuAsync(chatId, userId, ct);
+                break;
             case "role":
                 await HandleRoleSelectionAsync(chatId, userId, p.Param1!, ct);
                 break;
@@ -1045,71 +1062,39 @@ public class MaxBotService : BackgroundService
         var entityName = settings.Role == "student" ? "Группа" : "Преподаватель";
         var buttons = DayNavButtons(date, settings);
 
-        if (date.DayOfWeek == DayOfWeek.Sunday)
+        var day = await _api.GetDayViewAsync(date, settings.GroupId, settings.TeacherId, ct);
+        if (day is null)
         {
             await _max.SendInlineKeyboardAsync(
                 chatId,
-                MessageFormatter.FormatDaySchedule([], date, entityName),
-                buttons,
+                "❌ Не удалось загрузить расписание.",
+                RetryButtons(CallbackPayload.RetryDay(date)),
                 ct: ct
             );
             return;
         }
 
-        var day = DateOnly.FromDateTime(date);
-        var nonWorking = await _api.GetNonWorkingDaysAsync(day, day, ct);
-        if (nonWorking.Count > 0)
-        {
-            var holidayText =
-                $"📋 *{MessageFormatter.FormatLongDate(date)}* — {entityName}\n\n"
-                + $"🎉 Нерабочий день: {nonWorking[0].Title}";
-            await _max.SendInlineKeyboardAsync(chatId, holidayText, buttons, ct: ct);
-            return;
-        }
-
-        var practices = await _api.GetPracticesAsync(
-            day,
-            day,
-            groupId: settings.GroupId,
-            teacherId: settings.TeacherId,
-            ct: ct
-        );
-
-        var entries = await _api.GetScheduleAsync(
-            groupId: settings.GroupId,
-            teacherId: settings.TeacherId,
-            week: StudyWeek.ForDate(date),
-            dayOfWeek: MessageFormatter.ToApiDay(date.DayOfWeek),
-            ct: ct
-        );
-
-        List<ScheduleInsertDto>? inserts = null;
-        if (practices.Count == 0)
-        {
-            inserts = await _api.GetInsertsAsync(MessageFormatter.ToApiDay(date.DayOfWeek), ct: ct);
-            if (settings.GroupId.HasValue)
-            {
-                var groups = await _api.GetGroupsAsync(ct);
-                var course = groups.FirstOrDefault(g => g.Id == settings.GroupId.Value)?.Course;
-                if (course.HasValue)
-                    inserts = inserts
-                        .Where(i => i.Course is null || i.Course == course.Value)
-                        .ToList();
-            }
-        }
-
         var text = MessageFormatter.FormatDaySchedule(
-            entries,
-            date,
+            day,
             entityName,
-            showGroup: settings.Role == "teacher",
-            inserts: inserts,
-            practiceLine: practices.Count > 0
-                ? MessageFormatter.FormatPracticeLine(practices[0])
-                : null
+            showGroup: settings.Role == "teacher"
         );
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
+
+    /// <summary>Кнопка «Повторить» для ошибок загрузки расписания.</summary>
+    private static List<List<MaxButton>> RetryButtons(string payload) =>
+        [
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔄 Повторить",
+                    Payload = payload,
+                },
+            },
+        ];
 
     private List<List<MaxButton>> DayNavButtons(DateTime date, UserSettings settings)
     {
@@ -1172,17 +1157,25 @@ public class MaxBotService : BackgroundService
         }
 
         var entityName = settings.Role == "student" ? "Группа" : "Преподаватель";
-        var entries = await _api.GetScheduleAsync(
-            groupId: settings.GroupId,
-            teacherId: settings.TeacherId,
-            period: "week",
-            week: StudyWeek.ForDate(weekStart),
-            ct: ct
+        var week = await _api.GetWeekViewAsync(
+            StudyWeek.ForDate(weekStart),
+            settings.GroupId,
+            settings.TeacherId,
+            ct
         );
+        if (week is null)
+        {
+            await _max.SendInlineKeyboardAsync(
+                chatId,
+                "❌ Не удалось загрузить расписание.",
+                RetryButtons(CallbackPayload.RetryWeek(weekStart)),
+                ct: ct
+            );
+            return;
+        }
 
         var text = MessageFormatter.FormatWeekSchedule(
-            entries,
-            weekStart,
+            week,
             entityName,
             showGroup: settings.Role == "teacher"
         );
@@ -1191,15 +1184,13 @@ public class MaxBotService : BackgroundService
         if (text.Length > 4000)
         {
             var header =
-                $"📅 *Неделя {MessageFormatter.FormatShortDate(weekStart)}–{MessageFormatter.FormatShortDate(weekStart.AddDays(6))}*";
+                $"📅 *Неделя {week.Week} · {MessageFormatter.FormatShortDate(week.WeekStart)}–{MessageFormatter.FormatShortDate(week.WeekStart.AddDays(6))}*";
             await _max.SendInlineKeyboardAsync(chatId, header, buttons, ct: ct);
 
-            foreach (var group in entries.GroupBy(x => x.DayOfWeek).OrderBy(x => x.Key))
+            foreach (var day in week.Days.OrderBy(d => MessageFormatter.DayIndex(d.DayOfWeek)))
             {
-                var date = MessageFormatter.DateForWeekDay(weekStart, group.Key);
                 var dayText = MessageFormatter.FormatDaySchedule(
-                    group.ToList(),
-                    date,
+                    day,
                     entityName,
                     showGroup: settings.Role == "teacher"
                 );
@@ -1291,6 +1282,19 @@ public class MaxBotService : BackgroundService
         }
 
         var maxMonth = StudyWeek.MondayOf(StudyWeek.SemesterStart).AddDays(16 * 7);
+        var meta = await _api.GetScheduleMetaAsync(ct);
+        if (
+            meta is { TotalWeeks: > 0 }
+            && DateTime.TryParse(
+                meta.SemesterStart,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var semesterStart
+            )
+        )
+        {
+            maxMonth = StudyWeek.MondayOf(semesterStart).AddDays(meta.TotalWeeks * 7);
+        }
         var rows = CalendarFormatter.BuildGrid(month);
 
         var navRow = new List<MaxButton>();

@@ -6,28 +6,92 @@ namespace CollegeLMS.MaxBot.Tests;
 
 public class MessageFormatterTests
 {
-    private static List<ScheduleResponse> Entries() =>
-        [
-            new ScheduleResponse
-            {
-                DayOfWeek = 1,
-                NumberPair = 1,
-                Subject = "Математика",
-                Room = "405",
-                StartTime = new TimeSpan(9, 0, 0),
-                EndTime = new TimeSpan(10, 30, 0),
-                TeacherName = "Иванов И.И.",
-                LessonType = "Lecture",
-            },
-        ];
+    private static ScheduleResponse Pair(
+        int numberPair = 1,
+        string subject = "Математика",
+        string room = "405",
+        string? teacherName = "Иванов И.И.",
+        string lessonType = "Lecture",
+        string groupName = "",
+        TimeSpan? start = null,
+        TimeSpan? end = null,
+        List<ChangeTag>? changeTags = null
+    ) =>
+        new()
+        {
+            DayOfWeek = 1,
+            NumberPair = numberPair,
+            Subject = subject,
+            Room = room,
+            StartTime = start ?? new TimeSpan(9, 0, 0),
+            EndTime = end ?? new TimeSpan(10, 30, 0),
+            TeacherName = teacherName,
+            LessonType = lessonType,
+            GroupName = groupName,
+            ChangeTags = changeTags ?? [],
+        };
+
+    private static ScheduleInsertDto Insert(string title, int hour, int minute) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            Title = title,
+            DayOfWeek = 1,
+            StartTime = new TimeSpan(hour, minute, 0),
+            EndTime = new TimeSpan(hour, minute + 30, 0),
+            IsActive = true,
+        };
+
+    private static PracticeDto Practice() =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            Kind = "Up",
+            GroupId = Guid.NewGuid(),
+            GroupName = "ПО-262",
+            TeacherId = Guid.NewGuid(),
+            TeacherName = "Марченко И.А.",
+            DateFrom = new DateTime(2026, 9, 7),
+            DateTo = new DateTime(2026, 9, 11),
+        };
+
+    private static ScheduleDayViewDto Day(
+        DateTime date,
+        List<ScheduleResponse>? entries = null,
+        bool isSunday = false,
+        bool isNonWorking = false,
+        string? nonWorkingTitle = null,
+        List<PracticeDto>? practices = null,
+        List<ScheduleInsertDto>? inserts = null
+    ) =>
+        new()
+        {
+            Date = date,
+            Week = 1,
+            DayOfWeek = MessageFormatter.ToApiDay(date.DayOfWeek),
+            IsSunday = isSunday,
+            IsNonWorking = isNonWorking,
+            NonWorkingTitle = nonWorkingTitle,
+            Practices = practices ?? [],
+            Inserts = inserts ?? [],
+            Entries = entries ?? [],
+        };
+
+    private static ScheduleWeekViewDto Week(DateTime weekStart, params ScheduleDayViewDto[] days) =>
+        new()
+        {
+            Week = 1,
+            WeekStart = weekStart,
+            Days = [.. days],
+        };
 
     [Fact]
     public void FormatDaySchedule_IncludesDateInHeader()
     {
         var text = MessageFormatter.FormatDaySchedule(
-            Entries(),
-            new DateTime(2026, 9, 7),
-            "Группа 101"
+            Day(new DateTime(2026, 9, 7), [Pair()]),
+            "Группа 101",
+            showGroup: false
         );
 
         text.Should().Contain("Понедельник, 07.09");
@@ -38,11 +102,8 @@ public class MessageFormatterTests
     [Fact]
     public void FormatDaySchedule_ShowGroup_IncludesGroupName()
     {
-        var entries = new List<ScheduleResponse> { Entries()[0] with { GroupName = "ИС-21" } };
-
         var text = MessageFormatter.FormatDaySchedule(
-            entries,
-            new DateTime(2026, 9, 7),
+            Day(new DateTime(2026, 9, 7), [Pair(groupName: "ИС-21")]),
             "Иванов И.И.",
             showGroup: true
         );
@@ -53,25 +114,188 @@ public class MessageFormatterTests
     [Fact]
     public void FormatDaySchedule_WithoutShowGroup_OmitsGroupName()
     {
-        var entries = new List<ScheduleResponse> { Entries()[0] with { GroupName = "ИС-21" } };
-
         var text = MessageFormatter.FormatDaySchedule(
-            entries,
-            new DateTime(2026, 9, 7),
-            "Иванов И.И."
+            Day(new DateTime(2026, 9, 7), [Pair(groupName: "ИС-21")]),
+            "Иванов И.И.",
+            showGroup: false
         );
 
         text.Should().NotContain("ИС-21");
     }
 
     [Fact]
-    public void FormatWeekSchedule_ShowGroup_IncludesGroupName()
+    public void FormatDaySchedule_EmptyEntries_ShowsNoPairs()
     {
-        var entries = new List<ScheduleResponse> { Entries()[0] with { GroupName = "ИС-21" } };
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7)),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("Пар нет.");
+        text.Should().NotContain("выходной!");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_Sunday_ShowsHoliday()
+    {
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 13), isSunday: true),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("Воскресенье, 13.09");
+        text.Should().Contain("Расписания нет — выходной!");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_NonWorking_ShowsTitle()
+    {
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), isNonWorking: true, nonWorkingTitle: "Праздник"),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("🎉 Нерабочий день: Праздник");
+        text.Should().NotContain("Математика");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_Practice_ReplacesPairs()
+    {
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), [Pair()], practices: [Practice()]),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("🎓 *Практика*");
+        text.Should().Contain("УП: ПО-262");
+        text.Should().NotContain("Математика");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_Inserts_RenderedBeforePairs()
+    {
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), [Pair()], inserts: [Insert("Линейка", 8, 0)]),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("08:00–08:30 Линейка");
+        text.IndexOf("08:00–08:30 Линейка").Should().BeLessThan(text.IndexOf("*1.* 📖 Математика"));
+    }
+
+    [Fact]
+    public void FormatDaySchedule_EmptyEntriesWithInserts_ShowsInsertAndNoPairs()
+    {
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), inserts: [Insert("Линейка", 8, 0)]),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("08:00–08:30 Линейка");
+        text.Should().Contain("Пар нет.");
+        text.Should().NotContain("выходной!");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_ChangeTags_ShowsMarkers()
+    {
+        var entries = new List<ScheduleResponse>
+        {
+            Pair(
+                changeTags:
+                [
+                    new ChangeTag
+                    {
+                        ChangeType = "Move",
+                        Week = 1,
+                        RemovedNumberPair = 2,
+                    },
+                ]
+            ),
+        };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), entries),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("🔄 перенос с пары 2");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_HasHorizontalRuleBetweenSlots()
+    {
+        var entries = new List<ScheduleResponse>
+        {
+            Pair(),
+            Pair(
+                numberPair: 2,
+                subject: "Физика",
+                start: new TimeSpan(10, 50, 0),
+                end: new TimeSpan(12, 20, 0)
+            ),
+        };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), entries),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("────────");
+        text.Should().Contain("*1.* 📖 Математика");
+        text.Should().Contain("*2.* 📖 Физика");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_AfternoonTime_Uses24HourFormat()
+    {
+        var entries = new List<ScheduleResponse>
+        {
+            Pair(start: new TimeSpan(15, 5, 0), end: new TimeSpan(16, 25, 0)),
+        };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), entries),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("15:05–16:25");
+        text.Should().NotContain("03:05");
+    }
+
+    [Fact]
+    public void FormatWeekSchedule_HeaderHasDateRange()
+    {
+        var weekStart = new DateTime(2026, 9, 7);
 
         var text = MessageFormatter.FormatWeekSchedule(
-            entries,
-            new DateTime(2026, 9, 7),
+            Week(weekStart, Day(weekStart, [Pair()])),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("Неделя 1 · 07.09–13.09");
+        text.Should().Contain("Понедельник, 07.09");
+        text.Should().Contain("Группа 101");
+    }
+
+    [Fact]
+    public void FormatWeekSchedule_ShowGroup_IncludesGroupName()
+    {
+        var weekStart = new DateTime(2026, 9, 7);
+
+        var text = MessageFormatter.FormatWeekSchedule(
+            Week(weekStart, Day(weekStart, [Pair(groupName: "ИС-21")])),
             "Иванов И.И.",
             showGroup: true
         );
@@ -80,32 +304,65 @@ public class MessageFormatterTests
     }
 
     [Fact]
-    public void FormatDaySchedule_Empty_ShowsHoliday()
-    {
-        var text = MessageFormatter.FormatDaySchedule([], new DateTime(2026, 9, 7), "Группа 101");
-
-        text.Should().Contain("Расписания нет — выходной!");
-    }
-
-    [Fact]
-    public void FormatWeekSchedule_HeaderHasDateRange()
+    public void FormatWeekSchedule_NonWorkingDay_MarkedInDayBlock()
     {
         var weekStart = new DateTime(2026, 9, 7);
 
-        var text = MessageFormatter.FormatWeekSchedule(Entries(), weekStart, "Группа 101");
+        var text = MessageFormatter.FormatWeekSchedule(
+            Week(
+                weekStart,
+                Day(weekStart, [Pair()]),
+                Day(weekStart.AddDays(1), isNonWorking: true, nonWorkingTitle: "Праздник")
+            ),
+            "Группа 101",
+            showGroup: false
+        );
 
-        text.Should().Contain("07.09–13.09");
-        text.Should().Contain("Понедельник, 07.09");
-        text.Should().Contain("Группа 101");
+        text.Should().Contain("*Вторник, 08.09*");
+        text.Should().Contain("🎉 Нерабочий день: Праздник");
+    }
+
+    [Fact]
+    public void FormatWeekSchedule_PracticeDay_NoPairs()
+    {
+        var weekStart = new DateTime(2026, 9, 7);
+
+        var text = MessageFormatter.FormatWeekSchedule(
+            Week(weekStart, Day(weekStart, [Pair()], practices: [Practice()])),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("🎓 *Практика*");
+        text.Should().Contain("УП: ПО-262");
+        text.Should().NotContain("Математика");
+    }
+
+    [Fact]
+    public void FormatWeekSchedule_EmptyDay_ShowsNoPairs()
+    {
+        var weekStart = new DateTime(2026, 9, 7);
+
+        var text = MessageFormatter.FormatWeekSchedule(
+            Week(weekStart, Day(weekStart)),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("Пар нет.");
     }
 
     [Fact]
     public void FormatWeekSchedule_SundayEntries_HeaderUsesIndex7()
     {
         var weekStart = new DateTime(2026, 9, 7);
-        var entries = new List<ScheduleResponse> { Entries()[0] with { DayOfWeek = 0 } };
+        var sunday = weekStart.AddDays(6);
 
-        var text = MessageFormatter.FormatWeekSchedule(entries, weekStart, "Группа 101");
+        var text = MessageFormatter.FormatWeekSchedule(
+            Week(weekStart, Day(sunday, [Pair()], isSunday: true)),
+            "Группа 101",
+            showGroup: false
+        );
 
         text.Should().Contain("Воскресенье, 13.09");
     }
@@ -131,140 +388,19 @@ public class MessageFormatterTests
     [Fact]
     public void FormatWeekSchedule_PairNumbers_AreBoldNotOrderedList()
     {
+        var weekStart = new DateTime(2026, 9, 7);
         var entries = new List<ScheduleResponse>();
         for (var i = 1; i <= 7; i++)
-            entries.Add(Entries()[0] with { NumberPair = i, Subject = $"Предмет{i}" });
+            entries.Add(Pair(numberPair: i, subject: $"Предмет{i}"));
 
         var text = MessageFormatter.FormatWeekSchedule(
-            entries,
-            new DateTime(2026, 9, 7),
-            "Группа 101"
+            Week(weekStart, Day(weekStart, entries)),
+            "Группа 101",
+            showGroup: false
         );
 
         text.Should().Contain("*7.* 📖 Предмет7");
         text.Should().NotMatch(@"  \d+\.");
-    }
-
-    [Fact]
-    public void FormatDaySchedule_ChangeTags_ShowsMarkers()
-    {
-        var entries = new List<ScheduleResponse>
-        {
-            Entries()[0] with
-            {
-                ChangeTags =
-                [
-                    new ChangeTag
-                    {
-                        ChangeType = "Move",
-                        Week = 1,
-                        RemovedNumberPair = 2,
-                    },
-                ],
-            },
-        };
-
-        var text = MessageFormatter.FormatDaySchedule(
-            entries,
-            new DateTime(2026, 9, 7),
-            "Группа 101"
-        );
-
-        text.Should().Contain("🔄 перенос с пары 2");
-    }
-
-    private static List<ScheduleInsertDto> Inserts() =>
-        [
-            new ScheduleInsertDto
-            {
-                Id = Guid.NewGuid(),
-                Title = "Линейка",
-                DayOfWeek = 1,
-                StartTime = new TimeSpan(8, 0, 0),
-                EndTime = new TimeSpan(8, 30, 0),
-                IsActive = true,
-            },
-        ];
-
-    [Fact]
-    public void FormatDaySchedule_WithInserts_AppendsBlockAfterPairs()
-    {
-        var text = MessageFormatter.FormatDaySchedule(
-            Entries(),
-            new DateTime(2026, 9, 7),
-            "Группа 101",
-            inserts: Inserts()
-        );
-
-        text.Should().Contain("🎓 *Вставки:*");
-        text.Should().Contain("*Линейка*");
-        text.Should().Contain("🕐 08:00–08:30");
-        text.IndexOf("🎓 *Вставки:*").Should().BeGreaterThan(text.IndexOf("*1.* 📖 Математика"));
-    }
-
-    [Fact]
-    public void FormatDaySchedule_EmptyEntriesWithInserts_ShowsHeaderAndInserts()
-    {
-        var text = MessageFormatter.FormatDaySchedule(
-            [],
-            new DateTime(2026, 9, 7),
-            "Группа 101",
-            inserts: Inserts()
-        );
-
-        text.Should().Contain("Пар нет.");
-        text.Should().Contain("🎓 *Вставки:*");
-        text.Should().NotContain("выходной!");
-    }
-
-    [Fact]
-    public void FormatDaySchedule_Inserts_SortedByStartTime()
-    {
-        var inserts = new List<ScheduleInsertDto>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Поздняя",
-                DayOfWeek = 1,
-                StartTime = new TimeSpan(15, 0, 0),
-                EndTime = new TimeSpan(15, 30, 0),
-                IsActive = true,
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Title = "Ранняя",
-                DayOfWeek = 1,
-                StartTime = new TimeSpan(8, 0, 0),
-                EndTime = new TimeSpan(8, 30, 0),
-                IsActive = true,
-            },
-        };
-
-        var text = MessageFormatter.FormatDaySchedule(
-            [],
-            new DateTime(2026, 9, 7),
-            "Группа 101",
-            inserts: inserts
-        );
-
-        text.IndexOf("*Ранняя*").Should().BeLessThan(text.IndexOf("*Поздняя*"));
-    }
-
-    [Fact]
-    public void FormatDaySchedule_PracticeLine_ReplacesPairs()
-    {
-        var text = MessageFormatter.FormatDaySchedule(
-            Entries(),
-            new DateTime(2026, 9, 7),
-            "Группа 101",
-            practiceLine: "УП: ПО-262 · Марченко И.А. (с 07.09.2026 по 11.09.2026)"
-        );
-
-        text.Should().Contain("🎓 *Практика*");
-        text.Should().Contain("УП: ПО-262 · Марченко И.А.");
-        text.Should().NotContain("Математика");
     }
 
     [Fact]
@@ -302,53 +438,6 @@ public class MessageFormatterTests
         var line = MessageFormatter.FormatPracticeLine(practice);
 
         line.Should().Be("ПП: ПО-263 · Петренко В.Б. (с 01.10.2026 по 12.10.2026)");
-    }
-
-    [Fact]
-    public void FormatDaySchedule_HasHorizontalRuleBetweenSlots()
-    {
-        var entries = new List<ScheduleResponse>
-        {
-            Entries()[0],
-            Entries()[0] with
-            {
-                NumberPair = 2,
-                Subject = "Физика",
-                StartTime = new TimeSpan(10, 50, 0),
-            },
-        };
-
-        var text = MessageFormatter.FormatDaySchedule(
-            entries,
-            new DateTime(2026, 9, 7),
-            "Группа 101"
-        );
-
-        text.Should().Contain("────────");
-        text.Should().Contain("*1.* 📖 Математика");
-        text.Should().Contain("*2.* 📖 Физика");
-    }
-
-    [Fact]
-    public void FormatDaySchedule_AfternoonTime_Uses24HourFormat()
-    {
-        var entries = new List<ScheduleResponse>
-        {
-            Entries()[0] with
-            {
-                StartTime = new TimeSpan(15, 5, 0),
-                EndTime = new TimeSpan(16, 25, 0),
-            },
-        };
-
-        var text = MessageFormatter.FormatDaySchedule(
-            entries,
-            new DateTime(2026, 9, 7),
-            "Группа 101"
-        );
-
-        text.Should().Contain("15:05–16:25");
-        text.Should().NotContain("03:05");
     }
 
     private static ScheduleRevision Revision(string changeType = "Replace") =>
