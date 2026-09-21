@@ -113,8 +113,9 @@ public class ScheduleViewService(
                 .Where(p => p.DateFrom <= date && p.DateTo >= date)
                 .ToList();
             var isSunday = date.DayOfWeek == DayOfWeek.Sunday;
+            var isOutOfSemester = date < SemesterMonday || date > SemesterLastDay;
             var pairCount =
-                (isSunday || nwd is not null || coversPractice.Count > 0)
+                (isSunday || nwd is not null || coversPractice.Count > 0 || isOutOfSemester)
                     ? 0
                     : entries.Count(e => e.DayOfWeek == date.DayOfWeek && e.Weeks.Contains(week));
             days.Add(
@@ -126,7 +127,7 @@ public class ScheduleViewService(
                     IsNonWorking = nwd is not null,
                     NonWorkingTitle = nwd?.Title,
                     PracticeKinds = coversPractice.Select(p => p.Kind).Distinct().ToList(),
-                    IsOutOfSemester = date < SemesterMonday || date > SemesterLastDay,
+                    IsOutOfSemester = isOutOfSemester,
                     PairCount = pairCount,
                 }
             );
@@ -272,6 +273,14 @@ public class ScheduleViewService(
                 NonWorkingTitle = nonWorking.Title,
             };
 
+        if (target < SemesterMonday || target > SemesterLastDay)
+            return new ScheduleDayViewResponse
+            {
+                Date = target,
+                Week = week,
+                DayOfWeek = (int)target.DayOfWeek,
+            };
+
         var practiceList = data
             .Practices.Where(p => p.DateFrom <= target && p.DateTo >= target)
             .ToList();
@@ -300,9 +309,6 @@ public class ScheduleViewService(
         int week
     )
     {
-        if (target < SemesterMonday || target > SemesterLastDay)
-            return [];
-
         return data
             .Entries.Where(e => e.DayOfWeek == target.DayOfWeek && e.Weeks.Contains(week))
             .Select(e =>

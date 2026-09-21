@@ -252,6 +252,26 @@ public class ScheduleViewServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetDayAsync_OutOfSemester_EntriesAndInsertsEmpty()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, DayOfWeek.Monday, 1, 1);
+        await SeedInsertAsync(DayOfWeek.Monday, null);
+
+        var result = await _sut.GetDayAsync(
+            group.Id,
+            null,
+            null,
+            new DateTime(2026, 8, 24),
+            CancellationToken.None
+        ); // понедельник до семестра
+
+        result.Data!.Entries.Should().BeEmpty();
+        result.Data.Inserts.Should().BeEmpty();
+        result.Data.Practices.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task GetWeekAsync_ReturnsSixDaysMondayToSaturday()
     {
         var (group, teacher) = await SeedGroupAndTeacherAsync();
@@ -318,6 +338,27 @@ public class ScheduleViewServiceTests : IDisposable
             .Data.Days.Single(d => d.Date == new DateTime(2026, 8, 31))
             .IsOutOfSemester.Should()
             .BeFalse();
+    }
+
+    [Fact]
+    public async Task GetMonthAsync_PreSemesterDate_PairCountZero()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, DayOfWeek.Tuesday, 1, 1); // 01.09.2026 — вторник недели 1
+
+        var result = await _sut.GetMonthAsync(
+            group.Id,
+            null,
+            null,
+            "2026-08",
+            CancellationToken.None
+        );
+
+        result.Data!.Days.Single(d => d.Date == new DateTime(2026, 8, 25)).PairCount.Should().Be(0);
+        result
+            .Data.Days.Single(d => d.Date == new DateTime(2026, 8, 25))
+            .IsOutOfSemester.Should()
+            .BeTrue();
     }
 
     [Fact]
