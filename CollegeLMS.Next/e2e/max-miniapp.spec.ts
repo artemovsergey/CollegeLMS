@@ -13,61 +13,99 @@ const META = {
   statusCode: 200,
 }
 
-const DAY_ENTRIES = {
-  isSuccess: true,
-  data: {
-    items: [
-      {
-        id: "s1",
-        groupId: "g1",
-        groupName: "ПО262",
-        teacherId: "t1",
-        teacherName: "Петренко В.Б.",
-        subject: "Математика",
-        room: "301",
-        dayOfWeek: 1,
-        numberPair: 1,
-        startTime: "08:30:00",
-        endTime: "10:05:00",
-        weeks: [2],
-        lessonType: "Лекция",
-        changeTags: [],
-      },
-    ],
-    totalCount: 1,
-    page: 1,
-    pageSize: 50,
-  },
-  errorMessage: null,
-  statusCode: 200,
+// Контекст зрителя: без выбранной группы ScheduleView показывает приглашение
+// «Выберите расписание» и не рендерит ленту расписания.
+const VIEW_CONTEXT = { groupId: "g1", groupName: "ПО262" }
+
+const ENTRY = {
+  id: "s1",
+  groupId: "g1",
+  groupName: "ПО262",
+  teacherId: "t1",
+  teacherName: "Петренко В.Б.",
+  subject: "Математика",
+  room: "301",
+  dayOfWeek: 1,
+  numberPair: 1,
+  startTime: "08:30:00",
+  endTime: "10:05:00",
+  weeks: [2],
+  lessonType: "Лекция",
+  changeTags: [],
 }
 
-const WEEK_ENTRIES = {
-  ...DAY_ENTRIES,
-  data: {
-    items: [
-      {
-        id: "s1",
-        groupId: "g1",
-        groupName: "ПО262",
-        teacherId: "t1",
-        teacherName: "Петренко В.Б.",
-        subject: "Математика",
-        room: "301",
-        dayOfWeek: 1,
-        numberPair: 1,
-        startTime: "08:30:00",
-        endTime: "10:05:00",
-        weeks: [2],
-        lessonType: "Лекция",
-        changeTags: [],
-      },
-    ],
-    totalCount: 1,
-    page: 1,
-    pageSize: 50,
-  },
+const INSERT = {
+  id: "i1",
+  title: "Кураторский час",
+  dayOfWeek: 1,
+  startTime: "12:20:00",
+  endTime: "13:00:00",
+  course: null,
+  isActive: true,
 }
+
+const PRACTICE = {
+  id: "p1",
+  kind: "Pp",
+  groupId: "g1",
+  groupName: "ПО262",
+  teacherId: "t1",
+  teacherName: "Петренко В.Б.",
+  dateFrom: "2026-09-11T00:00:00Z",
+  dateTo: "2026-09-11T00:00:00Z",
+  organization: "АО «Завод»",
+  note: null,
+}
+
+function ok(data: unknown) {
+  return { isSuccess: true, data, errorMessage: null, statusCode: 200 }
+}
+
+// День по контракту view=day (ScheduleDayView).
+function dayView(overrides: Record<string, unknown> = {}) {
+  return {
+    date: "2026-09-07T00:00:00Z",
+    week: 2,
+    dayOfWeek: 1,
+    isSunday: false,
+    isNonWorking: false,
+    nonWorkingTitle: null,
+    practices: [],
+    inserts: [],
+    entries: [],
+    ...overrides,
+  }
+}
+
+const DAY_VIEW = ok(dayView({ entries: [ENTRY], inserts: [INSERT] }))
+
+// Неделя по контракту view=week (ScheduleWeekView): 6 дней Пн–Сб со слоями.
+const WEEK_VIEW = ok({
+  week: 2,
+  weekStart: "2026-09-07T00:00:00Z",
+  days: [
+    dayView({
+      date: "2026-09-07T00:00:00Z",
+      dayOfWeek: 1,
+      entries: [ENTRY],
+      inserts: [INSERT],
+    }),
+    dayView({ date: "2026-09-08T00:00:00Z", dayOfWeek: 2 }),
+    dayView({
+      date: "2026-09-09T00:00:00Z",
+      dayOfWeek: 3,
+      isNonWorking: true,
+      nonWorkingTitle: "День учителя",
+    }),
+    dayView({ date: "2026-09-10T00:00:00Z", dayOfWeek: 4 }),
+    dayView({
+      date: "2026-09-11T00:00:00Z",
+      dayOfWeek: 5,
+      practices: [PRACTICE],
+    }),
+    dayView({ date: "2026-09-12T00:00:00Z", dayOfWeek: 6 }),
+  ],
+})
 
 const HISTORY = {
   isSuccess: true,
@@ -123,12 +161,17 @@ function inlineJson(body: object) {
 
 test.describe("MAX mini-app", () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript((ctx) => {
+      localStorage.setItem("max-view-context", JSON.stringify(ctx))
+    }, VIEW_CONTEXT)
+
     await page.route("**/api/schedule**", (route) => {
       const url = route.request().url()
       if (url.includes("/meta")) return route.fulfill(inlineJson(META))
       if (url.includes("/search")) return route.fulfill(inlineJson(SEARCH))
       if (url.includes("/history")) return route.fulfill(inlineJson(HISTORY))
-      return route.fulfill(inlineJson(DAY_ENTRIES))
+      if (url.includes("view=week")) return route.fulfill(inlineJson(WEEK_VIEW))
+      return route.fulfill(inlineJson(DAY_VIEW))
     })
   })
 
@@ -136,7 +179,7 @@ test.describe("MAX mini-app", () => {
     await page.goto("/max?route=today", { waitUntil: "networkidle" })
 
     await expect(page.locator(".max-app__tabbar")).toBeVisible()
-    await expect(page.getByRole("button", { name: "Сменить просмотр" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "Поиск" })).toBeVisible()
     await expect(page.getByText("Invalid Date")).toHaveCount(0)
     await expect(page.getByText("undefined")).toHaveCount(0)
   })
@@ -150,6 +193,10 @@ test.describe("MAX mini-app", () => {
     await expect(page.getByText("Математика")).toBeVisible()
     await expect(page.locator(".max-app__tabbar")).toBeVisible()
     await expect(page.getByText("Invalid Date")).toHaveCount(0)
+    // Слои дня: вставка отображается строкой «HH:mm–HH:mm Название».
+    await expect(page.getByText("Вставки")).toBeVisible()
+    await expect(page.getByText("Кураторский час")).toBeVisible()
+    await expect(page.getByText("12:20–13:00")).toBeVisible()
   })
 
   test("Полный ISO-формат метаданных не ломает даты", async ({ page }) => {
@@ -160,6 +207,11 @@ test.describe("MAX mini-app", () => {
     await expect(page.getByText("Расписание")).toBeVisible()
     await expect(page.getByText("Invalid Date")).toHaveCount(0)
     await expect(page.getByText("undefined")).toHaveCount(0)
+    // Диапазон недели — Пн–Сб (6 дней), как в ленте.
+    await expect(page.getByText("07.09 – 12.09")).toBeVisible()
+    // Слои недели: нерабочий день и практика-бейдж.
+    await expect(page.getByText("День учителя")).toBeVisible()
+    await expect(page.getByText("ПП", { exact: true })).toBeVisible()
   })
 
   test("Поиск возвращает группы и преподавателей", async ({ page }) => {
@@ -167,11 +219,13 @@ test.describe("MAX mini-app", () => {
       waitUntil: "networkidle",
     })
 
-    await page.getByRole("button", { name: "Сменить просмотр" }).click()
-    await page.getByRole("searchbox", { name: /поиск/i }).fill("по")
+    await page.getByRole("button", { name: "Поиск" }).click()
 
-    await expect(page.getByText("ПО262")).toBeVisible()
-    await expect(page.getByText("Петренко В.Б.")).toBeVisible()
+    const sheet = page.getByRole("dialog", { name: "Поиск" })
+    await sheet.getByRole("searchbox").fill("по")
+
+    await expect(sheet.getByText("ПО262")).toBeVisible()
+    await expect(sheet.getByText("Петренко В.Б.")).toBeVisible()
   })
 
   test("Изменения открываются по deep link", async ({ page }) => {

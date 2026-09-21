@@ -158,9 +158,15 @@ export default function ScheduleView() {
     if (!semesterStart) return ""
     const w1 = mondayOf(parseIsoDate(semesterStart))
     const start = addDays(w1, (selectedWeek - 1) * 7)
-    const end = addDays(start, 6)
-    return `${formatDay(toIsoDate(start))} – ${formatDay(toIsoDate(end))}`
-  }, [meta, selectedWeek])
+    // Конец диапазона — последний день недели из ответа (Пн–Сб), как в веб-виде.
+    const lastDay =
+      weekData && weekData.week === selectedWeek && weekData.days.length > 0
+        ? weekData.days[weekData.days.length - 1]
+        : undefined
+    const lastIso = lastDay ? normalizeDateOnly(lastDay.date) : ""
+    const end = lastIso || toIsoDate(addDays(start, 5))
+    return `${formatDay(toIsoDate(start))} – ${formatDay(end)}`
+  }, [meta, selectedWeek, weekData])
 
   const dateIsToday = selectedDate === toIsoDate(new Date())
   const isCurrentWeek =
