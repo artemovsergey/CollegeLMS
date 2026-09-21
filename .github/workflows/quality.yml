@@ -20,6 +20,9 @@ jobs:
       - name: Build
         run: dotnet build CollegeLMS.slnx --no-restore
 
+      - name: Test
+        run: dotnet test CollegeLMS.slnx --no-build
+
       - name: CSharpier check
         run: |
           dotnet tool restore
@@ -47,3 +50,26 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: CollegeLMS.Next
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: CollegeLMS.Next/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: npm run test:e2e

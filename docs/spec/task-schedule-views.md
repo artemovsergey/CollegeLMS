@@ -232,8 +232,6 @@ GET /api/schedule/export?scope=day|week|semester&format=pdf|xlsx&layout=grid|day
 - Postman: `docs/spec/CollegeLMS.postman_collection.json` — папка **Schedule (MAX)**:
   `Get schedule (view=day|week|calendar|semester)` с параметрами и примерами ответов,
   `Export schedule`, `Export schedule (day)`, `Export schedule (week)` с FILE-3.
-- PlantUML: `docs/diagrams/class/schedule-view-service.puml`,
-  `docs/diagrams/sequence/schedule-view-day.puml`.
 - Спека дизайна: `docs/superpowers/specs/2026-09-21-schedule-views-design.md`;
   план: `docs/superpowers/plans/2026-09-21-schedule-views.md`.
 - ТЗ итерации: этот документ.

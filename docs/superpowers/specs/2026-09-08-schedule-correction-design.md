@@ -279,7 +279,6 @@ public class MaxBotHttpClient(HttpClient http)
 - [ ] `npm run build` работает
 - [ ] Swagger показывает новые endpoints с русской документацией
 - [ ] Postman-коллекция обновлена
-- [ ] PlantUML диаграммы (ER, Class, Sequence)
 - [ ] `docker compose --profile max-bot up --build` работает
 - [ ] Feature-ветка слита в master
 - [ ] Push в master → CD развернул на VPS

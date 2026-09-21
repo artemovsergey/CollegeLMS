@@ -152,7 +152,6 @@ XLSX, редактирование, применение с обязательн
 
 ## 8. Документация
 
-- Диаграммы: `docs/diagrams/er/correction_draft.puml`, `docs/diagrams/class/correction-batch-service.puml`, `docs/diagrams/sequence/correction-batch-apply.puml`.
 - User stories: `docs/spec/userstories.md` (UC-D1–UC-D4).
 - Postman: `docs/spec/CollegeLMS.postman_collection.json`.
 - План реализации: `docs/superpowers/plans/2026-09-16-dispatcher-corrections.md`; завершение UC-SCH-18–30 — `docs/superpowers/plans/2026-09-18-schedule-corrections-completion.md`.

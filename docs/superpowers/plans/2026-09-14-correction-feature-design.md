@@ -243,7 +243,6 @@ export async function fetchSubjects(q = ""): Promise<Result<SubjectsResponse>> {
 
 - `SwaggerExamples/SubjectsResponseExample.cs` (Task 01).
 - Postman-коллекция (Task 01).
-- (Опционально) PlantUML sequence/class не обязателен — фича не меняет архитектуру. Пропускаем.
 
 **Чеклист:**
 - [ ] SwaggerExample

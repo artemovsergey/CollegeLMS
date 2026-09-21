@@ -156,9 +156,6 @@ GET /api/schedule/export?scope=day|week|semester&format=pdf|xlsx&layout=grid|day
 
 ## 8. Документация
 
-- ER: `docs/diagrams/er/reference-data.puml`.
-- Class: `docs/diagrams/class/reference-services.puml`.
-- Sequence: `docs/diagrams/sequence/practice-import.puml`, `docs/diagrams/sequence/bot-day-view.puml`.
 - Postman: `docs/spec/CollegeLMS.postman_collection.json` (папка **Schedule reference data**, обновлённые
   `Get journal` и `Export schedule`).
 - Спека дизайна: `docs/superpowers/specs/2026-09-18-schedule-reference-features-design.md`;

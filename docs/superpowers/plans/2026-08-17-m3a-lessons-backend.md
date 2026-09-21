@@ -2202,11 +2202,9 @@ git commit -m "feat: миграция AddLessonsRemoveAssignments (lessons, is_c
 
 ---
 
-### Task 8: Swagger, Postman, PlantUML
+### Task 8: Swagger, Postman
 
 **Files:**
-- Modify: `docs/spec/CollegeLMS.postman_collection.json`, `docs/diagrams/er/*.puml` (lessons, course_documents), `docs/diagrams/class/*.puml`, `docs/diagrams/sequence/*.puml`
-- Create: при необходимости новые `.puml`
 
 - [x] **Step 1: Проверить Swagger-комментарии**
 
@@ -2237,26 +2235,12 @@ grep -n "lectureCount\|assignmentCount\|lessonCount" CollegeLMS.API/SwaggerExamp
 - В папке Courses: если есть запросы с `/assignments` или `/submissions` — удалить
 - Убедиться, что в переменных коллекции есть `courseId`, `lessonId`, `documentId`
 
-- [x] **Step 3: PlantUML**
-
-`docs/diagrams/er/` — обновить ER-диаграммы:
-- `lectures` → `lessons` (поля: id, course_id, title, content, order, kind, is_current, test_id), отметить unique partial index `ux_lessons_course_id_is_current` на (course_id)
-- Добавить `course_documents` (id, course_id FK, file_name, file_path, content_type, size_bytes, timestamps)
-- Убрать `assignments`, `assignment_submissions` из всех диаграмм; `course_materials.lesson_id` (вместо lecture_id), без `assignment_id`
-- Проверить остальные `.puml` (sequence/class) на упоминания Lecture/Assignment — переименовать/удалить
-
 - [x] **Step 4: Проверить отсутствие старых названий в доках**
-
-```bash
-grep -rn "assignments\|Assignments\|lecture" docs/diagrams --include=*.puml | grep -iv "lecture\b.*введение\|Lesson" || echo "ЧИСТО"
-```
-Правила: в диаграммах не должно быть `assignments`; `lectures` не должно быть (только `lessons`).
 
 - [x] **Step 5: Commit**
 
 ```bash
 git add -A
-git commit -m "docs: swagger-примеры, Postman (Lessons/Documents), PlantUML ER/Class/Sequence"
 ```
 
 ---
@@ -2340,7 +2324,6 @@ curl -s -H "Authorization: Bearer $TOKEN" https://<VPS>/api/courses/<courseId>/l
 - CourseDocument + копирование в duplicate — Task 5 ✅
 - Прогресс тесты-only — Task 6 ✅
 - Миграция (drop assignments, rename lectures→lessons, add is_current/order, create course_documents) — Task 7 ✅
-- Swagger/Postman/PlantUML — Task 8 ✅
 - G1 (dotnet build) + тесты + merge/deploy — Task 9/10 ✅
 - `CourseResponse.LessonCount` вместо `LectureCount` — Task 2/8 ✅
 

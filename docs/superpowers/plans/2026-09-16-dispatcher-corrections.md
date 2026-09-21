@@ -113,4 +113,3 @@ Frontend badge: extend `ChangeTagBadge` + `MessageFormatter.AppendChangeMarkers`
 
 ### Task 7: Docs
 
-- PlantUML ER/class/sequence; update Postman collection; update `docs/spec/userstories.md`.

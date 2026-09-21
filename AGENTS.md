@@ -1,531 +1,72 @@
-# CollegeLMS — Инструкции для агента
+# CollegeLMS — инструкции для агента
 
 ## Начало работы
 
-- **Перед началом любой работы (ответ, изучение кода, правки) обновить локальную копию с удалённого репозитория:**
+- **Перед любой работой** (ответ, изучение кода, правки) обновить локальную копию:
   ```powershell
   git fetch origin && git pull --rebase origin master
   ```
-- **Перед началом работы мониторить ситуацию на [opencode.ai](https://opencode.ai):** актуальные модели и лимиты ([Go](https://opencode.ai/ru/go)), синтаксис [агентов](https://opencode.ai/docs/ru/agents/), [схема конфига](https://opencode.ai/config.json).
-  - Если есть изменения (новые/убранные модели, изменились лимиты или поля конфига) — сравнить с текущими `.opencode/agent/*.md` и `opencode.json`.
-  - При расхождениях **предложить варианты конфигурации** (модели агентов, лимиты, схема) и не менять без подтверждения.
-- Пуш только при установленном `GITHUB_TOKEN`/`GH_TOKEN`.
+- Пуш только при заданном `GITHUB_TOKEN`/`GH_TOKEN` (gh CLI v2.101+).
+
+## Стек и архитектура
+
+- Backend: .NET 10, ASP.NET Core Web API, PostgreSQL 16, EF Core Code First (Npgsql + `EFCore.NamingConventions`, snake_case)
+- Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS 4, shadcn/ui — в `CollegeLMS.Next/`
+- Bot: `CollegeLMS.MaxBot/` (Max messenger). Cache: Redis (сессии)
+- Монолит, Clean Architecture (папки, а не проекты), REST/JSON, JWT без refresh-токенов в MVP
+- `Result<T>` везде; никаких try-catch в контроллерах/сервисах — исключения ловит `ExceptionHandlerMiddleware`
+- Ручные мапперы (без AutoMapper), FluentValidation, Swashbuckle
+- Deploy: Docker Compose + GitHub Actions (`quality.yml` → `deploy.yml` на VPS). Локальный Docker не запускаем — стек собирается в CI/CD.
+
+## Источники правды (не дублировать)
+
+- Агенты, плагины, MCP, доступные модели — конфиг инструмента (`.opencode/agent/*.md`, `opencode.json`)
+- ТЗ и User Stories — `docs/spec/task.md`, `docs/spec/userstories.md`
+- Структура проекта — `README.md`; структура папок — сам репозиторий
+- Дизайн — `DESIGN.md`, `PRODUCT.md`
+- Postman — `docs/spec/CollegeLMS.postman_collection.json`
+
+## Карта скиллов (загружай под задачу)
+
+- Новая вертикальная фича → `feature-workflow`
+- Backend: сущность → `dotnet-entity`; endpoint + DI → `dotnet-endpoint`; Result → `result-pattern`; валидация → `fluent-validation`; Swagger → `swagger-docs`; ASP.NET → `aspnet-core`
+- Тесты → `dotnet-test` (перед кодом — `test-driven-development`)
+- Frontend → `nextjs-page`, `design-system`, `impeccable`
+- DevOps → `docker-compose-dev`, `vps-deploy`, `cicd-pipeline`, `gh-fix-ci`
+- Конвенции проекта (пакеты, JWT, EF Core, Docker, connection strings) → `project-reference`
+- Баг/падение теста → `systematic-debugging`; перед «готово» → `verification-before-completion`; параллельные задачи → `dispatching-parallel-agents`
+
+## Ключевые правила
+
+- `CancellationToken ct` на всех async-методах; `AsNoTracking()` на чтении; `FindAsync()` по PK; предпочитать `List<T>` вместо `IEnumerable<T>`
+- Данные, комментарии, Swagger-summaries и сообщения об ошибках — на русском
+- Primary constructor DI (`class Service(AppDbContext db)`); плоские DTO; file-scoped namespaces
+- `Program.cs` минимален: `Add*` → `Extensions/ServiceCollectionExtensions.cs`, `Use*` → `Extensions/ApplicationBuilderExtensions.cs`
+- Мапперы → корень `Mappers/`, интерфейсы сервисов → корень `Interfaces/`
+- Все entity наследуют базовый `Entities/Entity` (Guid Id, CreatedAt, UpdatedAt = `DateTime.UtcNow`)
+- БД: GUID PK `ValueGeneratedNever()`; строки `HasMaxLength()`; enum `HasConversion<string>()` + `HasMaxLength()`; nav `[JsonIgnore]`
+- Индексы (UNIQUE, простые) — в EF Configuration (`HasIndex` с `HasDatabaseName`); CHECK constraints — в `Data/DbConstraints.cs` (идемпотентный PL/pgSQL, не через миграции)
+- EF Configuration включают `HasData()` для seed-данных
+- Git-префиксы: `feat:` / `fix:` / `docs:` / `test:` / `refactor:` / `chore:` / `hotfix:` / `merge:`; `git add -A` для всех изменений
+- Фронтенд: DESIGN.md §6 (иконки, touch 44×44px, адаптив 393px ↔ 1920px), mobile-first
 
 ## Спецификация
 
-- В техническом задании каждое базовое требование в основных сервисах должно быть разбито на конкретные пользовательские истории (User Stories) с четкими критериями приемки.
-
-## Стек
-
-- Backend: .NET 10, ASP.NET Core Web API
-- Frontend: Next.js 14, TS, Tailwind CSS 4 (в `CollegeLMS.Next/`)
-- DB: PostgreSQL 16
-- Cache: Redis (только сессии) — контейнер поднят в compose, интеграция в коде ещё не реализована
-- Deploy: Docker Compose, GitHub Actions: единый пайплайн `deploy.yml` (push в master) — reusable `quality.yml` (dotnet build, csharpier --check, frontend lint/build; тесты — локально) выполняется перед CD на VPS; на pull_request запускается только `quality.yml`. Локальный Docker не запускаем — стек собирается и проверяется в CI/CD.
-- LSP: включены встроенные серверы (C# через .NET SDK, TypeScript, ESLint) — секция `lsp` в opencode.json
-- Files: локальная ФС (позже MinIO)
-
-## Архитектура
-
-- Монолит, Clean Architecture (папки, а не проекты)
-- REST API, JSON, JWT auth (без refresh токенов в MVP)
-- `Result<T>` — везде, никаких try-catch в контроллерах/сервисах
-- `ExceptionHandlerMiddleware` ловит неожиданные исключения
-- Ручные мапперы (без AutoMapper), FluentValidation, Swashbuckle
-- Все данные и комментарии в коде на русском
-
-## Правило Superpowers
-
-**Загружай нужные skills ДО любого ответа или действия** — включая уточняющие вопросы, изучение кодовой базы и проверку файлов. Если skill существует для задачи — загрузи его первым.
-
-| Ситуация | Skill | Когда |
-|----------|-------|-------|
-| Творческая работа, новая фича | `brainstorming` | До любого кода или изучения |
-| Баг, падение теста, неожиданное поведение | `systematic-debugging` | До предложения фикса |
-| Задача на реализацию | `writing-plans` → `executing-plans` | После утверждения спецификации |
-| TDD | `test-driven-development` | Сначала тест, потом код |
-| Готовишься сказать «готово» | `verification-before-completion` | До коммита или утверждения об успехе |
-| Параллельные независимые задачи | `dispatching-parallel-agents` | 2+ независимых подзадачи |
-
-## MCP Серверы (opencode.json)
-
-| Сервер | Назначение | Включён |
-|--------|------------|---------|
-| `playwright` | Визуальная отладка, E2E-тесты, инспекция DOM, скриншоты | да |
-| `github` | Официальный remote MCP (`api.githubcopilot.com/mcp`, Bearer `GITHUB_TOKEN`) — PR, issues, checks, ветки | да |
-| `context7` | Актуальные доки библиотек (Next.js, Tailwind, EF Core) — remote `mcp.context7.com/mcp` | да |
-| `ms_learn` | Официальная документация Microsoft (.NET, ASP.NET Core, EF Core) — remote `learn.microsoft.com/api/mcp` | да |
-| `chrome_devtools` | Perf, консоль, сеть в Chrome — локальный `chrome-devtools-mcp` | да |
-
-> Локальные MCP ставятся глобально: `npm i -g @playwright/mcp@0.0.81 chrome-devtools-mcp@1.9.0` (npx-запуск на Windows медленный и упирается в таймаут).
-
-## Плагин (Superpowers)
-
-Установлен: `superpowers@git+https://github.com/obra/superpowers.git`
-Расположение: `~/.cache/opencode/packages/superpowers/.../`
-Предоставляет: process-скиллы (brainstorming, systematic-debugging, verification-before-completion и т.д.)
-Дополнительно: `@mohak34/opencode-notifier` — уведомления о завершении задач
-
-## Структура проекта
-
-```
-CollegeLMS.slnx            # Файл решения — все проекты включены
-CollegeLMS.API/
-  Program.cs             # Минимальный bootstrap — всё делегировано методам расширения
-  Controllers/           # Наследники ControllerBase
-  Services/              # Реализации {Name}Service
-  Interfaces/            # Интерфейсы I{Name}Service
-  Mappers/               # Статические мапперы-расширения (Entity ↔ DTO)
-  Entities/              # Доменные классы (наследуют Entity)
-  Entities/Enums/        # Типы-перечисления
-  Data/                  # AppDbContext
-  Data/Configurations/   # IEntityTypeConfiguration<T> (с HasData + raw SQL)
-  Dtos/                  # DTO запросов/ответов
-  Validators/            # Валидаторы FluentValidation
-  SwaggerExamples/       # Классы примеров ответов для Swagger-документации
-  Middleware/             # ExceptionHandlerMiddleware
-  Response/              # Result<T>, ApiResult<T>, ErrorResponse
-  Exceptions/            # NotFoundException, ValidationException, ForbiddenException
-  Extensions/            # ServiceCollectionExtensions, ApplicationBuilderExtensions, ClaimsPrincipalExtensions
-docs/
-  spec/                  # Postman-коллекция, task.md, userstories.md
-  diagrams/              # PlantUML: er/, sequence/, class/
-  superpowers/           # Спеки и планы фич
-CollegeLMS.Tests/
-  Integration/           # Тесты WebApplicationFactory
-  Integration/Controllers/
-  Unit/Services/
-  Fixtures/              # Фикстуры Bogus
-CollegeLMS.Next/         # Next.js 14 + Tailwind CSS 4 + TypeScript
-  components/ui/         # Примитивы shadcn/ui
-  components/            # Проектные компоненты
-  lib/utils.ts           # Хелпер cn()
-CollegeLMS.MaxBot/        # Max мессенджер — бот расписания
-CollegeLMS.MaxBot.Tests/  # Тесты MaxBot (xUnit + FluentAssertions)
-loadbalancer/            # Nginx-балансировщик (Dockerfile, nginx.conf)
-import/                  # Данные импорта
-scripts/                 # git-push, QA-ссылки, VPS-скрипты; legacy/ — разовые импорты WP/МДК
-.github/workflows/       # deploy.yml — единый пайплайн: quality (reusable quality.yml) → CD на VPS; quality.yml — build + csharpier + frontend (PR)
-```
-
-## Роли агентов
-
-| Роль | Тип | Skills | Ответственность |
-|------|-----|--------|-----------------|
-| **Architect** | Главный агент | brainstorming, writing-plans, verification-before-completion, requesting-code-review, yeet | Оркестрирует workflow, читает task.md, декомпозирует на User Stories, создаёт ветки, ревьюит, сливает |
-| **BackendAgent** | Сабагент | dotnet-entity, dotnet-endpoint, result-pattern, fluent-validation, swagger-docs, aspnet-core | Entity → миграция → сервис → контроллер → DI → Swagger → Postman |
-| **TesterAgent** | Сабагент | dotnet-test, playwright, playwright-interactive, test-driven-development, systematic-debugging | Модульные тесты (xUnit + Moq + Bogus), интеграционные (WebApplicationFactory), E2E (Playwright), покрытие |
-| **FrontendAgent** | Сабагент | impeccable, design-system, nextjs-page | Страницы/компоненты Next.js, интеграция API, Tailwind, shadcn/ui |
-| **AnalystAgent** | Сабагент | plantuml-docs, security-threat-model | Диаграммы PlantUML (ER, Class, Sequence, UseCase, Deployment), техдокументация, threat modeling |
-| **DevOpsAgent** | Сабагент | docker-compose-dev, vps-deploy, cicd-pipeline, gh-fix-ci | Docker, nginx, CI/CD пайплайны, деплой на VPS |
-
-### Модели
-
-| Роль | Модель | Обоснование |
-|------|--------|-------------|
-| Architect (primary, Build) | `opencode-go/deepseek-v4.1-flash` | дешёвая рабочая лошадка, лимит ×4; llm-stats: coding 44.2 (топ-5) при $0.24/M |
-| Plan mode | `opencode-go/gpt-5.6-luna` | РуБенч: 75.4% pass@1 на русских ТЗ; компромисс — llm-stats coding #20 (36.3), поэтому Luna только для планирования |
-| BackendAgent | `opencode-go/glm-5.3` | AA Index: 53.6 (лучшее комбо с OpenCode); llm-stats: coding 42.6, strong multilingual |
-| FrontendAgent, TesterAgent, AnalystAgent, DevOpsAgent | `opencode-go/deepseek-v4.1-flash` | цена/скорость на рутине |
-
-> Источники: vibecoding.ru/benchmarks/coding-agents (AA Index), vibecoding.ru/rubench, llm-stats.com (LLM Stats Score + coding-лидерборд). Доступность моделей проверять через `opencode models`.
-> Не берём: Kimi K3 (лимит 110 req/5ч — мало для агентов), Muse Spark 1.3 Contributor (contributor-сборка — данные уходят в обучение Meta).
-
-### Поддержка dispatch по платформам
-
-| Платформа | Dispatch сабагента | Как |
-|-----------|-------------------|-----|
-| **OpenCode** | ✅ Автоматический | Сабагенты в `.opencode/agent/*.md` (`mode: subagent`, своя модель во frontmatter). Primary вызывает их через `task` tool по `description`; вручную — `@BackendAgent` в сообщении |
-| **Codex (OpenAI)** | ✅ Автоматический | `@codex имя-агента` в промпте |
-| **Claude Code** | ✅ Автоматический | `/agent` команда в чате |
-
-
-> **Примечание:** Роли (Architect, BackendAgent, TesterAgent и т.д.) — **концептуальные**. Они задают, какой контекст и фокус нужен на каждой фазе. Физический dispatch зависит от платформы. В OpenCode роли реализованы как сабагенты в `.opencode/agent/` — у каждого своя модель, permissions и системный промпт.
-
-## Skills
-
-### Проектные Skills (.opencode/skills/)
-
-| Skill | Что создаёт |
-|-------|-------------|
-| `dotnet-entity` | Класс Entity, EF-конфигурация, enum, миграция |
-| `dotnet-endpoint` | Контроллер, сервис, DTO, маппер, регистрация DI |
-| `result-pattern` | Result<T>, ApiResult, ExceptionHandlerMiddleware |
-| `jwt-auth` | TokenService, BCrypt, Swagger bearer, хелперы Claims |
-| `dotnet-test` | Модульные тесты (xUnit + Moq + Bogus), интеграционные тесты (WebApplicationFactory) |
-| `fluent-validation` | Валидаторы FluentValidation + регистрация DI |
-| `nextjs-page` | Страница Next.js, loading/error boundaries, типы |
-| `design-system` | shadcn/ui + Tailwind v4 + Lucide — production UI-компоненты |
-| `docker-compose-dev` | dev docker-compose.yml (Postgres 16 + Redis 7) |
-| `vps-deploy` | Nginx, Dockerfile, GH Actions CI/CD, скрипты деплоя |
-| `cicd-pipeline` | GitHub Actions: test.yml + quality gates |
-| `swagger-docs` | Swagger XML-комментарии, Examples, ProducesResponseType, Postman-спецификация |
-| `plantuml-docs` | UML-диаграммы: ER, Class, Sequence, UseCase, Deployment |
-| `cors-security` | CORS + заголовки безопасности |
-| `seed-data` | EF Core HasData + классы Seed |
-| `feature-workflow` | Полная вертикальная фича — ветка, entity, API, тесты, фронтенд, документация, слияние |
-| `project-reference` | Общие соглашения проекта: NuGet-пакеты, JWT auth, Docker, EF Core |
-| `analyze` | Комплексный анализ проекта: спека, user stories, плагины, MCP, skills, готовность, фазы, агенты, модели (`/analyze`) |
-| `gh-address-comments` | Обработка комментариев ревью/issues на открытом GitHub PR текущей ветки через `gh` CLI |
-| `security-best-practices` | Ревью безопасности кода (Python/JS/TS/Go) и рекомендации secure-by-default (только по запросу) |
-| `aspnet-core` | Официальные практики ASP.NET Core: middleware, DI, конфигурация, auth, тестирование, производительность |
-| `impeccable` | Дизайн-скилл: shape → craft → polish → audit + live-инструменты и детектор анти-паттернов |
-| `playwright` | Автоматизация браузера из терминала: навигация, формы, скриншоты, E2E-отладка |
-| `playwright-interactive` | Персистентный браузер через js_repl для быстрой итеративной отладки UI |
-| `security-threat-model` | Threat modeling: trust boundaries, пути атак, митигации → Markdown-отчёт |
-| `gh-fix-ci` | Диагностика падающих GitHub Actions checks через `gh` и фикс после утверждения |
-| `yeet` | Весь флоу разом: add → commit → push → PR через `gh` |
-
-### Общие UI-скиллы (.agents/skills/ — gitignored, восстановление: `npx skills sync`)
-
-| Skill | Назначение |
-|-------|------------|
-| `frontend-design` | Визуальная направленность UI: типографика, композиция, нешаблонный дизайн |
-| `web-design-guidelines` | Аудит UI против Web Interface Guidelines (доступность, UX) |
-| `refactor-ui` | Анализ дизайна по 10 правилам Refactoring UI с конкретными фиксами |
-| `layers-intro` | Фреймворк Layers of Product Design (входная точка) |
-| `layers-user-needs` | Сбор и приоритизация потребностей пользователя |
-| `layers-conceptual-model` | Модель объектов и отношений продукта независимо от интерфейса |
-| `layers-interaction-flow` | Картирование структуры и потоков взаимодействия |
-| `layers-surface` | Аудит поверхности интерфейса относительно нижних слоёв |
-| `layers-orient` | Диагностический аудит по 7 слоям, поиск узкого места |
-
-### Superpowers Process Skills (~/.cache/opencode/.../superpowers/)
-
-| Skill | Назначение | Когда использовать |
-|-------|------------|-------------------|
-| `brainstorming` | Исследование дизайна до творческой работы | Новые фичи, UI-дизайн, архитектура |
-| `systematic-debugging` | Поиск первопричины до исправлений | Любой баг, падение теста, неожиданное поведение |
-| `test-driven-development` | Цикл Red-Green-Refactor | Когда тесты пишутся до кода |
-| `writing-plans` | Генерация планов реализации из спецификации | После утверждения спецификации |
-| `executing-plans` | Выполнение планов с контрольными точками | После writing-plans |
-| `subagent-driven-development` | Распределение подзадач по сабагентам | Сложные многошаговые фичи |
-| `finishing-a-development-branch` | Проверка готовности к слиянию/PR | Перед завершением ветки |
-| `using-git-worktrees` | Изолированные рабочие пространства | Старт параллельных веток |
-| `verification-before-completion` | Свежая проверка перед утверждением «готово» | Перед каждым коммитом или слиянием |
-| `writing-skills` | Создание/редактирование процессной документации | Поддержка skills |
-| `requesting-code-review` | Запуск сабагента-ревьюера | Перед слиянием PR |
-| `receiving-code-review` | Обработка замечаний ревью с rigorous-подходом | Когда есть комментарии в PR |
-| `dispatching-parallel-agents` | Независимые сабагенты параллельно | 2+ независимых подзадачи |
-
-> **Примечание:** Skills в `.opencode/skills/` и `.agents/skills/` специфичны для OpenCode.
-> При работе в Codex или Claude Code используются их нативные аналоги
-> (custom instructions, CLAUDE.md, project files).
-
-## Workflow Protocol
-
-### Режим работы
-
-- Рабочий режим — **Build**: главный агент сразу выполняет оркестрацию. **Plan** — только для анализа, декомпозиции и планов без правок.
-- Главный агент играет роль **Architect**: сам делает планирование, ревью, коммиты и слияние, а фазы 1–6 **делегирует субагентам** через `task` tool (`BackendAgent`, `TesterAgent`, `FrontendAgent`, `AnalystAgent`, `DevOpsAgent`).
-- Субагенты вызываются автоматически по своему `description`; вручную — `@ИмяАгента`. Главный агент не дублирует их работу.
-- Независимые задачи главный агент запускает **параллельно** — несколько вызовов `task` в одном шаге.
-
-### Обязательные Process Skills по фазам
-
-| Фаза | Загрузить Skills | Гейт проверки |
-|------|------------------|---------------|
-| **0: Planning** | brainstorming → writing-plans | Спецификация утверждена пользователем |
-| **1: Backend** | dotnet-entity, dotnet-endpoint, fluent-validation, swagger-docs, aspnet-core | dotnet build |
-| **2: Docs** | plantuml-docs, security-threat-model | Визуальная проверка |
-| **3: Tests** | dotnet-test, test-driven-development | dotnet test |
-| **4: Frontend** | impeccable, design-system, nextjs-page | npm run dev |
-| **5: E2E** | playwright, playwright-interactive | npx playwright test |
-| **6: DevOps** | docker-compose-dev, vps-deploy | Проверка конфигов; сборка стека — через CI/CD |
-| **7: Review** | verification-before-completion, requesting-code-review, yeet | Слияние + push |
-
-### Полный цикл фичи (вертикальный срез)
-
-```
-Phase 0: PLANNING (Architect)
-  Load: brainstorming
-  Прочитать task.md, понять требования
-  Декомпозировать на User Stories (см. шаблон ниже)
-  Сохранить task.md и User Stories в docs/spec/
-  Предложить подходы → пользователь утверждает дизайн
-  Написать спецификацию дизайна → docs/spec/{feature}-design.md
-  Load: writing-plans
-  Сгенерировать план реализации
-  ⚠️ Синхронизация: git fetch origin && git pull --rebase origin master
-  git checkout -b feature/{service}-{feature}
-
-Phase 1: BACKEND (BackendAgent)
-  Load: dotnet-entity, dotnet-endpoint, fluent-validation, swagger-docs, aspnet-core
-  skill("dotnet-entity")    → Entities/{Name}.cs (наследует Entity), Data/Configurations/{Name}Configuration.cs, миграция
-    • Класс Entity расширяет базовый `Entity` (Id, CreatedAt, UpdatedAt)
-    • Enum (если нужен) в Entities/Enums/
-    • EF Config: ToTable, HasKey, ValueGeneratedNever, HasMaxLength, HasConversion<string>
-    • Индексы: HasIndex с кастомными именами (EF управляет через миграции)
-    • HasData для тестовых/сидовых данных
-    • DbContext авто-обнаруживает через ApplyConfigurationsFromAssembly
-    • CHECK constraints: НЕ в EF Config → добавить в Data/DbConstraints.cs (идемпотентный SQL)
-  dotnet ef migrations add  → создаёт SQL-миграцию
-  skill("dotnet-endpoint")  → DTO, маппер, интерфейс, сервис, контроллер, регистрация DI
-    • Dtos/{Name}Request.cs + {Name}Response.cs
-    • Mappers/{Name}Mapper.cs (корневая папка Mappers/)
-    • Interfaces/I{Name}Service.cs (корневая папка Interfaces/)
-    • Services/{Name}Service.cs (primary constructor, Result<T>, AsNoTracking, FindAsync)
-    • Controllers/{Name}Controller.cs (CRUD, SwaggerOperation, SwaggerResponse)
-    • DI: добавить в Extensions/ServiceCollectionExtensions.cs (НЕ в Program.cs)
-  skill("fluent-validation")
-    • Validators/{Name}RequestValidator.cs (NotEmpty, MaxLength, сообщения на русском)
-    • DI: AddValidatorsFromAssemblyContaining<Program>() в ServiceCollectionExtensions
-  skill("swagger-docs")     → SwaggerExamples/{Name}ResponseExample.cs + обновить Postman
-    • XML-комментарии на Controller: <summary>, <remarks>, <response code="...">
-    • [ProducesResponseType(typeof(...), StatusCodes.Status...)] для всех статусов
-    • [SwaggerResponse(code, "...", typeof(...))] + ErrorResponseExample для ошибок
-    • SwaggerExamples/ErrorResponseExample.cs для общих ошибок
-    • SwaggerExamples/{Name}ResponseExample.cs для успешного ответа
-    • docs/spec/CollegeLMS.postman_collection.json — добавить endpoint в коллекцию
-  ⚠️ Локальная проверка: dotnet build
-  git add -A && git commit -m "phase 1: {feature} backend"
-
-Phase 2: DOCS (AnalystAgent)
-  Load: plantuml-docs, security-threat-model
-  PlantUML diagrams         → ER (entities), Class (services), Sequence (flows)
-  Security threat model     → trust boundaries, attack paths (если нужно)
-  skill("plantuml-docs")
-  ⚠️ Локальная проверка: dotnet build
-  git add -A && git commit -m "phase 2: {feature} docs"
-
-Phase 3: TESTS (TesterAgent)
-  Load: dotnet-test, test-driven-development
-  Модульные тесты (xUnit + Moq + Bogus)
-  Интеграционные тесты (WebApplicationFactory)
-  ⚠️ Локальная проверка: dotnet test
-  git add -A && git commit -m "phase 3: {feature} tests"
-
-Phase 4: FRONTEND (FrontendAgent)
-  Load: impeccable, design-system, nextjs-page
-
-  Step 1 — Design brief (shape)
-    skill("impeccable") → shape
-    • Определение scope, user flow, edge cases, UI states
-    • Результат: design brief с visual direction и composition budget
-
-  Step 2 — UI: implement (craft)
-    skill("impeccable") → craft
-    skill("design-system")    → shadcn/ui компоненты, токены, паттерны
-    skill("nextjs-page")      → page.tsx + loading.tsx + error.tsx
-    API integration           → fetch with types
-
-  Step 3 — UI: polish
-    skill("impeccable") → polish
-    • Design pass: иерархия, типографика, цвет, отступы, пустые состояния, тени
-
-  Step 4 — UI: audit
-    skill("impeccable") → audit
-    • Проверка против Web Interface Guidelines
-
-  ⚠️ Локальная проверка: npm run dev
-  git add -A && git commit -m "phase 4: {feature} frontend"
-
-Phase 5: E2E (TesterAgent)
-  Load: playwright, playwright-interactive
-  Написать E2E-тесты для ключевых user flows
-  ⚠️ Локальная проверка: npx playwright test
-  git add -A && git commit -m "phase 5: {feature} e2e"
-
-Phase 6: CI/CD VERIFICATION (DevOpsAgent)
-  Load: docker-compose-dev, vps-deploy
-  ⚠️ Локальный Docker НЕ запускаем — сборка и запуск стека выполняются в CI/CD
-  Проверить статически: Dockerfile, docker-compose.yml, .github/workflows/*
-  Проверить, что переменные окружения и profiles описаны корректно
-  git add -A && git commit -m "phase 6: {feature} devops"
-
-Phase 7: MERGE & DEPLOY (Architect)
-  Load: verification-before-completion, requesting-code-review, yeet
-  ⚠️ verification-before-completion: проверены конфиги; реальная сборка стека — в CI/CD
-  Load: requesting-code-review
-  Code review               → peer review всех изменений
-  Если есть замечания       → исправить, перезапустить фазы
-  Load: yeet
-  git checkout master && git merge feature/{service}-{feature}
-  git push                  → GitHub Actions запускает CD
-  CD на VPS:
-    1. git pull
-    2. запись .env из GitHub Secrets
-    3. docker compose --profile max-bot up --build -d --force-recreate
-    4. health check (миграции — автоматически при старте API)
-  ```
-
-
-### Hotfix workflow (срочный фикс)
-
-Для критических багов в production — минуя полный цикл фичи.
-
-```
-git checkout master
-git checkout -b hotfix/{description}
-
-# Фикс (без тестов и E2E)
-# Править код → проверить: dotnet build + npm run build
-
-git add -A && git commit -m "hotfix: {description}"
-git checkout master && git merge hotfix/{description}
-git push                  → CD deploy сразу в production
-```
-
-**Правила hotfix:**
-- Только критические баги (недоступность сервиса, потеря данных, безопасность)
-- Без новых фич, без рефакторинга
-- Только build check перед merge — полный цикл не обязателен
-- После hotfix — создать задачу на полноценный фик с тестами
-
----
-
-### Шаблон User Story
-
-```markdown
-## UC-N: {Роль} может {действие}
-
-**Критерии приёмки:**
-- [ ] {критерий 1}
-- [ ] {критерий 2}
-
-**API:**
-- `{method} /api/{route}` — {описание}
-
-**UI (если есть):**
-- Страница `/{route}` с таблицей/формой
-- Ошибки показаны пользователю (тост/сообщение)
-
-**Зависимости:** {сервисы, от которых зависит}
-```
-
-### Гейты приёмки
-
-| Гейт | Проверка | Кто | Фаза |
-|------|----------|-----|------|
-| **G1** | `dotnet build` | BackendAgent | Phase 1 |
-| **G2** | `npm run dev` — страница рендерится | FrontendAgent | Phase 4 |
-| **G3** | Конфиги Docker/compose/workflow корректны; сборка стека — CI/CD после push | DevOpsAgent / CI | Phase 6 |
-
-### Definition of Done
-
-- [ ] dotnet build проходит
-- [ ] npm run dev работает (frontend проект)
-- [ ] Swagger UI показывает endpoint с русской документацией
-- [ ] SwaggerExamples созданы для всех ответов (ошибки/успех)
-- [ ] Postman-коллекция обновлена в docs/spec/
-- [ ] PlantUML диаграммы сгенерированы — ER, Class, Sequence для фичи
-- [ ] Security threat model проверен (если нужно)
-- [ ] Конфиги Docker/compose/workflow проверены (сборка стека — в CI/CD, локальный Docker не запускаем)
-- [ ] Feature-ветка слита в master
-- [ ] Push в master → CD развернул на VPS
-
-### Обязательный коммит и пуш после выполнения плана
-
-После завершения любого плана (фича, фикс, рефакторинг, изменение конфигурации) — **обязательно** сразу сделать коммит и пуш в удалённый репозиторий. Пуш запустит CI/CD на GitHub Actions (если пуш в master) и CD-деплой на VPS.
-
-Правила:
-- Не оставлять незакоммиченные изменения после завершения плана.
-- Коммит: `git add -A && git commit -m "..."` (префикс `feat:`/`fix:`/`refactor:`/`docs:`/`chore:` и т.д.).
-- Если работа велась в новой feature-ветке — **сначала** слить (merge или rebase) в `master`, затем пушить `master`. Схема:
-  ```
-  git checkout master
-  git merge feature/{service}-{feature}   # или git rebase feature/{service}-{feature}
-  git push origin master                  # → запуск CI/CD
-  ```
-- Пуш только при установленном `GITHUB_TOKEN`/`GH_TOKEN` (см. соглашения по коду).
-- После пуша проверить, что GitHub Actions запустился (`gh run watch` или статус в репозитории).
-
-## Соглашения по БД
-
-- EF Core Code First, Npgsql, `EFCore.NamingConventions` (snake_case)
-- GUID PK с `ValueGeneratedNever()`
-- String props: `HasMaxLength()` обязательно
-- Enum props: `HasConversion<string>()` + `HasMaxLength()` обязательно
-- Navigation properties: `[JsonIgnore]`
-- Timestamps: `CreatedAt`, `UpdatedAt` = `DateTime.UtcNow`
-- Подключение: `Host=localhost;Port=5432;Database=collegelms;Username=postgres;Password=root`
-- Индексы (UNIQUE, простые) — в EF Configuration (`HasIndex` с `HasDatabaseName`)
-- CHECK constraints — в `Data/DbConstraints.cs` (идемпотентный PL/pgSQL, не через миграции)
-
-## NuGet пакеты
-
-Пакеты в `.csproj` сгруппированы в отдельные `ItemGroup` с комментариями по категориям:
-
-| Категория | Пакеты |
-|-----------|--------|
-| EF Core и БД | `Microsoft.EntityFrameworkCore`, `Npgsql.EntityFrameworkCore.PostgreSQL`, `Microsoft.EntityFrameworkCore.Design`, `EFCore.NamingConventions`, `AspNetCore.HealthChecks.NpgSql` |
-| Auth и безопасность | `Microsoft.AspNetCore.Authentication.JwtBearer`, `BCrypt.Net-Next` |
-| Валидация | `FluentValidation.AspNetCore`, `FluentValidation.DependencyInjectionExtensions` |
-| Swagger | `Swashbuckle.AspNetCore`, `Swashbuckle.AspNetCore.Annotations`, `Microsoft.OpenApi` |
-| Логирование | `Serilog.AspNetCore` |
-| Файлы и документы | `SixLabors.ImageSharp` (изображения), `QuestPDF` (PDF-расписание), `ClosedXML` (Excel-импорт студентов) |
-| Тесты | `xunit`, `coverlet.msbuild`, `Bogus`, `Moq`, `FluentAssertions`, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory` |
-
-## Разработка
-
-### Docker и CI/CD
-
-Локальный Docker **не запускаем**. Полный стек (Postgres, Redis, API, фронтенд, nginx, max-bot) собирается и запускается в CI/CD (GitHub Actions → VPS). Локальные SDK (.NET, Node) нужны только для быстрых проверок: `dotnet build` / `dotnet test`, `npm run dev`.
-
-- Проверка Dockerfile / docker-compose.yml / workflows — статическая (Phase 6).
-- Реальный запуск и миграции — после push в master: `deploy.yml` на VPS.
-- NuGet-пакеты кэшируются через BuildKit cache mount (`id=nuget`) — не теряются при пересборке.
-
-### Команды по фазам
-
-| Фаза | Команда | Описание |
-|------|---------|----------|
-| **Phase 1** | `dotnet build` | Локальная проверка backend |
-| **Phase 1** | `dotnet ef migrations add Add{Name} --project CollegeLMS.API -- --provider Npgsql` | Миграция |
-| **Phase 4** | `npm run dev` / `npm run build` | Проверка frontend |
-| **Phase 6** | Проверка конфигов Docker/compose/workflow | Статически; сборка стека — CI/CD |
-| **Format** | `dotnet csharpier format .` | CSharpier |
-
-## Соглашения по коду
-
-- Primary constructor DI (`class Service(AppDbContext db)`)
-- `CancellationToken ct` на всех асинхронных методах
-- `AsNoTracking()` на чтении, `FindAsync()` для поиска по PK
-- Сообщения об ошибках на русском, Swagger summaries на русском
-- Git-префиксы: `feat:` / `fix:` / `docs:` / `test:` / `refactor:` / `chore:` / `hotfix:` / `merge:`
-- `git add -A` для добавления всех изменений (никогда не перечислять файлы по одному)
-- `gh` CLI установлен (v2.101+), `GH_TOKEN` настроен на уровне пользователя из `GITHUB_TOKEN` — перед любым `git push` или `gh pr create` убедиться, что `$env:GITHUB_TOKEN` или `$env:GH_TOKEN` установлен. Это предотвращает интерактивный выбор аккаунта при пуше.
-- Предпочитать `List<T>` вместо `IEnumerable<T>`
-- Плоские DTO со значениями по умолчанию, file-scoped namespaces
-- `Result<T>.Ok()` для успеха, `Result<T>.Fail()` для ошибок
-- OpenApi namespace: `using Microsoft.OpenApi;`
-- Форматирование: CSharpier (`dotnet csharpier format .` для форматирования, `dotnet csharpier check .` в CI)
-- Все entity наследуют базовый `Entities/Entity` (Guid Id, CreatedAt, UpdatedAt)
-- Мапперы в корневой папке `Mappers/`, интерфейсы сервисов в корневой папке `Interfaces/`
-- `Program.cs` минимален — все `builder.Services.Add*` в `Extensions/ServiceCollectionExtensions.cs`, все `app.Use*` в `Extensions/ApplicationBuilderExtensions.cs`
-- EF Configuration включают `HasData()` для seed-данных и `HasIndex` с кастомными именами
-- CHECK constraints — в `Data/DbConstraints.cs` (идемпотентный PL/pgSQL, не через миграции)
-
-## Соглашения по PlantUML
-
-- ER-диаграммы: `/docs/diagrams/er/{entity}.puml`
-- Sequence-диаграммы: `/docs/diagrams/sequence/{flow}.puml`
-- Class-диаграммы: `/docs/diagrams/class/{service}.puml`
-- PlantUML онлайн: `https://www.plantuml.com/plantuml/uml/{encoded}`
-- Или локально: `java -jar plantuml.jar docs/diagrams/**/*.puml`
-
-## Соглашения по фронтенду (shadcn/ui + Tailwind CSS v4)
-
-- **Design tokens**: CSS-кастомные свойства в HSL (colors.css, typography.css, spacing.css)
-- **Компоненты**: `components/ui/` — примитивы shadcn (не редактировать), `components/` — проектные
-- **Иконки**: Lucide React. См. DESIGN.md §6 для маппинга фича→иконка, размеров, цветов (`currentColor` по умолчанию, College Blue при наведении, семантические цвета для статусов), и a11y (aria-label для иконок без текста, aria-hidden когда рядом есть текст)
-- **Адаптивность**: mobile-first, брейкпоинты `sm:`, `md:`, `lg:`
-- **Touch targets**: минимум 44×44px для интерактивных элементов
-- **Доступность**: семантический HTML, ARIA, навигация с клавиатуры, `focus-visible:ring-2`, `sr-only`
-- **Формы**: labels всегда видны, ошибки под полем, loading state на submit
-- **Контейнер**: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`
-- **Адаптивность**: проверять на ноутбуке Toshiba A665 12k (1366×768) и телефоне Xiaomi Mi 9 SE (2340×1080, viewport ~393px), а также на широких экранах (1920+). Все страницы должны корректно отображаться на всех перечисленных устройствах
-
-## Репозитории для справки
-
-- База заметок по .NET — https://github.com/artemovsergey/.NET/wiki
-- Репозиторий по организации работы с брокером сообщений — https://github.com/artemovsergey/ModuleBankApp
-- Заметки по микросервисной архитектуре — https://github.com/artemovsergey/SampleApp/wiki
-- Репозиторий для примера кода MinimalAPI — https://github.com/artemovsergey/TicTacToe
-- Материалы по UML — https://github.com/artemovsergey/UML
-- Репозитории с примерами кода — https://github.com/artemovsergey/VendingAppFinal, https://github.com/artemovsergey/ProfApp
-- Конфигурации для развертывания — https://github.com/artemovsergey/VPS
-- Технический журнал React Native — https://github.com/artemovsergey/ReactNative
-- Расписание для преподавателей. Тестовый вариант — https://github.com/artemovsergey/scheduleTeacher
-
-**Замечание**: при нахождении лучшего решения, чем в примерах, обязательно спросить
+- В ТЗ каждое базовое требование в основных сервисах разбито на User Stories с чёткими критериями приёмки (см. `docs/spec/userstories.md`).
+
+## Команды
+
+| Задача | Команда |
+|--------|---------|
+| Build backend | `dotnet build CollegeLMS.slnx` |
+| Тесты (таргетно) | `dotnet test CollegeLMS.slnx --filter FullyQualifiedName~{Name}` |
+| Тесты (полный прогон — в CI) | `dotnet test CollegeLMS.slnx` |
+| Миграция | `dotnet ef migrations add Add{Name} --project CollegeLMS.API -- --provider Npgsql` |
+| Frontend | `cd CollegeLMS.Next && npm run dev` / `npm run build` |
+| E2E (затронутый спек) | `cd CollegeLMS.Next && npx playwright test {spec}` |
+| Формат | `dotnet csharpier format .` (проверка — `dotnet csharpier check .`) |
+
+## Завершение задачи
+
+- Обязателен commit + push в `master`; проверить, что CI/CD (quality → deploy) запустился.
+- Перед утверждением «готово» — скилл `verification-before-completion` (свежая проверка, а не по памяти).

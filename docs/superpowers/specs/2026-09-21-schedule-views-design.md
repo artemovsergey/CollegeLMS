@@ -18,7 +18,6 @@
 | Экспорт | `GET /api/schedule/export?scope=day\|week` — `date`/`week`, слои, бейджи, FILE-3, `400`/`404` |
 | Веб `/schedule` | 4 режима: «День», «Неделя», «Календарь», «Семестр»; состояние в URL; дефолт пользователя (студент → своя группа, преподаватель → сам); UI-1…UI-4 |
 | Мини-приложение | Слои в существующих экранах «День» и «Неделя» (данные из `view=day\|week`) |
-| Документация | Postman, PlantUML (Class, Sequence), пост-фактум ТЗ итерации |
 
 ### 1.2. Не входит
 
@@ -229,7 +228,6 @@ GET /api/schedule/export?scope=day|week&date=&week=&groupId=&teacherId=&room=&fo
 ## 8. Документация
 
 - Postman: обновить папку расписания — `view=day|week|semester|calendar`, экспорт `scope=day|week` + FILE-3; убрать старое описание calendar-шаблона.
-- PlantUML: `docs/diagrams/class/schedule-view-service.puml` (сервис и слои), `docs/diagrams/sequence/schedule-view-day.puml` (веб → API → слои).
 - Пост-фактум ТЗ: `docs/spec/task-schedule-views.md` (формулировка по факту реализации, по образцу `task-schedule-reference-data.md`).
 
 ---
@@ -240,7 +238,6 @@ GET /api/schedule/export?scope=day|week&date=&week=&groupId=&teacherId=&room=&fo
 - [ ] `dotnet test CollegeLMS.Tests`, `dotnet test CollegeLMS.MaxBot.Tests` — зелёные.
 - [ ] `npm run build` (CollegeLMS.Next) — проходит.
 - [ ] Swagger: новые `view`-контракты с русскими XML-комментариями и примерами.
-- [ ] Postman и PlantUML обновлены.
 - [ ] Веб: 4 режима, слои, дефолт пользователя, UI-1…UI-4; мини-апп: слои в «Дне» и «Неделе».
 - [ ] Экспорт дня/недели: слои, бейджи, FILE-3, `400`/`404`.
 - [ ] Трассируемость: UC-SCH-01/02/03 (веб), 04, 05, 09, 14, 17, 41 — критерии покрыты; исключения из 1.2 задокументированы.

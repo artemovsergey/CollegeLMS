@@ -129,12 +129,12 @@ Check phase progress per feature following the Full Feature Cycle from AGENTS.md
 
 Check that all agents are configured with proper model and description.
 
-- [ ] List agent files: `.opencode/agent/*.md` (5 ожидаемых: BackendAgent, FrontendAgent, TesterAgent, AnalystAgent, DevOpsAgent)
+- [ ] List agent files: `.opencode/agent/*.md` (4 ожидаемых: BackendAgent, FrontendAgent, TesterAgent, DevOpsAgent)
 - [ ] Verify each has `mode: subagent`, `model` and `description` во frontmatter
 - [ ] Verify each agent's `model` exists в `opencode models`
 - [ ] Verify descriptions match actual role responsibilities from AGENTS.md
 
-**Pass:** All 5 agents configured with model and description
+**Pass:** All 4 agents configured with model and description
 **Warning:** Missing description, mismatch with AGENTS.md
 **Fail:** Agent missing, missing model field
 

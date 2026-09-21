@@ -122,6 +122,8 @@ public static class ClaimsPrincipalExtensions
 - Enums: `.HasConversion<string>()` + `.HasMaxLength(n)` required
 - Navigation properties: `[JsonIgnore]`
 - Timestamps: `CreatedAt`, `UpdatedAt` = `DateTime.UtcNow`
+- Indexes (UNIQUE, simple): `HasIndex` with `HasDatabaseName` in EF Configuration
+- CHECK constraints: in `Data/DbConstraints.cs` (idempotent PL/pgSQL, NOT via migrations)
 - `[SwaggerOperation(Summary = "...")]` in Russian
 - No AutoMapper — manual static extension mappers
 - `CancellationToken ct` on all service/endpoint methods

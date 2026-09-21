@@ -95,7 +95,6 @@
 ## 7. Документация
 
 - Postman: `Create/Update schedule` — тело без `StartTime/EndTime`; `import/preview` — пример ответа с записями и ошибками (200); `import/confirm` — пример `400` со списком ошибок и успешный отчёт.
-- PlantUML: обновить sequence импорта (превью → confirm, валидация, отчёт) и, при необходимости, class-диаграмму сервиса расписания.
 - Пост-фактум ТЗ: `docs/spec/task-schedule-crud-import.md`.
 
 ---

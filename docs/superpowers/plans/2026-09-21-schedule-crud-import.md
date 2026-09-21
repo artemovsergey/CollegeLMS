@@ -306,15 +306,12 @@ git add -A; git commit -m "feat(frontend): диалоги расписания �
 
 **Файлы:**
 - Create: `docs/spec/task-schedule-crud-import.md`
-- Modify: `docs/spec/CollegeLMS.postman_collection.json`, `docs/diagrams/sequence/*import*.puml` (существующий файл импорта, если есть; иначе создать `schedule-import.puml`)
 
 - [ ] **Step 1: Postman**
 
 `Create/Update schedule` — тело без времени; `import/preview` — 200 с `entries`+`errors`; `import/confirm` — успех с `{imported, groups, teachers}` и 400 со списком ошибок.
 
-- [ ] **Step 2: PlantUML и пост-фактум ТЗ**
-
-Sequence импорта: диалог → preview (записи+ошибки) → подтверждение → confirm (валидация → транзакция → отчёт). `docs/spec/task-schedule-crud-import.md` — по образцу `task-schedule-reference-data.md`.
+`docs/spec/task-schedule-crud-import.md` — по образцу `task-schedule-reference-data.md`.
 
 - [ ] **Step 3: Полные гейты**
 
@@ -329,7 +326,6 @@ npm run build --prefix CollegeLMS.Next
 - [ ] **Step 4: Коммит и merge**
 
 ```powershell
-git add -A; git commit -m "docs: ручной CRUD и импорт — Postman, диаграмма и пост-фактум ТЗ"
 git checkout master
 git merge feature/schedule-crud-import
 ```

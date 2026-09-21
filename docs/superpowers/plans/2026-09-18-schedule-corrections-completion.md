@@ -218,11 +218,8 @@ public sealed class CorrectionApplyOutcome
 
 **Файлы:**
 - Modify: `docs/spec/CollegeLMS.postman_collection.json`
-- Modify: `docs/diagrams/sequence/correction-batch-apply.puml`, `docs/diagrams/class/correction-batch-service.puml`
 - Modify: `docs/spec/task-dispatcher-corrections.md` (канонический batch API)
 
-- [ ] Обновить Postman, диаграммы, спеку.
-- [ ] Коммит `docs: корректировки UC-SCH-18–30 — API, диаграммы, Postman`.
 
 ---
 

@@ -1,265 +1,217 @@
 ---
 name: feature-workflow
-description: Orchestrate full vertical-slice feature development — branch, entity, API, tests, frontend, docs, deploy. Use when starting a new feature in CollegeLMS
+description: Orchestrate full vertical-slice feature development — planning, backend, tests, frontend, E2E, CI/CD, merge. Use when starting a new feature in CollegeLMS
 ---
 
 # feature-workflow
 
-Orchestrate complete vertical-slice feature development in CollegeLMS. Each phase has a checklist with exact commands and verification criteria.
+Полный вертикальный срез фичи в CollegeLMS. Фазы 0–5 делегируются субагентам через `task`; фазы 0 и 6 ведёт главный агент (Architect).
 
-## Pipeline Overview
+## Pipeline (7 фаз)
+
+| Фаза | Owner | Гейт | Коммит |
+|------|-------|------|--------|
+| 0 Planning | Architect | спека утверждена | — |
+| 1 Backend | `BackendAgent` | `dotnet build` | `phase 1: {feature} backend` |
+| 2 Tests | `TesterAgent` | `dotnet test --filter ...` | `phase 2: {feature} tests` |
+| 3 Frontend | `FrontendAgent` | `npm run dev` | `phase 3: {feature} frontend` |
+| 4 E2E | `TesterAgent` | `npx playwright test {spec}` | `phase 4: {feature} e2e` |
+| 5 CI/CD | `DevOpsAgent` | статическая проверка конфигов | `phase 5: {feature} devops` |
+| 6 Merge | Architect | review + CI/CD зелёный | `merge: {service} — {description}` |
+
+## Общие правила
+
+- Ветка `feature/{service}-{feature}` от свежего `master`; перед стартом: `git fetch origin && git pull --rebase origin master`.
+- Гейт фазы N+1 — успешное прохождение проверки фазы N.
+- Коммит каждой фазы: `git add -A && git commit -m "phase N: {feature} ..."`.
+- **Сплит тестов:** локально — только таргетно (`--filter`), полный прогон — в CI/CD.
+- Независимые фазы (например, Frontend и Tests) можно запускать **параллельно** (`dispatching-parallel-agents`, `delegate`) — они не конфликтуют по файлам.
+- Пуш только при заданном `GITHUB_TOKEN`/`GH_TOKEN`.
+
+---
+
+## Phase 0: Planning (Architect)
+
+Load: `brainstorming` → `writing-plans`
+
+- Прочитать `docs/spec/task.md`, понять требования.
+- Декомпозировать на User Stories (шаблон ниже), сохранить в `docs/spec/`.
+- Согласовать дизайн с пользователем → `docs/spec/{feature}-design.md`.
+- Создать ветку: `git checkout -b feature/{service}-{feature}`.
+
+**Gate:** спецификация утверждена пользователем.
+
+---
+
+## Phase 1: Backend (BackendAgent)
+
+Load: `dotnet-entity`, `dotnet-endpoint`, `fluent-validation`, `swagger-docs`, `aspnet-core`
 
 ```
-Phase 0: Git Branch         git checkout -b feature/{name}
-Phase 1: Entity Layer       dotnet-entity -> migration -> dotnet build
-Phase 2: API Layer          dotnet-endpoint -> DTOs/Service/Controller -> Swagger
-Phase 3: Tests              dotnet-test -> unit + integration -> dotnet test
-Phase 4: Frontend           nextjs-page -> pages/components -> npm run dev
-Phase 5: Documentation      plantuml-docs -> UML diagrams
-Phase 6: Integration        docker compose + manual testing
-Phase 7: Merge + Deploy     git merge master -> CI/CD -> VPS
+Entities/{Name}.cs                         # наследует базовый Entity
+Entities/Enums/{Name}Type.cs               # если нужен enum
+Data/Configurations/{Name}Configuration.cs # ToTable, ValueGeneratedNever, HasMaxLength, HasConversion<string>, HasIndex, HasData
+Data/DbConstraints.cs                      # CHECK constraints — сюда (идемпотентный PL/pgSQL), НЕ в EF Config
+Dtos/{Action}{Name}Request.cs, {Name}Response.cs
+Mappers/{Name}Mapper.cs                    # корень Mappers/, ручные extension-мапперы
+Interfaces/I{Name}Service.cs               # корень Interfaces/
+Services/{Name}Service.cs                  # primary constructor, Result<T>, AsNoTracking, FindAsync, CancellationToken
+Controllers/{Name}Controller.cs            # CRUD, SwaggerOperation/ProducesResponseType на русском
+Validators/{Name}RequestValidator.cs
+SwaggerExamples/{Name}ResponseExample.cs
+Extensions/ServiceCollectionExtensions.cs  # регистрация DI (НЕ Program.cs)
 ```
 
-## Phase 0: Git Branch
+- Миграция: `dotnet ef migrations add Add{Name} --project CollegeLMS.API -- --provider Npgsql`
+- Обновить Postman: `docs/spec/CollegeLMS.postman_collection.json`.
 
-```bash
+**Gate:** `dotnet build CollegeLMS.slnx` проходит.
+
+---
+
+## Phase 2: Tests (TesterAgent)
+
+Load: `dotnet-test`, `test-driven-development`
+
+```
+CollegeLMS.Tests/Unit/Services/{Name}ServiceTests.cs
+CollegeLMS.Tests/Integration/Controllers/{Name}ControllerTests.cs
+```
+
+- Модульные (xUnit + Moq + Bogus) — happy + error case на каждый метод сервиса.
+- Интеграционные (`WebApplicationFactory`, EF InMemory).
+- Локальная проверка таргетно: `dotnet test CollegeLMS.slnx --filter FullyQualifiedName~{Name}`.
+- Полный прогон — в CI/CD (`quality.yml`).
+
+**Gate:** таргетные тесты зелёные.
+
+---
+
+## Phase 3: Frontend (FrontendAgent)
+
+Load: `impeccable`, `design-system`, `nextjs-page`
+
+```
+CollegeLMS.Next/app/{route}/page.tsx
+CollegeLMS.Next/app/{route}/loading.tsx
+CollegeLMS.Next/app/{route}/error.tsx
+CollegeLMS.Next/components/{Name}*.tsx
+CollegeLMS.Next/lib/{name}.ts
+```
+
+- Дизайн-бриф (shape) → реализация (craft) → polish → audit (`impeccable`).
+- Токены и компоненты (`design-system`), интеграция API с типами.
+- Mobile-first, touch 44×44px, адаптив 393px ↔ 1920px (DESIGN.md §6).
+
+**Gate:** `npm run dev` — страница рендерится, User Story проверена визуально.
+
+---
+
+## Phase 4: E2E (TesterAgent)
+
+Load: `playwright`, `playwright-interactive`
+
+```
+CollegeLMS.Next/e2e/{feature}.spec.ts
+```
+
+- Тесты изолированы: ответы API мокаются через `page.route("**/api/...")` — реальный backend/БД не нужны.
+- Локально: `cd CollegeLMS.Next && npx playwright test {spec}` (только затронутый спек).
+
+**Gate:** затронутый спек проходит.
+
+---
+
+## Phase 5: CI/CD (DevOpsAgent)
+
+Load: `docker-compose-dev`, `vps-deploy`, `cicd-pipeline`, `gh-fix-ci`
+
+- ⚠️ Локальный Docker **не запускаем** — сборка стека в CI/CD.
+- Статически проверить `Dockerfile`, `docker-compose.yml`, `.github/workflows/*`: переменные окружения, profiles, зависимости job'ов.
+
+**Gate:** конфиги корректны; `deploy.yml` (`needs: quality`) подхватит `quality.yml` автоматически.
+
+---
+
+## Phase 6: Merge & Deploy (Architect)
+
+Load: `verification-before-completion`, `requesting-code-review`, `yeet`
+
+- `verification-before-completion`: свежая проверка (build/tests на актуальном состоянии, не по памяти).
+- `requesting-code-review`: ревью всех изменений; замечания → исправить и перезапустить фазы.
+- Слияние и пуш:
+  ```
+  git checkout master
+  git merge feature/{service}-{feature}
+  git push origin master
+  ```
+- Проверить, что GitHub Actions (quality → deploy) запустился и прошёл.
+
+**Gate:** CI/CD зелёный, деплой на VPS выполнен.
+
+---
+
+## Гейты приёмки
+
+| Гейт | Проверка | Кто | Фаза |
+|------|----------|-----|------|
+| **G1** | `dotnet build` | BackendAgent | 1 |
+| **G2** | таргетные `dotnet test` | TesterAgent | 2 |
+| **G3** | `npm run dev` рендерится | FrontendAgent | 3 |
+| **G4** | затронутый Playwright-спек | TesterAgent | 4 |
+| **G5** | CI (build + full test + E2E) зелёный | CI | 6 |
+
+## Definition of Done
+
+- [ ] `dotnet build CollegeLMS.slnx` проходит
+- [ ] Таргетные тесты зелёные; полный прогон зелёный в CI
+- [ ] Swagger UI показывает endpoint с русской документацией и SwaggerExamples
+- [ ] Postman-коллекция обновлена
+- [ ] Frontend работает (`npm run dev`), адаптив 393px ↔ 1920px
+- [ ] Затронутый E2E-спек проходит
+- [ ] Конфиги Docker/compose/workflow проверены (сборка стека — в CI/CD)
+- [ ] Feature-ветка слита в `master`, CI/CD зелёный, деплой на VPS выполнен
+
+---
+
+## Fast-lane (hotfix)
+
+Для критических багов в production — минуя полный цикл.
+
+```
 git checkout master
-git pull origin master
-git checkout -b feature/{service-name}-{feature-name}
+git checkout -b hotfix/{description}
+# фикс без новых фич и рефакторинга; проверить dotnet build + npm run build
+git add -A && git commit -m "hotfix: {description}"
+git checkout master && git merge hotfix/{description}
+git push origin master   # CD деплоит сразу
 ```
 
-**Checklist:**
-- [ ] Branch created from latest master
-- [ ] Read `task.md` -- find User Story for this feature
-- [ ] Identify: Entity, Service, Controller, Frontend pages needed
+Правила: только критично (недоступность, потеря данных, безопасность); после hotfix — задача на полноценный фикс с тестами.
 
 ---
 
-## Phase 1: Entity Layer
+## Шаблон User Story
 
-Load skill: `skill("dotnet-entity")`
+```markdown
+## UC-N: {Роль} может {действие}
 
-```bash
-# Create entity files:
-# CollegeLMS.API/Entities/{Name}.cs
-# CollegeLMS.API/Entities/Enums/{Name}Type.cs (if needed)
-# CollegeLMS.API/Data/Configurations/{Name}Configuration.cs
+**Критерии приёмки:**
+- [ ] {критерий 1}
+- [ ] {критерий 2}
 
-# Register in DbContext:
-# CollegeLMS.API/Data/AppDbContext.cs -> DbSet + ApplyConfiguration
+**API:**
+- `{method} /api/{route}` — {описание}
 
-# Create migration
-dotnet ef migrations add Add{Name}Entity --project CollegeLMS.API -- --provider Npgsql
+**UI (если есть):**
+- Страница `/{route}` с таблицей/формой
+- Ошибки показаны пользователю (тост/сообщение)
 
-# Verify
-dotnet build
+**Зависимости:** {сервисы, от которых зависит}
 ```
 
-**Checklist:**
-- [ ] Entity has Guid PK, CreatedAt, UpdatedAt
-- [ ] Configuration: HasMaxLength, HasConversion for enum
-- [ ] Migration generated
-- [ ] `dotnet build` passes
+## Ветки и коммиты
 
----
-
-## Phase 2: API Layer
-
-Load skill: `skill("dotnet-endpoint")`
-
-```bash
-# Create files:
-# CollegeLMS.API/Dtos/{Action}{Name}Request.cs
-# CollegeLMS.API/Dtos/{Name}Response.cs
-# CollegeLMS.API/Services/Mappers/{Name}Mapper.cs
-# CollegeLMS.API/Services/I{Name}Service.cs
-# CollegeLMS.API/Services/{Name}Service.cs
-# CollegeLMS.API/Controllers/{Name}Controller.cs
-
-# Register in DI (Program.cs):
-# builder.Services.AddScoped<I{Name}Service, {Name}Service>();
-
-# Verify
-dotnet build
-dotnet run --project CollegeLMS.API
-# Open http://localhost:5026/swagger -- check endpoints
-```
-
-**Checklist:**
-- [ ] DTOs with validation attributes
-- [ ] Mapper -- manual extension methods
-- [ ] Service returns Result<T>
-- [ ] Controller with [SwaggerOperation(Summary = "...")]
-- [ ] DI registered
-- [ ] `dotnet build` passes
-- [ ] Swagger UI shows all endpoints
-
----
-
-## Phase 3: Tests
-
-Load skill: `skill("dotnet-test")`
-
-```bash
-# If test project doesn't exist yet:
-dotnet new xunit -n CollegeLMS.Tests -o CollegeLMS.Tests
-dotnet add CollegeLMS.Tests reference CollegeLMS.API
-dotnet add CollegeLMS.Tests package Microsoft.EntityFrameworkCore.InMemory
-dotnet add CollegeLMS.Tests package Moq
-dotnet add CollegeLMS.Tests package Bogus
-
-# Create tests:
-# CollegeLMS.Tests/Services/{Name}ServiceTests.cs
-# CollegeLMS.Tests/Controllers/{Name}ControllerTests.cs
-
-# Run tests
-dotnet test CollegeLMS.Tests --verbosity normal
-```
-
-**Checklist:**
-- [ ] Unit tests for each service method (happy + error case)
-- [ ] Integration tests for each controller endpoint
-- [ ] InMemory DB for isolation
-- [ ] All tests green
-- [ ] Coverage > 70% (optional)
-
----
-
-## Phase 4: Frontend
-
-Load skill: `skill("nextjs-page")`
-
-```bash
-cd CollegeLMS.Next
-
-# Create pages and components:
-# app/{route}/page.tsx
-# app/{route}/loading.tsx
-# app/{route}/error.tsx
-# components/{Name}*.tsx
-# types/{name}.ts
-
-# Verify
-npm run dev
-# Open http://localhost:3000 -- check UI
-```
-
-**Checklist:**
-- [ ] Pages created (server/client components)
-- [ ] Loading and error states
-- [ ] TypeScript types for API responses
-- [ ] API calls via NEXT_PUBLIC_API_URL
-- [ ] Responsive design (Tailwind)
-- [ ] `npm run dev` works
-- [ ] User Story from task.md verified visually
-
----
-
-## Phase 5: Documentation
-
-Load skill: `skill("plantuml-docs")`
-
-```bash
-# Create diagrams:
-# docs/diagrams/er/{entity}.puml
-# docs/diagrams/class/{service}.puml
-# docs/diagrams/sequence/{flow}.puml
-
-# Verify Swagger
-# http://localhost:5026/swagger -- all methods documented
-```
-
-**Checklist:**
-- [ ] ER diagram for entity relationships (`docs/diagrams/er/`)
-- [ ] Class diagram for service architecture (`docs/diagrams/class/`)
-- [ ] Sequence diagram for main API flows (`docs/diagrams/sequence/`)
-- [ ] Swagger summary in Russian
-
----
-
-## Phase 6: Integration Test
-
-```bash
-# Start infrastructure (always rebuild)
-docker compose up --build -d
-
-# Apply migrations
-dotnet ef database update --project CollegeLMS.API
-
-# Start API
-dotnet run --project CollegeLMS.API
-
-# Start frontend
-cd CollegeLMS.Next && npm run dev
-
-# Manual testing:
-# 1. Open Swagger -> authorize -> call endpoints
-# 2. Open Next.js -> check UI
-# 3. Verify scenarios from task.md
-```
-
-**Checklist:**
-- [ ] Docker Compose starts Postgres + Redis
-- [ ] Migrations apply
-- [ ] API works via Docker
-- [ ] Frontend communicates with API
-- [ ] Key User Stories work end-to-end
-
----
-
-## Phase 7: Merge + Deploy
-
-```bash
-# Final check
-dotnet build
-dotnet test CollegeLMS.Tests
-
-# Git
-git add -A
-git commit -m "feature: {service-name} -- {description}"
-
-git checkout master
-git merge feature/{service-name}-{feature-name}
-git push origin master
-```
-
-**CI/CD (automatic):**
-- Push to master -> GitHub Actions: `test.yml` -> `dotnet test`
-- If tests pass -> deploy workflow available
-
-**Manual deploy (if needed):**
-- Deploy workflow was removed — not needed for MVP
-- To deploy manually later: `docker compose up -d --build` on VPS
-
-**Checklist:**
-- [ ] `git add -A` stages all changes
-- [ ] Commit with `feature:` prefix
-- [ ] Merge to master
-- [ ] CI tests pass
-- [ ] Deploy to VPS (if applicable)
-
-## Phase Gate Rules
-
-- Phase N+1 starts **ONLY** after `dotnet build` / `dotnet test` passes in phase N
-- `dotnet build` must pass before any tests
-- `dotnet test` must pass before frontend
-- Frontend `npm run dev` must work before merge
-- Merge to master only after all checks pass
-- Commit prefixes: `feature:`, `fix:`, `docs:`, `test:`
-
-## Agent Roles
-
-| Role | Type | Phases | Skills |
-|------|------|--------|--------|
-| **Backend Agent** | `general` | 0-2 | `dotnet-entity`, `dotnet-endpoint`, `result-pattern`, `fluent-validation` |
-| **Test Agent** | `general` | 3 | `dotnet-test` |
-| **Frontend Agent** | `general` | 4 | `nextjs-page` |
-| **Docs Agent** | `general` | 5 | `plantuml-docs` |
-| **DevOps Agent** | `general` | 6-7 | `cicd-pipeline` |
-
-## Git Branch Strategy
-
-- `master` -- stable code, always working
-- `feature/{service}-{feature}` -- each feature branch
-- Commit prefixes: `feature:`, `fix:`, `docs:`, `test:`
-- Merge via fast-forward or merge commit (no squash)
+- `master` — стабильный код; `feature/{service}-{feature}` — фича; `hotfix/{description}` — срочный фикс.
+- Префиксы: `feat:` / `fix:` / `docs:` / `test:` / `refactor:` / `chore:` / `hotfix:` / `merge:`.
+- Коммиты фаз — `phase N: {feature} ...`; слияние — `merge:`.

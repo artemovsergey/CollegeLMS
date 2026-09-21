@@ -1002,47 +1002,11 @@ git commit -m "test: интеграционные тесты дублирова�
 
 ---
 
-### Task 5: Docs — PlantUML ER, Postman, Swagger
+### Task 5: Docs — Postman, Swagger
 
 **Files:**
-- Create: `docs/diagrams/er/course_authors.puml`
 - Modify: `docs/spec/CollegeLMS.postman_collection.json`
 - Modify: `CollegeLMS.API/SwaggerExamples/CourseResponseExample.cs`
-
-- [ ] **Step 1: ER-диаграмма**
-
-`docs/diagrams/er/course_authors.puml`:
-```plantuml
-@startuml
-!theme superpowers
-
-entity "course_authors" as ca {
-  * id : uuid [PK]
-  --
-  * course_id : uuid [FK -> courses]
-  * teacher_id : uuid [FK -> teachers]
-  --
-  UNIQUE (course_id, teacher_id)
-}
-
-entity "courses" as c {
-  * id : uuid [PK]
-  --
-  title : varchar(200)
-  teacher_id : uuid [FK -> teachers]
-  is_active : boolean
-  status : varchar(20)
-}
-
-entity "teachers" as t {
-  * id : uuid [PK]
-}
-
-c ||--o{ ca : "соавторы"
-t ||--o{ ca
-@enduml
-```
-(Порядок/стиль — согласовать с существующими `.puml` в `docs/diagrams/er/` — посмотреть `ls docs/diagrams/er/` перед созданием и повторить шапку/тему соседних файлов.)
 
 - [ ] **Step 2: Swagger-пример**
 
@@ -1069,7 +1033,6 @@ Expected: 0 ошибок.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add docs/diagrams/er/course_authors.puml docs/spec/CollegeLMS.postman_collection.json CollegeLMS.API/SwaggerExamples/CourseResponseExample.cs
 git commit -m "docs: ER соавторов, swagger-пример, postman (duplicate, active)"
 ```
 

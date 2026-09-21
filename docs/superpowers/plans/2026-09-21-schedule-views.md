@@ -39,7 +39,6 @@
 - `CollegeLMS.Next/components/ScheduleMonthCalendar.tsx` — режим «Календарь».
 - `CollegeLMS.Next/components/ScheduleSemesterMatrix.tsx` — режим «Семестр».
 - `CollegeLMS.API/SwaggerExamples/ScheduleDayViewExample.cs` — пример ответа дня.
-- `docs/diagrams/class/schedule-view-service.puml`, `docs/diagrams/sequence/schedule-view-day.puml`.
 - `docs/spec/task-schedule-views.md` — пост-фактум ТЗ итерации.
 
 **Изменяются:**
@@ -1039,25 +1038,17 @@ git add -A; git commit -m "feat: экспорт дня и недели со сл
 
 ---
 
-## Task 7: Документация backend (Postman, PlantUML)
+## Task 7: Документация backend (Postman)
 
 **Файлы:**
 - Modify: `docs/spec/CollegeLMS.postman_collection.json`
-- Create: `docs/diagrams/class/schedule-view-service.puml`, `docs/diagrams/sequence/schedule-view-day.puml`
 
 - [ ] **Step 1: Postman**
 
 В папке расписания: запросы `Get schedule (view=day|week|semester|calendar)` с параметрами и примерами ответов; экспорт — `scope=day|week` с `date`/`week` и примером имени FILE-3; удалить упоминание старого calendar-шаблона.
 
-- [ ] **Step 2: PlantUML**
-
-Class: `ScheduleViewService` + зависимости (`AppDbContext`, `IBellScheduleService`, `IPracticeService`, `IScheduleInsertService`, `ScheduleChangeTags`) и DTO. Sequence: `Web → ScheduleController → ScheduleViewService → {NonWorkingDays, Practices, Inserts, ScheduleEntries/History}` с правилами приоритета.
-
 - [ ] **Step 3: Коммит**
 
-```powershell
-git add -A; git commit -m "docs: Postman и PlantUML для серверных видов расписания"
-```
 
 ---
 

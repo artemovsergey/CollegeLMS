@@ -1024,5 +1024,3 @@ git add -A && git commit -m "docs: AGENTS.md — устройства для п�
 | Галерея — отступы | Task 6 |
 | AGENTS.md — устройства | Task 11 |
 
-
-

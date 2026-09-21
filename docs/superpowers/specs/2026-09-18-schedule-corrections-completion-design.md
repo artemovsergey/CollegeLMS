@@ -122,8 +122,7 @@
 - `docker-compose.yml` — `MaxBot__CorrectionChannelId`.
 
 **Документация**
-- Postman, PlantUML (sequence apply, class), спека `task-dispatcher-corrections.md` (пометка о каноническом API).
-
+- Postman, спека `task-dispatcher-corrections.md` (пометка о каноническом API).
 ## 6. Тестирование
 
 - Unit API: импорт с ошибками и без, симуляция (включая «снятие добавленного»), «сам.р.», гонка/повтор apply, формат имени файла, day-overlay, фильтры истории, PNG непустой и валидный.
@@ -137,6 +136,5 @@
 - [ ] `dotnet test CollegeLMS.Tests` и `CollegeLMS.MaxBot.Tests` зелёные.
 - [ ] `npm run build` проходит; страница `/dispatcher/correction` работает.
 - [ ] Swagger содержит новые/изменённые endpoint-ы с русской документацией.
-- [ ] Postman обновлён, PlantUML-диаграммы обновлены.
 - [ ] `docker compose up --build -d --profile max-bot` поднимается.
 - [ ] Ветка слита в master, push → CD.

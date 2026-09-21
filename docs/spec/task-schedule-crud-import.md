@@ -196,7 +196,6 @@
 
 - Спека дизайна: `docs/superpowers/specs/2026-09-21-schedule-crud-import-design.md`;
   план: `docs/superpowers/plans/2026-09-21-schedule-crud-import.md`.
-- Sequence импорта: `docs/diagrams/sequence/schedule-import.puml`.
 - Postman: `docs/spec/CollegeLMS.postman_collection.json`, папка **Schedule (CRUD & import)**
   (Create/Update без времени, Get/Delete, Preview с записями и ошибками, Confirm с отчётом
   и списком ошибок).

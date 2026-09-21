@@ -28,7 +28,6 @@
 - `CollegeLMS.MaxBot.Tests/DispatcherLoginThrottleTests.cs`
 - `CollegeLMS.MaxBot.Tests/ScheduleViewClientTests.cs` — view-методы клиента (ошибка/успех).
 - `CollegeLMS.MaxBot.Tests/ScheduleNotifierIdempotencyTests.cs` (или дополнение `ScheduleNotifierTests`)
-- `docs/diagrams/sequence/bot-onboarding.puml`, `docs/diagrams/sequence/bot-digest.puml`
 - `docs/spec/task-bot-miniapp-completion.md`
 
 **Изменяются:**
@@ -313,11 +312,7 @@ git add -A; git commit -m "feat(max): гейт диспетчера, подтв�
 ## Task 8: Документация, гейты, merge
 
 **Файлы:**
-- Create: `docs/diagrams/sequence/bot-onboarding.puml`, `docs/diagrams/sequence/bot-digest.puml`, `docs/spec/task-bot-miniapp-completion.md`
-
-- [ ] **Step 1: Диаграммы и пост-фактум ТЗ**
-
-Sequence: онбординг (`/start → роль → выбор → меню`) и дайджест (`notifier → non-working? → view=day → отправка → last_notified_on`). Пост-фактум ТЗ — по образцу `task-schedule-reference-data.md`.
+- Create: `docs/spec/task-bot-miniapp-completion.md`
 
 - [ ] **Step 2: Полные гейты**
 
@@ -333,7 +328,6 @@ npx playwright test e2e/max-miniapp.spec.ts   # в CollegeLMS.Next; при TLS-�
 - [ ] **Step 3: Коммит и merge**
 
 ```powershell
-git add -A; git commit -m "docs: онбординг и рассылка бота — диаграммы и ТЗ"
 git checkout master
 git merge feature/bot-miniapp-completion
 ```

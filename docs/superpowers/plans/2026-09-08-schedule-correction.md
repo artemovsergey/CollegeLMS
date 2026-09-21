@@ -44,7 +44,6 @@
 | 13. MaxBot unit-тесты | `CollegeLMS.MaxBot.Tests/MessageFormatterTests.cs` (edit) |
 | 14. Frontend: types+api+страница | `CollegeLMS.Next/types/correction.ts` (new), `CollegeLMS.Next/api/correction.ts` (new), `app/(authenticated)/dispatcher/correction/page.tsx` (rewrite) |
 | 15. Frontend: маркировка + «снято» | `types/schedule.ts` (edit), `components/ScheduleTable.tsx` (edit), `app/(authenticated)/schedule/page.tsx` (edit), `components/SemesterView.tsx` (edit) |
-| 16. Docs+DevOps | `docs/diagrams/...` (new), `docker-compose.yml` (edit), `CollegeLMS.API/Dockerfile` — не трогаем |
 
 ---
 
@@ -1704,12 +1703,7 @@ git add -A && git commit -m "feat: маркировка изменённых п�
 ### Задача 16: Docs + DevOps
 
 **Files:**
-- Create: `docs/diagrams/er/schedule_history.puml`, `docs/diagrams/sequence/correction.puml`, `docs/diagrams/class/schedule-correction-service.puml`
 - Modify: `docker-compose.yml` (env `MaxBot__BaseUrl` для api)
-
-- [ ] **Step 1: PlantUML**
-
-ER (ScheduleHistory, ScheduleEntry, ScheduleRevision), Sequence (импорт → превью → confirm → POST /notify → бот → подписчик), Class (`ScheduleCorrectionService`, `MaxBotHttpClient`, `ScheduleImportService`).
 
 - [ ] **Step 2: docker-compose**
 
@@ -1722,7 +1716,6 @@ docker compose ps
 ```
 
 - [ ] **Final: Git**
-git add -A && git commit -m "docs: PlantUML корректировок; chore: MaxBot__BaseUrl в compose"
 
 ---
 
@@ -1740,7 +1733,6 @@ git add -A && git commit -m "docs: PlantUML корректировок; chore: M
 - [ ] `dotnet build` и `dotnet test` проходят (API + MaxBot)
 - [ ] `npm run build` фронтенда
 - [ ] Swagger-примеры и Postman-коллекция обновлены
-- [ ] PlantUML-диаграммы сгенерированы
 - [ ] `docker compose --profile max-bot up --build` поднимается
 - [ ] На push в master — CD разворачивает на VPS
 

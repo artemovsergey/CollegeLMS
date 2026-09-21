@@ -114,7 +114,6 @@
 ### Task 10: Тесты и документация
 
 - [ ] Unit/интеграционные тесты на все новые сервисы и endpoint-ы; MaxBot — пропуск рассылки в нерабочий день.
-- [ ] Postman, PlantUML (ER + Class), Swagger-примеры.
 - [ ] `dotnet test`, `npm run build`, merge + push.
 
 ## Порядок

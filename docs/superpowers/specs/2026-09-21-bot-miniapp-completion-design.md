@@ -136,7 +136,6 @@
 
 ## 8. Документация
 
-- PlantUML: `docs/diagrams/sequence/bot-onboarding.puml`, `docs/diagrams/sequence/bot-digest.puml`; при необходимости — правка существующих bot-диаграмм.
 - Пост-фактум ТЗ: `docs/spec/task-bot-miniapp-completion.md` (по образцу `task-schedule-reference-data.md`).
 - Postman не меняется (внешние API без изменений).
 
@@ -152,7 +151,6 @@
 - [ ] XLSX уходит файлом с кнопкой; «вм.X» заполняет сервер.
 - [ ] Мини-апп: гейт, подтверждение импорта, автоскачивание XLSX.
 - [ ] Дайджест: слои, гард, идемпотентность в БД.
-- [ ] Диаграммы и пост-фактум ТЗ добавлены; feature-ветка слита в master, push → CD.
 
 ---
 

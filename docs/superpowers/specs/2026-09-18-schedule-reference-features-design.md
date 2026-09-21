@@ -80,7 +80,6 @@ GET /api/schedule/export?scope=day|week|semester&format=pdf|xlsx&layout=grid|day
 ## 6. Definition of Done
 
 - [ ] Русские сообщения и Swagger-аннотации на всех новых endpoint.
-- [ ] Postman и PlantUML обновлены.
 - [ ] Страницы диспетчера: звонки, нерабочие дни, вставки, практики; веб `/changes`, `/teacher/journal`.
 - [ ] Семестровый экспорт PDF/XLSX.
 - [ ] Тесты зелёные, CI/CD зелёный.

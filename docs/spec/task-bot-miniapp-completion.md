@@ -197,8 +197,6 @@ ASCII-имя `schedule_yyyy-MM-dd_HH-mm-ss.xlsx`, `application/vnd.openxmlformat
 
 ## 8. Документация
 
-- Sequence: `docs/diagrams/sequence/bot-onboarding.puml`, `docs/diagrams/sequence/bot-digest.puml`;
-  `docs/diagrams/sequence/bot-day-view.puml` обновлена под `view=day`.
 - Спека дизайна: `docs/superpowers/specs/2026-09-21-bot-miniapp-completion-design.md`;
   план: `docs/superpowers/plans/2026-09-21-bot-miniapp-completion.md`.
 - Postman не меняется — внешние API без изменений.
