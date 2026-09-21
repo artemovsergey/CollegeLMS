@@ -1,6 +1,6 @@
 @startuml
 !theme plain
-title MaxBot: расписание дня с учётом нерабочих дней, практик и вставок
+title MaxBot: расписание дня (view=day) — слои и повтор при ошибке
 autonumber
 
 actor "Пользователь Max" as User
@@ -17,76 +17,30 @@ Bot -> Bot: GetSettingsAsync(userId)
 alt Нет группы и преподавателя
   Bot -> Bot: ShowMainMenuAsync
 else
-  alt Воскресенье
-    Bot -> Fmt: FormatDaySchedule([], date)
-    Fmt --> Bot: «Расписания нет — выходной!»
-  else
-    Bot -> Api: GetNonWorkingDaysAsync(day, day)
-    Api -> LMS: GET /api/non-working-days?from=&to=&page=1&pageSize=100
-    LMS -> DB: SELECT non_working_days (пересечение периода)
-    DB --> LMS: items
-    LMS --> Api: Result<PagedResponse>
-    alt nonWorking.Count > 0
-      Api --> Bot: [ { dateFrom, dateTo, title } ]
-      Bot -> Fmt: «🎉 Нерабочий день: {Title}»
-      Fmt --> Bot: текст-праздник
-    else
-      Bot -> Api: GetPracticesAsync(day, day, groupId, teacherId)
-      Api -> LMS: GET /api/practices?from=&to=&groupId=&teacherId=&page=1&pageSize=100
-      LMS -> DB: SELECT practices + Group + Teacher
-      DB --> LMS: practices
-      LMS --> Api: Result<PagedResponse<PracticeResponse>>
-      Api --> Bot: practices
+  Bot -> Api: GetDayViewAsync(date, groupId, teacherId)
+  Api -> LMS: GET /api/schedule?view=day&date=&groupId=|teacherId=
+  LMS -> DB: практики + вставки + пары; нерабочие дни
+  DB --> LMS: слои дня
+  LMS --> Api: Result<ScheduleDayViewDto>
 
-      Bot -> Api: GetScheduleAsync(groupId, teacherId, week, dayOfWeek)
-      Api -> LMS: GET /api/schedule?week=&dayOfWeek=&groupId=&teacherId=
-      LMS -> DB: SELECT schedule_entries; время пар — из справочника звонков
-      DB --> LMS: entries
-      LMS --> Api: Result<PagedResponse<ScheduleResponse>>
-      Api --> Bot: entries
-
-      alt practices.Count > 0
-        Bot -> Fmt: FormatPracticeLine(practices[0])
-        Fmt --> Bot: «УП|ПП: {GroupName} · {TeacherName} · {Organization} (с … по …)»
-      else
-        Bot -> Api: GetInsertsAsync(dayOfWeek, activeOnly=true)
-        Api -> LMS: GET /api/schedule/inserts?dayOfWeek=&activeOnly=true
-        LMS -> DB: SELECT schedule_inserts (IsActive)
-        DB --> LMS: inserts
-        LMS --> Api: Result<List<ScheduleInsertResponse>>
-        Api --> Bot: inserts
-        opt Известна группа
-          Bot -> Api: GetGroupsAsync()
-          Bot -> Bot: фильтр inserts: Course is null || Course == курс группы
-        end
-        Bot -> Fmt: FormatDaySchedule(entries, date, entityName, inserts, practiceLine: null)
-        Fmt --> Bot: пары + блок «🎓 Вставки:» (если есть)
-      end
-    end
+  alt null — ошибка запроса или невалидный ответ
+    Api --> Bot: null
+    Bot -> User: «❌ Не удалось загрузить расписание.» + «🔄 Повторить» (dayretry:date)
+  else Валидный ответ
+    Api --> Bot: ScheduleDayViewDto
+    Bot -> Fmt: FormatDaySchedule(day, entityName, showGroup)
+    Fmt --> Bot: практика заменяет пары; вставки; нерабочий/воскресенье/пустой день
+    Bot -> User: текст дня + кнопки навигации
   end
-  Bot -> User: SendInlineKeyboardAsync(текст, кнопки дня)
-end
-
-== Ежедневная рассылка (ScheduleNotifier) ==
-
-participant "ScheduleNotifier" as Notifier
-Notifier -> Api: GetNonWorkingDaysAsync(today, today)
-Api -> LMS: GET /api/non-working-days?from=&to=
-LMS --> Api: items
-alt Сегодня нерабочий день
-  Api --> Notifier: [ { title } ]
-  Notifier -> Notifier: log «нерабочий день ({Title}) — рассылка пропущена»
-  Notifier -> Notifier: lastSent[user] = today, return
-else
-  Notifier -> Notifier: рассылка дайджеста подписчикам (окно времени)
 end
 
 note over LMS
-  Нерабочий день также даёт:
-  • создание/применение корректировки → 400;
-  • расписание дня не выводится;
-  • экспорт дня (period=day) → 400 «Нерабочий день: {Title}»;
-  • в семестровом экспорте ячейка «Не работает: {Title}».
+  Слои приходят от сервера одним ответом (ранее — три параллельных запроса):
+  • практика — карточка УП/ПП вместо пар;
+  • вставки — строки «HH:mm–HH:mm Название»;
+  • нерабочий день — «🎉 Нерабочий день: {Title}»;
+  • воскресенье — «Расписания нет — выходной!».
+  Ежедневная рассылка — см. bot-digest.puml.
 end note
 
 @enduml

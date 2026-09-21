@@ -1,0 +1,68 @@
+@startuml
+!theme plain
+title MaxBot: ежедневная рассылка (ScheduleNotifier) — слои дня и идемпотентность
+autonumber
+
+participant "ScheduleNotifier" as Notifier
+participant "CollegeLmsApiClient" as Api
+participant "CollegeLMS API" as LMS
+database "PostgreSQL (bot)" as BotDb
+participant "MaxApiClient" as Max
+participant "MessageFormatter" as Fmt
+actor "Подписчик Max" as User
+
+== Цикл воркера ==
+
+Notifier -> Notifier: now (МСК), today = DateOnly(now)
+alt Суббота или воскресенье
+  Notifier -> Notifier: пауза до понедельника 00:30
+else Будний день
+  Notifier -> BotDb: SELECT user_settings WHERE notify_enabled AND notify_days ∋ today
+  BotDb --> Notifier: подписчики
+  alt now < min(NotifyTime)
+    Notifier -> Notifier: пауза до target = today @ min(NotifyTime)
+  else now ≥ target
+    Notifier -> Api: GetNonWorkingDaysAsync(today, today)
+    Api -> LMS: GET /api/non-working-days?from=&to=
+    LMS --> Api: items
+
+    alt Сегодня нерабочий день
+      Notifier -> Notifier: log «нерабочий день ({Title}) — рассылка пропущена»
+      Note right of Notifier: запись last_notified_on не создаётся
+    else Нерабочего дня нет
+      loop Каждый подписчик
+        alt GroupId = null и TeacherId = null
+          Notifier -> Notifier: skip (гард «не выбраны»)
+        else last_notified_on = today
+          Notifier -> Notifier: skip (идемпотентность в БД)
+        else Вне окна ±15 минут от NotifyTime
+          Notifier -> Notifier: skip
+        else
+          Notifier -> Api: GetDayViewAsync(today, groupId, teacherId)
+          Api -> LMS: GET /api/schedule?view=day&date=&groupId=|teacherId=
+          LMS --> Api: ScheduleDayView: практики + вставки + пары
+          alt null — ошибка запроса или невалидный ответ
+            Notifier -> Notifier: log; повтор в следующем цикле
+          else day.IsNonWorking
+            Notifier -> Notifier: skip (нерабочий день у пользователя)
+          else Валидный рабочий день
+            Notifier -> Fmt: FormatDaySchedule(day, entityName, showGroup)
+            Fmt --> Notifier: текст дня (практика заменяет пары, вставки, бейджи)
+            Notifier -> Max: POST /messages?chat_id={MaxChatId}
+            Max --> User: дайджест расписания
+            Notifier -> BotDb: UPDATE user_settings SET last_notified_on = today
+          end
+        end
+      end
+      Notifier -> Notifier: пауза 30 с и следующий цикл
+    end
+  end
+end
+
+note over Notifier, BotDb
+  At-least-once: отметка last_notified_on пишется ПОСЛЕ успешной отправки.
+  Сбой между отправкой и UPDATE → повтор при следующем цикле (окно ±15 минут),
+  возможен дубль; выбран вариант «лучше повтор, чем пропуск».
+end note
+
+@enduml
