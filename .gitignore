@@ -21,13 +21,10 @@ next-env.d.ts
 .env.*.local
 appsettings.Production.json
 appsettings.*.local.json
-# Generated agent skills (restore via: npx skills sync)
-.agents/
-# Agent config dirs
+# Agent config dirs (глобальные в ~/.config/opencode, локальные не коммитим)
 .mimocode/
-.opencode/*
-!.opencode/skills/
-!.opencode/agent/
+.opencode/
+.agents/
 .impeccable/
 .superpowers/   
 # Generated lock files
@@ -62,8 +59,6 @@ output
 
 # Import data (large JSON dumps from WordPress)
 import/wp_data_full.json
-# Generated reports
-scripts/content-links-report.json
 
 # Unknown binaries (do not commit)
 roots/
