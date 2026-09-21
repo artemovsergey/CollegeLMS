@@ -151,6 +151,41 @@ const SEARCH = {
   statusCode: 200,
 }
 
+// Ответ импорта XLSX (CorrectionImportResponse): одна валидная строка.
+const IMPORT_RESULT = ok({
+  batchId: "b1",
+  correctionDate: "2026-09-07",
+  week: 2,
+  dayOfWeek: 1,
+  totalEntries: 1,
+  positions: [
+    {
+      id: "p1",
+      row: 1,
+      changeType: "Add",
+      groupId: "g1",
+      groupName: "ПО262",
+      dayOfWeek: 1,
+      week: 2,
+      numberPair: 1,
+      subject: "Математика",
+      teacherId: null,
+      teacherName: null,
+      removedSubject: null,
+      removedTeacherId: null,
+      removedTeacherName: null,
+      removedNumberPair: null,
+      note: null,
+      status: "Draft",
+      historyId: null,
+      errors: [],
+    },
+  ],
+  errors: [],
+})
+
+const APPLY_RESULT = ok({ applied: 1, batchId: "b1", history: [] })
+
 function inlineJson(body: object) {
   return {
     status: 200,
@@ -233,5 +268,73 @@ test.describe("MAX mini-app", () => {
 
     await expect(page.getByText("Изменения")).toBeVisible()
     await expect(page.getByText("Физика")).toBeVisible()
+  })
+
+  test("Диспетчер без токена показывает гейт", async ({ page }) => {
+    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
+
+    await expect(page.getByText("Доступ диспетчера")).toBeVisible()
+    await expect(page.getByRole("button", { name: "Войти" })).toBeVisible()
+    await expect(page.getByRole("tab", { name: "Файл XLSX" })).toHaveCount(0)
+  })
+
+  test("Диспетчер с token показывает режимы корректировки", async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem("dispatcherToken", "test")
+    })
+    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
+
+    await expect(page.getByRole("tab", { name: "Файл XLSX" })).toBeVisible()
+    await expect(page.getByRole("tab", { name: "Вручную" })).toBeVisible()
+    await expect(page.getByText("Доступ диспетчера")).toHaveCount(0)
+  })
+
+  test("Импорт: шторка подтверждения и автоскачивание XLSX", async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem("dispatcherToken", "test")
+    })
+    await page.route("**/api/schedule/correction/batches/import", (route) =>
+      route.fulfill(inlineJson(IMPORT_RESULT)),
+    )
+    await page.route("**/api/schedule/correction/batches/b1/apply", (route) =>
+      route.fulfill(inlineJson(APPLY_RESULT)),
+    )
+    await page.route("**/api/schedule/correction/batches/b1/export", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers: { "Content-Disposition": 'attachment; filename="correction.xlsx"' },
+        body: Buffer.from("PK"),
+      }),
+    )
+
+    const downloadPromise = page.waitForEvent("download")
+    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "corrections.xlsx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: Buffer.from("test"),
+    })
+    await expect(page.getByText("Математика")).toBeVisible()
+
+    await page.getByRole("button", { name: "Применить изменения" }).click()
+    const dialog = page.getByRole("dialog", {
+      name: "Подтверждение применения изменений",
+    })
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByText("Применить 1 изменение?")).toBeVisible()
+
+    await dialog.getByRole("button", { name: "Отмена" }).click()
+    await expect(dialog).toHaveCount(0)
+
+    await page.getByRole("button", { name: "Применить изменения" }).click()
+    await dialog
+      .getByRole("button", { name: "Применить", exact: true })
+      .click()
+
+    await expect(page.getByText("Изменения применены")).toBeVisible()
+    await downloadPromise
   })
 })

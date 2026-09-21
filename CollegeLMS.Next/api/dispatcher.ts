@@ -34,3 +34,17 @@ export function notifyDispatcherSession(): void {
     window.dispatchEvent(new Event("max:dispatcher"))
   }
 }
+
+/**
+ * Проверяет, что ошибка — 401/403 от диспетчерского API. В этом случае
+ * сбрасывает dispatcher-токен и событием `max:dispatcher` возвращает
+ * пользователя к гейту. Возвращает true, если ошибка относится к доступу.
+ */
+export function handleDispatcherAuthError(err: unknown): boolean {
+  const status = (err as { response?: { status?: number } } | null)?.response
+    ?.status
+  if (status !== 401 && status !== 403) return false
+  dispatcherLogout()
+  notifyDispatcherSession()
+  return true
+}

@@ -23,6 +23,19 @@ api.interceptors.request.use(config => {
   return config
 })
 
+/**
+ * Диспетчерские маршруты мини-приложения: их 401/403 обрабатываются
+ * на месте (handleDispatcherAuthError → возврат к гейту), а не редиректом
+ * на /login общей авторизации CRM.
+ */
+function isDispatcherRequest(url: string | undefined): boolean {
+  const path = url ?? ""
+  return (
+    path.startsWith("/api/schedule/correction/") ||
+    path.startsWith("/api/dispatcher/")
+  )
+}
+
 const TOAST_DEBOUNCE_MS = 5000
 const lastShownAt: Record<number, number> = {}
 
@@ -37,6 +50,9 @@ api.interceptors.response.use(
   response => response,
   error => {
     const status = error.response?.status as number | undefined
+    if (typeof window !== "undefined" && status === 401 && isDispatcherRequest(error.config?.url)) {
+      return Promise.reject(error)
+    }
     if (typeof window !== "undefined" && status) {
       if (status === 401) {
         localStorage.removeItem("token")

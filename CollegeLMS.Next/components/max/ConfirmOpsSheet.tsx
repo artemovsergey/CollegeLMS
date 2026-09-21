@@ -4,6 +4,7 @@ import { useState } from "react"
 import { AlertCircle, X } from "lucide-react"
 import { Button, Typography } from "@maxhub/max-ui"
 import { addPosition, applyBatch, createBatch } from "@/api/correction"
+import { handleDispatcherAuthError } from "@/api/dispatcher"
 import type {
   CorrectionApplyResult,
   CorrectionPreviewEntry,
@@ -72,6 +73,7 @@ export default function ConfirmOpsSheet({
       const result = await applyBatch(currentBatchId, crypto.randomUUID())
       onApplied(result)
     } catch (err) {
+      if (handleDispatcherAuthError(err)) return
       setFormError(
         extractErrorMessage(err) ??
           "Ошибка применения. Проверьте операции и повторите",

@@ -1,15 +1,27 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Upload, AlertCircle, CheckCircle2, Pencil } from "lucide-react"
+import { Upload, AlertCircle, CheckCircle2, Pencil, X } from "lucide-react"
 import { Button, CellList, CellSimple, Input, MaxUI, Typography } from "@maxhub/max-ui"
 import { applyBatch, importCorrection, updatePosition } from "@/api/correction"
+import { handleDispatcherAuthError } from "@/api/dispatcher"
 import type { CorrectionImportResponse, CorrectionPosition, CorrectionApplyResult } from "@/types/correction"
 import { extractErrorMessage } from "@/lib/utils"
 import { WEEKDAYS } from "@/lib/max-lesson"
 
 function dayLabel(dayOfWeek: number): string {
   return WEEKDAYS.find((d) => d.value === dayOfWeek)?.full ?? String(dayOfWeek)
+}
+
+/** «1 изменение», «2 изменения», «5 изменений». */
+function changesLabel(count: number): string {
+  const mod10 = count % 10
+  const mod100 = count % 100
+  if (mod10 === 1 && mod100 !== 11) return `${count} изменение`
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return `${count} изменения`
+  }
+  return `${count} изменений`
 }
 
 const CHANGE_SHORT: Record<CorrectionPosition["changeType"], string> = {
@@ -42,6 +54,7 @@ export default function DispatcherImport({
   const [editing, setEditing] = useState<number | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const pick = (file: File | null) => {
@@ -56,7 +69,10 @@ export default function DispatcherImport({
         setPreview(result)
         setEntries(result.positions)
       })
-      .catch((err) => setError(extractErrorMessage(err) ?? "Ошибка превью"))
+      .catch((err) => {
+        if (handleDispatcherAuthError(err)) return
+        setError(extractErrorMessage(err) ?? "Ошибка превью")
+      })
       .finally(() => setPreviewing(false))
   }
 
@@ -87,6 +103,7 @@ export default function DispatcherImport({
       setEntries((prev) => prev.map((item) => item.id === saved.id ? saved : item))
       setEditing(null)
     } catch (err) {
+      if (handleDispatcherAuthError(err)) return
       setError(extractErrorMessage(err) ?? "Не удалось сохранить строку")
     }
   }
@@ -104,12 +121,14 @@ export default function DispatcherImport({
       setEditing(null)
       if (fileRef.current) fileRef.current.value = ""
     } catch (err) {
+      if (handleDispatcherAuthError(err)) return
       setError(
         extractErrorMessage(err) ??
           "Ошибка применения. Повторите с новым файлом",
       )
     } finally {
       setConfirming(false)
+      setConfirmOpen(false)
     }
   }
 
@@ -226,9 +245,8 @@ export default function DispatcherImport({
 
           <Button
             stretched
-            loading={confirming}
             disabled={entries.length === 0 || hasErrors || !preview.batchId}
-            onClick={() => void apply()}
+            onClick={() => setConfirmOpen(true)}
           >
             Применить изменения
           </Button>
@@ -240,6 +258,42 @@ export default function DispatcherImport({
           ) : null}
         </>
       )}
+
+      {confirmOpen ? (
+        <div
+          className="max-app__sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Подтверждение применения изменений"
+        >
+          <div className="max-app__sheet-head">
+            <Typography.Title>
+              Применить {changesLabel(entries.length)}?
+            </Typography.Title>
+            <Button
+              size="small"
+              variant="ghost"
+              iconBefore={<X size={18} aria-hidden />}
+              aria-label="Закрыть подтверждение"
+              onClick={() => setConfirmOpen(false)}
+            />
+          </div>
+
+          <div className="max-app__sheet-actions">
+            <Button
+              stretched
+              variant="secondary"
+              disabled={confirming}
+              onClick={() => setConfirmOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button stretched loading={confirming} onClick={() => void apply()}>
+              Применить
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

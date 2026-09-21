@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { CheckCheck, Download } from "lucide-react"
 import {
   Button,
@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@maxhub/max-ui"
 import { exportBatch, getHistory } from "@/api/correction"
+import { handleDispatcherAuthError } from "@/api/dispatcher"
 import { fetchScheduleMeta } from "@/api/schedule"
 import type { CorrectionApplyResult, ScheduleHistoryItem } from "@/types/correction"
 import ChangeCard from "@/components/max/ChangeCard"
@@ -49,6 +50,7 @@ export default function DispatcherResult({
         setTotal(res.totalCount)
         setPage(nextPage)
       } catch (err) {
+        if (handleDispatcherAuthError(err)) return
         setError(
           err instanceof Error ? err.message : "Не удалось загрузить историю",
         )
@@ -66,23 +68,41 @@ export default function DispatcherResult({
 
   const hasMore = items.length < total
 
-  const downloadCorrection = async () => {
-    setDownloading(true)
-    setError(null)
-    try {
-      const { blob, fileName } = await exportBatch(applied.batchId)
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = fileName
-      link.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось скачать корректировку")
-    } finally {
-      setDownloading(false)
-    }
-  }
+  const downloadCorrection = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      setDownloading(true)
+      if (!options.silent) setError(null)
+      try {
+        const { blob, fileName } = await exportBatch(applied.batchId)
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.download = fileName
+        link.click()
+        URL.revokeObjectURL(url)
+      } catch (err) {
+        if (handleDispatcherAuthError(err)) return
+        if (!options.silent) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Не удалось скачать корректировку",
+          )
+        }
+      } finally {
+        setDownloading(false)
+      }
+    },
+    [applied.batchId],
+  )
+
+  // UC-SCH-27: сразу после применения XLSX скачивается автоматически один раз.
+  const autoDownloadedBatch = useRef<string | null>(null)
+  useEffect(() => {
+    if (autoDownloadedBatch.current === applied.batchId) return
+    autoDownloadedBatch.current = applied.batchId
+    void downloadCorrection({ silent: true })
+  }, [applied.batchId, downloadCorrection])
 
   return (
     <MaxUI className="max-app__dispatcher-result">
