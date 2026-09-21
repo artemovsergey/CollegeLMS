@@ -7,7 +7,6 @@ import type { ScheduleResponse, ScheduleViewMode } from "@/types/schedule"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import {
-  fetchSchedule,
   fetchScheduleContext,
   fetchScheduleMeta,
   fetchSemesterView,
@@ -25,7 +24,7 @@ import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import ScheduleViewSwitcher from "@/components/ScheduleViewSwitcher"
 import WeekNavigation from "@/components/WeekNavigation"
 import ScheduleDayView from "@/components/ScheduleDayView"
-import ScheduleTable from "@/components/ScheduleTable"
+import ScheduleWeekView from "@/components/ScheduleWeekView"
 import SemesterView from "@/components/SemesterView"
 import ScheduleEntryDialog from "@/components/ScheduleEntryDialog"
 import ScheduleImportDialog from "@/components/ScheduleImportDialog"
@@ -63,7 +62,6 @@ export default function SchedulePage() {
   const [defaultGroupId, setDefaultGroupId] = useState("")
   const [defaultTeacherId, setDefaultTeacherId] = useState("")
 
-  const [entries, setEntries] = useState<ScheduleResponse[]>([])
   const [semesterEntries, setSemesterEntries] = useState<ScheduleResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -249,11 +247,11 @@ export default function SchedulePage() {
   // и старый семестровый вид.
   const loadViewData = useCallback(async () => {
     if (!token) return
-    if (view === "calendar" || view === "day") {
+    if (view !== "semester") {
       setLoading(false)
       return
     }
-    if (view === "semester" && semesterFilterMissing) {
+    if (semesterFilterMissing) {
       setSemesterEntries([])
       setError(null)
       setLoading(false)
@@ -264,35 +262,19 @@ export default function SchedulePage() {
     setLoading(true)
     setError(null)
     try {
-      if (view === "semester") {
-        const body = await fetchSemesterView({
-          groupId: selectedGroupId || undefined,
-          teacherId: selectedTeacherId || undefined,
-        })
-        if (requestId !== requestIdRef.current) return
-        if (body.isSuccess && body.data) {
-          setSemesterEntries(
-            body.data.weeks.flatMap((week) =>
-              week.days.flatMap((day) => day.entries),
-            ),
-          )
-        } else {
-          setError(body.errorMessage ?? "Ошибка загрузки расписания")
-        }
+      const body = await fetchSemesterView({
+        groupId: selectedGroupId || undefined,
+        teacherId: selectedTeacherId || undefined,
+      })
+      if (requestId !== requestIdRef.current) return
+      if (body.isSuccess && body.data) {
+        setSemesterEntries(
+          body.data.weeks.flatMap((week) =>
+            week.days.flatMap((day) => day.entries),
+          ),
+        )
       } else {
-        const params: ScheduleFilters = {
-          pageSize: 300,
-          week: selectedWeek,
-        }
-        if (selectedGroupId) params.groupId = selectedGroupId
-        if (selectedTeacherId) params.teacherId = selectedTeacherId
-        const body = await fetchSchedule(params)
-        if (requestId !== requestIdRef.current) return
-        if (body.isSuccess && body.data) {
-          setEntries(body.data.items)
-        } else {
-          setError(body.errorMessage ?? "Ошибка загрузки расписания")
-        }
+        setError(body.errorMessage ?? "Ошибка загрузки расписания")
       }
     } catch {
       if (requestId === requestIdRef.current) {
@@ -304,8 +286,6 @@ export default function SchedulePage() {
   }, [
     token,
     view,
-    selectedDate,
-    selectedWeek,
     selectedGroupId,
     selectedTeacherId,
     semesterFilterMissing,
@@ -535,21 +515,15 @@ export default function SchedulePage() {
         />
       )}
 
-      {view === "week" &&
-        (loading ? (
-          <div className="flex min-h-[60vh] items-center justify-center">
-            <LoadingSpinner size="lg" />
-          </div>
-        ) : (
-          <ScheduleTable
-            entries={entries}
-            selectedDay={null}
-            onEntryClick={canManage ? handleEdit : undefined}
-            onDeleteClick={
-              canManage ? (id) => setDeleteConfirmId(id) : undefined
-            }
-          />
-        ))}
+      {view === "week" && (
+        <ScheduleWeekView
+          week={selectedWeek}
+          groupId={selectedGroupId || undefined}
+          teacherId={selectedTeacherId || undefined}
+          refreshKey={refreshKey}
+          onDayClick={handleDayOpen}
+        />
+      )}
 
       {view === "calendar" && (
         <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-muted-foreground">
