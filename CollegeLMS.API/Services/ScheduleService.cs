@@ -585,8 +585,9 @@ public class ScheduleService(
         Guid? groupId,
         Guid? teacherId,
         string? room,
-        string? period,
         string? scope,
+        DateTime? date,
+        int? week,
         ExportFormat format,
         ExportLayout layout,
         CancellationToken ct
@@ -596,8 +597,9 @@ public class ScheduleService(
             groupId,
             teacherId,
             room,
-            period,
             scope,
+            date,
+            week,
             format,
             layout,
             ct

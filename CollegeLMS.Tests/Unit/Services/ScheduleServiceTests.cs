@@ -17,7 +17,16 @@ public class ScheduleServiceTests : IDisposable
     {
         _db = TestDbContextFactory.Create();
         var bells = new BellScheduleServiceStub();
-        var exportService = new ScheduleExportService(_db, bells);
+        var exportService = new ScheduleExportService(
+            _db,
+            bells,
+            new ScheduleViewService(
+                _db,
+                bells,
+                new PracticeService(_db),
+                new ScheduleInsertService(_db)
+            )
+        );
         _sut = new ScheduleService(_db, exportService, bells);
     }
 
@@ -432,9 +441,10 @@ public class ScheduleServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         var result = await _sut.ExportScheduleAsync(
+            entries[0].GroupId,
             null,
             null,
-            null,
+            "semester",
             null,
             null,
             ExportFormat.Pdf,
@@ -456,9 +466,10 @@ public class ScheduleServiceTests : IDisposable
         await _db.SaveChangesAsync();
 
         var result = await _sut.ExportScheduleAsync(
+            entries[0].GroupId,
             null,
             null,
-            null,
+            "semester",
             null,
             null,
             ExportFormat.Xlsx,
@@ -481,7 +492,8 @@ public class ScheduleServiceTests : IDisposable
             null,
             null,
             null,
-            null,
+            "day",
+            new DateTime(2026, 9, 6),
             null,
             ExportFormat.Pdf,
             ExportLayout.Grid,

@@ -13,12 +13,22 @@ namespace CollegeLMS.Tests.Unit.Services;
 public class ScheduleExportServiceTests : IDisposable
 {
     private readonly AppDbContext _db;
+    private readonly BellScheduleServiceStub _bells = new();
     private readonly ScheduleExportService _sut;
 
     public ScheduleExportServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        _sut = new ScheduleExportService(_db, new BellScheduleServiceStub());
+        _sut = new ScheduleExportService(
+            _db,
+            _bells,
+            new ScheduleViewService(
+                _db,
+                _bells,
+                new PracticeService(_db),
+                new ScheduleInsertService(_db)
+            )
+        );
     }
 
     public void Dispose() => _db.Dispose();
@@ -114,8 +124,9 @@ public class ScheduleExportServiceTests : IDisposable
             group.Id,
             null,
             null,
-            null,
             "semester",
+            null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             CancellationToken.None
@@ -139,8 +150,9 @@ public class ScheduleExportServiceTests : IDisposable
             group.Id,
             null,
             null,
-            null,
             "semester",
+            null,
+            null,
             ExportFormat.Pdf,
             ExportLayout.Grid,
             CancellationToken.None
@@ -163,8 +175,9 @@ public class ScheduleExportServiceTests : IDisposable
             group.Id,
             teacher.Id,
             null,
-            null,
             "semester",
+            null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             CancellationToken.None
@@ -181,8 +194,9 @@ public class ScheduleExportServiceTests : IDisposable
             null,
             null,
             null,
-            null,
             "semester",
+            null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             CancellationToken.None
@@ -213,8 +227,9 @@ public class ScheduleExportServiceTests : IDisposable
             group.Id,
             null,
             null,
-            null,
             "semester",
+            null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             CancellationToken.None
@@ -252,8 +267,9 @@ public class ScheduleExportServiceTests : IDisposable
             group.Id,
             null,
             null,
-            null,
             "semester",
+            null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             CancellationToken.None
@@ -293,8 +309,9 @@ public class ScheduleExportServiceTests : IDisposable
             group.Id,
             null,
             null,
-            null,
             "semester",
+            null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             CancellationToken.None
@@ -330,8 +347,9 @@ public class ScheduleExportServiceTests : IDisposable
             group.Id,
             null,
             null,
-            null,
             "semester",
+            null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             CancellationToken.None
@@ -370,8 +388,9 @@ public class ScheduleExportServiceTests : IDisposable
             group.Id,
             null,
             null,
-            null,
             "semester",
+            null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             CancellationToken.None
@@ -392,8 +411,9 @@ public class ScheduleExportServiceTests : IDisposable
             group.Id,
             null,
             null,
-            null,
             "SEMESTER",
+            null,
+            null,
             ExportFormat.Xlsx,
             ExportLayout.Grid,
             CancellationToken.None
@@ -401,5 +421,141 @@ public class ScheduleExportServiceTests : IDisposable
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.FileName.Should().Contain("семестр");
+    }
+
+    [Fact]
+    public async Task ExportAsync_Day_NonWorking_Returns400WithTitle()
+    {
+        var utcNow = DateTime.UtcNow;
+        _db.NonWorkingDays.Add(
+            new NonWorkingDay
+            {
+                Id = Guid.NewGuid(),
+                DateFrom = new DateTime(2026, 9, 7),
+                DateTo = new DateTime(2026, 9, 7),
+                Title = "Праздник",
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ExportAsync(
+            null,
+            null,
+            null,
+            "day",
+            new DateTime(2026, 9, 7),
+            null,
+            ExportFormat.Xlsx,
+            ExportLayout.Grid,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Be("Нерабочий день: Праздник");
+    }
+
+    [Fact]
+    public async Task ExportAsync_Day_Empty_Returns404()
+    {
+        var group = await SeedGroupAsync();
+
+        var result = await _sut.ExportAsync(
+            group.Id,
+            null,
+            null,
+            "day",
+            new DateTime(2026, 9, 1),
+            null,
+            ExportFormat.Xlsx,
+            ExportLayout.Grid,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task ExportAsync_Day_FileNameHasTimestampPrefix()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group, teacher, DayOfWeek.Tuesday, 1);
+
+        var result = await _sut.ExportAsync(
+            group.Id,
+            null,
+            null,
+            "day",
+            new DateTime(2026, 9, 1),
+            null,
+            ExportFormat.Xlsx,
+            ExportLayout.Grid,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result
+            .Data!.FileName.Should()
+            .MatchRegex(@"^Расписание_день_\d{2}\.\d{2}\.\d{4}_\d{2}-\d{2}-\d{2}\.xlsx$");
+    }
+
+    [Fact]
+    public async Task ExportAsync_Week_IncludesInsertsAndPractices()
+    {
+        var utcNow = DateTime.UtcNow;
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        _db.ScheduleInserts.Add(
+            new ScheduleInsert
+            {
+                Id = Guid.NewGuid(),
+                Title = "Разговор о важном",
+                DayOfWeek = DayOfWeek.Tuesday,
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(9, 0, 0),
+                IsActive = true,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        _db.Practices.Add(
+            new Practice
+            {
+                Id = Guid.NewGuid(),
+                Kind = PracticeKind.Up,
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                DateFrom = new DateTime(2026, 9, 2),
+                DateTo = new DateTime(2026, 9, 2),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ExportAsync(
+            group.Id,
+            null,
+            null,
+            "week",
+            new DateTime(2026, 9, 1),
+            null,
+            ExportFormat.Xlsx,
+            ExportLayout.DayCards,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        using var stream = new MemoryStream(result.Data!.FileContent);
+        using var workbook = new XLWorkbook(stream);
+        var text = string.Join(
+            "\n",
+            workbook.Worksheets.SelectMany(ws => ws.CellsUsed().Select(c => c.GetString()))
+        );
+        text.Should().Contain("УП").And.Contain("Разговор о важном");
     }
 }

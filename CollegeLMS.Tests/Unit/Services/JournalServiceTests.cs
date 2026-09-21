@@ -16,7 +16,17 @@ public class JournalServiceTests : IDisposable
     {
         _db = TestDbContextFactory.Create();
         var bells = new BellScheduleServiceStub();
-        _sut = new ScheduleService(_db, new ScheduleExportService(_db, bells), bells);
+        var exportService = new ScheduleExportService(
+            _db,
+            bells,
+            new ScheduleViewService(
+                _db,
+                bells,
+                new PracticeService(_db),
+                new ScheduleInsertService(_db)
+            )
+        );
+        _sut = new ScheduleService(_db, exportService, bells);
     }
 
     public void Dispose() => _db.Dispose();

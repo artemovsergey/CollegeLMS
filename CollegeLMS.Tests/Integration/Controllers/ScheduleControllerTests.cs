@@ -423,4 +423,85 @@ public class ScheduleControllerTests : BaseIntegrationTest
         body!.IsSuccess.Should().BeTrue();
         body.Data!.Items.Should().HaveCount(2);
     }
+
+    [Fact]
+    public async Task Export_Day_ReturnsXlsxWithFile3Name()
+    {
+        var groupId = Guid.NewGuid();
+        var entry = ScheduleEntryFixture.CreateFaker().Generate();
+        entry.GroupId = groupId;
+        entry.Group!.Id = groupId;
+        entry.DayOfWeek = DayOfWeek.Tuesday;
+        entry.NumberPair = 1;
+        entry.Weeks = new List<int> { 1 };
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.ScheduleEntries.Add(entry);
+            await db.SaveChangesAsync();
+        }
+
+        var response = await Client.GetAsync(
+            $"/api/schedule/export?scope=day&date=2026-09-01&groupId={groupId}&format=xlsx"
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response
+            .Content.Headers.ContentType!.MediaType.Should()
+            .Be("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        var disposition = Uri.UnescapeDataString(
+            response.Content.Headers.GetValues("Content-Disposition").Single()
+        );
+        disposition
+            .Should()
+            .MatchRegex(@"Расписание_день_\d{2}\.\d{2}\.\d{4}_\d{2}-\d{2}-\d{2}\.xlsx");
+    }
+
+    [Fact]
+    public async Task Export_Day_NonWorking_Returns400WithTitle()
+    {
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.NonWorkingDays.Add(
+                new NonWorkingDay
+                {
+                    Id = Guid.NewGuid(),
+                    DateFrom = new DateTime(2026, 9, 7),
+                    DateTo = new DateTime(2026, 9, 7),
+                    Title = "Праздник",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            );
+            await db.SaveChangesAsync();
+        }
+
+        var response = await Client.GetAsync(
+            "/api/schedule/export?scope=day&date=2026-09-07&format=xlsx"
+        );
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var json = await response.Content.ReadAsStringAsync();
+        json.Should().Contain("Нерабочий день: Праздник");
+    }
+
+    [Fact]
+    public async Task Export_Week_Empty_Returns404()
+    {
+        var response = await Client.GetAsync("/api/schedule/export?scope=week&week=1&format=xlsx");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Export_UnknownScope_Returns400()
+    {
+        var response = await Client.GetAsync("/api/schedule/export?scope=year&format=xlsx");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var json = await response.Content.ReadAsStringAsync();
+        json.Should().Contain("Укажите scope: day, week или semester.");
+    }
 }

@@ -306,20 +306,45 @@ public class ScheduleController(
         return Ok(result);
     }
 
+    /// <summary>
+    /// Экспорт расписания в PDF или Excel: день, неделя или семестр.
+    /// </summary>
+    /// <remarks>
+    /// Значения `scope`:
+    /// - `day` — день по `date` (по умолчанию сегодня), со слоями: вставки, практики, пары с бейджами;
+    /// - `week` — неделя Пн–Сб по `week` или `date` (по умолчанию текущая);
+    /// - `semester` — матрица семестра; требуется ровно один из `groupId`/`teacherId`, иначе 400.
+    ///
+    /// `layout=grid` — таблица «№ пары × дни», `layout=daycards` — блоки дней.
+    /// Нерабочий день → 400 «Нерабочий день: {Title}»; нет данных (воскресенье, пустой день/неделя) → 404.
+    /// Имена файлов: «Расписание_день_», «Расписание_неделя_», «Расписание_семестр_» + дата и время.
+    /// </remarks>
+    /// <response code="200">Файл готов к скачиванию</response>
+    /// <response code="400">Неверный scope или нерабочий день</response>
+    /// <response code="404">Нет данных для экспорта</response>
+    /// <response code="429">Слишком много запросов</response>
+    /// <response code="500">Ошибка сервера</response>
     [HttpGet("export")]
     [AllowAnonymous]
     [EnableRateLimiting("ExportPolicy")]
-    [SwaggerOperation(Summary = "Экспорт расписания в PDF или Excel")]
+    [SwaggerOperation(Summary = "Экспорт расписания (день, неделя, семестр) в PDF или Excel")]
     [SwaggerResponse(200, "Файл готов к скачиванию")]
-    [SwaggerResponse(404, "Нет данных")]
-    [SwaggerResponse(429, "Слишком много запросов")]
-    [SwaggerResponse(500, "Ошибка сервера")]
+    [SwaggerResponse(400, "Неверный scope или нерабочий день", typeof(ErrorResponse))]
+    [SwaggerResponse(404, "Нет данных для экспорта", typeof(ErrorResponse))]
+    [SwaggerResponse(429, "Слишком много запросов", typeof(ErrorResponse))]
+    [SwaggerResponse(500, "Ошибка сервера", typeof(ErrorResponse))]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Export(
         [FromQuery] Guid? groupId,
         [FromQuery] Guid? teacherId,
         [FromQuery] string? room,
-        [FromQuery] string? period,
         [FromQuery] string? scope,
+        [FromQuery] DateTime? date,
+        [FromQuery] int? week,
         [FromQuery] string format = "pdf",
         [FromQuery] string layout = "grid",
         CancellationToken ct = default
@@ -331,8 +356,9 @@ public class ScheduleController(
             groupId,
             teacherId,
             room,
-            period,
             scope,
+            date,
+            week,
             fmt,
             lyt,
             ct
