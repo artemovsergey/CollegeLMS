@@ -15,5 +15,11 @@ public class MaxBotOptions
     /// <summary>Идентификатор канала Max для публикации картинки корректировки.</summary>
     public string CorrectionChannelId { get; set; } = "";
 
+    /// <summary>Публичный HTTPS-адрес вебхука MAX. Пусто — используется long polling.</summary>
+    public string WebhookUrl { get; set; } = "";
+
+    /// <summary>Секрет вебхука: MAX присылает его в заголовке X-Max-Bot-Api-Secret.</summary>
+    public string WebhookSecret { get; set; } = "";
+
     public List<string> DispatchChatIds { get; set; } = [];
 }

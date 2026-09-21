@@ -1,10 +1,13 @@
+using System.Text.Json;
 using CollegeLMS.MaxBot;
 using CollegeLMS.MaxBot.Bot;
 using CollegeLMS.MaxBot.Clients;
 using CollegeLMS.MaxBot.Data;
 using CollegeLMS.MaxBot.Models;
+using CollegeLMS.MaxBot.Models.Max;
 using CollegeLMS.MaxBot.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +69,9 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<PracticeNotifier>(
 
 builder.Services.AddScoped<ChangeNotifier>();
 builder.Services.AddScoped<CorrectionImageSender>();
+
+// Очередь апдейтов от вебхука MAX
+builder.Services.AddSingleton<MaxUpdateQueue>();
 
 var app = builder.Build();
 
@@ -246,6 +252,54 @@ app.MapPost(
             logger.LogError(ex, "Сбой обработки /notify/correction-image");
             return Results.Ok(new { sent = false });
         }
+    }
+);
+
+// Вебхук MAX: платформа шлёт по одному объекту Update на каждое событие
+// (bot_started, message_created, message_callback) и требует ответ 200 в течение 30 с —
+// поэтому апдейт кладётся в очередь, а обработка идёт в MaxBotService.
+var webhookJsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+app.MapPost(
+    "/maxbot/webhook",
+    async (
+        HttpRequest request,
+        MaxUpdateQueue queue,
+        IOptions<MaxBotOptions> options,
+        ILogger<Program> logger,
+        CancellationToken ct
+    ) =>
+    {
+        var providedSecret = request.Headers["X-Max-Bot-Api-Secret"].ToString();
+        if (!WebhookSecretValidator.IsValid(options.Value.WebhookSecret, providedSecret))
+        {
+            logger.LogWarning("Webhook: неверный X-Max-Bot-Api-Secret");
+            return Results.Unauthorized();
+        }
+
+        MaxUpdate? update;
+        try
+        {
+            update = await JsonSerializer.DeserializeAsync<MaxUpdate>(
+                request.Body,
+                webhookJsonOptions,
+                ct
+            );
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(ex, "Webhook: некорректное тело запроса");
+            return Results.BadRequest(new { error = "invalid update" });
+        }
+
+        if (update is null || string.IsNullOrWhiteSpace(update.UpdateType))
+        {
+            logger.LogWarning("Webhook: пустой апдейт");
+            return Results.BadRequest(new { error = "empty update" });
+        }
+
+        await queue.EnqueueAsync(update, ct);
+        return Results.Ok(new { ok = true });
     }
 );
 

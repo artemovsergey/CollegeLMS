@@ -86,6 +86,50 @@ public class MaxApiClient
         return result;
     }
 
+    /// <summary>Список активных подписок на обновления (вебхуков).</summary>
+    public async Task<List<MaxSubscription>?> GetSubscriptionsAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync("/subscriptions", ct);
+        await EnsureSuccessWithBodyAsync(resp, "GET /subscriptions", ct);
+        var result = await resp.Content.ReadFromJsonAsync<MaxSubscriptionsResponse>(JsonOpts, ct);
+        return result?.Subscriptions;
+    }
+
+    /// <summary>
+    /// Создаёт или обновляет подписку на обновления: MAX будет слать их POST-запросом на <paramref name="url"/>.
+    /// При <paramref name="secret"/> MAX добавляет заголовок <c>X-Max-Bot-Api-Secret</c>.
+    /// </summary>
+    public async Task<bool> SubscribeWebhookAsync(
+        string url,
+        IReadOnlyList<string> updateTypes,
+        string? secret = null,
+        CancellationToken ct = default
+    )
+    {
+        var body = new Dictionary<string, object> { ["url"] = url, ["update_types"] = updateTypes };
+        if (!string.IsNullOrWhiteSpace(secret))
+            body["secret"] = secret;
+
+        var resp = await _http.PostAsJsonAsync("/subscriptions", body, JsonOpts, ct);
+        await EnsureSuccessWithBodyAsync(resp, "POST /subscriptions", ct);
+        var result = await resp.Content.ReadFromJsonAsync<MaxSubscriptionResult>(JsonOpts, ct);
+        if (result is { Success: false })
+            _logger.LogWarning(
+                "MAX POST /subscriptions вернул success=false: {Message}",
+                result.Message
+            );
+        return result?.Success ?? false;
+    }
+
+    /// <summary>Удаляет подписку с указанным URL (после этого снова доступен long polling).</summary>
+    public async Task<bool> UnsubscribeWebhookAsync(string url, CancellationToken ct = default)
+    {
+        var resp = await _http.DeleteAsync($"/subscriptions?url={Uri.EscapeDataString(url)}", ct);
+        await EnsureSuccessWithBodyAsync(resp, "DELETE /subscriptions", ct);
+        var result = await resp.Content.ReadFromJsonAsync<MaxSubscriptionResult>(JsonOpts, ct);
+        return result?.Success ?? false;
+    }
+
     public async Task<MaxMessageResponse?> SendMessageAsync(
         long chatId,
         string text,

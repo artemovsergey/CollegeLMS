@@ -157,6 +157,8 @@ services:
       MaxBot__TimeZone: Europe/Moscow
       MaxBot__MiniAppUrl: ${MAX_MINI_APP_URL:-https://stvcc.tech/max}
       MaxBot__CorrectionChannelId: ${MAX_CORRECTION_CHANNEL_ID:-}
+      MaxBot__WebhookUrl: ${MAX_BOT_WEBHOOK_URL:-https://stvcc.tech/maxbot/webhook}
+      MaxBot__WebhookSecret: ${MAX_BOT_WEBHOOK_SECRET:-}
       CollegeLmsApi__BaseUrl: http://api:8080
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${MAX_BOT_DB_NAME:-collegelms_maxbot};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
     depends_on:

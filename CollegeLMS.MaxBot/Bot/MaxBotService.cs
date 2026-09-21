@@ -16,12 +16,20 @@ public class MaxBotService : BackgroundService
     private readonly ILogger<MaxBotService> _logger;
     private readonly TimeZoneInfo _tz;
     private readonly MaxBotOptions _options;
+    private readonly MaxUpdateQueue _updateQueue;
 
     private string _botUsername = "";
 
     private const int PageSize = 5;
     private const int PollTimeoutSeconds = 30;
     private const int ChangesPageSize = 20;
+
+    private static readonly string[] WebhookUpdateTypes =
+    [
+        "message_created",
+        "message_callback",
+        "bot_started",
+    ];
 
     private readonly HashSet<long> _pendingDispatcherPasswords = [];
     private readonly Dictionary<long, string> _dispatcherTokens = [];
@@ -34,6 +42,7 @@ public class MaxBotService : BackgroundService
         IServiceProvider sp,
         TimeZoneInfo tz,
         IOptions<MaxBotOptions> options,
+        MaxUpdateQueue updateQueue,
         ILogger<MaxBotService> logger
     )
     {
@@ -42,6 +51,7 @@ public class MaxBotService : BackgroundService
         _sp = sp;
         _tz = tz;
         _options = options.Value;
+        _updateQueue = updateQueue;
         _logger = logger;
     }
 
@@ -96,6 +106,95 @@ public class MaxBotService : BackgroundService
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(_options.WebhookUrl))
+        {
+            if (await TryEnableWebhookAsync(ct))
+            {
+                await ConsumeWebhookUpdatesAsync(ct);
+                return;
+            }
+
+            _logger.LogError(
+                "Webhook не настроен — включаю резервный long polling (часть обновлений может теряться)"
+            );
+        }
+
+        // Очередь читаем и в режиме polling: если подписка на вебхук осталась активной,
+        // MAX продолжит слать события на webhook-эндпоинт.
+        _ = ConsumeWebhookUpdatesAsync(ct);
+
+        await RunPollingLoopAsync(ct);
+    }
+
+    private async Task<bool> TryEnableWebhookAsync(CancellationToken ct)
+    {
+        var url = _options.WebhookUrl;
+
+        for (var attempt = 1; attempt <= 3 && !ct.IsCancellationRequested; attempt++)
+        {
+            try
+            {
+                var existing = await _max.GetSubscriptionsAsync(ct);
+                if (existing is not null)
+                {
+                    foreach (var stale in existing.Where(s => s.Url != url))
+                    {
+                        _logger.LogInformation(
+                            "Удаляю устаревшую webhook-подписку: {Url}",
+                            stale.Url
+                        );
+                        await _max.UnsubscribeWebhookAsync(stale.Url, ct);
+                    }
+                }
+
+                var secret = string.IsNullOrWhiteSpace(_options.WebhookSecret)
+                    ? null
+                    : _options.WebhookSecret;
+                var subscribed = await _max.SubscribeWebhookAsync(
+                    url,
+                    WebhookUpdateTypes,
+                    secret,
+                    ct
+                );
+                if (subscribed)
+                {
+                    _logger.LogInformation("Webhook-подписка активна: {Url}", url);
+                    return true;
+                }
+
+                _logger.LogWarning("MAX отказал в webhook-подписке (попытка {Attempt}/3)", attempt);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Не удалось оформить webhook-подписку (попытка {Attempt}/3)",
+                    attempt
+                );
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(5), ct);
+        }
+
+        return false;
+    }
+
+    private async Task ConsumeWebhookUpdatesAsync(CancellationToken ct)
+    {
+        _logger.LogInformation("Ожидание апдейтов через webhook");
+
+        try
+        {
+            await foreach (var update in _updateQueue.ReadAllAsync(ct))
+            {
+                await HandleUpdateAsync(update, ct);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+    }
+
+    private async Task RunPollingLoopAsync(CancellationToken ct)
+    {
         long? marker = null;
 
         _logger.LogInformation("Max bot polling loop started");

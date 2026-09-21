@@ -187,6 +187,8 @@ docker compose --profile max-bot up --build -d
 | Переменная | Назначение |
 |-----------|------------|
 | `MAX_BOT_TOKEN` | Токен бота (выдаётся на platform-api2.max.ru при создании бота) |
+| `MAX_BOT_WEBHOOK_URL` | Публичный HTTPS-адрес вебхука (по умолчанию `https://stvcc.tech/maxbot/webhook`) |
+| `MAX_BOT_WEBHOOK_SECRET` | Секрет вебхука (5–256 символов `[A-Za-z0-9_-]`); в деплое обязателен |
 | `MAX_BOT_DB_NAME` | Имя БД (по умолчанию `collegelms_maxbot`) |
 | `DB_USER` / `DB_PASSWORD` | Учётка PostgreSQL |
 
@@ -201,6 +203,22 @@ docker compose --profile max-bot up --build -d
 По умолчанию `Europe/Moscow` (IANA). На Windows при необходимости можно
 переключить на `Russian Standard Time` в `appsettings.json`
 (`MaxBot:TimeZone`). Уведомления отправляются в `07:30` по МСК.
+
+### Обновления: webhook и long polling
+
+В продакшене бот получает обновления через **webhook** (MAX не рекомендует
+long polling для production): при старте он оформляет подписку
+`POST /subscriptions` на `MaxBot:WebhookUrl` (по умолчанию
+`https://stvcc.tech/maxbot/webhook`), а события принимает на
+`POST /maxbot/webhook` (nginx проксирует `/maxbot/` в контейнер бота).
+
+- `MaxBot:WebhookSecret` — секрет подписки; MAX присылает его в заголовке
+  `X-Max-Bot-Api-Secret`, запросы с неверным секретом отклоняются (401).
+- Обработка асинхронная: эндпоинт сразу отвечает `200`, апдейт попадает в
+  очередь (`MaxUpdateQueue`) и обрабатывается так же, как при long polling.
+- Если оформить подписку не удалось (3 попытки с интервалом 5 секунд), бот
+  переходит на резервный long polling и одновременно продолжает читать
+  очередь — доставленные события не теряются.
 
 ### Учебная неделя
 
