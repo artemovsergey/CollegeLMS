@@ -2,6 +2,7 @@ using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
+using CollegeLMS.API.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
@@ -36,7 +37,7 @@ public sealed class CorrectionApplyOutcome
 /// Симуляция позиций корректировки: проверка с учётом ранее созданных
 /// неприменённых позиций (порядок строк) и выполнение изменений расписания.
 /// </summary>
-public sealed class CorrectionApplyEngine(AppDbContext db)
+public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService bells)
 {
     private static bool IsSelfStudyNote(string? note) =>
         string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
@@ -186,9 +187,10 @@ public sealed class CorrectionApplyEngine(AppDbContext db)
                 .Where(e => groupIds.Contains(e.GroupId))
                 .ToListAsync(ct);
 
-        var bellTimes = await db
-            .BellSlots.AsNoTracking()
-            .ToDictionaryAsync(s => s.NumberPair, s => (s.StartTime, s.EndTime), ct);
+        var bellByDay =
+            new Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>>();
+        foreach (var day in Enum.GetValues<DayOfWeek>())
+            bellByDay[day] = await bells.GetTimeMapAsync(day, ct);
 
         var virtualMap =
             new Dictionary<(Guid GroupId, DayOfWeek Day, int Week), List<SimulatedEntry>>();
@@ -369,7 +371,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db)
 
                     if (execute)
                     {
-                        var entity = CreateEntity(entry, utcNow, bellTimes);
+                        var entity = CreateEntity(entry, utcNow, bellByDay);
                         entry.Entity = entity;
                         db.ScheduleEntries.Add(entity);
 
@@ -538,7 +540,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db)
 
                     if (execute)
                     {
-                        var entity = CreateEntity(entry, utcNow, bellTimes);
+                        var entity = CreateEntity(entry, utcNow, bellByDay);
                         entry.Entity = entity;
                         db.ScheduleEntries.Add(entity);
 
@@ -691,12 +693,14 @@ public sealed class CorrectionApplyEngine(AppDbContext db)
     private static ScheduleEntry CreateEntity(
         SimulatedEntry entry,
         DateTime utcNow,
-        Dictionary<int, (TimeSpan Start, TimeSpan End)> bellTimes
+        Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>> bellByDay
     )
     {
-        var (start, end) = bellTimes.TryGetValue(entry.NumberPair, out var time)
-            ? time
-            : ScheduleImportService.GetPairTime(entry.DayOfWeek, entry.NumberPair);
+        var (start, end) =
+            bellByDay.GetValueOrDefault(entry.DayOfWeek) is { } dayMap
+            && dayMap.TryGetValue(entry.NumberPair, out var time)
+                ? time
+                : ScheduleImportService.GetPairTime(entry.DayOfWeek, entry.NumberPair);
         return new ScheduleEntry
         {
             Id = Guid.NewGuid(),

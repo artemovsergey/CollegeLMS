@@ -119,11 +119,14 @@ public class ScheduleExportService(
         query = query.OrderBy(s => s.DayOfWeek).ThenBy(s => s.NumberPair).ThenBy(s => s.StartTime);
         var entries = await query.ToListAsync(ct);
 
-        // Время пар — из справочника звонков (единый источник).
-        var bellTimes = await bells.GetTimeMapAsync(ct);
+        // Время пар — из разрешённого профиля звонков для дня каждой записи (единый источник).
+        var bellByDay =
+            new Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>>();
+        foreach (var day in entries.Select(e => e.DayOfWeek).Distinct())
+            bellByDay[day] = await bells.GetTimeMapAsync(day, ct);
         foreach (var entry in entries)
         {
-            if (bellTimes.TryGetValue(entry.NumberPair, out var time))
+            if (bellByDay[entry.DayOfWeek].TryGetValue(entry.NumberPair, out var time))
             {
                 entry.StartTime = time.Start;
                 entry.EndTime = time.End;
@@ -238,8 +241,13 @@ public class ScheduleExportService(
             .Select(i => $"{i.StartTime:hh\\:mm}–{i.EndTime:hh\\:mm} {i.Title}")
             .ToList();
         lines.AddRange(day.Entries.OrderBy(e => e.NumberPair).Select(EntryLine));
+        if (day.BigBreak is { } bigBreak && day.Entries.Count > 0)
+            lines.Add(BigBreakLine(bigBreak));
         return lines;
     }
+
+    private static string BigBreakLine(BigBreakResponse bigBreak) =>
+        $"Большая перемена {bigBreak.StartTime:hh\\:mm}–{bigBreak.EndTime:hh\\:mm} (после {bigBreak.AfterPair} пары)";
 
     /// <summary>Строки без пар: события, практики и пометка нерабочего дня.</summary>
     private static string SpecialLines(ScheduleDayViewResponse day)
@@ -252,6 +260,8 @@ public class ScheduleExportService(
             day.Inserts.OrderBy(i => i.StartTime)
                 .Select(i => $"{i.StartTime:hh\\:mm}–{i.EndTime:hh\\:mm} {i.Title}")
         );
+        if (day.BigBreak is { } bigBreak && day.Entries.Count > 0)
+            lines.Add(BigBreakLine(bigBreak));
         return string.Join("\n", lines);
     }
 
@@ -654,10 +664,13 @@ public class ScheduleExportService(
 
         var entries = await entriesQuery.ToListAsync(ct);
 
-        var bellTimes = await bells.GetTimeMapAsync(ct);
+        var bellByDay =
+            new Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>>();
+        foreach (var day in entries.Select(e => e.DayOfWeek).Distinct())
+            bellByDay[day] = await bells.GetTimeMapAsync(day, ct);
         foreach (var entry in entries)
         {
-            if (bellTimes.TryGetValue(entry.NumberPair, out var time))
+            if (bellByDay[entry.DayOfWeek].TryGetValue(entry.NumberPair, out var time))
             {
                 entry.StartTime = time.Start;
                 entry.EndTime = time.End;
@@ -689,6 +702,11 @@ public class ScheduleExportService(
             .Where(d => d.DateFrom <= semesterEnd && d.DateTo >= semesterStart)
             .ToListAsync(ct);
 
+        var workingDays = await db
+            .WorkingDayOverrides.AsNoTracking()
+            .Where(d => d.DateFrom <= semesterEnd && d.DateTo >= semesterStart)
+            .ToListAsync(ct);
+
         var historyQuery = db.ScheduleHistory.AsNoTracking().AsQueryable();
         if (groupId.HasValue)
             historyQuery = historyQuery.Where(h => h.GroupId == groupId.Value);
@@ -698,15 +716,52 @@ public class ScheduleExportService(
             );
         var history = await historyQuery.ToListAsync(ct);
 
-        var dayNames = new[] { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб" };
-        var cells = new string[StudyWeek.TotalWeeks, 6];
+        // Динамические колонки 5–7: Пн–Пт всегда, Сб/Вс — при рабочем дне или контенте.
+        var columns = new List<int>();
+        var weekIncluded = new List<List<int>>();
         for (var week = 1; week <= StudyWeek.TotalWeeks; week++)
         {
-            for (var dayIndex = 0; dayIndex < 6; dayIndex++)
+            var included = new List<int>();
+            for (var iso = 1; iso <= 7; iso++)
             {
-                var day = (DayOfWeek)(dayIndex + 1);
-                var date = monday.AddDays((week - 1) * 7 + dayIndex);
-                cells[week - 1, dayIndex] = BuildSemesterCell(
+                var day = IsoToDay(iso);
+                var date = monday.AddDays((week - 1) * 7 + (iso - 1));
+                if (
+                    SemesterDayIncluded(
+                        iso,
+                        day,
+                        date,
+                        week,
+                        entries,
+                        inserts,
+                        practices,
+                        workingDays
+                    )
+                )
+                    included.Add(iso);
+            }
+            weekIncluded.Add(included);
+            foreach (var iso in included.Where(iso => !columns.Contains(iso)))
+                columns.Add(iso);
+        }
+        columns.Sort();
+
+        var dayNames = columns.Select(ShortDayName).ToArray();
+        var cells = new string[StudyWeek.TotalWeeks, columns.Count];
+        for (var week = 1; week <= StudyWeek.TotalWeeks; week++)
+        {
+            for (var c = 0; c < columns.Count; c++)
+            {
+                var iso = columns[c];
+                if (!weekIncluded[week - 1].Contains(iso))
+                {
+                    cells[week - 1, c] = "—";
+                    continue;
+                }
+
+                var day = IsoToDay(iso);
+                var date = monday.AddDays((week - 1) * 7 + (iso - 1));
+                cells[week - 1, c] = BuildSemesterCell(
                     date,
                     day,
                     week,
@@ -722,6 +777,50 @@ public class ScheduleExportService(
         return format == ExportFormat.Xlsx
             ? ExportSemesterXlsx(cells, dayNames)
             : ExportSemesterPdf(cells, dayNames);
+    }
+
+    private static DayOfWeek IsoToDay(int iso) => iso == 7 ? DayOfWeek.Sunday : (DayOfWeek)iso;
+
+    private static string ShortDayName(int iso) =>
+        iso switch
+        {
+            1 => "Пн",
+            2 => "Вт",
+            3 => "Ср",
+            4 => "Чт",
+            5 => "Пт",
+            6 => "Сб",
+            _ => "Вс",
+        };
+
+    /// <summary>Включать ли день в семестровый экспорт: Пн–Пт всегда, Сб — при override/контенте, Вс — при override.</summary>
+    private static bool SemesterDayIncluded(
+        int iso,
+        DayOfWeek day,
+        DateTime date,
+        int week,
+        List<Entities.ScheduleEntry> entries,
+        List<Entities.ScheduleInsert> inserts,
+        List<Entities.Practice> practices,
+        List<Entities.WorkingDayOverride> workingDays
+    )
+    {
+        if (iso is >= 1 and <= 5)
+            return true;
+
+        if (workingDays.Any(d => d.DateFrom.Date <= date && d.DateTo.Date >= date))
+            return true;
+
+        if (iso == 7)
+            return false;
+
+        if (practices.Any(p => p.DateFrom.Date <= date && p.DateTo.Date >= date))
+            return true;
+
+        if (entries.Any(e => e.DayOfWeek == day && e.Weeks.Contains(week)))
+            return true;
+
+        return inserts.Any(i => i.DayOfWeek == day);
     }
 
     private static string BuildSemesterCell(
@@ -826,7 +925,7 @@ public class ScheduleExportService(
         for (var day = 0; day < dayNames.Length; day++)
             ws.Cell(1, day + 2).Value = dayNames[day];
 
-        var header = ws.Range(1, 1, 1, 7);
+        var header = ws.Range(1, 1, 1, 1 + dayNames.Length);
         header.Style.Font.Bold = true;
         header.Style.Fill.BackgroundColor = XLColor.FromHtml("#1e3a5f");
         header.Style.Font.FontColor = XLColor.White;
@@ -839,7 +938,7 @@ public class ScheduleExportService(
             ws.Cell(week + 2, 1).Style.Font.Bold = true;
             ws.Cell(week + 2, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
 
-            for (var day = 0; day < 6; day++)
+            for (var day = 0; day < dayNames.Length; day++)
             {
                 var cell = ws.Cell(week + 2, day + 2);
                 cell.Value = cells[week, day];
@@ -849,7 +948,7 @@ public class ScheduleExportService(
         }
 
         ws.Column(1).Width = 8;
-        for (var day = 2; day <= 7; day++)
+        for (var day = 2; day <= 1 + dayNames.Length; day++)
             ws.Column(day).Width = 30;
 
         ws.SheetView.FreezeRows(1);
@@ -885,7 +984,7 @@ public class ScheduleExportService(
                         table.ColumnsDefinition(columns =>
                         {
                             columns.ConstantColumn(30);
-                            for (var day = 0; day < 6; day++)
+                            for (var day = 0; day < dayNames.Length; day++)
                                 columns.RelativeColumn(1);
                         });
 
@@ -924,7 +1023,7 @@ public class ScheduleExportService(
                                 .Text((week + 1).ToString())
                                 .SemiBold();
 
-                            for (var day = 0; day < 6; day++)
+                            for (var day = 0; day < dayNames.Length; day++)
                             {
                                 table
                                     .Cell()

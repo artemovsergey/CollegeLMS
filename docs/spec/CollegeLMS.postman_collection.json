@@ -1800,7 +1800,85 @@
                   "path": ["api", "bells"]
                 }
               },
-              "description": "Полная замена справочника (Dispatcher/Admin). Тело UpdateBellScheduleRequest: slots[] (не 0 и не >8, номера 1–8 уникальны, StartTime<EndTime, 07:00–21:00, возрастание без пересечений) + bigBreak (AfterPair 1–8, Start<End). Нарушения → 400 с русским сообщением; 401/403."
+              "description": "Полная замена справочника (Dispatcher/Admin). Тело UpdateBellScheduleRequest: slots[] (не 0 и не >8, номера 1–8 уникальны, StartTime<EndTime, 07:00–21:00, возрастание без пересечений) + bigBreak (AfterPair 1–8, Start<End). Нарушения → 400 с русским сообщением; 401/403. Изменяет базовый (default) профиль."
+            },
+            {
+              "name": "Get profiles",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/bells/profiles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bells", "profiles"],
+                  "query": []
+                }
+              },
+              "description": "Все профили звонков (AllowAnonymous). Ответ: { id, name, isDefault, daysOfWeek[], slots[], bigBreak | null, dates[] }. Приоритет резолва: диапазон даты → подмена дня недели (1=Пн…7=Вс) → день недели → базовый профиль."
+            },
+            {
+              "name": "Create profile",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Понедельник\",\n  \"daysOfWeek\": [1],\n  \"slots\": [\n    { \"numberPair\": 1, \"startTime\": \"09:10:00\", \"endTime\": \"10:40:00\" },\n    { \"numberPair\": 2, \"startTime\": \"10:50:00\", \"endTime\": \"12:20:00\" }\n  ],\n  \"bigBreak\": null,\n  \"dates\": []\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/bells/profiles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bells", "profiles"]
+                }
+              },
+              "description": "Создать профиль звонков (Dispatcher/Admin). Тело BellProfileRequest: name не пустой ≤100 и уникальный; daysOfWeek 1–7 без дублей; slots по правилам справочника; dates с from ≤ to. Нарушения → 400."
+            },
+            {
+              "name": "Update profile",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Четверг\",\n  \"daysOfWeek\": [4],\n  \"slots\": [\n    { \"numberPair\": 1, \"startTime\": \"08:30:00\", \"endTime\": \"10:00:00\" }\n  ],\n  \"bigBreak\": { \"afterPair\": 1, \"startTime\": \"10:00:00\", \"endTime\": \"10:20:00\" },\n  \"dates\": []\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/bells/profiles/{{bellProfileId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bells", "profiles", "{{bellProfileId}}"]
+                }
+              },
+              "description": "Изменить профиль звонков (Dispatcher/Admin). 400 — валидация; 404 — не найден."
+            },
+            {
+              "name": "Delete profile",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/bells/profiles/{{bellProfileId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bells", "profiles", "{{bellProfileId}}"],
+                  "query": []
+                }
+              },
+              "description": "Удалить профиль звонков (Dispatcher/Admin). Базовый (default) профиль удалить нельзя → 400 «Базовый профиль удалить нельзя.»; 404 — не найден."
+            },
+            {
+              "name": "Get resolved profile",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/bells/resolved?date=2026-09-07",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bells", "resolved"],
+                  "query": [{ "key": "date", "value": "2026-09-07" }]
+                }
+              },
+              "description": "Разрешённый на дату профиль звонков (AllowAnonymous). date — YYYY-MM-DD (по умолчанию сегодня). Приоритет: диапазон даты → подмена дня недели → день недели → базовый профиль. Если профилей нет — пустой ответ."
             }
           ]
         },
@@ -1876,6 +1954,81 @@
                 }
               },
               "description": "Удалить нерабочую дату (Dispatcher/Admin). 404 — не найдено."
+            }
+          ]
+        },
+        {
+          "name": "Working days",
+          "description": "Рабочие дни (рабочие субботы и переносы): зеркало нерабочих дней с подменой дня недели",
+          "item": [
+            {
+              "name": "List working days",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/working-days?from=2026-01-01&to=2026-12-31&page=1&pageSize=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "working-days"],
+                  "query": [
+                    { "key": "from", "value": "2026-01-01" },
+                    { "key": "to", "value": "2026-12-31" },
+                    { "key": "page", "value": "1" },
+                    { "key": "pageSize", "value": "20" }
+                  ]
+                }
+              },
+              "description": "Постраничный список рабочих дней (любая авторизованная роль). Поля: id, dateFrom, dateTo, substituteDayOfWeek (1=Пн…5=Пт | null), title. from/to — пересечение периода; pageSize 1–100 (default 20), сортировка по dateFrom."
+            },
+            {
+              "name": "Create working day",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dateFrom\": \"2026-09-05T00:00:00Z\",\n  \"dateTo\": \"2026-09-05T00:00:00Z\",\n  \"substituteDayOfWeek\": 1,\n  \"title\": \"Рабочая суббота\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/working-days",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "working-days"]
+                }
+              },
+              "description": "Добавить рабочий день (Dispatcher/Admin). Валидации 400: title не пустой ≤200; даты заданы; dateFrom.Date ≤ dateTo.Date; substituteDayOfWeek 1–5. Пересечение с нерабочим днём → 409 «Дата уже отмечена как нерабочая.»"
+            },
+            {
+              "name": "Update working day",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dateFrom\": \"2026-09-12T00:00:00Z\",\n  \"dateTo\": \"2026-09-12T00:00:00Z\",\n  \"substituteDayOfWeek\": 3,\n  \"title\": \"Перенос с четверга\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/working-days/{{workingDayId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "working-days", "{{workingDayId}}"]
+                }
+              },
+              "description": "Изменить рабочий день (Dispatcher/Admin). 400 — валидация; 404 — не найден; 409 — пересечение с нерабочим днём."
+            },
+            {
+              "name": "Delete working day",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/working-days/{{workingDayId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "working-days", "{{workingDayId}}"],
+                  "query": []
+                }
+              },
+              "description": "Удалить рабочий день (Dispatcher/Admin). 404 — не найдено."
             }
           ]
         },

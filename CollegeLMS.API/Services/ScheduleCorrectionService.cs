@@ -22,6 +22,12 @@ public class ScheduleCorrectionService(
     private static bool IsSelfStudyNote(string? note) =>
         string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Есть ли на дату рабочий день (override) — разрешает корректировку на выходной.</summary>
+    private async Task<bool> HasWorkingOverrideAsync(DateTime date, CancellationToken ct) =>
+        await db
+            .WorkingDayOverrides.AsNoTracking()
+            .AnyAsync(d => d.DateFrom <= date.Date && d.DateTo >= date.Date, ct);
+
     public async Task<Result<DocumentDownloadResult>> ExportManualAsync(
         ManualCorrectionExportRequest request,
         CancellationToken ct
@@ -33,7 +39,10 @@ public class ScheduleCorrectionService(
                 400
             );
 
-        if (request.CorrectionDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        if (
+            request.CorrectionDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+            && !await HasWorkingOverrideAsync(request.CorrectionDate, ct)
+        )
             return Result<DocumentDownloadResult>.Fail(
                 "Корректировка не может быть на выходной день.",
                 400
@@ -208,7 +217,10 @@ public class ScheduleCorrectionService(
             return (default, 0, entries, [], errors);
         }
 
-        if (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        if (
+            date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+            && !await HasWorkingOverrideAsync(date, ct)
+        )
         {
             errors.Add(
                 Error(

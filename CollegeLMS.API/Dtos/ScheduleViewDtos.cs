@@ -10,6 +10,17 @@ public class ScheduleDayViewResponse
     public bool IsSunday { get; set; }
     public bool IsNonWorking { get; set; }
     public string? NonWorkingTitle { get; set; }
+
+    /// <summary>День работает по расписанию другого дня (рабочая суббота и т.п.).</summary>
+    public bool IsWorkingDay { get; set; }
+
+    /// <summary>День недели, по расписанию которого работает день (1=Пн … 5=Пт).</summary>
+    public int? SubstituteDayOfWeek { get; set; }
+
+    public string? WorkingDayTitle { get; set; }
+
+    public BigBreakResponse? BigBreak { get; set; }
+
     public List<PracticeResponse> Practices { get; set; } = [];
     public List<ScheduleInsertResponse> Inserts { get; set; } = [];
     public List<ScheduleResponse> Entries { get; set; } = [];
@@ -42,6 +53,9 @@ public class ScheduleMonthDayResponse
     public bool IsSunday { get; set; }
     public bool IsNonWorking { get; set; }
     public string? NonWorkingTitle { get; set; }
+    public bool IsWorkingDay { get; set; }
+    public int? SubstituteDayOfWeek { get; set; }
+    public string? WorkingDayTitle { get; set; }
     public List<PracticeKind> PracticeKinds { get; set; } = [];
     public bool IsOutOfSemester { get; set; }
     public int PairCount { get; set; }

@@ -29,7 +29,7 @@ function getWeekDates(
   const start = new Date(monday)
   start.setDate(start.getDate() + (week - 1) * 7)
   const end = new Date(start)
-  end.setDate(end.getDate() + 5) // Пн–Сб
+  end.setDate(end.getDate() + 4) // Пн–Пт
   return { start, end }
 }
 

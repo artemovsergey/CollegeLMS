@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Filter, Inbox, Pencil, Plus, SearchX, Trash2 } from "lucide-react"
-import WorkingDaysTab from "./WorkingDaysTab"
 import {
   Card,
   CardContent,
@@ -30,25 +29,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import Pagination from "@/components/ui/pagination"
 import ErrorBanner from "@/components/ErrorBanner"
 import EmptyState from "@/components/EmptyState"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import {
-  createNonWorkingDay,
-  deleteNonWorkingDay,
-  fetchNonWorkingDays,
-  updateNonWorkingDay,
-  type NonWorkingDay,
-} from "@/api/nonWorkingDays"
+  createWorkingDay,
+  deleteWorkingDay,
+  fetchWorkingDays,
+  updateWorkingDay,
+  type WorkingDay,
+} from "@/api/workingDays"
 import { extractErrorMessage } from "@/lib/utils"
-import { formatDate, formatDateRange, toDateInput } from "@/lib/reference"
+import {
+  DAY_OF_WEEK_LABELS,
+  formatDate,
+  formatDateRange,
+  substituteDayLabel,
+  toDateInput,
+} from "@/lib/reference"
 
 const PAGE_SIZE = 20
+const SUBSTITUTE_DAYS = [1, 2, 3, 4, 5] as const
+const NO_SUBSTITUTE = "none"
 
-export default function DispatcherHolidaysPage() {
-  const [tab, setTab] = useState<"nonWorking" | "working">("nonWorking")
-  const [items, setItems] = useState<NonWorkingDay[]>([])
+export default function WorkingDaysTab() {
+  const [items, setItems] = useState<WorkingDay[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -63,11 +70,12 @@ export default function DispatcherHolidaysPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formDateFrom, setFormDateFrom] = useState("")
   const [formDateTo, setFormDateTo] = useState("")
+  const [formSubstitute, setFormSubstitute] = useState(NO_SUBSTITUTE)
   const [formTitle, setFormTitle] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const [deleteTarget, setDeleteTarget] = useState<NonWorkingDay | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<WorkingDay | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(
@@ -75,7 +83,7 @@ export default function DispatcherHolidaysPage() {
       setLoading(true)
       setError(null)
       try {
-        const result = await fetchNonWorkingDays({
+        const result = await fetchWorkingDays({
           from: appliedFrom || undefined,
           to: appliedTo || undefined,
           page: targetPage,
@@ -85,8 +93,7 @@ export default function DispatcherHolidaysPage() {
         setTotalPages(Math.max(result.totalPages, 1))
       } catch (err) {
         setError(
-          extractErrorMessage(err) ??
-            "Не удалось загрузить нерабочие дни",
+          extractErrorMessage(err) ?? "Не удалось загрузить рабочие дни",
         )
       } finally {
         setLoading(false)
@@ -117,15 +124,19 @@ export default function DispatcherHolidaysPage() {
     setEditingId(null)
     setFormDateFrom("")
     setFormDateTo("")
-    setFormTitle("")
+    setFormSubstitute(NO_SUBSTITUTE)
+    setFormTitle("Работа в субботу")
     setFormError(null)
     setDialogOpen(true)
   }
 
-  const openEdit = (item: NonWorkingDay) => {
+  const openEdit = (item: WorkingDay) => {
     setEditingId(item.id)
     setFormDateFrom(toDateInput(item.dateFrom))
     setFormDateTo(toDateInput(item.dateTo))
+    setFormSubstitute(
+      item.substituteDayOfWeek ? String(item.substituteDayOfWeek) : NO_SUBSTITUTE,
+    )
     setFormTitle(item.title)
     setFormError(null)
     setDialogOpen(true)
@@ -142,7 +153,7 @@ export default function DispatcherHolidaysPage() {
       return
     }
     if (!formTitle.trim()) {
-      setFormError("Укажите название периода.")
+      setFormError("Укажите название рабочего дня.")
       return
     }
 
@@ -151,15 +162,17 @@ export default function DispatcherHolidaysPage() {
     const body = {
       dateFrom: formDateFrom,
       dateTo: formDateTo,
+      substituteDayOfWeek:
+        formSubstitute === NO_SUBSTITUTE ? null : Number(formSubstitute),
       title: formTitle.trim(),
     }
     try {
       if (editingId) {
-        await updateNonWorkingDay(editingId, body)
-        toast.success("Нерабочий период обновлён")
+        await updateWorkingDay(editingId, body)
+        toast.success("Рабочий день обновлён")
       } else {
-        await createNonWorkingDay(body)
-        toast.success("Нерабочий период добавлен")
+        await createWorkingDay(body)
+        toast.success("Рабочий день добавлен")
       }
       setDialogOpen(false)
       if (editingId) {
@@ -171,7 +184,7 @@ export default function DispatcherHolidaysPage() {
       }
     } catch (err) {
       const message =
-        extractErrorMessage(err) ?? "Не удалось сохранить нерабочий период"
+        extractErrorMessage(err) ?? "Не удалось сохранить рабочий день"
       setFormError(message)
       toast.error(message)
     } finally {
@@ -183,8 +196,8 @@ export default function DispatcherHolidaysPage() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await deleteNonWorkingDay(deleteTarget.id)
-      toast.success("Нерабочий период удалён")
+      await deleteWorkingDay(deleteTarget.id)
+      toast.success("Рабочий день удалён")
       setDeleteTarget(null)
       if (items.length === 1 && page > 1) {
         setPage(page - 1)
@@ -192,59 +205,25 @@ export default function DispatcherHolidaysPage() {
         await load(page)
       }
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось удалить период")
+      toast.error(extractErrorMessage(err) ?? "Не удалось удалить запись")
     } finally {
       setDeleting(false)
     }
   }
 
+  const filtering = Boolean(appliedFrom || appliedTo)
+
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Календарь</h1>
-        <p className="text-sm text-muted-foreground">
-          Нерабочие дни отменяют занятия, рабочие — переносят их на выходной.
-        </p>
-      </header>
-
-      <div
-        role="tablist"
-        aria-label="Разделы календаря"
-        className="flex flex-wrap items-center gap-2 border-b pb-2"
-      >
-        <Button
-          role="tab"
-          aria-selected={tab === "nonWorking"}
-          variant={tab === "nonWorking" ? "default" : "ghost"}
-          onClick={() => setTab("nonWorking")}
-          className="min-h-11 sm:min-h-9"
-        >
-          Нерабочие дни
-        </Button>
-        <Button
-          role="tab"
-          aria-selected={tab === "working"}
-          variant={tab === "working" ? "default" : "ghost"}
-          onClick={() => setTab("working")}
-          className="min-h-11 sm:min-h-9"
-        >
-          Рабочие дни
-        </Button>
-      </div>
-
-      {tab === "working" ? (
-        <WorkingDaysTab />
-      ) : (
-        <section
-          role="tabpanel"
-          aria-label="Нерабочие дни"
-          className="flex flex-col gap-6"
-        >
+    <section
+      role="tabpanel"
+      aria-label="Рабочие дни"
+      className="flex flex-col gap-6"
+    >
       <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="holidays-from">Период с</Label>
+          <Label htmlFor="working-from">Период с</Label>
           <Input
-            id="holidays-from"
+            id="working-from"
             type="date"
             value={filterFrom}
             onChange={(e) => setFilterFrom(e.target.value)}
@@ -252,9 +231,9 @@ export default function DispatcherHolidaysPage() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="holidays-to">по</Label>
+          <Label htmlFor="working-to">по</Label>
           <Input
-            id="holidays-to"
+            id="working-to"
             type="date"
             value={filterTo}
             onChange={(e) => setFilterTo(e.target.value)}
@@ -284,7 +263,7 @@ export default function DispatcherHolidaysPage() {
           className="min-h-11 sm:ml-auto sm:min-h-9"
         >
           <Plus className="size-4" aria-hidden="true" />
-          Добавить период
+          Добавить рабочий день
         </Button>
       </div>
 
@@ -305,42 +284,45 @@ export default function DispatcherHolidaysPage() {
         <Card className="gap-0 py-0">
           <CardHeader className="border-b py-4">
             <CardTitle className="text-base">
-              {appliedFrom || appliedTo ? "Найденные периоды" : "Все периоды"}
+              {filtering ? "Найденные периоды" : "Все периоды"}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
-              <div role="status" aria-label="Загрузка нерабочих дней">
+              <div role="status" aria-label="Загрузка рабочих дней">
                 <LoadingSpinner size="lg" className="py-20" />
               </div>
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center gap-3 px-6 py-16 text-center text-muted-foreground">
                 <Inbox className="size-12 opacity-40" aria-hidden="true" />
                 <p className="text-base font-medium text-fg">
-                  {appliedFrom || appliedTo
+                  {filtering
                     ? "В выбранном периоде записей нет"
-                    : "Нерабочих дней пока нет"}
+                    : "Рабочих дней пока нет"}
                 </p>
                 <EmptyState
                   message={
-                    appliedFrom || appliedTo
+                    filtering
                       ? "Измените период или сбросьте фильтр."
-                      : "Добавьте праздники и выходные, чтобы они не попадали в расписание."
+                      : "Отметьте субботы и воскресенья, которые сделаны учебными."
                   }
                 />
-                {!appliedFrom && !appliedTo && (
+                {!filtering && (
                   <Button variant="outline" onClick={openCreate}>
                     <Plus className="size-4" aria-hidden="true" />
-                    Добавить период
+                    Добавить рабочий день
                   </Button>
                 )}
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[560px] text-sm">
+                <table className="w-full min-w-[640px] text-sm">
                   <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-fg">
                     <tr>
                       <th className="px-4 py-3 text-left font-medium">Период</th>
+                      <th className="px-4 py-3 text-left font-medium">
+                        День недели
+                      </th>
                       <th className="px-4 py-3 text-left font-medium">
                         Название
                       </th>
@@ -355,6 +337,9 @@ export default function DispatcherHolidaysPage() {
                         <td className="px-4 py-3 font-mono text-xs tabular-nums whitespace-nowrap">
                           {formatDateRange(item.dateFrom, item.dateTo)}
                         </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {substituteDayLabel(item.substituteDayOfWeek)}
+                        </td>
                         <td className="px-4 py-3">{item.title}</td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1">
@@ -363,7 +348,7 @@ export default function DispatcherHolidaysPage() {
                               size="icon"
                               className="size-11"
                               onClick={() => openEdit(item)}
-                              aria-label={`Редактировать период «${item.title}»`}
+                              aria-label={`Редактировать рабочий день «${item.title}»`}
                             >
                               <Pencil className="size-4" aria-hidden="true" />
                             </Button>
@@ -372,7 +357,7 @@ export default function DispatcherHolidaysPage() {
                               size="icon"
                               className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => setDeleteTarget(item)}
-                              aria-label={`Удалить период «${item.title}»`}
+                              aria-label={`Удалить рабочий день «${item.title}»`}
                             >
                               <Trash2 className="size-4" aria-hidden="true" />
                             </Button>
@@ -391,25 +376,23 @@ export default function DispatcherHolidaysPage() {
       {!loading && !error && items.length > 0 && (
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       )}
-        </section>
-      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
               {editingId
-                ? "Изменить нерабочий период"
-                : "Добавить нерабочий период"}
+                ? "Изменить рабочий день"
+                : "Добавить рабочий день"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {formError && <ErrorBanner message={formError} />}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="holiday-date-from">Дата начала *</Label>
+                <Label htmlFor="working-date-from">Дата начала *</Label>
                 <Input
-                  id="holiday-date-from"
+                  id="working-date-from"
                   type="date"
                   required
                   value={formDateFrom}
@@ -423,9 +406,9 @@ export default function DispatcherHolidaysPage() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="holiday-date-to">Дата окончания *</Label>
+                <Label htmlFor="working-date-to">Дата окончания *</Label>
                 <Input
-                  id="holiday-date-to"
+                  id="working-date-to"
                   type="date"
                   required
                   value={formDateTo}
@@ -435,14 +418,34 @@ export default function DispatcherHolidaysPage() {
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="holiday-title">Название *</Label>
+              <Label htmlFor="working-substitute">День недели</Label>
+              <NativeSelect
+                value={formSubstitute}
+                onValueChange={setFormSubstitute}
+                className="w-full"
+              >
+                <NativeSelectItem value={NO_SUBSTITUTE}>
+                  Без переноса
+                </NativeSelectItem>
+                {SUBSTITUTE_DAYS.map((day) => (
+                  <NativeSelectItem key={day} value={String(day)}>
+                    За {DAY_OF_WEEK_LABELS[day].toLowerCase()}
+                  </NativeSelectItem>
+                ))}
+              </NativeSelect>
+              <p className="text-xs text-muted-foreground">
+                Занятия этого дня недели пройдут в выбранные даты.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="working-title">Название *</Label>
               <Input
-                id="holiday-title"
+                id="working-title"
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
                 maxLength={200}
                 required
-                placeholder="Например, осенние каникулы"
+                placeholder="Например, работа в субботу"
                 className="h-11 bg-card sm:h-9"
               />
               <p className="text-xs text-muted-foreground">
@@ -473,7 +476,7 @@ export default function DispatcherHolidaysPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить нерабочий период?</AlertDialogTitle>
+            <AlertDialogTitle>Удалить рабочий день?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget
                 ? `«${deleteTarget.title}» (${formatDate(deleteTarget.dateFrom)}). Действие необратимо.`
@@ -495,6 +498,6 @@ export default function DispatcherHolidaysPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </section>
   )
 }

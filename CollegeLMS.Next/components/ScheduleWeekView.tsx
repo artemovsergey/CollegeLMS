@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { Fragment, useCallback, useEffect, useRef, useState } from "react"
 import { Radio, RefreshCw } from "lucide-react"
 import type {
   ScheduleDayView as ScheduleDayData,
@@ -13,7 +13,12 @@ import {
   parseIsoDate,
   toIsoDate,
 } from "@/api/schedule"
-import { InsertRow, PracticeCard } from "@/components/ScheduleLayers"
+import {
+  BigBreakRow,
+  InsertRow,
+  PracticeCard,
+  WorkingDayBadge,
+} from "@/components/ScheduleLayers"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
@@ -74,11 +79,20 @@ function DayColumn({
         <span className="text-xs text-muted-foreground">{dateLabel}</span>
       </div>
 
+      {day.isWorkingDay && (
+        <WorkingDayBadge
+          title={day.workingDayTitle}
+          substituteDayOfWeek={day.substituteDayOfWeek}
+          compact
+          className="self-start"
+        />
+      )}
+
       {day.isNonWorking ? (
         <p className="text-xs text-amber-700 dark:text-amber-300">
           Не работает: {day.nonWorkingTitle}
         </p>
-      ) : day.isSunday ? (
+      ) : day.isSunday && !day.isWorkingDay ? (
         <p className="text-xs text-muted-foreground">Выходной</p>
       ) : (
         <>
@@ -99,10 +113,12 @@ function DayColumn({
 
             const entry = row.entry
             const isNow = isToday && isEntryNow(entry, day.dayOfWeek, week)
+            const showBreak =
+              day.bigBreak != null && day.bigBreak.afterPair === entry.numberPair
 
             return (
+              <Fragment key={entry.id}>
               <div
-                key={entry.id}
                 className={cn(
                   "rounded-md border-l-2 px-2 py-1.5 text-xs",
                   isNow
@@ -138,6 +154,10 @@ function DayColumn({
                   </div>
                 )}
               </div>
+              {showBreak && day.bigBreak && (
+                <BigBreakRow bigBreak={day.bigBreak} compact />
+              )}
+              </Fragment>
             )
           })}
         </>
@@ -146,7 +166,7 @@ function DayColumn({
   )
 }
 
-/** Режим «Неделя»: Пн–Сб, карточки дней со слоями. */
+/** Режим «Неделя»: Пн–Пт (Сб/Вс — при контенте), карточки дней со слоями. */
 export default function ScheduleWeekView({
   week,
   groupId,
@@ -191,6 +211,20 @@ export default function ScheduleWeekView({
   const title = data
     ? `Неделя ${data.week} · ${formatDate(parseIsoDate(normalizeDateOnly(firstDay?.date ?? "")))}–${formatDate(parseIsoDate(normalizeDateOnly(lastDay?.date ?? "")))}`
     : ""
+  // Пн–Пт всегда; Сб/Вс backend добавляет при контенте или рабочем дне.
+  const dayCount = data?.days.length ?? 5
+  const gridCols =
+    dayCount === 5
+      ? "lg:grid-cols-5"
+      : dayCount === 7
+        ? "lg:grid-cols-7"
+        : "lg:grid-cols-6"
+  const gridSpan =
+    dayCount === 5
+      ? "lg:col-span-5"
+      : dayCount === 7
+        ? "lg:col-span-7"
+        : "lg:col-span-6"
 
   return (
     <div className="flex flex-col gap-3">
@@ -211,12 +245,13 @@ export default function ScheduleWeekView({
       ) : data ? (
         <div
           className={cn(
-            "grid grid-cols-1 gap-2 transition-opacity lg:grid-cols-6",
+            "grid grid-cols-1 gap-2 transition-opacity",
+            gridCols,
             loading && "opacity-60",
           )}
         >
           {error && (
-            <div className="lg:col-span-6">
+            <div className={gridSpan}>
               <ErrorBanner message={error} />
             </div>
           )}

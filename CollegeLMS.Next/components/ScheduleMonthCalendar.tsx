@@ -17,6 +17,7 @@ import {
 } from "@/api/practices"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { WorkingDayBadge } from "@/components/ScheduleLayers"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -201,16 +202,19 @@ export default function ScheduleMonthCalendar({
 
               const iso = normalizeDateOnly(day.date)
               const dayNumber = iso ? Number(iso.slice(8, 10)) : ""
-              const muted = day.isSunday || day.isOutOfSemester
+              const muted =
+                (day.isSunday || day.isOutOfSemester) && !day.isWorkingDay
               const isToday = iso !== "" && iso === todayIso
               const dayLabel = `${dayNumber} ${
                 day.isNonWorking
                   ? `— нерабочий день: ${day.nonWorkingTitle}`
-                  : day.isSunday
-                    ? "— выходной"
-                    : day.pairCount > 0
-                      ? `— ${pluralPairs(day.pairCount)}`
-                      : ""
+                  : day.isWorkingDay
+                    ? "— рабочий день"
+                    : day.isSunday
+                      ? "— выходной"
+                      : day.pairCount > 0
+                        ? `— ${pluralPairs(day.pairCount)}`
+                        : ""
               }`
 
               return (
@@ -247,6 +251,15 @@ export default function ScheduleMonthCalendar({
                       {pluralPairs(day.pairCount)}
                     </span>
                   ) : null}
+
+                  {day.isWorkingDay && (
+                    <WorkingDayBadge
+                      title={day.workingDayTitle}
+                      substituteDayOfWeek={day.substituteDayOfWeek}
+                      compact
+                      className="max-w-full whitespace-normal text-left"
+                    />
+                  )}
 
                   {day.practiceKinds.length > 0 && (
                     <span className="flex flex-wrap gap-0.5">

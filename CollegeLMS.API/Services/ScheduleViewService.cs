@@ -59,7 +59,7 @@ public class ScheduleViewService(
             teacherId,
             room,
             monday,
-            monday.AddDays(5),
+            monday.AddDays(6),
             ct
         );
         if (!rangeResult.IsSuccess)
@@ -70,8 +70,14 @@ public class ScheduleViewService(
         var data = rangeResult.Data!;
 
         var days = new List<ScheduleDayViewResponse>();
-        for (var i = 0; i < 6; i++) // Пн–Сб
-            days.Add(BuildDay(data, monday.AddDays(i), effectiveWeek));
+        for (var i = 0; i < 7; i++)
+        {
+            var target = monday.AddDays(i);
+            if (!ShouldIncludeDay(data, target, effectiveWeek))
+                continue;
+            days.Add(BuildDay(data, target, effectiveWeek));
+        }
+
         return Result<ScheduleWeekViewResponse>.Ok(
             new ScheduleWeekViewResponse
             {
@@ -109,6 +115,10 @@ public class ScheduleViewService(
             .NonWorkingDays.AsNoTracking()
             .Where(d => d.DateFrom <= last && d.DateTo >= first)
             .ToListAsync(ct);
+        var workingDays = await db
+            .WorkingDayOverrides.AsNoTracking()
+            .Where(d => d.DateFrom <= last && d.DateTo >= first)
+            .ToListAsync(ct);
         var practiceResult = await practices.GetAllAsync(
             groupId,
             teacherId,
@@ -132,15 +142,21 @@ public class ScheduleViewService(
         {
             var week = StudyWeek.WeekOf(date);
             var nwd = nonWorking.FirstOrDefault(d => d.DateFrom <= date && d.DateTo >= date);
+            var overrideDay = workingDays.FirstOrDefault(d =>
+                d.DateFrom.Date <= date && d.DateTo.Date >= date
+            );
             var coversPractice = practiceList
                 .Where(p => p.DateFrom <= date && p.DateTo >= date)
                 .ToList();
-            var isSunday = date.DayOfWeek == DayOfWeek.Sunday;
+            var isSunday = date.DayOfWeek == DayOfWeek.Sunday && overrideDay is null;
             var isOutOfSemester = date < SemesterMonday || date > SemesterLastDay;
+            var effectiveDay = overrideDay?.SubstituteDayOfWeek is int s and >= 1 and <= 7
+                ? (DayOfWeek)s
+                : date.DayOfWeek;
             var pairCount =
                 (isSunday || nwd is not null || coversPractice.Count > 0 || isOutOfSemester)
                     ? 0
-                    : entries.Count(e => e.DayOfWeek == date.DayOfWeek && e.Weeks.Contains(week));
+                    : entries.Count(e => e.DayOfWeek == effectiveDay && e.Weeks.Contains(week));
             days.Add(
                 new ScheduleMonthDayResponse
                 {
@@ -149,6 +165,9 @@ public class ScheduleViewService(
                     IsSunday = isSunday,
                     IsNonWorking = nwd is not null,
                     NonWorkingTitle = nwd?.Title,
+                    IsWorkingDay = overrideDay is not null,
+                    SubstituteDayOfWeek = overrideDay?.SubstituteDayOfWeek,
+                    WorkingDayTitle = overrideDay?.Title,
                     PracticeKinds = coversPractice.Select(p => p.Kind).Distinct().ToList(),
                     IsOutOfSemester = isOutOfSemester,
                     PairCount = pairCount,
@@ -196,8 +215,13 @@ public class ScheduleViewService(
         {
             var weekStart = SemesterMonday.AddDays((week - 1) * 7);
             var days = new List<ScheduleDayViewResponse>();
-            for (var i = 0; i < 6; i++)
-                days.Add(BuildDay(data.Data!, weekStart.AddDays(i), week));
+            for (var i = 0; i < 7; i++)
+            {
+                var target = weekStart.AddDays(i);
+                if (!ShouldIncludeDay(data.Data!, target, week))
+                    continue;
+                days.Add(BuildDay(data.Data!, target, week));
+            }
             weeks.Add(
                 new ScheduleSemesterWeekResponse
                 {
@@ -224,6 +248,11 @@ public class ScheduleViewService(
     {
         var nonWorking = await db
             .NonWorkingDays.AsNoTracking()
+            .Where(d => d.DateFrom <= to && d.DateTo >= from)
+            .ToListAsync(ct);
+
+        var workingDays = await db
+            .WorkingDayOverrides.AsNoTracking()
             .Where(d => d.DateFrom <= to && d.DateTo >= from)
             .ToListAsync(ct);
 
@@ -259,7 +288,23 @@ public class ScheduleViewService(
 
         var entries = await entriesQuery.OrderBy(s => s.NumberPair).ToListAsync(ct);
         var changeTags = await ScheduleChangeTags.BuildAsync(db, entries, null, ct);
-        var bellTimes = await bells.GetTimeMapAsync(ct);
+
+        // Резолв профиля звонков на каждую дату диапазона (кэш сервиса звонков делает это дешёвым).
+        var bellByDate = new Dictionary<DateTime, BellDayInfo>();
+        for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
+        {
+            var substitute = workingDays
+                .FirstOrDefault(d => d.DateFrom.Date <= date && d.DateTo.Date >= date)
+                ?.SubstituteDayOfWeek;
+            var resolved = await bells.GetResolvedAsync(date, substitute, ct);
+            var profile = resolved.Data;
+            bellByDate[date] = new BellDayInfo(
+                profile is null
+                    ? new()
+                    : profile.Slots.ToDictionary(s => s.NumberPair, s => (s.StartTime, s.EndTime)),
+                profile?.BigBreak
+            );
+        }
 
         int? course = null;
         if (groupId.HasValue)
@@ -281,14 +326,45 @@ public class ScheduleViewService(
         return Result<ScheduleRangeData>.Ok(
             new ScheduleRangeData(
                 nonWorking,
+                workingDays,
                 practiceList,
                 entries,
                 changeTags,
-                bellTimes,
+                bellByDate,
                 insertsByDay
             )
         );
     }
+
+    /// <summary>Показывать ли день недели: Пн–Пт всегда, Сб — при override или контенте, Вс — только при override.</summary>
+    private static bool ShouldIncludeDay(ScheduleRangeData data, DateTime target, int week)
+    {
+        if (target.DayOfWeek is >= DayOfWeek.Monday and <= DayOfWeek.Friday)
+            return true;
+
+        if (HasWorkingOverride(data, target))
+            return true;
+
+        if (target.DayOfWeek == DayOfWeek.Sunday)
+            return false;
+
+        if (data.Practices.Any(p => p.DateFrom <= target && p.DateTo >= target))
+            return true;
+
+        if (data.Entries.Any(e => e.DayOfWeek == target.DayOfWeek && e.Weeks.Contains(week)))
+            return true;
+
+        return data.InsertsByDay.TryGetValue(target.DayOfWeek, out var inserts)
+            && inserts.Count > 0;
+    }
+
+    private static WorkingDayOverride? FindWorkingOverride(
+        ScheduleRangeData data,
+        DateTime target
+    ) => data.WorkingDays.FirstOrDefault(d => d.DateFrom.Date <= target && d.DateTo.Date >= target);
+
+    private static bool HasWorkingOverride(ScheduleRangeData data, DateTime target) =>
+        FindWorkingOverride(data, target) is not null;
 
     /// <summary>Сборка дня из предзагруженных слоёв (без обращений к БД).</summary>
     private static ScheduleDayViewResponse BuildDay(
@@ -297,11 +373,38 @@ public class ScheduleViewService(
         int week
     )
     {
-        if (target.DayOfWeek == DayOfWeek.Sunday)
-            return Empty(target, week, isSunday: true);
+        var workingDay = FindWorkingOverride(data, target);
+        if (workingDay is not null)
+        {
+            var effectiveDay = workingDay.SubstituteDayOfWeek is int s and >= 1 and <= 7
+                ? (DayOfWeek)s
+                : target.DayOfWeek;
+            var bell = data.BellByDate.GetValueOrDefault(target.Date);
+            var practicesToday = data
+                .Practices.Where(p => p.DateFrom <= target && p.DateTo >= target)
+                .ToList();
+
+            return new ScheduleDayViewResponse
+            {
+                Date = target,
+                Week = week,
+                DayOfWeek = (int)target.DayOfWeek,
+                IsWorkingDay = true,
+                SubstituteDayOfWeek = workingDay.SubstituteDayOfWeek,
+                WorkingDayTitle = workingDay.Title,
+                BigBreak = bell?.BigBreak,
+                Practices = practicesToday,
+                Inserts =
+                    practicesToday.Count > 0
+                        ? []
+                        : data.InsertsByDay.GetValueOrDefault(effectiveDay) ?? [],
+                Entries =
+                    practicesToday.Count > 0 ? [] : BuildEntries(data, target, week, effectiveDay),
+            };
+        }
 
         var nonWorking = data.NonWorking.FirstOrDefault(d =>
-            d.DateFrom <= target && d.DateTo >= target
+            d.DateFrom.Date <= target && d.DateTo.Date >= target
         );
         if (nonWorking is not null)
             return new ScheduleDayViewResponse
@@ -312,6 +415,9 @@ public class ScheduleViewService(
                 IsNonWorking = true,
                 NonWorkingTitle = nonWorking.Title,
             };
+
+        if (target.DayOfWeek == DayOfWeek.Sunday)
+            return Empty(target, week, isSunday: true);
 
         if (target < SemesterMonday || target > SemesterLastDay)
             return new ScheduleDayViewResponse
@@ -333,24 +439,29 @@ public class ScheduleViewService(
                 Practices = practiceList,
             };
 
+        var dayBell = data.BellByDate.GetValueOrDefault(target.Date);
         return new ScheduleDayViewResponse
         {
             Date = target,
             Week = week,
             DayOfWeek = (int)target.DayOfWeek,
             Inserts = data.InsertsByDay.GetValueOrDefault(target.DayOfWeek) ?? [],
-            Entries = BuildEntries(data, target, week),
+            Entries = BuildEntries(data, target, week, target.DayOfWeek),
+            BigBreak = dayBell?.BigBreak,
         };
     }
 
     private static List<ScheduleResponse> BuildEntries(
         ScheduleRangeData data,
         DateTime target,
-        int week
+        int week,
+        DayOfWeek effectiveDay
     )
     {
+        var times = data.BellByDate.GetValueOrDefault(target.Date)?.Times ?? new();
+
         return data
-            .Entries.Where(e => e.DayOfWeek == target.DayOfWeek && e.Weeks.Contains(week))
+            .Entries.Where(e => e.DayOfWeek == effectiveDay && e.Weeks.Contains(week))
             .Select(e =>
             {
                 var tags = data
@@ -358,7 +469,7 @@ public class ScheduleViewService(
                     ?.Where(t => t.Week == week)
                     .ToList();
                 var dto = e.ToDto(tags);
-                if (data.BellTimes.TryGetValue(e.NumberPair, out var time))
+                if (times.TryGetValue(e.NumberPair, out var time))
                 {
                     dto.StartTime = time.Start;
                     dto.EndTime = time.End;
@@ -397,10 +508,16 @@ public class ScheduleViewService(
 
     private sealed record ScheduleRangeData(
         List<NonWorkingDay> NonWorking,
+        List<WorkingDayOverride> WorkingDays,
         List<PracticeResponse> Practices,
         List<ScheduleEntry> Entries,
         Dictionary<(Guid GroupId, DayOfWeek DayOfWeek, int NumberPair), List<ChangeTag>> ChangeTags,
-        Dictionary<int, (TimeSpan Start, TimeSpan End)> BellTimes,
+        Dictionary<DateTime, BellDayInfo> BellByDate,
         Dictionary<DayOfWeek, List<ScheduleInsertResponse>> InsertsByDay
+    );
+
+    private sealed record BellDayInfo(
+        Dictionary<int, (TimeSpan Start, TimeSpan End)> Times,
+        BigBreakResponse? BigBreak
     );
 }

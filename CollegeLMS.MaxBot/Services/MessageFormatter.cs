@@ -148,6 +148,9 @@ public static class MessageFormatter
             sb.AppendLine("────────");
         }
 
+        if (day.BigBreak is { } bigBreak)
+            sb.AppendLine(BigBreakLine(bigBreak));
+
         return sb.ToString().TrimEnd();
     }
 
@@ -206,6 +209,9 @@ public static class MessageFormatter
                         sb.AppendLine(pairLine);
                         AppendChangeMarkers(sb, e);
                     }
+
+                    if (day.BigBreak is { } bigBreak)
+                        sb.AppendLine(BigBreakLine(bigBreak));
                 }
             }
 
@@ -227,6 +233,9 @@ public static class MessageFormatter
 
     private static string FormatNonWorkingLine(string? title) =>
         string.IsNullOrWhiteSpace(title) ? "🎉 Нерабочий день" : $"🎉 Нерабочий день: {title}";
+
+    private static string BigBreakLine(BigBreakDto bigBreak) =>
+        $"☕ Большая перемена {bigBreak.StartTime:hh\\:mm}–{bigBreak.EndTime:hh\\:mm} (после {bigBreak.AfterPair} пары)";
 
     private static void AppendInsertLines(
         System.Text.StringBuilder sb,

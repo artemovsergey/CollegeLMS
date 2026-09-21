@@ -164,13 +164,13 @@ export default function ScheduleView() {
     if (!semesterStart) return ""
     const w1 = mondayOf(parseIsoDate(semesterStart))
     const start = addDays(w1, (selectedWeek - 1) * 7)
-    // Конец диапазона — последний день недели из ответа (Пн–Сб), как в веб-виде.
+    // Конец диапазона — последний день недели из ответа (Пн–Пт + выходные при контенте).
     const lastDay =
       weekData && weekData.week === selectedWeek && weekData.days.length > 0
         ? weekData.days[weekData.days.length - 1]
         : undefined
     const lastIso = lastDay ? normalizeDateOnly(lastDay.date) : ""
-    const end = lastIso || toIsoDate(addDays(start, 5))
+    const end = lastIso || toIsoDate(addDays(start, 4))
     return `${formatDay(toIsoDate(start))} – ${formatDay(end)}`
   }, [meta, selectedWeek, weekData])
 
@@ -184,7 +184,8 @@ export default function ScheduleView() {
       dayData.inserts.length > 0 ||
       dayData.practices.length > 0 ||
       dayData.isNonWorking ||
-      dayData.isSunday)
+      dayData.isSunday ||
+      dayData.isWorkingDay === true)
 
   const weekHasContent =
     weekData !== null &&
@@ -194,7 +195,8 @@ export default function ScheduleView() {
         day.inserts.length > 0 ||
         day.practices.length > 0 ||
         day.isNonWorking ||
-        day.isSunday,
+        day.isSunday ||
+        day.isWorkingDay === true,
     )
 
   const isOutsideSemester =
@@ -382,14 +384,18 @@ export default function ScheduleView() {
             <ScheduleEmpty />
           )
         ) : dayData && dayHasContent ? (
-          <DayFeed
-            entries={dayData.entries}
-            inserts={dayData.inserts}
-            practices={dayData.practices}
-            isSunday={dayData.isSunday}
-            isNonWorking={dayData.isNonWorking}
-            nonWorkingTitle={dayData.nonWorkingTitle}
-            today={dateIsToday}
+            <DayFeed
+              entries={dayData.entries}
+              inserts={dayData.inserts}
+              practices={dayData.practices}
+              isSunday={dayData.isSunday}
+              isNonWorking={dayData.isNonWorking}
+              nonWorkingTitle={dayData.nonWorkingTitle}
+              bigBreak={dayData.bigBreak ?? null}
+              isWorkingDay={dayData.isWorkingDay ?? false}
+              workingDayTitle={dayData.workingDayTitle ?? null}
+              substituteDayOfWeek={dayData.substituteDayOfWeek ?? null}
+              today={dateIsToday}
             header={
               <div className="max-week__day">
                 <span className="max-week__day--strong">

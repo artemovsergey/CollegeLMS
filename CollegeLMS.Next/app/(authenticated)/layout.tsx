@@ -46,7 +46,7 @@ const dispatcherMenu = [
   {
     label: "Справочники", items: [
       { href: "/dispatcher/bells", label: "Звонки", icon: Bell },
-      { href: "/dispatcher/holidays", label: "Нерабочие дни", icon: CalendarX2 },
+      { href: "/dispatcher/holidays", label: "Календарь", icon: CalendarX2 },
       { href: "/dispatcher/inserts", label: "События", icon: CalendarClock },
     ]
   },

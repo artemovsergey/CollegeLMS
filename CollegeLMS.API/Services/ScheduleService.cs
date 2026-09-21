@@ -81,7 +81,10 @@ public class ScheduleService(
         var items = await query.Skip((p - 1) * ps).Take(ps).ToListAsync(ct);
 
         var changeTagsBySlot = await ScheduleChangeTags.BuildAsync(db, items, week, ct);
-        var bellTimes = await bells.GetTimeMapAsync(ct);
+        var bellByDay =
+            new Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>>();
+        foreach (var day in items.Select(s => s.DayOfWeek).Distinct())
+            bellByDay[day] = await bells.GetTimeMapAsync(day, ct);
 
         var dtos = items
             .Select(s =>
@@ -89,7 +92,7 @@ public class ScheduleService(
                 var dto = s.ToDto(
                     changeTagsBySlot.GetValueOrDefault((s.GroupId, s.DayOfWeek, s.NumberPair))
                 );
-                if (bellTimes.TryGetValue(s.NumberPair, out var time))
+                if (bellByDay[s.DayOfWeek].TryGetValue(s.NumberPair, out var time))
                 {
                     dto.StartTime = time.Start;
                     dto.EndTime = time.End;
@@ -426,7 +429,7 @@ public class ScheduleService(
             return Result<ScheduleResponse>.Fail("Запись расписания не найдена", 404);
 
         var dto = entry.ToDto();
-        var bellTimes = await bells.GetTimeMapAsync(ct);
+        var bellTimes = await bells.GetTimeMapAsync(entry.DayOfWeek, ct);
         if (bellTimes.TryGetValue(entry.NumberPair, out var time))
         {
             dto.StartTime = time.Start;
@@ -478,7 +481,7 @@ public class ScheduleService(
         if (overlap is not null)
             return Result<ScheduleResponse>.Fail(overlap, 409);
 
-        var bellTimes = await bells.GetTimeMapAsync(ct);
+        var bellTimes = await bells.GetTimeMapAsync(request.DayOfWeek, ct);
         var (start, end) = bellTimes.TryGetValue(request.NumberPair, out var time)
             ? time
             : ScheduleImportService.GetPairTime(request.DayOfWeek, request.NumberPair);
@@ -547,7 +550,7 @@ public class ScheduleService(
         if (overlap is not null)
             return Result<ScheduleResponse>.Fail(overlap, 409);
 
-        var bellTimes = await bells.GetTimeMapAsync(ct);
+        var bellTimes = await bells.GetTimeMapAsync(request.DayOfWeek, ct);
         var (start, end) = bellTimes.TryGetValue(request.NumberPair, out var time)
             ? time
             : ScheduleImportService.GetPairTime(request.DayOfWeek, request.NumberPair);

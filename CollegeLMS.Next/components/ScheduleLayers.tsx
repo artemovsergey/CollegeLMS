@@ -3,13 +3,19 @@
 import type { Practice } from "@/api/practices"
 import { PRACTICE_KIND_LABELS, PRACTICE_KIND_SHORT } from "@/api/practices"
 import type { ScheduleInsert } from "@/api/inserts"
-import { BellRing, CalendarOff } from "lucide-react"
+import type { ScheduleBigBreak } from "@/types/schedule"
+import { BellRing, CalendarCheck, CalendarOff, Coffee } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { workingDayLabel } from "@/lib/reference"
 
 interface ScheduleLayersProps {
   nonWorkingTitle: string | null
   isSunday: boolean
   practices: Practice[]
+  /** День сделан рабочим (перенос с другого дня недели). */
+  isWorkingDay?: boolean
+  workingDayTitle?: string | null
+  substituteDayOfWeek?: number | null
 }
 
 const PRACTICE_BADGE: Record<Practice["kind"], string> = {
@@ -50,6 +56,66 @@ export function InsertRow({
       </span>
       <span className="truncate">{insert.title}</span>
     </div>
+  )
+}
+
+/** Строка большой перемены: «HH:mm–HH:mm Большая перемена». */
+export function BigBreakRow({
+  bigBreak,
+  compact = false,
+  className,
+}: {
+  bigBreak: ScheduleBigBreak
+  compact?: boolean
+  className?: string
+}) {
+  return (
+    <div
+      role="note"
+      className={cn(
+        "flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 text-warning",
+        compact ? "px-2 py-1 text-[11px]" : "px-3 py-2 text-sm",
+        className,
+      )}
+    >
+      <Coffee
+        className={cn("shrink-0", compact ? "size-3" : "size-4")}
+        aria-hidden
+      />
+      <span className="whitespace-nowrap font-medium">
+        {formatTime(bigBreak.startTime)}–{formatTime(bigBreak.endTime)}
+      </span>
+      <span className="truncate">Большая перемена</span>
+    </div>
+  )
+}
+
+/** Бейдж рабочего дня: «Работа в субботу: за понедельник». */
+export function WorkingDayBadge({
+  title,
+  substituteDayOfWeek,
+  compact = false,
+  className,
+}: {
+  title?: string | null
+  substituteDayOfWeek?: number | null
+  compact?: boolean
+  className?: string
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full bg-warning/15 font-medium text-warning",
+        compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-xs",
+        className,
+      )}
+    >
+      <CalendarCheck
+        className={cn("shrink-0", compact ? "size-3" : "size-3.5")}
+        aria-hidden
+      />
+      {workingDayLabel(title, substituteDayOfWeek)}
+    </span>
   )
 }
 
@@ -104,18 +170,31 @@ export function PracticeCard({
   )
 }
 
-/** Слои дня: нерабочий день, воскресенье, практики. */
+/** Слои дня: нерабочий день, воскресенье, рабочий день, практики. */
 export default function ScheduleLayers({
   nonWorkingTitle,
   isSunday,
   practices,
+  isWorkingDay = false,
+  workingDayTitle = null,
+  substituteDayOfWeek = null,
 }: ScheduleLayersProps) {
   const hasContent =
-    Boolean(nonWorkingTitle) || isSunday || practices.length > 0
+    Boolean(nonWorkingTitle) ||
+    isSunday ||
+    isWorkingDay ||
+    practices.length > 0
   if (!hasContent) return null
 
   return (
     <div className="flex flex-col gap-2">
+      {isWorkingDay && (
+        <WorkingDayBadge
+          title={workingDayTitle}
+          substituteDayOfWeek={substituteDayOfWeek}
+        />
+      )}
+
       {nonWorkingTitle && (
         <div
           role="status"

@@ -30,7 +30,10 @@ public class CorrectionBatchService(
         if (request.CorrectionDate == default)
             return Result<CorrectionBatchResponse>.Fail("Укажите дату корректировки.", 400);
 
-        if (request.CorrectionDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        if (
+            request.CorrectionDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+            && !await HasWorkingOverrideAsync(request.CorrectionDate, ct)
+        )
             return Result<CorrectionBatchResponse>.Fail(
                 "Корректировка не может быть на выходной день.",
                 400
@@ -494,10 +497,21 @@ public class CorrectionBatchService(
         }
     }
 
-    private async Task<NonWorkingDay?> FindNonWorkingAsync(DateTime date, CancellationToken ct) =>
-        await db
+    private async Task<NonWorkingDay?> FindNonWorkingAsync(DateTime date, CancellationToken ct)
+    {
+        if (await HasWorkingOverrideAsync(date, ct))
+            return null;
+
+        return await db
             .NonWorkingDays.AsNoTracking()
             .FirstOrDefaultAsync(d => d.DateFrom <= date.Date && d.DateTo >= date.Date, ct);
+    }
+
+    /// <summary>Есть ли на дату рабочий день (override) — делает выходной рабочим.</summary>
+    private async Task<bool> HasWorkingOverrideAsync(DateTime date, CancellationToken ct) =>
+        await db
+            .WorkingDayOverrides.AsNoTracking()
+            .AnyAsync(d => d.DateFrom <= date.Date && d.DateTo >= date.Date, ct);
 
     private async Task TrySendCorrectionImageAsync(CorrectionBatch batch, CancellationToken ct)
     {

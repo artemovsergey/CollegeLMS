@@ -24,7 +24,7 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         ["суббота"] = DayOfWeek.Saturday,
     };
 
-    private static readonly Dictionary<
+    internal static readonly Dictionary<
         DayOfWeek,
         List<(TimeSpan Start, TimeSpan End)>
     > PairTimeSlots = new()
@@ -84,6 +84,30 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         var slots = PairTimeSlots.GetValueOrDefault(day) ?? PairTimeSlots[DayOfWeek.Tuesday];
         var index = Math.Clamp(pairNumber - 1, 0, slots.Count - 1);
         return slots[index];
+    }
+
+    /// <summary>Время пар по всем дням недели из профилей звонков (с откатом на базовый профиль).</summary>
+    private async Task<
+        Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>>
+    > LoadBellTimesByDayAsync(CancellationToken ct)
+    {
+        var result = new Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>>();
+        foreach (var day in Enum.GetValues<DayOfWeek>())
+            result[day] = await bells.GetTimeMapAsync(day, ct);
+        return result;
+    }
+
+    private static Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>> ToDayMap(
+        Dictionary<int, (TimeSpan Start, TimeSpan End)>? flat
+    )
+    {
+        var result = new Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>>();
+        if (flat is null)
+            return result;
+
+        foreach (var day in Enum.GetValues<DayOfWeek>())
+            result[day] = flat;
+        return result;
     }
 
     private static readonly Dictionary<string, string> SubjectSynonyms = new()
@@ -158,6 +182,15 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
     ) ParseScheduleMatrix(
         IXLWorkbook workbook,
         Dictionary<int, (TimeSpan Start, TimeSpan End)>? bellTimes = null
+    ) => ParseScheduleMatrix(workbook, ToDayMap(bellTimes));
+
+    /// <summary>Разбор матрицы расписания с временем пар по каждому дню недели.</summary>
+    public (
+        List<SchedulePreviewEntry> Entries,
+        List<ScheduleValidationError> Errors
+    ) ParseScheduleMatrix(
+        IXLWorkbook workbook,
+        Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>>? bellTimes
     )
     {
         var ws = workbook.Worksheet(1);
@@ -277,9 +310,11 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                         if (hasErrors)
                             continue;
 
-                        var (start, end) = bellTimes.TryGetValue(pairNum, out var t)
-                            ? t
-                            : GetPairTime(day, pairNum);
+                        var dayTimes = bellTimes.GetValueOrDefault(day);
+                        var (start, end) =
+                            dayTimes is not null && dayTimes.TryGetValue(pairNum, out var t)
+                                ? t
+                                : GetPairTime(day, pairNum);
                         entries.Add(
                             new SchedulePreviewEntry
                             {
@@ -404,7 +439,7 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
 
         using (workbook)
         {
-            var bellTimes = await bells.GetTimeMapAsync(ct);
+            var bellTimes = await LoadBellTimesByDayAsync(ct);
 
             List<SchedulePreviewEntry> entries;
             List<ScheduleValidationError> errors;
@@ -533,7 +568,7 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
             return new ConfirmResult { IsSuccess = false, Errors = errors };
         }
 
-        var bellTimes = await bells.GetTimeMapAsync(ct);
+        var bellTimes = await LoadBellTimesByDayAsync(ct);
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
@@ -684,9 +719,11 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                 }
 
                 Enum.TryParse<DayOfWeek>(entry.Day, true, out var dayOfWeek);
-                var (startTime, endTime) = bellTimes.TryGetValue(entry.Pair, out var t)
-                    ? t
-                    : GetPairTime(dayOfWeek, entry.Pair);
+                var (startTime, endTime) =
+                    bellTimes.GetValueOrDefault(dayOfWeek) is { } dayTimes
+                    && dayTimes.TryGetValue(entry.Pair, out var t)
+                        ? t
+                        : GetPairTime(dayOfWeek, entry.Pair);
 
                 entriesToAdd.Add(
                     new ScheduleEntry

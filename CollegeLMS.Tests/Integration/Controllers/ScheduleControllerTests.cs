@@ -363,7 +363,7 @@ public class ScheduleControllerTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task GetAll_WeekView_ReturnsSixDays()
+    public async Task GetAll_WeekView_ReturnsFiveWeekdays()
     {
         var response = await Client.GetAsync("/api/schedule?view=week&week=1");
 
@@ -372,7 +372,7 @@ public class ScheduleControllerTests : BaseIntegrationTest
         body.Should().NotBeNull();
         body!.IsSuccess.Should().BeTrue();
         body.Data!.Week.Should().Be(1);
-        body.Data.Days.Should().HaveCount(6);
+        body.Data.Days.Should().HaveCount(5); // Пн–Пт
     }
 
     [Fact]

@@ -23,7 +23,7 @@ public class CorrectionApplyEngineTests : IDisposable
     public CorrectionApplyEngineTests()
     {
         _db = TestDbContextFactory.Create();
-        _sut = new CorrectionApplyEngine(_db);
+        _sut = new CorrectionApplyEngine(_db, new BellScheduleServiceStub());
     }
 
     public void Dispose() => _db.Dispose();

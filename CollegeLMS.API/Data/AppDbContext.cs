@@ -39,8 +39,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CorrectionConfirmation> CorrectionConfirmations => Set<CorrectionConfirmation>();
     public DbSet<CorrectionBatch> CorrectionBatches => Set<CorrectionBatch>();
     public DbSet<CorrectionPosition> CorrectionPositions => Set<CorrectionPosition>();
+    public DbSet<BellProfile> BellProfiles => Set<BellProfile>();
+    public DbSet<BellProfileDate> BellProfileDates => Set<BellProfileDate>();
     public DbSet<BellSlot> BellSlots => Set<BellSlot>();
     public DbSet<BigBreak> BigBreaks => Set<BigBreak>();
+    public DbSet<WorkingDayOverride> WorkingDayOverrides => Set<WorkingDayOverride>();
     public DbSet<NonWorkingDay> NonWorkingDays => Set<NonWorkingDay>();
     public DbSet<ScheduleInsert> ScheduleInserts => Set<ScheduleInsert>();
     public DbSet<Practice> Practices => Set<Practice>();

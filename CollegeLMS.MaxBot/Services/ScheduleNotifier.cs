@@ -31,12 +31,6 @@ public class ScheduleNotifier : BackgroundService
                 var now = GetNow();
                 var today = DateOnly.FromDateTime(now);
 
-                if (IsWeekend(now.DayOfWeek))
-                {
-                    await DelayTillNextWeekday(today, now, ct);
-                    continue;
-                }
-
                 var subscribers = await LoadTodaySubscribersAsync(ct);
                 var minTime = subscribers.Select(s => s.NotifyTime).DefaultIfEmpty().Min();
 
@@ -151,6 +145,18 @@ public class ScheduleNotifier : BackgroundService
                 {
                     _logger.LogInformation(
                         "У пользователя {UserId} сегодня нерабочий день — рассылка пропущена",
+                        user.MaxUserId
+                    );
+                    continue;
+                }
+
+                // Рабочий выходной (WorkingDayOverride) рассылается, если в дне есть занятия.
+                var hasContent =
+                    day.Entries.Count > 0 || day.Practices.Count > 0 || day.Inserts.Count > 0;
+                if (!hasContent && (day.IsSunday || IsWeekend((DayOfWeek)day.DayOfWeek)))
+                {
+                    _logger.LogInformation(
+                        "У пользователя {UserId} выходной без занятий — рассылка пропущена",
                         user.MaxUserId
                     );
                     continue;

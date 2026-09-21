@@ -208,6 +208,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ScheduleExportService>();
         services.AddScoped<IBellScheduleService, BellScheduleService>();
         services.AddScoped<INonWorkingDayService, NonWorkingDayService>();
+        services.AddScoped<IWorkingDayService, WorkingDayService>();
         services.AddScoped<IScheduleInsertService, ScheduleInsertService>();
         services.AddScoped<IPracticeService, PracticeService>();
         services.AddScoped<IScheduleViewService, ScheduleViewService>();

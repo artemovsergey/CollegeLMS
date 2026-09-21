@@ -19,10 +19,20 @@ export default function WeekFeed({
   highlightToday?: boolean
 }) {
   const today = isoDayOfWeek(new Date())
+  // Пн–Пт показываем всегда; Сб/Вс — только при контенте или рабочем дне.
+  const visibleDays = data.days.filter(
+    (day) =>
+      (day.dayOfWeek >= 1 && day.dayOfWeek <= 5) ||
+      day.entries.length > 0 ||
+      day.inserts.length > 0 ||
+      day.practices.length > 0 ||
+      day.isNonWorking ||
+      day.isWorkingDay === true,
+  )
 
   return (
     <div className="max-week">
-      {data.days.map((day) => {
+      {visibleDays.map((day) => {
         const iso = normalizeDateOnly(day.date)
         const info = DAYS.find((d) => d.value === day.dayOfWeek)
         const dayLabel = info?.full ?? String(day.dayOfWeek)
@@ -32,7 +42,8 @@ export default function WeekFeed({
           day.inserts.length > 0 ||
           day.practices.length > 0 ||
           day.isNonWorking ||
-          day.isSunday
+          day.isSunday ||
+          day.isWorkingDay === true
 
         if (!hasContent) {
           return (
@@ -56,6 +67,10 @@ export default function WeekFeed({
             isNonWorking={day.isNonWorking}
             nonWorkingTitle={day.nonWorkingTitle}
             nonWorkingLabel="Не работает"
+            bigBreak={day.bigBreak ?? null}
+            isWorkingDay={day.isWorkingDay ?? false}
+            workingDayTitle={day.workingDayTitle ?? null}
+            substituteDayOfWeek={day.substituteDayOfWeek ?? null}
             today={highlightToday && day.dayOfWeek === today}
             header={
               <div className="max-week__day">

@@ -17,16 +17,19 @@
 | Роль | Права |
 |---|---|
 | `AllowAnonymous` | `GET /api/bells`, `GET /api/schedule/inserts`, `GET /api/practices`, `GET /api/schedule/export` |
-| Все авторизованные | `GET /api/non-working-days`, `GET /api/schedule/journal` (Teacher/Admin/Dispatcher) |
-| `Dispatcher`, `Admin` | `PUT /api/bells`, CRUD нерабочих дней, вставок, практик, импорт практик |
+| Все авторизованные | `GET /api/non-working-days`, `GET /api/working-days`, `GET /api/schedule/journal` (Teacher/Admin/Dispatcher) |
+| `Dispatcher`, `Admin` | `PUT /api/bells`, CRUD звонков-профилей, нерабочих и рабочих дней, вставок, практик, импорт практик |
 
 ## 3. Модель данных
 
 | Сущность | Таблица | Поля | Правила/индексы |
 |---|---|---|---|
-| `BellSlot` | `bell_slots` | `NumberPair` (1–8), `StartTime`, `EndTime` | `ix_bell_slots_number_pair` UNIQUE; 07:00–21:00; возрастание; без пересечений |
-| `BigBreak` | `big_breaks` | `AfterPair` (1–8), `StartTime`, `EndTime` | не более одной; 07:00–21:00; `StartTime < EndTime` |
+| `BellProfile` | `bell_profiles` | `Name` (≤100), `IsDefault`, `DaysOfWeek` (`int[]`, 1–7) | `ix_bell_profiles_name` UNIQUE; базовый профиль один |
+| `BellProfileDate` | `bell_profile_dates` | `ProfileId`, `DateFrom`, `DateTo` | FK cascade; индексы `ix_bell_profile_dates_date_from/date_to` |
+| `BellSlot` | `bell_slots` | `ProfileId`, `NumberPair` (1–8), `StartTime`, `EndTime` | `ix_bell_slots_profile_pair` UNIQUE (`ProfileId`, `NumberPair`); 07:00–21:00; возрастание; без пересечений |
+| `BigBreak` | `big_breaks` | `ProfileId`, `AfterPair` (1–8), `StartTime`, `EndTime` | не более одной на профиль; 07:00–21:00; `StartTime < EndTime` |
 | `NonWorkingDay` | `non_working_days` | `DateFrom`, `DateTo`, `Title` (≤200) | `DateFrom ≤ DateTo`; индексы `ix_non_working_days_date_from/date_to` |
+| `WorkingDayOverride` | `working_day_overrides` | `DateFrom`, `DateTo`, `SubstituteDayOfWeek?` (1–5), `Title` (≤200) | `DateFrom ≤ DateTo`; пересечение с нерабочими датами → `409`; индексы по датам |
 | `ScheduleInsert` | `schedule_inserts` | `Title` (≤200), `DayOfWeek`, `StartTime`, `EndTime`, `Course?` (1–4), `IsActive` | `DayOfWeek` хранится строкой (`HasConversion<string>`, ≤20); `ix_schedule_inserts_day_of_week` |
 | `Practice` | `practices` | `Kind` (`Up`/`Pp`), `GroupId`, `TeacherId`, `DateFrom`, `DateTo`, `Organization?` (≤200), `Note?` (≤500) | `Kind` строкой; `ix_practices_group_id/teacher_id/date_from`; FK `Group`/`Teacher` cascade |
 
@@ -34,10 +37,11 @@
 
 ### 3.1. Сиды
 
-- **Звонки** (`BellSlot`/`BigBreak`): 8 пар —
+- **Профили звонков** (`BellProfile`): «Обычный» (базовый, 8 пар —
   1) 08:30–09:50, 2) 10:00–11:20, 3) 11:30–12:50, 4) 13:00–14:20,
-  5) 15:05–16:25, 6) 16:35–17:55, 7) 18:05–19:25, 8) 19:35–20:55.
-  Большая перемена — после 4-й пары 14:20–15:05.
+  5) 15:05–16:25, 6) 16:35–17:55, 7) 18:05–19:25, 8) 19:35–20:55;
+  большая перемена после 4-й пары 14:20–15:05), «Понедельник» (6 пар с 09:10)
+  и «Четверг» (6 пар) — времена из легаси-сетки `ScheduleImportService.PairTimeSlots`.
 - **Вставки** (`ScheduleInsert`): «Разговор о важном» — Пн 08:30–09:00 (все курсы, активна);
   «Классный час» — Чт 12:10–13:00 (все курсы, активна).
 - **Нерабочие дни** и **практики**: сидов нет, наполняются через API.
@@ -48,13 +52,20 @@
 
 | Метод | Роль | Описание |
 |---|---|---|
-| `GET /api/bells` | AllowAnonymous | `Result<BellScheduleResponse>`: `slots[]` (`id`, `numberPair`, `startTime`, `endTime`), `bigBreak` (`afterPair`, `startTime`, `endTime`) или `null` |
-| `PUT /api/bells` | Dispatcher/Admin | Полная замена справочника. Тело `UpdateBellScheduleRequest { slots[], bigBreak? }`; время — `HH:mm:ss` |
+| `GET /api/bells` | AllowAnonymous | `Result<BellProfileResponse>` базового профиля: `slots[]`, `bigBreak` или `null` |
+| `PUT /api/bells` | Dispatcher/Admin | Полная замена слотов базового профиля. Тело `UpdateBellScheduleRequest { slots[], bigBreak? }`; время — `HH:mm:ss` |
+| `GET /api/bells/profiles` | AllowAnonymous | `Result<List<BellProfileResponse>>` — все профили |
+| `POST /api/bells/profiles` | Dispatcher/Admin | Создать профиль (`BellProfileRequest { name, daysOfWeek[], slots[], bigBreak?, dates[] }`) |
+| `PUT /api/bells/profiles/{id}` | Dispatcher/Admin | Изменить профиль (`400` — некорректные данные, `404` — не найден) |
+| `DELETE /api/bells/profiles/{id}` | Dispatcher/Admin | Удалить профиль (`400` — базовый профиль удалить нельзя) |
+| `GET /api/bells/resolved?date=` | AllowAnonymous | `Result<BellProfileResponse>` — профиль, действующий на дату |
 
 Валидации `400` (сообщения на русском): не менее одной пары и не более 8; номер пары 1–8;
 дубликаты номеров; время в 07:00–21:00; `StartTime < EndTime`; возрастание и отсутствие
-пересечений; для большой перемены — `AfterPair` 1–8, диапазон, `Start < End`.
-`BellScheduleService.GetTimeMapAsync` — время пар по номеру; пустой словарь, если справочник не задан.
+пересечений; для большой перемены — `AfterPair` 1–8, диапазон, `Start < End`; имя профиля
+не пустое и ≤100; `daysOfWeek` — 1–7 без дублей.
+Резолв профиля на дату: привязка к дате → подменяемый день недели → день недели даты → базовый профиль.
+`BellScheduleService.GetTimeMapAsync(day|date, …)` — время пар; пустой словарь, если справочник не задан.
 
 ### 4.2. Нерабочие дни — `/api/non-working-days` (`[Authorize]`)
 
@@ -67,6 +78,20 @@
 
 Валидации `400`: `Title` не пустой и ≤200; `DateFrom`/`DateTo` заданы; `DateFrom.Date ≤ DateTo.Date`.
 Даты нормализуются до `.Date`.
+
+### 4.2.1. Рабочие дни — `/api/working-days` (`[Authorize]`)
+
+| Метод | Роль | Описание |
+|---|---|---|
+| `GET /?from=&to=&page=&pageSize=` | все | `PagedResponse<WorkingDayResponse>`; фильтр пересечения периода; pageSize 1–100 (default 20) |
+| `POST /` | Dispatcher/Admin | Тело `WorkingDayRequest { dateFrom, dateTo, substituteDayOfWeek?, title }` |
+| `PUT /{id:guid}` | Dispatcher/Admin | `404` — не найдено; `409` — пересечение с нерабочими датами |
+| `DELETE /{id:guid}` | Dispatcher/Admin | `404` — не найдено |
+
+Рабочий день делает выходную/праздничную дату рабочей и подставляет расписание дня
+`SubstituteDayOfWeek` (1–5, Пн–Пт), если он задан. Валидации `400`: `Title` не пустой и ≤200;
+даты заданы; `DateFrom.Date ≤ DateTo.Date`; `SubstituteDayOfWeek` 1–5 или `null`.
+Пересечение с любым нерабочим днём → `409` «Дата уже отмечена как нерабочая.».
 
 ### 4.3. Вставки — `/api/schedule/inserts`
 

@@ -126,6 +126,29 @@ public class ScheduleViewServiceTests : IDisposable
         await _db.SaveChangesAsync();
     }
 
+    private async Task SeedWorkingDayAsync(
+        DateTime from,
+        DateTime to,
+        int? substituteDayOfWeek,
+        string title
+    )
+    {
+        var utcNow = DateTime.UtcNow;
+        _db.WorkingDayOverrides.Add(
+            new WorkingDayOverride
+            {
+                Id = Guid.NewGuid(),
+                DateFrom = from.Date,
+                DateTo = to.Date,
+                SubstituteDayOfWeek = substituteDayOfWeek,
+                Title = title,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+    }
+
     private async Task SeedHistoryAsync(
         Guid groupId,
         DayOfWeek day,
@@ -331,7 +354,7 @@ public class ScheduleViewServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetWeekAsync_ReturnsSixDaysMondayToSaturday()
+    public async Task GetWeekAsync_ReturnsFiveWeekdays()
     {
         var (group, teacher) = await SeedGroupAndTeacherAsync();
         await SeedEntryAsync(group.Id, teacher.Id, DayOfWeek.Wednesday, 2, 1);
@@ -341,10 +364,40 @@ public class ScheduleViewServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.Week.Should().Be(1);
         result.Data.WeekStart.Should().Be(Monday1);
-        result.Data.Days.Should().HaveCount(6); // Пн–Сб
+        result.Data.Days.Should().HaveCount(5); // Пн–Пт
         result.Data.Days[0].Date.Should().Be(Monday1);
         result.Data.Days[2].Entries.Should().ContainSingle(); // среда
-        result.Data.Days[5].Date.DayOfWeek.Should().Be(DayOfWeek.Saturday);
+        result.Data.Days[4].Date.DayOfWeek.Should().Be(DayOfWeek.Friday);
+    }
+
+    [Fact]
+    public async Task GetWeekAsync_SaturdayWithContent_IsIncluded()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, DayOfWeek.Saturday, 1, 1);
+
+        var result = await _sut.GetWeekAsync(group.Id, null, null, 1, null, CancellationToken.None);
+
+        result.Data!.Days.Should().HaveCount(6);
+        result.Data.Days[^1].Date.DayOfWeek.Should().Be(DayOfWeek.Saturday);
+    }
+
+    [Fact]
+    public async Task GetWeekAsync_WorkingSunday_UsesSubstituteDayEntries()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, DayOfWeek.Monday, 1, 1);
+        var sunday = Monday1.AddDays(6); // 06.09.2026
+        await SeedWorkingDayAsync(sunday, sunday, substituteDayOfWeek: 1, "Рабочее воскресенье");
+
+        var result = await _sut.GetWeekAsync(group.Id, null, null, 1, null, CancellationToken.None);
+
+        var day = result.Data!.Days.Single(d => d.Date == sunday);
+        day.IsWorkingDay.Should().BeTrue();
+        day.IsSunday.Should().BeFalse();
+        day.SubstituteDayOfWeek.Should().Be(1);
+        day.WorkingDayTitle.Should().Be("Рабочее воскресенье");
+        day.Entries.Should().ContainSingle(); // пары понедельника
     }
 
     [Fact]
@@ -467,7 +520,7 @@ public class ScheduleViewServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetSemesterAsync_ReturnsTotalWeeksRowsWithSixDays()
+    public async Task GetSemesterAsync_ReturnsTotalWeeksRowsWithWeekdays()
     {
         var (group, teacher) = await SeedGroupAndTeacherAsync();
         await SeedEntryAsync(group.Id, teacher.Id, DayOfWeek.Monday, 1, 1);
@@ -477,7 +530,45 @@ public class ScheduleViewServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.TotalWeeks.Should().Be(StudyWeek.TotalWeeks);
         result.Data.Weeks.Should().HaveCount(StudyWeek.TotalWeeks);
-        result.Data.Weeks.Should().OnlyContain(w => w.Days.Count == 6);
+        result.Data.Weeks.Should().OnlyContain(w => w.Days.Count == 5);
         result.Data.Weeks[0].Days[0].Entries.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task GetDayAsync_WorkingDayOverride_UsesSubstituteDay()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var saturday = Monday1.AddDays(5); // 05.09.2026
+        await SeedEntryAsync(group.Id, teacher.Id, DayOfWeek.Monday, 1, 1);
+        await SeedWorkingDayAsync(saturday, saturday, substituteDayOfWeek: 1, "Рабочая суббота");
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, saturday, CancellationToken.None);
+
+        result.Data!.IsWorkingDay.Should().BeTrue();
+        result.Data.SubstituteDayOfWeek.Should().Be(1);
+        result.Data.WorkingDayTitle.Should().Be("Рабочая суббота");
+        result.Data.Entries.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task GetDayAsync_BigBreak_ComesFromResolvedProfile()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 1, 1);
+        _bells.TimeMap[1] = (new TimeSpan(9, 10, 0), new TimeSpan(10, 40, 0));
+        _bells.BigBreak = new BigBreakResponse
+        {
+            Id = Guid.NewGuid(),
+            AfterPair = 1,
+            StartTime = new TimeSpan(10, 40, 0),
+            EndTime = new TimeSpan(11, 0, 0),
+        };
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result.Data!.BigBreak.Should().NotBeNull();
+        result.Data.BigBreak!.AfterPair.Should().Be(1);
+        result.Data.Entries[0].StartTime.Should().Be(new TimeSpan(9, 10, 0));
     }
 }

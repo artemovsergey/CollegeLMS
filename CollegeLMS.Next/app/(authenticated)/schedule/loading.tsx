@@ -23,12 +23,12 @@ export default function ScheduleLoading() {
       <div className="h-12 animate-pulse rounded-lg bg-muted" />
 
       <div className="rounded-lg border bg-card p-4">
-        <div className="grid grid-cols-6 gap-2">
-          {Array.from({ length: 30 }).map((_, i) => (
+        <div className="grid grid-cols-5 gap-2">
+          {Array.from({ length: 25 }).map((_, i) => (
             <div
               key={i}
               className="h-20 animate-pulse rounded bg-muted"
-              style={{ animationDelay: `${(i % 6) * 100}ms` }}
+              style={{ animationDelay: `${(i % 5) * 100}ms` }}
             />
           ))}
         </div>

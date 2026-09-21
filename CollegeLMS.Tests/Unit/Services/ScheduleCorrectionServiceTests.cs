@@ -28,7 +28,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
         new(
             _db,
             new MaxBotHttpClient(http, NullLogger<MaxBotHttpClient>.Instance),
-            new CorrectionApplyEngine(_db)
+            new CorrectionApplyEngine(_db, new BellScheduleServiceStub())
         );
 
     private async Task<Group> SeedGroupAsync(string name = "ПО-262")

@@ -62,7 +62,8 @@ public class MessageFormatterTests
         bool isNonWorking = false,
         string? nonWorkingTitle = null,
         List<PracticeDto>? practices = null,
-        List<ScheduleInsertDto>? inserts = null
+        List<ScheduleInsertDto>? inserts = null,
+        BigBreakDto? bigBreak = null
     ) =>
         new()
         {
@@ -75,6 +76,7 @@ public class MessageFormatterTests
             Practices = practices ?? [],
             Inserts = inserts ?? [],
             Entries = entries ?? [],
+            BigBreak = bigBreak,
         };
 
     private static ScheduleWeekViewDto Week(DateTime weekStart, params ScheduleDayViewDto[] days) =>
@@ -134,6 +136,67 @@ public class MessageFormatterTests
 
         text.Should().Contain("Пар нет.");
         text.Should().NotContain("выходной!");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_BigBreak_ShownAfterPairs()
+    {
+        var bigBreak = new BigBreakDto
+        {
+            Id = Guid.NewGuid(),
+            AfterPair = 2,
+            StartTime = new TimeSpan(11, 0, 0),
+            EndTime = new TimeSpan(11, 20, 0),
+        };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), [Pair()], bigBreak: bigBreak),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("☕ Большая перемена 11:00–11:20 (после 2 пары)");
+    }
+
+    [Fact]
+    public void FormatDaySchedule_BigBreakNotShown_WhenNoPairs()
+    {
+        var bigBreak = new BigBreakDto
+        {
+            Id = Guid.NewGuid(),
+            AfterPair = 1,
+            StartTime = new TimeSpan(9, 0, 0),
+            EndTime = new TimeSpan(9, 20, 0),
+        };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), bigBreak: bigBreak),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().NotContain("Большая перемена");
+    }
+
+    [Fact]
+    public void FormatWeekSchedule_BigBreak_ShownInDayBlock()
+    {
+        var bigBreak = new BigBreakDto
+        {
+            Id = Guid.NewGuid(),
+            AfterPair = 1,
+            StartTime = new TimeSpan(9, 0, 0),
+            EndTime = new TimeSpan(9, 20, 0),
+        };
+        var day = Day(new DateTime(2026, 9, 7), [Pair()], bigBreak: bigBreak);
+
+        var text = MessageFormatter.FormatWeekSchedule(
+            Week(new DateTime(2026, 9, 7), day),
+            "Группа 101",
+            showGroup: false
+        );
+
+        text.Should().Contain("☕ Большая перемена 09:00–09:20 (после 1 пары)");
     }
 
     [Fact]

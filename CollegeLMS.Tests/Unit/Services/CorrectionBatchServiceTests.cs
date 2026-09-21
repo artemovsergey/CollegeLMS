@@ -19,7 +19,7 @@ public class CorrectionBatchServiceTests : IDisposable
     public CorrectionBatchServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        var engine = new CorrectionApplyEngine(_db);
+        var engine = new CorrectionApplyEngine(_db, new BellScheduleServiceStub());
         var maxBot = new MaxBotHttpClient(new HttpClient(), NullLogger<MaxBotHttpClient>.Instance);
         var correctionService = new ScheduleCorrectionService(_db, maxBot, engine);
         _sut = new CorrectionBatchService(

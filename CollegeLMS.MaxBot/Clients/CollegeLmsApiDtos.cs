@@ -150,16 +150,30 @@ public record ScheduleDayViewDto
     public bool IsSunday { get; init; }
     public bool IsNonWorking { get; init; }
     public string? NonWorkingTitle { get; init; }
+    public bool IsWorkingDay { get; init; }
+    public int? SubstituteDayOfWeek { get; init; }
+    public string? WorkingDayTitle { get; init; }
+    public BigBreakDto? BigBreak { get; init; }
     public List<PracticeDto> Practices { get; init; } = [];
     public List<ScheduleInsertDto> Inserts { get; init; } = [];
     public List<ScheduleResponse> Entries { get; init; } = [];
 }
 
-/// <summary>Вид расписания на неделю (view=week): шесть дней Пн–Сб.</summary>
+/// <summary>Большая перемена: время и номер пары, после которой она идёт.</summary>
+public record BigBreakDto
+{
+    public Guid Id { get; init; }
+    public int AfterPair { get; init; }
+    public TimeSpan StartTime { get; init; }
+    public TimeSpan EndTime { get; init; }
+}
+
+/// <summary>Вид расписания на неделю (view=week): учебные дни Пн–Пт и условные Сб/Вс.</summary>
 public record ScheduleWeekViewDto
 {
     public int Week { get; init; }
     public DateTime WeekStart { get; init; }
+    public BigBreakDto? BigBreak { get; init; }
     public List<ScheduleDayViewDto> Days { get; init; } = [];
 }
 
