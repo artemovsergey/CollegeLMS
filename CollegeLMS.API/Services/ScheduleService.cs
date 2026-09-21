@@ -444,7 +444,7 @@ public class ScheduleService(
         if (request.NumberPair < 1 || request.NumberPair > 8)
             return Result<ScheduleResponse>.Fail("Номер пары должен быть от 1 до 8", 400);
 
-        var weeks = request.Weeks.Distinct().OrderBy(w => w).ToList();
+        var weeks = (request.Weeks ?? []).Distinct().OrderBy(w => w).ToList();
         if (weeks.Count == 0 || weeks.Any(w => w < 1 || w > StudyWeek.TotalWeeks))
             return Result<ScheduleResponse>.Fail(
                 $"Недели должны быть в диапазоне 1–{StudyWeek.TotalWeeks}",
@@ -509,7 +509,7 @@ public class ScheduleService(
         if (request.NumberPair < 1 || request.NumberPair > 8)
             return Result<ScheduleResponse>.Fail("Номер пары должен быть от 1 до 8", 400);
 
-        var weeks = request.Weeks.Distinct().OrderBy(w => w).ToList();
+        var weeks = (request.Weeks ?? []).Distinct().OrderBy(w => w).ToList();
         if (weeks.Count == 0 || weeks.Any(w => w < 1 || w > StudyWeek.TotalWeeks))
             return Result<ScheduleResponse>.Fail(
                 $"Недели должны быть в диапазоне 1–{StudyWeek.TotalWeeks}",

@@ -126,6 +126,16 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         return v;
     }
 
+    /// <summary>
+    /// Ключ сопоставления преподавателей: регистр и «ё/е» не учитываются,
+    /// поэтому варианты «петров П.П.», «Петров П.П.» и «Пётр П.П.» находят одного пользователя.
+    /// </summary>
+    internal static string TeacherLookupKey(string name)
+    {
+        var v = NormalizeTeacherName(name);
+        return v.ToLowerInvariant().Replace('ё', 'е');
+    }
+
     private static ScheduleValidationError Error(
         string sheet,
         int row,
@@ -449,7 +459,8 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                 errors.Add(ConfirmError(i, "не указан предмет"));
             if (string.IsNullOrWhiteSpace(entry.Room))
                 errors.Add(ConfirmError(i, "не указана аудитория"));
-            if (entry.Weeks.Count == 0 || entry.Weeks.Any(w => w < 1 || w > StudyWeek.TotalWeeks))
+            var weeks = entry.Weeks ?? [];
+            if (weeks.Count == 0 || weeks.Any(w => w < 1 || w > StudyWeek.TotalWeeks))
                 errors.Add(
                     ConfirmError(i, $"недели должны быть в диапазоне 1–{StudyWeek.TotalWeeks}")
                 );
@@ -459,6 +470,29 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
 
     private static ScheduleValidationError ConfirmError(int index, string message) =>
         Error("импорт", index + 2, 0, "data", message);
+
+    /// <summary>
+    /// Подбирает свободные login/email: при совпадении с существующими или уже
+    /// сгенерированными значениями добавляет суффикс «-2», «-3» и так далее.
+    /// </summary>
+    private static (string Login, string Email) GenerateUniqueCredentials(
+        string baseLogin,
+        HashSet<string> takenLogins,
+        HashSet<string> takenEmails
+    )
+    {
+        for (var suffix = 1; ; suffix++)
+        {
+            var login = suffix == 1 ? baseLogin : $"{baseLogin}-{suffix}";
+            var email = $"{login}@temp.local";
+            if (takenLogins.Contains(login) || takenEmails.Contains(email))
+                continue;
+
+            takenLogins.Add(login);
+            takenEmails.Add(email);
+            return (login, email);
+        }
+    }
 
     private static int ParseCourse(string groupName)
     {
@@ -472,7 +506,9 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         CancellationToken ct
     )
     {
-        if (request.Entries.Count == 0)
+        var entries = request.Entries ?? [];
+
+        if (entries.Count == 0)
         {
             return new ConfirmResult
             {
@@ -491,7 +527,7 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
             };
         }
 
-        var errors = ValidateConfirmEntries(request.Entries);
+        var errors = ValidateConfirmEntries(entries);
         if (errors.Count > 0)
         {
             return new ConfirmResult { IsSuccess = false, Errors = errors };
@@ -508,7 +544,7 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
             db.ScheduleEntries.RemoveRange(existingEntries);
             db.ScheduleHistory.RemoveRange(existingHistory);
 
-            var uniqueGroups = request.Entries.Select(e => e.GroupName).Distinct().ToList();
+            var uniqueGroups = entries.Select(e => e.GroupName).Distinct().ToList();
 
             var createdGroups = 0;
             var existingGroups = await db
@@ -531,8 +567,8 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                 createdGroups++;
             }
 
-            var uniqueTeachers = request
-                .Entries.Where(e => !string.IsNullOrWhiteSpace(e.TeacherName))
+            var uniqueTeachers = entries
+                .Where(e => !string.IsNullOrWhiteSpace(e.TeacherName))
                 .Select(e => NormalizeTeacherName(e.TeacherName))
                 .Distinct()
                 .ToList();
@@ -542,14 +578,29 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
 
             if (uniqueTeachers.Count > 0)
             {
-                var teacherUsers = await db
-                    .Users.Where(u => u.Role == UserRole.Teacher)
-                    .Select(u => new { u.Id, u.FullName })
+                var allUsers = await db
+                    .Users.Select(u => new
+                    {
+                        u.Id,
+                        u.FullName,
+                        u.Login,
+                        u.Email,
+                        u.Role,
+                    })
                     .ToListAsync(ct);
 
                 var userMap = new Dictionary<string, Guid>();
-                foreach (var item in teacherUsers)
-                    userMap.TryAdd(NormalizeTeacherName(item.FullName), item.Id);
+                foreach (var item in allUsers.Where(u => u.Role == UserRole.Teacher))
+                    userMap.TryAdd(TeacherLookupKey(item.FullName), item.Id);
+
+                var takenLogins = new HashSet<string>(
+                    allUsers.Select(u => u.Login),
+                    StringComparer.OrdinalIgnoreCase
+                );
+                var takenEmails = new HashSet<string>(
+                    allUsers.Select(u => u.Email),
+                    StringComparer.OrdinalIgnoreCase
+                );
 
                 var profileMap = (
                     await db.Teachers.Select(t => new { t.Id, t.UserId }).ToListAsync(ct)
@@ -557,11 +608,12 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
 
                 foreach (var name in uniqueTeachers)
                 {
-                    if (userMap.TryGetValue(name, out var userId))
+                    var key = TeacherLookupKey(name);
+                    if (userMap.TryGetValue(key, out var userId))
                     {
                         if (profileMap.TryGetValue(userId, out var profileId))
                         {
-                            teacherMap[name] = profileId;
+                            teacherMap[key] = profileId;
                             continue;
                         }
 
@@ -576,17 +628,23 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                         };
                         db.Teachers.Add(profile);
                         profileMap[userId] = profile.Id;
-                        teacherMap[name] = profile.Id;
+                        teacherMap[key] = profile.Id;
                         createdTeachers++;
                         continue;
                     }
+
+                    var (login, email) = GenerateUniqueCredentials(
+                        name.Replace(" ", ".").ToLowerInvariant(),
+                        takenLogins,
+                        takenEmails
+                    );
 
                     var user = new User
                     {
                         Id = Guid.NewGuid(),
                         FullName = name,
-                        Login = name.Replace(" ", ".").ToLowerInvariant(),
-                        Email = $"{name.Replace(" ", ".").ToLowerInvariant()}@temp.local",
+                        Login = login,
+                        Email = email,
                         PasswordHash = "",
                         Role = UserRole.Teacher,
                         CreatedAt = DateTime.UtcNow,
@@ -604,8 +662,8 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                         UpdatedAt = DateTime.UtcNow,
                     };
                     db.Teachers.Add(teacher);
-                    userMap[name] = user.Id;
-                    teacherMap[name] = teacher.Id;
+                    userMap[key] = user.Id;
+                    teacherMap[key] = teacher.Id;
                     createdTeachers++;
                 }
             }
@@ -613,14 +671,14 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
             await db.SaveChangesAsync(ct);
 
             var entriesToAdd = new List<ScheduleEntry>();
-            foreach (var entry in request.Entries)
+            foreach (var entry in entries)
             {
                 var groupId = groupMap[entry.GroupName];
 
                 Guid? teacherId = null;
                 if (!string.IsNullOrWhiteSpace(entry.TeacherName))
                 {
-                    var teacherKey = NormalizeTeacherName(entry.TeacherName);
+                    var teacherKey = TeacherLookupKey(entry.TeacherName);
                     if (teacherMap.TryGetValue(teacherKey, out var tid))
                         teacherId = tid;
                 }
@@ -642,7 +700,7 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                         NumberPair = entry.Pair,
                         StartTime = startTime,
                         EndTime = endTime,
-                        Weeks = entry.Weeks,
+                        Weeks = entry.Weeks ?? [],
                         LessonType = LessonType.None,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow,

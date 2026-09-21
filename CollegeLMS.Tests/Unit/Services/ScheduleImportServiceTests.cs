@@ -399,6 +399,101 @@ public class ScheduleImportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ConfirmAsync_ReusesTeacher_WhenCaseAndYoDiffer()
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Login = "petrov.p.p",
+            Email = "petrov@college.local",
+            FullName = "Пётр П.П.",
+            Role = UserRole.Teacher,
+        };
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            CyclicalCommission = "Не указана",
+            Position = "Преподаватель",
+        };
+        _db.Users.Add(user);
+        _db.Teachers.Add(teacher);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest { Entries = [Entry(teacherName: "петр П.П.")] },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Teachers.Should().Be(0);
+        _db.Users.Should().ContainSingle();
+        _db.Teachers.Should().ContainSingle();
+        _db.ScheduleEntries.Should().ContainSingle().Which.TeacherId.Should().Be(teacher.Id);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_GeneratesUniqueLogin_WhenLoginTakenByNonTeacher()
+    {
+        _db.Users.Add(
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Login = "петров.п.п.",
+                Email = "petrov@college.local",
+                FullName = "Петров П.П.",
+                Role = UserRole.Student,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest { Entries = [Entry(teacherName: "Петров П.П.")] },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        _db.Users.Should().HaveCount(2);
+        var created = _db.Users.Single(u => u.Role == UserRole.Teacher);
+        created.Login.Should().Be("петров.п.п.-2");
+        created.Email.Should().Be("петров.п.п.-2@temp.local");
+        var teacher = _db.Teachers.Should().ContainSingle().Subject;
+        teacher.UserId.Should().Be(created.Id);
+        _db.ScheduleEntries.Should().ContainSingle().Which.TeacherId.Should().Be(teacher.Id);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_NullEntries_ReturnsError()
+    {
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest { Entries = null! },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.Errors.Should().ContainSingle();
+        result.Errors[0].Message.Should().Contain("Нет позиций для импорта");
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_NullWeeks_ReturnsErrors()
+    {
+        var entry = Entry();
+        entry.Weeks = null!;
+
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest { Entries = [entry] },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result
+            .Errors.Should()
+            .Contain(e => e.Message.Contains("недели должны быть в диапазоне 1–16"));
+        _db.ScheduleEntries.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task ConfirmAsync_Report_CountsCreatedGroupsAndTeachers()
     {
         var group = new Group

@@ -471,6 +471,27 @@ public class ScheduleServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAsync_NullWeeks_Returns400()
+    {
+        var request = new CreateScheduleRequest
+        {
+            GroupId = Guid.NewGuid(),
+            Subject = "Математика",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            Weeks = null!,
+            LessonType = LessonType.Lecture.ToString(),
+        };
+
+        var result = await _sut.CreateAsync(request, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain($"диапазоне 1–{StudyWeek.TotalWeeks}");
+    }
+
+    [Fact]
     public async Task CreateAsync_OverlapSameWeeks_Returns409()
     {
         var group = new Group
@@ -647,6 +668,27 @@ public class ScheduleServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.Subject.Should().Be("Обновлённая тема");
         result.Data.Room.Should().Be("402");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_NullWeeks_Returns400()
+    {
+        var request = new UpdateScheduleRequest
+        {
+            GroupId = Guid.NewGuid(),
+            Subject = "Тема",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            Weeks = null!,
+            LessonType = LessonType.Lecture.ToString(),
+        };
+
+        var result = await _sut.UpdateAsync(Guid.NewGuid(), request, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain($"диапазоне 1–{StudyWeek.TotalWeeks}");
     }
 
     [Fact]
