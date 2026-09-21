@@ -175,28 +175,7 @@ app.MapPost(
                 return Results.Ok(new { received = 0 });
 
             var now = DateTime.UtcNow;
-            var revisions = changes
-                .Select(c => new ScheduleRevision
-                {
-                    ForeignId = c.Id,
-                    ChangeType = c.ChangeType,
-                    GroupName = c.GroupName,
-                    TeacherName = c.TeacherName,
-                    Subject = c.Subject,
-                    Room = "",
-                    DayOfWeek = MessageFormatter.GetDayLabel(
-                        MessageFormatter.DayIndex(c.DayOfWeek)
-                    ),
-                    Week = c.Week,
-                    NumberPair = c.NumberPair,
-                    Note = c.Note,
-                    RemovedSubject = c.RemovedSubject,
-                    RemovedTeacherName = c.RemovedTeacherName,
-                    RemovedNumberPair = c.RemovedNumberPair,
-                    CorrectionDate = c.CorrectionDate,
-                    CreatedAt = now,
-                })
-                .ToList();
+            var revisions = changes.Select(c => ScheduleRevision.FromNotify(c, now)).ToList();
 
             db.ScheduleRevisions.AddRange(revisions);
             await db.SaveChangesAsync(ct);
