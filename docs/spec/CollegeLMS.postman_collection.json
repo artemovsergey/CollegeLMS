@@ -1399,6 +1399,85 @@
           "description": "Календарь семестра: semesterStart, totalWeeks, currentWeek, currentDate"
         },
         {
+          "name": "Get schedule (view=day)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule?view=day&date=2026-09-21&groupId={{groupId}}&teacherId=&room=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule"],
+              "query": [
+                { "key": "view", "value": "day" },
+                { "key": "date", "value": "2026-09-21" },
+                { "key": "groupId", "value": "{{groupId}}" },
+                { "key": "teacherId", "value": "" },
+                { "key": "room", "value": "" }
+              ]
+            }
+          },
+          "description": "Серверный вид дня (AllowAnonymous). Параметры: date=YYYY-MM-DD (по умолчанию — сегодня), фильтры groupId/teacherId/room. week и dayOfWeek вычисляются по date, week клампится в 1…TotalWeeks (16). Слои по приоритету: воскресенье → нерабочий день → практика (entries и inserts пусты) → обычный день (inserts + entries с временем из звонков и бейджами корректировок). Пустой день вне семестра (до 31.08.2026 или после 20.12.2026). Пример ответа (200): {\"isSuccess\":true,\"data\":{\"date\":\"2026-09-21T00:00:00Z\",\"week\":4,\"dayOfWeek\":1,\"isSunday\":false,\"isNonWorking\":false,\"nonWorkingTitle\":null,\"practices\":[],\"inserts\":[{\"id\":\"...\",\"title\":\"Разговор о важном\",\"dayOfWeek\":1,\"startTime\":\"08:30:00\",\"endTime\":\"09:00:00\",\"course\":null,\"isActive\":true}],\"entries\":[{\"id\":\"...\",\"groupId\":\"...\",\"groupName\":\"ИС-21\",\"teacherId\":\"...\",\"teacherName\":\"Иванов И.И.\",\"subject\":\"Математика\",\"room\":\"301\",\"dayOfWeek\":1,\"numberPair\":1,\"startTime\":\"08:30:00\",\"endTime\":\"09:50:00\",\"weeks\":[1,2,3,4],\"lessonType\":\"Lecture\",\"changeTags\":[{\"changeType\":\"Add\",\"week\":4,\"removedNumberPair\":null,\"removedSubject\":null,\"note\":null}]}]}}"
+        },
+        {
+          "name": "Get schedule (view=week)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule?view=week&week=4&date=&groupId={{groupId}}&teacherId=&room=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule"],
+              "query": [
+                { "key": "view", "value": "week" },
+                { "key": "week", "value": "4" },
+                { "key": "date", "value": "" },
+                { "key": "groupId", "value": "{{groupId}}" },
+                { "key": "teacherId", "value": "" },
+                { "key": "room", "value": "" }
+              ]
+            }
+          },
+          "description": "Серверный вид недели (AllowAnonymous). week — приоритетный параметр (1…16); если не задан, неделя вычисляется по date, иначе берётся текущая; значение клампится в 1…TotalWeeks. Ответ: week, weekStart (понедельник) и days[6] — Пн–Сб, каждый день со слоями как в view=day. Пример ответа (200): {\"isSuccess\":true,\"data\":{\"week\":4,\"weekStart\":\"2026-09-21T00:00:00Z\",\"days\":[{\"date\":\"2026-09-21T00:00:00Z\",\"week\":4,\"dayOfWeek\":1,\"isSunday\":false,\"isNonWorking\":false,\"nonWorkingTitle\":null,\"practices\":[],\"inserts\":[],\"entries\":[]},\"… Вт–Сб …\"]}}"
+        },
+        {
+          "name": "Get schedule (view=calendar)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule?view=calendar&month=2026-09&groupId={{groupId}}&teacherId=&room=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule"],
+              "query": [
+                { "key": "view", "value": "calendar" },
+                { "key": "month", "value": "2026-09" },
+                { "key": "groupId", "value": "{{groupId}}" },
+                { "key": "teacherId", "value": "" },
+                { "key": "room", "value": "" }
+              ]
+            }
+          },
+          "description": "Серверный вид календаря месяца (AllowAnonymous). month=YYYY-MM (по умолчанию — текущий; невалидный формат → 400 «Неверный формат месяца.»). Месячный вид заменил старый возврат «шаблона недели» для view=calendar (CalendarResponse удалён). Ответ: year, month и days[] всех дат месяца: dayOfWeek, isSunday, isNonWorking + nonWorkingTitle, practiceKinds (Up/Pp), isOutOfSemester, pairCount (0 в воскресенье, нерабочий день, практику и вне семестра). Сетка 7×N достраивается на клиенте. Пример ответа (200): {\"isSuccess\":true,\"data\":{\"year\":2026,\"month\":9,\"days\":[{\"date\":\"2026-09-01T00:00:00Z\",\"dayOfWeek\":2,\"isSunday\":false,\"isNonWorking\":false,\"nonWorkingTitle\":null,\"practiceKinds\":[],\"isOutOfSemester\":false,\"pairCount\":4}]}}"
+        },
+        {
+          "name": "Get schedule (view=semester)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule?view=semester&groupId={{groupId}}&teacherId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule"],
+              "query": [
+                { "key": "view", "value": "semester" },
+                { "key": "groupId", "value": "{{groupId}}" },
+                { "key": "teacherId", "value": "" }
+              ]
+            }
+          },
+          "description": "Серверный вид семестра (AllowAnonymous). Требуется ровно один из groupId/teacherId, иначе 400 «Укажите одну группу или одного преподавателя.». Ответ: totalWeeks (16) и weeks[] (week, weekStart, days[6] Пн–Сб со слоями как в view=day). Данные загружаются одним запросом на диапазон семестра (без N+1). Пример ответа (200): {\"isSuccess\":true,\"data\":{\"totalWeeks\":16,\"weeks\":[{\"week\":1,\"weekStart\":\"2026-08-31T00:00:00Z\",\"days\":[{\"date\":\"2026-08-31T00:00:00Z\",\"week\":1,\"dayOfWeek\":1,\"isSunday\":false,\"isNonWorking\":false,\"nonWorkingTitle\":null,\"practices\":[],\"inserts\":[],\"entries\":[]},\"… Вт–Сб …\"]}]}}"
+        },
+        {
           "name": "Search groups and teachers",
           "request": {
             "method": "GET",
@@ -1521,11 +1600,56 @@
                 { "key": "groupId", "value": "{{groupId}}" },
                 { "key": "teacherId", "value": "" },
                 { "key": "room", "value": "" },
-                { "key": "period", "value": "" }
+                { "key": "date", "value": "" },
+                { "key": "week", "value": "" }
               ]
             }
           },
-          "description": "Экспорт расписания (AllowAnonymous, rate-limit ExportPolicy). scope=day|week|semester, format=pdf|xlsx, layout=grid|daycards. scope=semester — матрица недели (1–16) × дни Пн–Сб; требуется ровно одна из groupId/teacherId, иначе 400 «Укажите одну группу или одного преподавателя.»; имя файла «Расписание_семестр_dd.MM.yyyy_HH-mm-ss.xlsx|pdf». period=day на нерабочую дату → 400 «Нерабочий день: {Title}»; нет данных → 404."
+          "description": "Экспорт расписания (AllowAnonymous, rate-limit ExportPolicy). scope=day|week|semester, format=pdf|xlsx, layout=grid|daycards. scope=day — день по date (по умолчанию сегодня); scope=week — неделя Пн–Сб по week (1–16, по умолчанию текущая) или date; scope=semester — матрица «недели 1–16 × Пн–Сб», требуется ровно одна из groupId/teacherId, иначе 400 «Укажите одну группу или одного преподавателя.». Без scope — легаси-экспорт по фильтрам для бота/мини-аппа, имя файла «Расписание_dd.MM.yyyy_HH-mm-ss». Неизвестный scope → 400 «Укажите scope: day, week или semester.». Нерабочий день → 400 «Нерабочий день: {Title}»; воскресенье или пустой день/неделя → 404 «Нет данных для экспорта». Имена файлов (FILE-3): «Расписание_день_dd.MM.yyyy_HH-mm-ss.xlsx|pdf», «Расписание_неделя_…», «Расписание_семестр_…». Слои: время из звонков, бейджи, вставки, практики, нерабочие дни. Параметр period удалён."
+        },
+        {
+          "name": "Export schedule (day)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/export?scope=day&date=2026-09-21&format=pdf&layout=grid&groupId={{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "export"],
+              "query": [
+                { "key": "scope", "value": "day" },
+                { "key": "date", "value": "2026-09-21" },
+                { "key": "format", "value": "pdf" },
+                { "key": "layout", "value": "grid" },
+                { "key": "groupId", "value": "{{groupId}}" },
+                { "key": "teacherId", "value": "" },
+                { "key": "room", "value": "" }
+              ]
+            }
+          },
+          "description": "Экспорт дня со слоями: вставки, практика (заменяет пары), пары с бейджами и временем из звонков. Имя файла (FILE-3): «Расписание_день_dd.MM.yyyy_HH-mm-ss.pdf|xlsx». Пример: Расписание_день_21.09.2026_14-30-00.pdf. Нерабочий день → 400 «Нерабочий день: {Title}»; воскресенье или пустой день → 404 «Нет данных для экспорта»."
+        },
+        {
+          "name": "Export schedule (week)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/export?scope=week&week=4&format=xlsx&layout=daycards&groupId={{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "export"],
+              "query": [
+                { "key": "scope", "value": "week" },
+                { "key": "week", "value": "4" },
+                { "key": "format", "value": "xlsx" },
+                { "key": "layout", "value": "daycards" },
+                { "key": "groupId", "value": "{{groupId}}" },
+                { "key": "teacherId", "value": "" },
+                { "key": "room", "value": "" }
+              ]
+            }
+          },
+          "description": "Экспорт недели Пн–Сб со слоями: вставки, практика, пары с бейджами; week (1–16) или date (по умолчанию текущая неделя). layout=grid — таблица «№ пары × дни», layout=daycards — блоки дней. Имя файла (FILE-3): «Расписание_неделя_dd.MM.yyyy_HH-mm-ss.pdf|xlsx». Пример: Расписание_неделя_21.09.2026_14-30-00.xlsx. Пустая неделя → 404 «Нет данных для экспорта»."
         }
       ]
     },
