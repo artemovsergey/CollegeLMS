@@ -55,41 +55,41 @@
 
 ### Task 1: Модель данных и миграция
 
-- [ ] `BellProfile` (`Name` max 100, `IsDefault`, `DaysOfWeek int[]`), `BellProfileDate` (`ProfileId`, `DateFrom`, `DateTo`), `WorkingDayOverride` (`DateFrom`, `DateTo`, `SubstituteDayOfWeek int?`, `Title` max 200).
-- [ ] `BellSlot`/`BigBreak` +`Guid ProfileId`; конфигурации: FK cascade, уникальный `ix_bell_slots_profile_pair (ProfileId, NumberPair)`, убрать `ix_bell_slots_number_pair`; сид default + «Понедельник» (6 пар с 09:10) + «Четверг» (6 пар) из `ScheduleImportService.PairTimeSlots`.
-- [ ] `AppDbContext` DbSets: `BellProfiles`, `BellProfileDates`, `WorkingDayOverrides`.
-- [ ] Миграция: `dotnet ef migrations add AddBellProfilesAndWorkingDays --project CollegeLMS.API -- --provider Npgsql`.
-- [ ] DoD: `dotnet build CollegeLMS.slnx` — 0 ошибок.
+- [x] `BellProfile` (`Name` max 100, `IsDefault`, `DaysOfWeek int[]`), `BellProfileDate` (`ProfileId`, `DateFrom`, `DateTo`), `WorkingDayOverride` (`DateFrom`, `DateTo`, `SubstituteDayOfWeek int?`, `Title` max 200).
+- [x] `BellSlot`/`BigBreak` +`Guid ProfileId`; конфигурации: FK cascade, уникальный `ix_bell_slots_profile_pair (ProfileId, NumberPair)`, убрать `ix_bell_slots_number_pair`; сид default + «Понедельник» (6 пар с 09:10) + «Четверг» (6 пар) из `ScheduleImportService.PairTimeSlots`.
+- [x] `AppDbContext` DbSets: `BellProfiles`, `BellProfileDates`, `WorkingDayOverrides`.
+- [x] Миграция: `dotnet ef migrations add AddBellProfilesAndWorkingDays --project CollegeLMS.API -- --provider Npgsql`.
+- [x] DoD: `dotnet build CollegeLMS.slnx` — 0 ошибок.
 
 ### Task 2: Сервисы и API
 
-- [ ] `IBellScheduleService`: `GetTimeMapAsync(DayOfWeek, ct)`, `GetTimeMapAsync(DateTime, int? substituteDay, ct)`, `GetProfilesAsync`, `CreateProfileAsync`, `UpdateProfileAsync`, `DeleteProfileAsync`, `GetResolvedAsync(date, ct)`; хелпер резолва профиля (дата → подмена → день недели → default).
-- [ ] `BellScheduleService`: профили, валидация (имя, дни 1..7, слоты по текущим правилам, default не удаляется), `ToProfileDto`.
-- [ ] `IWorkingDayService`/`WorkingDayService`/`WorkingDayController` (`api/working-days`) по образцу `NonWorkingDayService` + проверка конфликта с `NonWorkingDay` → 409.
-- [ ] `BellScheduleController`: `GET/PUT /api/bells` (default), `GET/POST /api/bells/profiles`, `PUT/DELETE /api/bells/profiles/{id}`, `GET /api/bells/resolved?date=`, Swagger.
-- [ ] DI: `IWorkingDayService` в `ServiceCollectionExtensions.cs`.
-- [ ] DoD: `dotnet build` — 0 ошибок; таргетные `BellScheduleServiceTests`, новые `WorkingDayServiceTests`.
+- [x] `IBellScheduleService`: `GetTimeMapAsync(DayOfWeek, ct)`, `GetTimeMapAsync(DateTime, int? substituteDay, ct)`, `GetProfilesAsync`, `CreateProfileAsync`, `UpdateProfileAsync`, `DeleteProfileAsync`, `GetResolvedAsync(date, ct)`; хелпер резолва профиля (дата → подмена → день недели → default).
+- [x] `BellScheduleService`: профили, валидация (имя, дни 1..7, слоты по текущим правилам, default не удаляется), `ToProfileDto`.
+- [x] `IWorkingDayService`/`WorkingDayService`/`WorkingDayController` (`api/working-days`) по образцу `NonWorkingDayService` + проверка конфликта с `NonWorkingDay` → 409.
+- [x] `BellScheduleController`: `GET/PUT /api/bells` (default), `GET/POST /api/bells/profiles`, `PUT/DELETE /api/bells/profiles/{id}`, `GET /api/bells/resolved?date=`, Swagger.
+- [x] DI: `IWorkingDayService` в `ServiceCollectionExtensions.cs`.
+- [x] DoD: `dotnet build` — 0 ошибок; таргетные `BellScheduleServiceTests`, новые `WorkingDayServiceTests`.
 
 ### Task 3: Потребители, условные дни, BigBreak
 
-- [ ] Перевести 5 потребителей на date-aware резолв: `ScheduleViewService.cs:262`, `ScheduleService.cs:84,429,481-484,550-553`, `ScheduleImportService.cs:407,536`, `ScheduleExportService.cs:123,657`, `CorrectionApplyEngine.cs:189-191`.
-- [ ] `ScheduleViewService`: Пн–Пт всегда; Сб/Вс только при `WorkingDayOverride` или непустом контенте; рабочий день → `entries` по `SubstituteDayOfWeek`, поля `IsWorkingDay`/`SubstituteDayOfWeek`/`WorkingDayTitle`; `BigBreak` в `ScheduleDayViewResponse`.
-- [ ] `ScheduleExportService`: динамические колонки 5–7 в семестровом экспорте; `BigBreak` в дне/неделе.
-- [ ] Корректировки: разрешить Сб/Вс при наличии override (`ScheduleCorrectionService.cs:36,211`, `CorrectionBatchService.cs:33`).
-- [ ] DoD: `dotnet build` + `ScheduleViewServiceTests`, `ScheduleExportServiceTests`, корректировочные тесты зелёные.
+- [x] Перевести 5 потребителей на date-aware резолв: `ScheduleViewService.cs:262`, `ScheduleService.cs:84,429,481-484,550-553`, `ScheduleImportService.cs:407,536`, `ScheduleExportService.cs:123,657`, `CorrectionApplyEngine.cs:189-191`.
+- [x] `ScheduleViewService`: Пн–Пт всегда; Сб/Вс только при `WorkingDayOverride` или непустом контенте; рабочий день → `entries` по `SubstituteDayOfWeek`, поля `IsWorkingDay`/`SubstituteDayOfWeek`/`WorkingDayTitle`; `BigBreak` в `ScheduleDayViewResponse`.
+- [x] `ScheduleExportService`: динамические колонки 5–7 в семестровом экспорте; `BigBreak` в дне/неделе.
+- [x] Корректировки: разрешить Сб/Вс при наличии override (`ScheduleCorrectionService.cs:36,211`, `CorrectionBatchService.cs:33`).
+- [x] DoD: `dotnet build` + `ScheduleViewServiceTests`, `ScheduleExportServiceTests`, корректировочные тесты зелёные.
 
 ### Task 4: Frontend
 
-- [ ] `/dispatcher/bells`: профили (табы), слоты, большая перемена, дни недели, диапазоны дат, создание/удаление (default защищён).
-- [ ] `/dispatcher/holidays` → «Календарь», вкладки «Нерабочие дни»/«Рабочие дни», `api/workingDays.ts`; меню → «Календарь».
-- [ ] 5 колонок Пн–Пт: `ScheduleWeekView.tsx:214`, `schedule/loading.tsx:26`, `WeekNavigation.tsx:32`; условные выходные и бейдж «за понедельник»; большая перемена в дне/неделе; мини-апп `DayFeed`/`WeekFeed`.
-- [ ] DoD: `npx tsc --noEmit` + `npm run lint` — 0; ручная проверка на 3 viewport'ах.
+- [x] `/dispatcher/bells`: профили (табы), слоты, большая перемена, дни недели, диапазоны дат, создание/удаление (default защищён).
+- [x] `/dispatcher/holidays` → «Календарь», вкладки «Нерабочие дни»/«Рабочие дни», `api/workingDays.ts`; меню → «Календарь».
+- [x] 5 колонок Пн–Пт: `ScheduleWeekView.tsx:214`, `schedule/loading.tsx:26`, `WeekNavigation.tsx:32`; условные выходные и бейдж «за понедельник»; большая перемена в дне/неделе; мини-апп `DayFeed`/`WeekFeed`.
+- [x] DoD: `npx tsc --noEmit` + `npm run lint` — 0; ручная проверка на 3 viewport'ах.
 
 ### Task 5: Тесты, доки, коммит 3A
 
-- [ ] Тесты профилей/рабочих дней/5-дневки/BigBreak; Postman (`bells/profiles`, `working-days`, `resolved`); обновить `task-schedule-reference-data.md`.
-- [ ] Гейты: `dotnet csharpier format .`, `dotnet test` (таргетно), `npx tsc --noEmit`.
-- [ ] Коммит `feat: профили звонков, рабочие дни и 5-дневное расписание`; push.
+- [x] Тесты профилей/рабочих дней/5-дневки/BigBreak; Postman (`bells/profiles`, `working-days`, `resolved`); обновить `task-schedule-reference-data.md`.
+- [x] Гейты: `dotnet csharpier format .`, `dotnet test` (таргетно), `npx tsc --noEmit`.
+- [x] Коммит `feat: профили звонков, рабочие дни и 5-дневное расписание`; push.
 
 ---
 
@@ -97,34 +97,34 @@
 
 ### Task 6: Модель данных и API практик
 
-- [ ] `Practice` +`Name`, −`Organization`, nav `Teachers`; `PracticeTeacher`, `PracticeDay`; конфигурации, индексы, CHECK в `DbConstraints.cs`.
-- [ ] Миграция `AddPracticeNameTeachersDays`.
-- [ ] DTO/сервис/контроллер: `Name`, `TeacherIds[]`, `Days[]`; валидация (≥1 преподаватель, дни УП в периоде, 1..8, пересечения 409); импорт XLSX с новыми колонками.
-- [ ] DoD: `dotnet build` + `PracticeServiceTests` зелёные.
+- [x] `Practice` +`Name`, −`Organization`, nav `Teachers`; `PracticeTeacher`, `PracticeDay`; конфигурации, индексы, CHECK в `DbConstraints.cs`.
+- [x] Миграция `AddPracticeNameTeachersDays`.
+- [x] DTO/сервис/контроллер: `Name`, `TeacherIds[]`, `Days[]`; валидация (≥1 преподаватель, дни УП в периоде, 1..8, пересечения 409); импорт XLSX с новыми колонками.
+- [x] DoD: `dotnet build` + `PracticeServiceTests` зелёные.
 
 ### Task 7: Пары УП в расписании и рендерах
 
-- [ ] `ScheduleViewService.BuildDay`: УП-день → пары 1..`PairCount` с временем профиля, `LessonType=Practice`, +`PracticeName` в `ScheduleResponse`; ПП-день — карточка.
-- [ ] Экспорт/бот/мини-апп/веб — название практики и цвет пар.
-- [ ] DoD: `dotnet build` + тесты расписания зелёные, `npx tsc --noEmit`.
+- [x] `ScheduleViewService.BuildDay`: УП-день → пары 1..`PairCount` с временем профиля, `LessonType=Practice`, +`PracticeName` в `ScheduleResponse`; ПП-день — карточка.
+- [x] Экспорт/бот/мини-апп/веб — название практики и цвет пар.
+- [x] DoD: `dotnet build` + тесты расписания зелёные, `npx tsc --noEmit`.
 
 ### Task 8: PracticeNotifier в MaxBot
 
-- [ ] Модель `PracticeNotification` + `DbSet` + идемпотентный DDL в `Program.cs`.
-- [ ] `PracticeNotifier : BackgroundService` (начало/окончание, получатели группа + преподаватели, МСК), `MessageFormatter.FormatPracticeStarted/Finished`, регистрация hosted.
-- [ ] Тесты `PracticeNotifierTests` + `MessageFormatterTests`.
-- [ ] DoD: `dotnet build CollegeLMS.MaxBot.csproj` + `dotnet test CollegeLMS.MaxBot.Tests` зелёные.
+- [x] Модель `PracticeNotification` + `DbSet` + идемпотентный DDL в `Program.cs`.
+- [x] `PracticeNotifier : BackgroundService` (начало/окончание, получатели группа + преподаватели, МСК), `MessageFormatter.FormatPracticeStarted/Finished`, регистрация hosted.
+- [x] Тесты `PracticeNotifierTests` + `MessageFormatterTests`.
+- [x] DoD: `dotnet build CollegeLMS.MaxBot.csproj` + `dotnet test CollegeLMS.MaxBot.Tests` зелёные.
 
 ### Task 9: Frontend практик + переименование
 
-- [ ] Форма: название, мультиселект преподавателей, дни УП с числом пар (раскрытие по учебным дням), без организации; таблица и импорт.
-- [ ] Переименование в «Практики» (`layout.tsx:56`, `page.tsx:374`, `loading.tsx:4`, `error.tsx:13`).
-- [ ] DoD: `npx tsc --noEmit` + `npm run lint` — 0.
+- [x] Форма: название, мультиселект преподавателей, дни УП с числом пар (раскрытие по учебным дням), без организации; таблица и импорт.
+- [x] Переименование в «Практики» (`layout.tsx:56`, `page.tsx:374`, `loading.tsx:4`, `error.tsx:13`).
+- [x] DoD: `npx tsc --noEmit` + `npm run lint` — 0.
 
 ### Task 10: Тесты, доки, коммит 3B
 
-- [ ] Postman, `task-schedule-management.md` (практики), E2E мок практик при необходимости.
-- [ ] Коммит `feat: практики — название, несколько преподавателей, пары УП по дням и уведомления бота`; push.
+- [x] Postman, `task-schedule-management.md` (практики), E2E мок практик при необходимости.
+- [x] Коммит `feat: практики — название, несколько преподавателей, пары УП по дням и уведомления бота`; push.
 
 ---
 
@@ -132,9 +132,9 @@
 
 ### Task 11
 
-- [ ] `GetJournalAsync(..., groupId, ct)`, группировка `(GroupId, Subject)`, `JournalSubjectGroup.GroupId/GroupName`; контроллер + Swagger.
-- [ ] Web и мини-апп: селект группы, `fetchJournal(teacherId?, subject?, groupId?)`.
-- [ ] Тесты журнала + коммит `feat: журнал преподавателя — группировка и фильтр по группе`.
+- [x] `GetJournalAsync(..., groupId, ct)`, группировка `(GroupId, Subject)`, `JournalSubjectGroup.GroupId/GroupName`; контроллер + Swagger.
+- [x] Web и мини-апп: селект группы, `fetchJournal(teacherId?, subject?, groupId?)`.
+- [x] Тесты журнала + коммит `feat: журнал преподавателя — группировка и фильтр по группе`.
 
 ---
 
@@ -142,14 +142,20 @@
 
 ### Task 12
 
-- [ ] `LiveDashboardService` + `GET /api/dispatcher/live` + DTO (4 статуса, практики, разрешённый профиль звонков).
-- [ ] Раздел «Экспериментальное» (`dispatcherMenu`, `lib/menus.ts`), страница `/dispatcher/live` с автообновлением 30 с.
-- [ ] Тесты + коммит `feat: экспериментальный экран текущих пар`.
+- [x] `LiveDashboardService` + `GET /api/dispatcher/live` + DTO (4 статуса, практики, разрешённый профиль звонков).
+- [x] Раздел «Экспериментальное» (`dispatcherMenu`, `lib/menus.ts`), страница `/dispatcher/live` с автообновлением 30 с.
+- [x] Тесты + коммит `feat: экспериментальный экран текущих пар`.
 
 ---
 
 ## Task 13: Финал
 
-- [ ] Полный `dotnet test CollegeLMS.slnx`, `npm run build`, `dotnet csharpier check .`.
-- [ ] Обновить `docs/spec/task-schedule-management.md`, `userstories.md`, Postman.
-- [ ] Создать PR (`gh pr create`) и убедиться, что `Quality` зелёный.
+- [x] Полный `dotnet test CollegeLMS.slnx`, `npm run build`, `dotnet csharpier check .`.
+- [x] Обновить `docs/spec/task-schedule-management.md`, `userstories.md`, Postman.
+- [x] Создать PR (`gh pr create`) и убедиться, что `Quality` зелёный.
+
+> Фактически работа влита в `master` четырьмя коммитами (`741dea6` 3A, `37b25c9` 3B, `d8af8d1` 3C,
+> `ccda26d` 3D); джобы `quality / backend` и `quality / frontend` прошли зелёными во всех прогонах
+> (workflow «Deploy to VPS», push в `master`). Единственный красный прогон — 3A: `deploy` упал на
+> транзиентном сбое реестра образов (`failed to authorize: Unavailable: error reading from server: EOF`
+> при pull `mcr.microsoft.com/dotnet/sdk:10.0`), последующие прогоны успешны.
