@@ -264,6 +264,9 @@ option:checked {
   * {
     @apply border-border;
   }
+  html {
+    scrollbar-gutter: stable;
+  }
   body {
     @apply bg-bg text-fg;
     font-size: 16px;

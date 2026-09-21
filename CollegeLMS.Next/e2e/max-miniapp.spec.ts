@@ -229,7 +229,7 @@ test.describe("MAX mini-app", () => {
     await expect(page.locator(".max-app__tabbar")).toBeVisible()
     await expect(page.getByText("Invalid Date")).toHaveCount(0)
     // Слои дня: вставка отображается строкой «HH:mm–HH:mm Название».
-    await expect(page.getByText("Вставки")).toBeVisible()
+    await expect(page.getByText("События")).toBeVisible()
     await expect(page.getByText("Кураторский час")).toBeVisible()
     await expect(page.getByText("12:20–13:00")).toBeVisible()
   })
@@ -387,7 +387,7 @@ test.describe("MAX mini-app", () => {
 
     await expect(page.getByText("Изменения применены")).toBeVisible()
     expect(positionBody).not.toBeNull()
-    expect((positionBody as Record<string, unknown>).note).toBeNull()
+    expect((positionBody as unknown as Record<string, unknown>).note).toBeNull()
     expect(JSON.stringify(positionBody)).not.toContain("вм.")
   })
 

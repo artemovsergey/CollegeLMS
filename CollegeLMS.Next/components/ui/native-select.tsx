@@ -3,7 +3,11 @@
 import { cn } from "@/lib/utils"
 import { ChevronDown } from "lucide-react"
 
-interface NativeSelectProps {
+interface NativeSelectProps
+  extends Omit<
+    React.ComponentProps<"select">,
+    "value" | "onChange" | "className" | "children"
+  > {
   value: string
   onValueChange: (value: string) => void
   placeholder?: string
@@ -17,12 +21,14 @@ export function NativeSelect({
   placeholder,
   className,
   children,
+  ...props
 }: NativeSelectProps) {
   return (
     <div className={cn("relative shrink-0", className)}>
       <select
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
+        {...props}
         className="h-9 w-full appearance-none rounded-md border border-input bg-transparent px-3 pr-8 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {placeholder && (

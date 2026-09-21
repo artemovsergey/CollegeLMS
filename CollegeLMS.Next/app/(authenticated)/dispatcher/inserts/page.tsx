@@ -91,7 +91,7 @@ export default function DispatcherInsertsPage() {
       })
       setItems(data)
     } catch (err) {
-      setError(extractErrorMessage(err) ?? "Не удалось загрузить вставки")
+      setError(extractErrorMessage(err) ?? "Не удалось загрузить события")
     } finally {
       setLoading(false)
     }
@@ -131,7 +131,7 @@ export default function DispatcherInsertsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formTitle.trim()) {
-      setFormError("Укажите название вставки.")
+      setFormError("Укажите название события.")
       return
     }
     if (!formStart || !formEnd) {
@@ -156,16 +156,16 @@ export default function DispatcherInsertsPage() {
     try {
       if (editingId) {
         await updateInsert(editingId, body)
-        toast.success("Вставка обновлена")
+        toast.success("Событие обновлено")
       } else {
         await createInsert(body)
-        toast.success("Вставка создана")
+        toast.success("Событие создано")
       }
       setDialogOpen(false)
       await load()
     } catch (err) {
       const message =
-        extractErrorMessage(err) ?? "Не удалось сохранить вставку"
+        extractErrorMessage(err) ?? "Не удалось сохранить событие"
       setFormError(message)
       toast.error(message)
     } finally {
@@ -178,11 +178,11 @@ export default function DispatcherInsertsPage() {
     setDeleting(true)
     try {
       await deleteInsert(deleteTarget.id)
-      toast.success("Вставка удалена")
+      toast.success("Событие удалено")
       setDeleteTarget(null)
       await load()
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось удалить вставку")
+      toast.error(extractErrorMessage(err) ?? "Не удалось удалить событие")
     } finally {
       setDeleting(false)
     }
@@ -192,7 +192,7 @@ export default function DispatcherInsertsPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">Вставки</h1>
+          <h1 className="text-2xl font-semibold">События</h1>
           <p className="text-sm text-muted-foreground">
             Специальные мероприятия дня («Разговор о важном», классный час) —
             отдельной строкой, без номера пары.
@@ -200,7 +200,7 @@ export default function DispatcherInsertsPage() {
         </div>
         <Button onClick={openCreate} className="min-h-11 sm:min-h-9">
           <Plus className="size-4" aria-hidden="true" />
-          Добавить вставку
+          Добавить событие
         </Button>
       </header>
 
@@ -230,7 +230,7 @@ export default function DispatcherInsertsPage() {
             id="inserts-show-inactive"
             checked={showInactive}
             onCheckedChange={setShowInactive}
-            aria-label="Показывать неактивные вставки"
+            aria-label="Показывать неактивные события"
           />
           <Label
             htmlFor="inserts-show-inactive"
@@ -259,12 +259,12 @@ export default function DispatcherInsertsPage() {
           <CardHeader className="border-b py-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <CalendarClock className="size-4" aria-hidden="true" />
-              Список вставок
+              Список событий
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
-              <div role="status" aria-label="Загрузка вставок">
+              <div role="status" aria-label="Загрузка событий">
                 <LoadingSpinner size="lg" className="py-20" />
               </div>
             ) : items.length === 0 ? (
@@ -272,19 +272,19 @@ export default function DispatcherInsertsPage() {
                 <Inbox className="size-12 opacity-40" aria-hidden="true" />
                 <p className="text-base font-medium text-fg">
                   {showInactive
-                    ? "Вставок пока нет"
-                    : "Активных вставок нет"}
+                    ? "Событий пока нет"
+                    : "Активных событий нет"}
                 </p>
                 <EmptyState
                   message={
                     showInactive
-                      ? "Добавьте первую вставку — она появится в расписании отдельной строкой."
-                      : "Включите показ неактивных или добавьте новую вставку."
+                      ? "Добавьте первое событие — оно появится в расписании отдельной строкой."
+                      : "Включите показ неактивных или добавьте новое событие."
                   }
                 />
                 <Button variant="outline" onClick={openCreate}>
                   <Plus className="size-4" aria-hidden="true" />
-                  Добавить вставку
+                  Добавить событие
                 </Button>
               </div>
             ) : (
@@ -326,10 +326,10 @@ export default function DispatcherInsertsPage() {
                               variant="outline"
                               className="border-success/40 text-success"
                             >
-                              Активна
+                              Активно
                             </Badge>
                           ) : (
-                            <Badge variant="secondary">Скрыта</Badge>
+                            <Badge variant="secondary">Скрыто</Badge>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -339,7 +339,7 @@ export default function DispatcherInsertsPage() {
                               size="icon"
                               className="size-11"
                               onClick={() => openEdit(item)}
-                              aria-label={`Редактировать вставку «${item.title}»`}
+                              aria-label={`Редактировать событие «${item.title}»`}
                             >
                               <Pencil className="size-4" aria-hidden="true" />
                             </Button>
@@ -348,7 +348,7 @@ export default function DispatcherInsertsPage() {
                               size="icon"
                               className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
                               onClick={() => setDeleteTarget(item)}
-                              aria-label={`Удалить вставку «${item.title}»`}
+                              aria-label={`Удалить событие «${item.title}»`}
                             >
                               <Trash2 className="size-4" aria-hidden="true" />
                             </Button>
@@ -368,7 +368,7 @@ export default function DispatcherInsertsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingId ? "Изменить вставку" : "Добавить вставку"}
+              {editingId ? "Изменить событие" : "Добавить событие"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -443,12 +443,12 @@ export default function DispatcherInsertsPage() {
                 id="insert-active"
                 checked={formActive}
                 onCheckedChange={setFormActive}
-                aria-label="Вставка активна"
+                aria-label="Событие активно"
               />
               <Label htmlFor="insert-active" className="cursor-pointer">
                 {formActive
-                  ? "Активна — показывается в расписании"
-                  : "Скрыта — не показывается в расписании"}
+                  ? "Активно — показывается в расписании"
+                  : "Скрыто — не показывается в расписании"}
               </Label>
             </div>
             <DialogFooter>
@@ -475,7 +475,7 @@ export default function DispatcherInsertsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить вставку?</AlertDialogTitle>
+            <AlertDialogTitle>Удалить событие?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget
                 ? `«${deleteTarget.title}» (${DAY_OF_WEEK_LABELS[deleteTarget.dayOfWeek] ?? ""}). Действие необратимо.`

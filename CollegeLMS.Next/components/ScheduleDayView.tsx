@@ -121,11 +121,11 @@ export default function ScheduleDayView({
             nonWorkingTitle={data.nonWorkingTitle}
             isSunday={data.isSunday}
             practices={data.practices}
-            inserts={data.inserts}
           />
           {isOrdinaryDay && (
             <ScheduleTable
               entries={data.entries}
+              inserts={data.inserts}
               selectedDay={null}
               currentWeek={isToday ? data.week : undefined}
               onEntryClick={onEntryClick}

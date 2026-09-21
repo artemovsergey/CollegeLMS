@@ -1,21 +1,26 @@
 "use client"
 
 import type { ScheduleResponse } from "@/types/schedule"
+import type { ScheduleInsert } from "@/api/inserts"
 import {
   Clock,
   MapPin,
   GraduationCap,
   Users,
   Calendar,
+  Pencil,
   Trash2,
   Radio,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
+import { InsertRow } from "@/components/ScheduleLayers"
+import { isEntryNow, mergeDayRows, type DayRow } from "@/lib/schedule-merge"
 import { cn } from "@/lib/utils"
 
 interface ScheduleCardsProps {
   entries: ScheduleResponse[]
+  inserts: ScheduleInsert[]
   selectedDay: number | null
   /** Текущая учебная неделя — нужна для подсветки «Сейчас идёт». */
   currentWeek?: number
@@ -56,40 +61,32 @@ function isCurrentlyHappening(
   currentWeek?: number,
 ): boolean {
   if (currentWeek === undefined) return false
-
-  const now = new Date()
-  if (now.getDay() !== entry.dayOfWeek) return false
-  if (!entry.weeks.includes(currentWeek)) return false
-
-  const currentMinutes = now.getHours() * 60 + now.getMinutes()
-  const [sh, sm] = entry.startTime.split(":").map(Number)
-  const [eh, em] = entry.endTime.split(":").map(Number)
-  const startMinutes = sh * 60 + sm
-  const endMinutes = eh * 60 + em
-
-  return currentMinutes >= startMinutes && currentMinutes < endMinutes
+  return isEntryNow(entry, new Date().getDay(), currentWeek)
 }
 
 export default function ScheduleCards({
   entries,
+  inserts,
   selectedDay,
   currentWeek,
   onEntryClick,
   onDeleteClick,
 }: ScheduleCardsProps) {
-  const filtered = selectedDay
+  const filteredEntries = selectedDay
     ? entries.filter((e) => e.dayOfWeek === selectedDay)
     : entries
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek
-    return a.numberPair - b.numberPair
-  })
+  const filteredInserts = selectedDay
+    ? inserts.filter((i) => i.dayOfWeek === selectedDay)
+    : inserts
+
+  const rows: DayRow[] = mergeDayRows(filteredEntries, filteredInserts)
 
   const currentId =
-    sorted.find((entry) => isCurrentlyHappening(entry, currentWeek))?.id ?? null
+    filteredEntries.find((entry) => isCurrentlyHappening(entry, currentWeek))
+      ?.id ?? null
 
-  if (sorted.length === 0) {
+  if (rows.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
         <Calendar className="size-12 opacity-40" />
@@ -99,10 +96,18 @@ export default function ScheduleCards({
     )
   }
 
+  const hasActions = Boolean(onEntryClick || onDeleteClick)
+
   return (
     <div className="flex flex-col gap-3">
-      {sorted.map((entry) => {
+      {rows.map((row) => {
+        if (row.kind === "insert") {
+          return <InsertRow key={`insert-${row.insert.id}`} insert={row.insert} />
+        }
+
+        const entry = row.entry
         const isCurrent = entry.id === currentId
+
         return (
           <div
             key={entry.id}
@@ -112,19 +117,10 @@ export default function ScheduleCards({
                 ? "border-primary bg-primary/[0.06] dark:bg-primary/[0.12]"
                 : "border-t-transparent",
             )}
-            onClick={() => onEntryClick?.(entry)}
           >
-            <div className="flex flex-col items-center justify-center min-w-[40px]">
-              <span
-                className={cn(
-                  "text-lg font-bold leading-none",
-                  isCurrent ? "text-primary" : "text-primary",
-                )}
-              >
+            <div className="flex min-w-[40px] flex-col items-center justify-center">
+              <span className="text-lg font-bold leading-none text-primary">
                 {entry.numberPair}
-              </span>
-              <span className="mt-1 text-[10px] text-muted-foreground whitespace-nowrap">
-                {formatTime(entry.startTime)}
               </span>
             </div>
 
@@ -139,6 +135,10 @@ export default function ScheduleCards({
                 </span>
               )}
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Clock className="size-3 shrink-0" />
+                  {formatTimeSlot(entry.startTime, entry.endTime)}
+                </span>
                 {entry.teacherName && (
                   <span className="flex items-center gap-1">
                     <GraduationCap className="size-3 shrink-0" />
@@ -169,23 +169,31 @@ export default function ScheduleCards({
               )}
             </div>
 
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 self-center">
-              {formatTimeSlot(entry.startTime, entry.endTime)}
-            </span>
-
-            {onDeleteClick && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Удалить занятие"
-                className="absolute right-1 top-1 size-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDeleteClick(entry.id)
-                }}
-              >
-                <Trash2 className="size-3 text-destructive" />
-              </Button>
+            {hasActions && (
+              <div className="flex shrink-0 items-start gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100">
+                {onEntryClick && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Редактировать пару"
+                    className="relative size-8 text-muted-foreground after:absolute after:-inset-1.5 hover:bg-primary/[0.08] hover:text-primary dark:hover:bg-primary/[0.12]"
+                    onClick={() => onEntryClick(entry)}
+                  >
+                    <Pencil className="size-3.5" aria-hidden />
+                  </Button>
+                )}
+                {onDeleteClick && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Удалить пару"
+                    className="relative size-8 text-destructive after:absolute after:-inset-1.5 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
+                    onClick={() => onDeleteClick(entry.id)}
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         )

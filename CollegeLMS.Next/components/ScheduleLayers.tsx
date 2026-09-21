@@ -10,7 +10,6 @@ interface ScheduleLayersProps {
   nonWorkingTitle: string | null
   isSunday: boolean
   practices: Practice[]
-  inserts: ScheduleInsert[]
 }
 
 const PRACTICE_BADGE: Record<Practice["kind"], string> = {
@@ -105,15 +104,14 @@ export function PracticeCard({
   )
 }
 
-/** Слои дня: нерабочий день, воскресенье, практики, вставки. */
+/** Слои дня: нерабочий день, воскресенье, практики. */
 export default function ScheduleLayers({
   nonWorkingTitle,
   isSunday,
   practices,
-  inserts,
 }: ScheduleLayersProps) {
   const hasContent =
-    Boolean(nonWorkingTitle) || isSunday || practices.length > 0 || inserts.length > 0
+    Boolean(nonWorkingTitle) || isSunday || practices.length > 0
   if (!hasContent) return null
 
   return (
@@ -144,17 +142,6 @@ export default function ScheduleLayers({
       {practices.map((practice) => (
         <PracticeCard key={practice.id} practice={practice} />
       ))}
-
-      {inserts.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
-            Вставки
-          </span>
-          {inserts.map((insert) => (
-            <InsertRow key={insert.id} insert={insert} />
-          ))}
-        </div>
-      )}
     </div>
   )
 }

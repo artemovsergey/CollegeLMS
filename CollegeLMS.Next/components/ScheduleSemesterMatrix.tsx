@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { CalendarRange, RefreshCw } from "lucide-react"
+import { Radio, RefreshCw } from "lucide-react"
 import type {
   ScheduleDayView as ScheduleDayData,
   ScheduleSemesterView as ScheduleSemesterData,
@@ -11,12 +11,16 @@ import {
   fetchSemesterView,
   normalizeDateOnly,
   parseIsoDate,
+  toIsoDate,
 } from "@/api/schedule"
 import { InsertRow, PracticeCard } from "@/components/ScheduleLayers"
+import ScheduleFilterPrompt from "@/components/ScheduleFilterPrompt"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
 import { Button } from "@/components/ui/button"
+import { isEntryNow, mergeDayRows } from "@/lib/schedule-merge"
+import { cn } from "@/lib/utils"
 
 interface ScheduleSemesterMatrixProps {
   groupId?: string
@@ -33,7 +37,7 @@ function formatDate(iso: string): string {
   ).padStart(2, "0")}`
 }
 
-function CellContent({ day }: { day: ScheduleDayData }) {
+function CellContent({ day, week }: { day: ScheduleDayData; week: number }) {
   if (day.isNonWorking) {
     return (
       <span className="text-[11px] text-amber-700 dark:text-amber-300">
@@ -56,29 +60,53 @@ function CellContent({ day }: { day: ScheduleDayData }) {
     )
   }
 
-  if (day.entries.length === 0 && day.inserts.length === 0) {
+  const rows = mergeDayRows(day.entries, day.inserts)
+
+  if (rows.length === 0) {
     return <span className="text-muted-foreground">—</span>
   }
 
+  const isToday = normalizeDateOnly(day.date) === toIsoDate(new Date())
+
   return (
     <>
-      {day.inserts.map((insert) => (
-        <InsertRow key={insert.id} insert={insert} compact />
-      ))}
-      {day.entries.map((entry) => (
-        <div key={entry.id} className="text-[11px] leading-tight">
-          <span className="font-semibold">{entry.numberPair}.</span>{" "}
-          <span className="font-medium">{entry.subject}</span>
-          <span className="text-muted-foreground"> · {entry.room}</span>
-          {entry.changeTags && entry.changeTags.length > 0 && (
-            <span className="mt-0.5 flex flex-wrap gap-0.5">
-              {entry.changeTags.map((tag, i) => (
-                <ChangeTagBadge key={i} tag={tag} />
-              ))}
-            </span>
-          )}
-        </div>
-      ))}
+      {rows.map((row) => {
+        if (row.kind === "insert") {
+          return (
+            <InsertRow key={`insert-${row.insert.id}`} insert={row.insert} compact />
+          )
+        }
+
+        const entry = row.entry
+        const isNow = isToday && isEntryNow(entry, day.dayOfWeek, week)
+
+        return (
+          <div
+            key={entry.id}
+            className={cn(
+              "rounded px-0.5 text-[11px] leading-tight",
+              isNow && "border border-primary bg-primary/[0.06] dark:bg-primary/[0.12]",
+            )}
+          >
+            <span className="font-semibold">{entry.numberPair}.</span>{" "}
+            <span className="font-medium">{entry.subject}</span>
+            <span className="text-muted-foreground"> · {entry.room}</span>
+            {isNow && (
+              <span className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-primary">
+                <Radio className="size-2.5 animate-pulse" aria-hidden />
+                Сейчас идёт
+              </span>
+            )}
+            {entry.changeTags && entry.changeTags.length > 0 && (
+              <span className="mt-0.5 flex flex-wrap gap-0.5">
+                {entry.changeTags.map((tag, i) => (
+                  <ChangeTagBadge key={i} tag={tag} />
+                ))}
+              </span>
+            )}
+          </div>
+        )
+      })}
     </>
   )
 }
@@ -131,12 +159,7 @@ export default function ScheduleSemesterMatrix({
   }, [load, hasExactlyOneFilter, refreshKey])
 
   if (!hasExactlyOneFilter) {
-    return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-lg border bg-card p-10 text-center text-muted-foreground">
-        <CalendarRange className="size-10 opacity-40" aria-hidden />
-        <p>Выберите группу или преподавателя</p>
-      </div>
-    )
+    return <ScheduleFilterPrompt />
   }
 
   const headerDays = data?.weeks[0]?.days ?? []
@@ -208,9 +231,9 @@ export default function ScheduleSemesterMatrix({
                           type="button"
                           onClick={() => iso && onDayClick(iso)}
                           aria-label={`Открыть день ${formatDate(iso)}`}
-                          className="flex min-h-[56px] w-full flex-col gap-1 p-1.5 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                          className="flex min-h-[56px] w-full flex-col gap-1 border border-transparent p-1.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:hover:bg-primary/[0.10]"
                         >
-                          <CellContent day={day} />
+                          <CellContent day={day} week={week.week} />
                         </button>
                       </td>
                     )

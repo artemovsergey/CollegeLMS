@@ -52,7 +52,7 @@ export function NativeDialog({
     <dialog
       ref={dialogRef}
       className={cn(
-        "backdrop:bg-black/50 rounded-lg border bg-background p-0 shadow-lg",
+        "m-auto backdrop:bg-black/50 rounded-lg border bg-background p-0 shadow-lg",
         "open:animate-in open:fade-in-0 open:zoom-in-95",
         className
       )}

@@ -225,7 +225,7 @@ public class ScheduleExportService(
         && day.Inserts.Count == 0
         && day.Entries.Count == 0;
 
-    /// <summary>Строки слоёв дня: вставки, практика (заменяет пары), пары с бейджами.</summary>
+    /// <summary>Строки слоёв дня: события, практика (заменяет пары), пары с бейджами.</summary>
     private static List<string> DayLines(ScheduleDayViewResponse day)
     {
         if (day.IsNonWorking)
@@ -241,7 +241,7 @@ public class ScheduleExportService(
         return lines;
     }
 
-    /// <summary>Строки без пар: вставки, практики и пометка нерабочего дня.</summary>
+    /// <summary>Строки без пар: события, практики и пометка нерабочего дня.</summary>
     private static string SpecialLines(ScheduleDayViewResponse day)
     {
         var lines = new List<string>();
@@ -338,7 +338,7 @@ public class ScheduleExportService(
         headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
 
         var row = headerRow + 1;
-        ws.Cell(row, 1).Value = "Вставки";
+        ws.Cell(row, 1).Value = "События";
         for (var i = 0; i < days.Count; i++)
             ws.Cell(row, 2 + i).Value = SpecialLines(days[i]);
         var layerRange = ws.Range(row, 1, row, 1 + days.Count);
@@ -445,7 +445,7 @@ public class ScheduleExportService(
                             .Cell()
                             .Background(Color.FromHex("#e8edf2"))
                             .Padding(3)
-                            .Text("Вставки")
+                            .Text("События")
                             .SemiBold()
                             .FontSize(7);
                         foreach (var day in days)

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-/// <summary>Специальные вставки в расписание (не занимают номер пары).</summary>
+/// <summary>Специальные события в расписании (не занимают номер пары).</summary>
 public class ScheduleInsertService(AppDbContext db) : IScheduleInsertService
 {
     public async Task<Result<List<ScheduleInsertResponse>>> GetAllAsync(
@@ -67,7 +67,7 @@ public class ScheduleInsertService(AppDbContext db) : IScheduleInsertService
     {
         var entity = await db.ScheduleInserts.FirstOrDefaultAsync(i => i.Id == id, ct);
         if (entity is null)
-            return Result<ScheduleInsertResponse>.Fail("Вставка не найдена.", 404);
+            return Result<ScheduleInsertResponse>.Fail("Событие не найдено.", 404);
 
         var error = Validate(request);
         if (error is not null)
@@ -90,7 +90,7 @@ public class ScheduleInsertService(AppDbContext db) : IScheduleInsertService
     {
         var entity = await db.ScheduleInserts.FirstOrDefaultAsync(i => i.Id == id, ct);
         if (entity is null)
-            return Result.Fail("Вставка не найдена.", 404);
+            return Result.Fail("Событие не найдено.", 404);
 
         db.ScheduleInserts.Remove(entity);
         await db.SaveChangesAsync(ct);
@@ -100,16 +100,16 @@ public class ScheduleInsertService(AppDbContext db) : IScheduleInsertService
     private static string? Validate(ScheduleInsertRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
-            return "Укажите название вставки.";
+            return "Укажите название события.";
 
         if (request.Title.Trim().Length > 200)
-            return "Название вставки не должно превышать 200 символов.";
+            return "Название события не должно превышать 200 символов.";
 
         if (request.DayOfWeek is DayOfWeek.Sunday)
-            return "Вставка не может быть на воскресенье.";
+            return "Событие не может быть на воскресенье.";
 
         if (request.StartTime >= request.EndTime)
-            return "Время начала вставки должно быть раньше времени окончания.";
+            return "Время начала события должно быть раньше времени окончания.";
 
         if (request.Course is < 1 or > 4)
             return "Курс должен быть от 1 до 4.";

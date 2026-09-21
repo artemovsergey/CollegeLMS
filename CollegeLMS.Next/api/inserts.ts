@@ -76,6 +76,6 @@ export async function updateInsert(
 export async function deleteInsert(id: string): Promise<void> {
   const res = await api.delete<Result<null>>(`/api/schedule/inserts/${id}`)
   if (!res.data.isSuccess) {
-    throw new Error(res.data.errorMessage ?? "Не удалось удалить вставку")
+    throw new Error(res.data.errorMessage ?? "Не удалось удалить событие")
   }
 }

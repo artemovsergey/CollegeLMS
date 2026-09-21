@@ -208,6 +208,7 @@ export default function StudentDashboardPage() {
               )}
               <ScheduleTable
                 entries={scheduleEntries}
+                inserts={[]}
                 selectedDay={selectedDay}
                 currentWeek={meta?.currentWeek}
               />

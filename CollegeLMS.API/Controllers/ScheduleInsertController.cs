@@ -7,16 +7,16 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace CollegeLMS.API.Controllers;
 
-/// <summary>Специальные вставки в расписание (например, «Разговор о важном»).</summary>
+/// <summary>Специальные события в расписании (например, «Разговор о важном»).</summary>
 [ApiController]
 [Route("api/schedule/inserts")]
 [Produces("application/json")]
 public class ScheduleInsertController(IScheduleInsertService service) : ControllerBase
 {
-    /// <summary>Список вставок с фильтрами по дню недели и курсу.</summary>
+    /// <summary>Список событий с фильтрами по дню недели и курсу.</summary>
     [HttpGet]
     [AllowAnonymous]
-    [SwaggerOperation(Summary = "Список вставок в расписание")]
+    [SwaggerOperation(Summary = "Список событий в расписании")]
     [SwaggerResponse(200, "Список получен", typeof(Result<List<ScheduleInsertResponse>>))]
     [ProducesResponseType(typeof(Result<List<ScheduleInsertResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
@@ -30,11 +30,11 @@ public class ScheduleInsertController(IScheduleInsertService service) : Controll
         return Ok(result);
     }
 
-    /// <summary>Создать вставку.</summary>
+    /// <summary>Создать событие.</summary>
     [HttpPost]
     [Authorize(Roles = "Dispatcher,Admin")]
-    [SwaggerOperation(Summary = "Создать вставку")]
-    [SwaggerResponse(200, "Вставка создана", typeof(Result<ScheduleInsertResponse>))]
+    [SwaggerOperation(Summary = "Создать событие")]
+    [SwaggerResponse(200, "Событие создано", typeof(Result<ScheduleInsertResponse>))]
     [SwaggerResponse(400, "Некорректные данные", typeof(ErrorResponse))]
     [SwaggerResponse(401, "Не авторизован", typeof(ErrorResponse))]
     [SwaggerResponse(403, "Доступ запрещён", typeof(ErrorResponse))]
@@ -48,13 +48,13 @@ public class ScheduleInsertController(IScheduleInsertService service) : Controll
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Изменить вставку.</summary>
+    /// <summary>Изменить событие.</summary>
     [HttpPut("{id:guid}")]
     [Authorize(Roles = "Dispatcher,Admin")]
-    [SwaggerOperation(Summary = "Изменить вставку")]
-    [SwaggerResponse(200, "Вставка обновлена", typeof(Result<ScheduleInsertResponse>))]
+    [SwaggerOperation(Summary = "Изменить событие")]
+    [SwaggerResponse(200, "Событие обновлено", typeof(Result<ScheduleInsertResponse>))]
     [SwaggerResponse(400, "Некорректные данные", typeof(ErrorResponse))]
-    [SwaggerResponse(404, "Вставка не найдена", typeof(ErrorResponse))]
+    [SwaggerResponse(404, "Событие не найдено", typeof(ErrorResponse))]
     [ProducesResponseType(typeof(Result<ScheduleInsertResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -68,12 +68,12 @@ public class ScheduleInsertController(IScheduleInsertService service) : Controll
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Удалить вставку.</summary>
+    /// <summary>Удалить событие.</summary>
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Dispatcher,Admin")]
-    [SwaggerOperation(Summary = "Удалить вставку")]
-    [SwaggerResponse(200, "Вставка удалена")]
-    [SwaggerResponse(404, "Вставка не найдена", typeof(ErrorResponse))]
+    [SwaggerOperation(Summary = "Удалить событие")]
+    [SwaggerResponse(200, "Событие удалено")]
+    [SwaggerResponse(404, "Событие не найдено", typeof(ErrorResponse))]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)

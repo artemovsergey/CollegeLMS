@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { RefreshCw } from "lucide-react"
+import { Radio, RefreshCw } from "lucide-react"
 import type {
   ScheduleDayView as ScheduleDayData,
   ScheduleWeekView as ScheduleWeekData,
@@ -11,12 +11,14 @@ import {
   fetchWeekView,
   normalizeDateOnly,
   parseIsoDate,
+  toIsoDate,
 } from "@/api/schedule"
 import { InsertRow, PracticeCard } from "@/components/ScheduleLayers"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
 import { Button } from "@/components/ui/button"
+import { isEntryNow, mergeDayRows } from "@/lib/schedule-merge"
 import { cn } from "@/lib/utils"
 
 interface ScheduleWeekViewProps {
@@ -40,15 +42,18 @@ function formatTime(time: string): string {
 
 function DayColumn({
   day,
+  week,
   onOpen,
 }: {
   day: ScheduleDayData
+  week: number
   onOpen: (date: string) => void
 }) {
   const iso = normalizeDateOnly(day.date)
   const info = DAYS.find((d) => d.value === day.dayOfWeek)
   const dateLabel = formatDate(parseIsoDate(iso))
-  const hasPractice = day.practices.length > 0
+  const isToday = iso !== "" && iso === toIsoDate(new Date())
+  const rows = mergeDayRows(day.entries, day.inserts)
 
   return (
     <div
@@ -62,7 +67,7 @@ function DayColumn({
           onOpen(iso)
         }
       }}
-      className="flex min-h-11 cursor-pointer flex-col gap-2 rounded-lg border bg-card p-2 text-left transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="flex min-h-11 cursor-pointer flex-col gap-2 rounded-lg border bg-card p-2 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:hover:bg-primary/[0.10]"
     >
       <div className="flex items-baseline justify-between gap-1">
         <span className="text-sm font-semibold">{info?.label ?? "—"}</span>
@@ -81,46 +86,60 @@ function DayColumn({
             <PracticeCard key={practice.id} practice={practice} compact />
           ))}
 
-          {!hasPractice && (
-            <>
-              {day.inserts.map((insert) => (
-                <InsertRow key={insert.id} insert={insert} compact />
-              ))}
-
-              {day.entries.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Нет пар</p>
-              ) : (
-                day.entries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-md border-l-2 border-primary/40 bg-muted/30 px-2 py-1.5 text-xs"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold">{entry.numberPair}</span>
-                      <span className="whitespace-nowrap text-muted-foreground">
-                        {formatTime(entry.startTime)}–
-                        {formatTime(entry.endTime)}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 font-medium leading-tight">
-                      {entry.subject}
-                    </p>
-                    <p className="mt-0.5 truncate text-muted-foreground">
-                      {entry.room}
-                      {entry.teacherName ? ` · ${entry.teacherName}` : ""}
-                    </p>
-                    {entry.changeTags && entry.changeTags.length > 0 && (
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {entry.changeTags.map((tag, i) => (
-                          <ChangeTagBadge key={i} tag={tag} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </>
+          {rows.length === 0 && day.practices.length === 0 && (
+            <p className="text-xs text-muted-foreground">Нет пар</p>
           )}
+
+          {rows.map((row) => {
+            if (row.kind === "insert") {
+              return (
+                <InsertRow key={`insert-${row.insert.id}`} insert={row.insert} compact />
+              )
+            }
+
+            const entry = row.entry
+            const isNow = isToday && isEntryNow(entry, day.dayOfWeek, week)
+
+            return (
+              <div
+                key={entry.id}
+                className={cn(
+                  "rounded-md border-l-2 px-2 py-1.5 text-xs",
+                  isNow
+                    ? "border-primary bg-primary/[0.06] dark:bg-primary/[0.12]"
+                    : "border-primary/40 bg-muted/30",
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold">{entry.numberPair}</span>
+                  <span className="whitespace-nowrap text-muted-foreground">
+                    {formatTime(entry.startTime)}–
+                    {formatTime(entry.endTime)}
+                  </span>
+                </div>
+                <p className="mt-0.5 font-medium leading-tight">
+                  {entry.subject}
+                </p>
+                <p className="mt-0.5 truncate text-muted-foreground">
+                  {entry.room}
+                  {entry.teacherName ? ` · ${entry.teacherName}` : ""}
+                </p>
+                {isNow && (
+                  <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-medium text-primary">
+                    <Radio className="size-2.5 animate-pulse" aria-hidden />
+                    Сейчас идёт
+                  </span>
+                )}
+                {entry.changeTags && entry.changeTags.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {entry.changeTags.map((tag, i) => (
+                      <ChangeTagBadge key={i} tag={tag} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </>
       )}
     </div>
@@ -205,6 +224,7 @@ export default function ScheduleWeekView({
             <DayColumn
               key={normalizeDateOnly(day.date)}
               day={day}
+              week={data.week}
               onOpen={onDayClick}
             />
           ))}

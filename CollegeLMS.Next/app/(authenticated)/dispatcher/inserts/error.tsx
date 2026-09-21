@@ -9,5 +9,5 @@ export default function InsertsError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  return <ReferenceErrorState error={error} reset={reset} title="Вставки" />
+  return <ReferenceErrorState error={error} reset={reset} title="События" />
 }

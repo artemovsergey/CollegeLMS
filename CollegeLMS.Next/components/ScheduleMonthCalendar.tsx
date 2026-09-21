@@ -7,6 +7,7 @@ import {
   fetchMonthView,
   normalizeDateOnly,
   parseIsoDate,
+  toIsoDate,
   toIsoMonth,
 } from "@/api/schedule"
 import {
@@ -118,6 +119,7 @@ export default function ScheduleMonthCalendar({
 
   const isCurrentMonth = month === toIsoMonth(new Date())
   const cells = data ? buildCells(data.days) : []
+  const todayIso = toIsoDate(new Date())
 
   return (
     <div className="flex flex-col gap-3">
@@ -200,6 +202,7 @@ export default function ScheduleMonthCalendar({
               const iso = normalizeDateOnly(day.date)
               const dayNumber = iso ? Number(iso.slice(8, 10)) : ""
               const muted = day.isSunday || day.isOutOfSemester
+              const isToday = iso !== "" && iso === todayIso
               const dayLabel = `${dayNumber} ${
                 day.isNonWorking
                   ? `— нерабочий день: ${day.nonWorkingTitle}`
@@ -217,11 +220,20 @@ export default function ScheduleMonthCalendar({
                   onClick={() => iso && onDayClick(iso)}
                   aria-label={`Открыть ${dayNumber}: ${dayLabel}`}
                   className={cn(
-                    "flex min-h-[64px] flex-col items-start gap-1 rounded-md border p-1.5 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                    "flex min-h-[64px] flex-col items-start gap-1 rounded-md border p-1.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:hover:bg-primary/[0.10]",
+                    isToday &&
+                      "border-primary/40 bg-primary/[0.04] ring-1 ring-primary/40 dark:bg-primary/[0.10]",
                     muted && "text-muted-foreground opacity-50",
                   )}
                 >
-                  <span className="text-sm font-medium">{dayNumber}</span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-sm font-medium">{dayNumber}</span>
+                    {isToday && (
+                      <span className="rounded bg-primary/10 px-1 text-[10px] font-medium text-primary">
+                        Сегодня
+                      </span>
+                    )}
+                  </span>
 
                   {day.isNonWorking ? (
                     <span

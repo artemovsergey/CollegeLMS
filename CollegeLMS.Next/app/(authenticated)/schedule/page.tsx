@@ -20,12 +20,23 @@ import {
 } from "@/api/schedule"
 import { Button } from "@/components/ui/button"
 import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import ScheduleViewSwitcher from "@/components/ScheduleViewSwitcher"
 import WeekNavigation from "@/components/WeekNavigation"
 import ScheduleDayView from "@/components/ScheduleDayView"
 import ScheduleWeekView from "@/components/ScheduleWeekView"
 import ScheduleMonthCalendar from "@/components/ScheduleMonthCalendar"
 import ScheduleSemesterMatrix from "@/components/ScheduleSemesterMatrix"
+import ScheduleFilterPrompt from "@/components/ScheduleFilterPrompt"
 import ScheduleEntryDialog from "@/components/ScheduleEntryDialog"
 import ScheduleImportDialog from "@/components/ScheduleImportDialog"
 import { CAN_MANAGE_ROLES } from "@/lib/constants"
@@ -63,6 +74,7 @@ export default function SchedulePage() {
 
   const [refreshKey, setRefreshKey] = useState(0)
   const [urlReady, setUrlReady] = useState(false)
+  const [contextReady, setContextReady] = useState(false)
 
   const [entryDialogOpen, setEntryDialogOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<ScheduleResponse | null>(
@@ -82,6 +94,7 @@ export default function SchedulePage() {
   const hasCustomFilters =
     selectedGroupId !== defaultGroupId ||
     selectedTeacherId !== defaultTeacherId
+  const hasSelectedFilter = Boolean(selectedGroupId || selectedTeacherId)
 
   // Разбор URL: view|date|week|month и миграция старых ?week=&day=.
   useEffect(() => {
@@ -193,6 +206,9 @@ export default function SchedulePage() {
         setSelectedTeacherId(teacherId)
       })
       .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setContextReady(true)
+      })
     return () => {
       cancelled = true
     }
@@ -294,17 +310,9 @@ export default function SchedulePage() {
     setEntryDialogOpen(true)
   }
 
-  const handleDelete = async () => {
-    if (!deleteConfirmId) return
-    const confirmed = window.confirm(
-      "Удалить запись? Это действие нельзя отменить.",
-    )
-    if (!confirmed) {
-      setDeleteConfirmId(null)
-      return
-    }
+  const handleDelete = async (id: string) => {
     try {
-      const result = await deleteSchedule(deleteConfirmId)
+      const result = await deleteSchedule(id)
       if (result.isSuccess) {
         toast.success("Запись удалена")
         setRefreshKey((k) => k + 1)
@@ -380,30 +388,30 @@ export default function SchedulePage() {
         <div className="flex flex-1 flex-wrap items-center gap-2 lg:justify-end">
           <ScheduleViewSwitcher value={view} onChange={handleViewChange} />
 
-          {view !== "calendar" && (
-            <NativeSelect
-              value=""
-              onValueChange={(v) => {
-                if (v) {
-                  const [format, layout] = v.split(":") as [
-                    "pdf" | "xlsx",
-                    "grid" | "daycards",
-                  ]
-                  handleExport(format, layout)
-                }
-              }}
-              className="w-[205px]"
-              aria-label="Экспорт расписания"
-            >
-              <option value="" disabled>
-                Экспорт
-              </option>
-              <option value="pdf:grid">PDF — Сетка</option>
-              <option value="pdf:daycards">PDF — По дням</option>
-              <option value="xlsx:grid">Excel — Сетка</option>
-              <option value="xlsx:daycards">Excel — По дням</option>
-            </NativeSelect>
-          )}
+          <NativeSelect
+            value=""
+            onValueChange={(v) => {
+              if (v) {
+                const [format, layout] = v.split(":") as [
+                  "pdf" | "xlsx",
+                  "grid" | "daycards",
+                ]
+                handleExport(format, layout)
+              }
+            }}
+            className="w-[205px]"
+            aria-label="Экспорт расписания"
+            disabled={view === "calendar"}
+            aria-disabled={view === "calendar"}
+          >
+            <option value="" disabled>
+              Экспорт
+            </option>
+            <option value="pdf:grid">PDF — Сетка</option>
+            <option value="pdf:daycards">PDF — По дням</option>
+            <option value="xlsx:grid">Excel — Сетка</option>
+            <option value="xlsx:daycards">Excel — По дням</option>
+          </NativeSelect>
 
           {canManage && (
             <>
@@ -433,48 +441,58 @@ export default function SchedulePage() {
         />
       )}
 
-      {view === "day" && (
-        <ScheduleDayView
-          date={selectedDate}
-          groupId={selectedGroupId || undefined}
-          teacherId={selectedTeacherId || undefined}
-          refreshKey={refreshKey}
-          onDateChange={handleDateChange}
-          onEntryClick={canManage ? handleEdit : undefined}
-          onDeleteClick={
-            canManage ? (id) => setDeleteConfirmId(id) : undefined
-          }
-        />
-      )}
+      {!contextReady ? (
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      ) : !hasSelectedFilter ? (
+        <ScheduleFilterPrompt />
+      ) : (
+        <>
+          {view === "day" && (
+            <ScheduleDayView
+              date={selectedDate}
+              groupId={selectedGroupId || undefined}
+              teacherId={selectedTeacherId || undefined}
+              refreshKey={refreshKey}
+              onDateChange={handleDateChange}
+              onEntryClick={canManage ? handleEdit : undefined}
+              onDeleteClick={
+                canManage ? (id) => setDeleteConfirmId(id) : undefined
+              }
+            />
+          )}
 
-      {view === "week" && (
-        <ScheduleWeekView
-          week={selectedWeek}
-          groupId={selectedGroupId || undefined}
-          teacherId={selectedTeacherId || undefined}
-          refreshKey={refreshKey}
-          onDayClick={handleDayOpen}
-        />
-      )}
+          {view === "week" && (
+            <ScheduleWeekView
+              week={selectedWeek}
+              groupId={selectedGroupId || undefined}
+              teacherId={selectedTeacherId || undefined}
+              refreshKey={refreshKey}
+              onDayClick={handleDayOpen}
+            />
+          )}
 
-      {view === "calendar" && (
-        <ScheduleMonthCalendar
-          month={selectedMonth}
-          groupId={selectedGroupId || undefined}
-          teacherId={selectedTeacherId || undefined}
-          refreshKey={refreshKey}
-          onMonthChange={setSelectedMonth}
-          onDayClick={handleDayOpen}
-        />
-      )}
+          {view === "calendar" && (
+            <ScheduleMonthCalendar
+              month={selectedMonth}
+              groupId={selectedGroupId || undefined}
+              teacherId={selectedTeacherId || undefined}
+              refreshKey={refreshKey}
+              onMonthChange={setSelectedMonth}
+              onDayClick={handleDayOpen}
+            />
+          )}
 
-      {view === "semester" && (
-        <ScheduleSemesterMatrix
-          groupId={selectedGroupId || undefined}
-          teacherId={selectedTeacherId || undefined}
-          refreshKey={refreshKey}
-          onDayClick={handleDayOpen}
-        />
+          {view === "semester" && (
+            <ScheduleSemesterMatrix
+              groupId={selectedGroupId || undefined}
+              teacherId={selectedTeacherId || undefined}
+              refreshKey={refreshKey}
+              onDayClick={handleDayOpen}
+            />
+          )}
+        </>
       )}
 
       <ScheduleEntryDialog
@@ -492,6 +510,33 @@ export default function SchedulePage() {
         onOpenChange={setImportDialogOpen}
         onImported={() => setRefreshKey((k) => k + 1)}
       />
+
+      <AlertDialog
+        open={deleteConfirmId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить пару?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Запись будет удалена из расписания. Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteConfirmId) void handleDelete(deleteConfirmId)
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

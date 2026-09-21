@@ -4,7 +4,7 @@ using CollegeLMS.API.Response;
 
 namespace CollegeLMS.API.SwaggerExamples;
 
-/// <summary>Пример успешного ответа вида «День» (view=day): две пары, вставка и бейдж «Добавлено».</summary>
+/// <summary>Пример успешного ответа вида «День» (view=day): две пары, событие и бейдж «Добавлено».</summary>
 public static class ScheduleDayViewExample
 {
     public static Result<ScheduleDayViewResponse> Create() =>
