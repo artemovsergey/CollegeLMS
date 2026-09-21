@@ -25,9 +25,9 @@
 
   /* --- Декор: шевроны и паттерн кубов --- */
   .decor { position:absolute; pointer-events:none; z-index:0; }
-  .decor--chevrons-r { right:-64px; top:150px; height:360px; opacity:.10; }
-  .decor--chevrons-l { left:-70px; bottom:150px; height:220px; opacity:.08; transform:scaleX(-1); }
-  .decor--cubes { left:-30px; bottom:-40px; width:320px; opacity:.08; }
+  .decor--chevrons-r { right:-64px; top:120px; height:360px; opacity:.10; }
+  .decor--chevrons-l { left:-70px; bottom:30px; height:200px; opacity:.07; transform:scaleX(-1); }
+  .decor--cubes { left:-30px; bottom:-40px; width:300px; opacity:.07; }
 
   /* --- Сетка постера --- */
   .page {
@@ -58,17 +58,27 @@
   .sub {
     margin-top:10px;
     color:#BDC6CB; font-weight:500; font-size:13px; line-height:1.35;
-    max-width:415px;
   }
 
+  /* --- Центральный знак: эмблема колледжа --- */
+  .brandmark {
+    margin:12px auto 0; width:fit-content;
+    background:#fff; border-radius:18px;
+    padding:10px 20px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .brandmark img { height:102px; display:block; }
+
+  /* --- Единая подпись для всех QR --- */
+  .hint { margin-top:12px; text-align:center; color:#BDC6CB; font-weight:500; font-size:11px; }
+  .hint b { color:#4ECC0A; font-weight:900; letter-spacing:.01em; }
+
   /* --- Карточки компетенций --- */
-  .cards { margin-top:16px; display:flex; gap:11px; }
+  .cards { margin-top:12px; display:flex; gap:11px; }
   .card {
     position:relative; flex:1 1 0; min-width:0;
     background:#fff; color:#1D1D1B;
-    border-radius:14px; padding:11px 9px 10px;
-    display:flex; flex-direction:column;
-    overflow:hidden;
+    border-radius:14px; padding:11px 9px 11px;
   }
   .card h3 {
     font-weight:700; font-size:11px; line-height:1.22; letter-spacing:-.01em;
@@ -79,29 +89,10 @@
     background:#4ECC0A; margin-right:5px; vertical-align:1px;
   }
   .card .qr { width:100%; height:auto; display:block; margin-top:7px; border-radius:4px; }
-  .card .cap {
-    margin-top:7px;
-    color:#3FA207; font-weight:700; font-size:9px; line-height:1.25;
-    letter-spacing:.01em;
-  }
 
-  /* --- CTA --- */
-  .cta {
-    margin-top:18px;
-    background:#4ECC0A; color:#1D1D1B;
-    border-radius:14px; padding:13px 18px;
-    font-weight:900; font-size:16.5px; letter-spacing:.01em;
-    text-align:center;
-  }
-
-  /* --- Нижняя белая полоса: эмблема колледжа --- */
-  footer {
-    margin-top:auto; margin-left:-30px; margin-right:-30px;
-    height:128px;
-    background:#fff;
-    display:flex; align-items:center; justify-content:center;
-  }
-  footer img { height:88px; display:block; }
+  /* --- Контакты: компактная строка --- */
+  .contact { margin-top:12px; text-align:center; color:#BDC6CB; font-weight:500; font-size:11px; }
+  .contact b { color:#fff; font-weight:700; }
 </style>
 </head>
 <body>
@@ -117,31 +108,30 @@
     </header>
 
     <h1>Хочешь на&nbsp;чемпионат?<br><span class="accent">Покажи себя!</span></h1>
-    <p class="sub">Отбор студентов на Всероссийский чемпионат «Профессионалы». Выбери свою компетенцию — и вперёд.</p>
+    <p class="sub">Отбор студентов на Всероссийский чемпионат «Профессионалы»</p>
+
+    <div class="brandmark">
+      <img src="assets/college-emblem.png" alt="Ставропольский колледж связи им. В.А. Петрова">
+    </div>
+
+    <div class="hint"><b>Сканируй QR</b> — откроется тестовое задание твоей компетенции</div>
 
     <div class="cards">
       <div class="card">
         <h3><span class="dot"></span>Программные решения для бизнеса</h3>
         <img class="qr" src="qr/qr-programmnye-resheniya.png" alt="QR: тестовое задание — Программные решения для бизнеса">
-        <div class="cap">Сканируй — тестовое задание</div>
       </div>
       <div class="card">
         <h3><span class="dot"></span>Веб-технологии</h3>
         <img class="qr" src="qr/qr-veb-tehnologii.png" alt="QR: тестовое задание — Веб-технологии">
-        <div class="cap">Сканируй — тестовое задание</div>
       </div>
       <div class="card">
         <h3><span class="dot"></span>Разработка мобильных приложений</h3>
         <img class="qr" src="qr/qr-mobilnye-prilozheniya.png" alt="QR: тестовое задание — Разработка мобильных приложений">
-        <div class="cap">Сканируй — тестовое задание</div>
       </div>
     </div>
 
-    <div class="cta">Обращаться: кабинет 202л</div>
-
-    <footer>
-      <img src="assets/college-logo.svg" alt="Ставропольский колледж связи им. В.А. Петрова">
-    </footer>
+    <div class="contact">Запись и вопросы — <b>кабинет 202л</b></div>
   </div>
 </body>
 </html>
