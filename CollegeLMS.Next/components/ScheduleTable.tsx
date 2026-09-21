@@ -17,28 +17,10 @@ import { cn } from "@/lib/utils"
 interface ScheduleCardsProps {
   entries: ScheduleResponse[]
   selectedDay: number | null
+  /** Текущая учебная неделя — нужна для подсветки «Сейчас идёт». */
+  currentWeek?: number
   onEntryClick?: (entry: ScheduleResponse) => void
   onDeleteClick?: (id: string) => void
-}
-
-const SEMESTER_START = new Date(2026, 8, 1)
-
-function getMondayOfWeek(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const offset = day === 0 ? 6 : day - 1
-  d.setDate(d.getDate() - offset)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function getCurrentWeek(): number {
-  const now = new Date()
-  const currentMonday = getMondayOfWeek(now)
-  const semesterMonday = getMondayOfWeek(SEMESTER_START)
-  const diffMs = currentMonday.getTime() - semesterMonday.getTime()
-  const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
-  return Math.max(1, diffWeeks + 1)
 }
 
 function formatTime(time: string) {
@@ -69,12 +51,14 @@ function formatWeeks(weeks: number[]): string {
   return ranges.join(", ")
 }
 
-function isCurrentlyHappening(entry: ScheduleResponse): boolean {
-  const now = new Date()
-  const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay()
-  if (dayOfWeek !== entry.dayOfWeek) return false
+function isCurrentlyHappening(
+  entry: ScheduleResponse,
+  currentWeek?: number,
+): boolean {
+  if (currentWeek === undefined) return false
 
-  const currentWeek = getCurrentWeek()
+  const now = new Date()
+  if (now.getDay() !== entry.dayOfWeek) return false
   if (!entry.weeks.includes(currentWeek)) return false
 
   const currentMinutes = now.getHours() * 60 + now.getMinutes()
@@ -89,6 +73,7 @@ function isCurrentlyHappening(entry: ScheduleResponse): boolean {
 export default function ScheduleCards({
   entries,
   selectedDay,
+  currentWeek,
   onEntryClick,
   onDeleteClick,
 }: ScheduleCardsProps) {
@@ -101,7 +86,8 @@ export default function ScheduleCards({
     return a.numberPair - b.numberPair
   })
 
-  const currentId = sorted.find(isCurrentlyHappening)?.id ?? null
+  const currentId =
+    sorted.find((entry) => isCurrentlyHappening(entry, currentWeek))?.id ?? null
 
   if (sorted.length === 0) {
     return (

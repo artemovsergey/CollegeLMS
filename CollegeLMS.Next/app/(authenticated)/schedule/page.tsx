@@ -13,7 +13,6 @@ import {
   fetchSemesterView,
   exportSchedule,
   deleteSchedule,
-  isValidDate,
   normalizeDateOnly,
   parseIsoDate,
   toIsoDate,
@@ -25,7 +24,7 @@ import { Button } from "@/components/ui/button"
 import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import ScheduleViewSwitcher from "@/components/ScheduleViewSwitcher"
 import WeekNavigation from "@/components/WeekNavigation"
-import DayTabs from "@/components/DayTabs"
+import ScheduleDayView from "@/components/ScheduleDayView"
 import ScheduleTable from "@/components/ScheduleTable"
 import SemesterView from "@/components/SemesterView"
 import ScheduleEntryDialog from "@/components/ScheduleEntryDialog"
@@ -92,11 +91,6 @@ export default function SchedulePage() {
     selectedTeacherId !== defaultTeacherId
   const semesterFilterMissing =
     Boolean(selectedGroupId) === Boolean(selectedTeacherId)
-
-  const parsedSelectedDate = parseIsoDate(selectedDate)
-  const selectedDayNum = isValidDate(parsedSelectedDate)
-    ? parsedSelectedDate.getDay()
-    : null
 
   // Разбор URL: view|date|week|month и миграция старых ?week=&day=.
   useEffect(() => {
@@ -255,7 +249,7 @@ export default function SchedulePage() {
   // и старый семестровый вид.
   const loadViewData = useCallback(async () => {
     if (!token) return
-    if (view === "calendar") {
+    if (view === "calendar" || view === "day") {
       setLoading(false)
       return
     }
@@ -286,11 +280,12 @@ export default function SchedulePage() {
           setError(body.errorMessage ?? "Ошибка загрузки расписания")
         }
       } else {
-        const params: ScheduleFilters = { pageSize: 300 }
+        const params: ScheduleFilters = {
+          pageSize: 300,
+          week: selectedWeek,
+        }
         if (selectedGroupId) params.groupId = selectedGroupId
         if (selectedTeacherId) params.teacherId = selectedTeacherId
-        if (view === "day") params.date = selectedDate
-        else params.week = selectedWeek
         const body = await fetchSchedule(params)
         if (requestId !== requestIdRef.current) return
         if (body.isSuccess && body.data) {
@@ -334,14 +329,6 @@ export default function SchedulePage() {
     const normalized = normalizeDateOnly(date)
     if (normalized) setSelectedDate(normalized)
     setView("day")
-  }
-
-  const handleDayTabChange = (day: number | null) => {
-    if (day === null) return
-    const base = mondayOf(isValidDate(parsedSelectedDate) ? parsedSelectedDate : new Date())
-    const target = new Date(base)
-    target.setDate(target.getDate() + ((day + 6) % 7))
-    setSelectedDate(toIsoDate(target))
   }
 
   const handleSemesterCellClick = (week: number, day: number) => {
@@ -532,13 +519,23 @@ export default function SchedulePage() {
         />
       )}
 
-      {view === "day" && (
-        <DayTabs selectedDay={selectedDayNum} onChange={handleDayTabChange} />
-      )}
-
       {error && <ErrorBanner message={error} />}
 
-      {(view === "day" || view === "week") &&
+      {view === "day" && (
+        <ScheduleDayView
+          date={selectedDate}
+          groupId={selectedGroupId || undefined}
+          teacherId={selectedTeacherId || undefined}
+          refreshKey={refreshKey}
+          onDateChange={handleDateChange}
+          onEntryClick={canManage ? handleEdit : undefined}
+          onDeleteClick={
+            canManage ? (id) => setDeleteConfirmId(id) : undefined
+          }
+        />
+      )}
+
+      {view === "week" &&
         (loading ? (
           <div className="flex min-h-[60vh] items-center justify-center">
             <LoadingSpinner size="lg" />

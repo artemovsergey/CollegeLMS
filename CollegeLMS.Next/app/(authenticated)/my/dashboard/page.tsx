@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import type { Result, StudentDashboardResponse, ProfileResponse } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
+import { DAYS } from "@/types/schedule"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import {
@@ -17,9 +18,9 @@ import ErrorBanner from "@/components/ErrorBanner"
 import CourseCard from "@/components/CourseCard"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import WeekNavigation from "@/components/WeekNavigation"
-import DayTabs from "@/components/DayTabs"
 import ScheduleTable from "@/components/ScheduleTable"
 import { CalendarDays, BookOpen } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export default function StudentDashboardPage() {
   const { token, user } = useAuth()
@@ -174,7 +175,30 @@ export default function StudentDashboardPage() {
               />
             )}
 
-            <DayTabs selectedDay={selectedDay} onChange={setSelectedDay} />
+            <div
+              className="flex gap-1 overflow-x-auto"
+              role="group"
+              aria-label="День недели"
+            >
+              {DAYS.filter((d) => d.value >= 1 && d.value <= 5).map((day) => (
+                <button
+                  key={day.value}
+                  type="button"
+                  aria-pressed={day.value === selectedDay}
+                  onClick={() =>
+                    setSelectedDay(day.value === selectedDay ? null : day.value)
+                  }
+                  className={cn(
+                    "min-h-11 min-w-[48px] rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    day.value === selectedDay
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
 
             <div className="relative">
               {scheduleLoading && (
@@ -185,6 +209,7 @@ export default function StudentDashboardPage() {
               <ScheduleTable
                 entries={scheduleEntries}
                 selectedDay={selectedDay}
+                currentWeek={meta?.currentWeek}
               />
             </div>
           </>
