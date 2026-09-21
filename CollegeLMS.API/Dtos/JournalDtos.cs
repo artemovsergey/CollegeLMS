@@ -10,6 +10,8 @@ public class JournalResponse
 
 public class JournalSubjectGroup
 {
+    public Guid GroupId { get; set; }
+    public string GroupName { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
     public List<JournalEntryItem> Items { get; set; } = new();
     public int PairCount { get; set; }

@@ -162,6 +162,7 @@ public class ScheduleService(
     public async Task<Result<JournalResponse>> GetJournalAsync(
         Guid teacherId,
         string? subject,
+        Guid? groupId,
         CancellationToken ct
     )
     {
@@ -176,8 +177,15 @@ public class ScheduleService(
         var subjectFilter = subject?.Trim();
         if (!string.IsNullOrEmpty(subjectFilter))
             entriesQuery = entriesQuery.Where(e => e.Subject == subjectFilter);
+        if (groupId.HasValue)
+            entriesQuery = entriesQuery.Where(e => e.GroupId == groupId.Value);
 
         var entries = await entriesQuery.ToListAsync(ct);
+
+        // Названия групп: пара «группа + предмет» выводится отдельной карточкой.
+        var groupNames = await db
+            .Groups.AsNoTracking()
+            .ToDictionaryAsync(g => g.Id, g => g.Name, ct);
 
         // Бейджи корректировок: изменения, где преподаватель — новый или снятый.
         var history = await db
@@ -185,11 +193,15 @@ public class ScheduleService(
             .Where(h => h.TeacherId == teacherId || h.RemovedTeacherId == teacherId)
             .ToListAsync(ct);
 
-        // Группировка по (предмет, неделя, день недели) с фактической датой дня.
+        // Группировка по (группа, предмет, неделя, день недели) с фактической датой дня.
         // Показываем только проведённые занятия — дата не позже сегодняшнего дня (UTC).
         var utcToday = DateTime.UtcNow.Date;
         var mondayOfWeek1 = StudyWeek.MondayOf(StudyWeek.SemesterStart);
-        var itemMap = new Dictionary<(string Subject, int Week, DayOfWeek DayOfWeek), List<int>>();
+        var itemMap =
+            new Dictionary<
+                (Guid GroupId, string Subject, int Week, DayOfWeek DayOfWeek),
+                List<int>
+            >();
         foreach (var entry in entries)
         {
             foreach (var week in entry.Weeks.Where(w => w >= 1 && w <= StudyWeek.TotalWeeks))
@@ -199,7 +211,7 @@ public class ScheduleService(
                 if (date > utcToday)
                     continue;
 
-                var key = (entry.Subject, week, entry.DayOfWeek);
+                var key = (entry.GroupId, entry.Subject, week, entry.DayOfWeek);
                 if (!itemMap.TryGetValue(key, out var pairs))
                 {
                     pairs = new List<int>();
@@ -210,10 +222,11 @@ public class ScheduleService(
         }
 
         var subjects = itemMap
-            .OrderBy(x => x.Key.Subject)
+            .OrderBy(x => groupNames.GetValueOrDefault(x.Key.GroupId, string.Empty))
+            .ThenBy(x => x.Key.Subject)
             .ThenBy(x => x.Key.Week)
             .ThenBy(x => x.Key.DayOfWeek)
-            .GroupBy(x => x.Key.Subject)
+            .GroupBy(x => (x.Key.GroupId, x.Key.Subject))
             .Select(g =>
             {
                 var items = g.Select(x => new JournalEntryItem
@@ -236,7 +249,9 @@ public class ScheduleService(
 
                 return new JournalSubjectGroup
                 {
-                    Subject = g.Key,
+                    GroupId = g.Key.GroupId,
+                    GroupName = groupNames.GetValueOrDefault(g.Key.GroupId, string.Empty),
+                    Subject = g.Key.Subject,
                     Items = items,
                     PairCount = items.Sum(i => i.NumberPairs.Count),
                 };

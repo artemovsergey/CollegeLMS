@@ -177,12 +177,19 @@ public class ScheduleController(
     }
 
     /// <summary>
-    /// Журнал преподавателя: предметы, недели и пары по расписанию.
+    /// Журнал преподавателя: карточки «группа + предмет», недели и пары по расписанию.
     /// </summary>
     /// <remarks>
     /// Преподаватель видит только свой журнал. Администратору/диспетчеру
     /// можно указать teacherId для просмотра журнала другого преподавателя.
+    /// Карточки формируются по паре «группа + предмет»; можно ограничить журнал
+    /// одной группой через `groupId`. Без `groupId` возвращаются все группы
+    /// преподавателя — из этого ответа клиент строит список групп (поле `groupName`).
     /// </remarks>
+    /// <param name="teacherId">Идентификатор преподавателя (для Admin/Dispatcher)</param>
+    /// <param name="subject">Фильтр по названию предмета</param>
+    /// <param name="groupId">Фильтр по идентификатору группы</param>
+    /// <param name="ct">Токен отмены</param>
     /// <response code="200">Журнал получен</response>
     /// <response code="400">Не указан преподаватель</response>
     /// <response code="401">Не авторизован</response>
@@ -191,7 +198,10 @@ public class ScheduleController(
     /// <response code="500">Ошибка сервера</response>
     [HttpGet("journal")]
     [Authorize(Roles = "Teacher,Admin,Dispatcher")]
-    [SwaggerOperation(Summary = "Журнал проведённых занятий преподавателя (по расписанию)")]
+    [SwaggerOperation(
+        Summary = "Журнал проведённых занятий преподавателя (по расписанию)",
+        Description = "Карточки «группа + предмет»; фильтры subject и groupId."
+    )]
     [SwaggerResponse(200, "Журнал получен", typeof(Result<JournalResponse>))]
     [SwaggerResponse(400, "Не указан преподаватель", typeof(ErrorResponse))]
     [SwaggerResponse(401, "Не авторизован", typeof(ErrorResponse))]
@@ -207,6 +217,7 @@ public class ScheduleController(
     public async Task<IActionResult> GetJournal(
         [FromQuery] Guid? teacherId,
         [FromQuery] string? subject,
+        [FromQuery] Guid? groupId,
         CancellationToken ct
     )
     {
@@ -222,7 +233,7 @@ public class ScheduleController(
         if (!effectiveTeacherId.HasValue)
             return BadRequest(Result<JournalResponse>.Fail("Не указан преподаватель.", 400));
 
-        var result = await service.GetJournalAsync(effectiveTeacherId.Value, subject, ct);
+        var result = await service.GetJournalAsync(effectiveTeacherId.Value, subject, groupId, ct);
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
 

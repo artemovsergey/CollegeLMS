@@ -59,14 +59,36 @@ public class JournalServiceTests : IDisposable
         return teacher;
     }
 
-    private async Task SeedEntryAsync(Guid teacherId, string subject, int pair, List<int> weeks)
+    private async Task<Group> SeedGroupAsync(string name)
+    {
+        var utcNow = DateTime.UtcNow;
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Course = 2,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+        };
+        _db.Groups.Add(group);
+        await _db.SaveChangesAsync();
+        return group;
+    }
+
+    private async Task SeedEntryAsync(
+        Guid teacherId,
+        string subject,
+        int pair,
+        List<int> weeks,
+        Guid? groupId = null
+    )
     {
         var utcNow = DateTime.UtcNow;
         _db.ScheduleEntries.Add(
             new ScheduleEntry
             {
                 Id = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
+                GroupId = groupId ?? Guid.NewGuid(),
                 TeacherId = teacherId,
                 Subject = subject,
                 Room = "303",
@@ -86,7 +108,7 @@ public class JournalServiceTests : IDisposable
     [Fact]
     public async Task GetJournalAsync_UnknownTeacher_Returns404()
     {
-        var result = await _sut.GetJournalAsync(Guid.NewGuid(), null, default);
+        var result = await _sut.GetJournalAsync(Guid.NewGuid(), null, null, default);
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
@@ -99,7 +121,7 @@ public class JournalServiceTests : IDisposable
         await SeedEntryAsync(teacher.Id, "Математика", 2, [1, 2]);
         await SeedEntryAsync(teacher.Id, "Физика", 4, [1]);
 
-        var result = await _sut.GetJournalAsync(teacher.Id, null, default);
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
 
         result.IsSuccess.Should().BeTrue();
         var data = result.Data!;
@@ -126,10 +148,11 @@ public class JournalServiceTests : IDisposable
     public async Task GetJournalAsync_SameSubjectDistinctPairs_AreAggregatedPerWeek()
     {
         var teacher = await SeedTeacherAsync();
-        await SeedEntryAsync(teacher.Id, "Математика", 2, [1]);
-        await SeedEntryAsync(teacher.Id, "Математика", 3, [1]);
+        var group = await SeedGroupAsync("ИС-21");
+        await SeedEntryAsync(teacher.Id, "Математика", 2, [1], group.Id);
+        await SeedEntryAsync(teacher.Id, "Математика", 3, [1], group.Id);
 
-        var result = await _sut.GetJournalAsync(teacher.Id, null, default);
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
 
         result.IsSuccess.Should().BeTrue();
         var week1 = result.Data!.Subjects.Single().Items.Single();
@@ -143,7 +166,7 @@ public class JournalServiceTests : IDisposable
         var teacher = await SeedTeacherAsync();
         await SeedEntryAsync(teacher.Id, "Математика", 2, [2]);
 
-        var result = await _sut.GetJournalAsync(teacher.Id, null, default);
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
 
         // Вторник 2-й недели: понедельник недели + (DayOfWeek.Tuesday)=1.
         var tuesdayWeek2 = StudyWeek.MondayOf(StudyWeek.SemesterStart).AddDays(7 + 1);
@@ -195,7 +218,7 @@ public class JournalServiceTests : IDisposable
         await SeedEntryAsync(teacher.Id, "Математика", 2, [1]);
         await SeedHistoryAsync(teacher.Id, "Математика", changeType, week: 1);
 
-        var result = await _sut.GetJournalAsync(teacher.Id, null, default);
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Subjects.Single().Items.Single().ChangeTypes.Should().Contain(expected);
@@ -214,7 +237,7 @@ public class JournalServiceTests : IDisposable
             week: 1
         );
 
-        var result = await _sut.GetJournalAsync(teacher.Id, null, default);
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
 
         var changeTypes = result.Data!.Subjects.Single().Items.Single().ChangeTypes;
         changeTypes.Should().Contain("Remove");
@@ -228,7 +251,7 @@ public class JournalServiceTests : IDisposable
         await SeedEntryAsync(teacher.Id, "Математика", 2, [1]);
         await SeedHistoryAsync(teacher.Id, "Физика", ScheduleChangeType.Add, week: 1);
 
-        var result = await _sut.GetJournalAsync(teacher.Id, null, default);
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
 
         result.Data!.Subjects.Single().Items.Single().ChangeTypes.Should().BeEmpty();
     }
@@ -240,7 +263,7 @@ public class JournalServiceTests : IDisposable
         await SeedEntryAsync(teacher.Id, "Математика", 2, [1]);
         await SeedEntryAsync(teacher.Id, "Физика", 4, [1]);
 
-        var result = await _sut.GetJournalAsync(teacher.Id, "Физика", default);
+        var result = await _sut.GetJournalAsync(teacher.Id, "Физика", null, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Subjects.Should().ContainSingle();
@@ -254,10 +277,92 @@ public class JournalServiceTests : IDisposable
         var teacher = await SeedTeacherAsync();
         await SeedEntryAsync(teacher.Id, "Математика", 2, [1]);
 
-        var result = await _sut.GetJournalAsync(teacher.Id, "Химия", default);
+        var result = await _sut.GetJournalAsync(teacher.Id, "Химия", null, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Subjects.Should().BeEmpty();
         result.Data.TotalPairCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_SameSubjectTwoGroups_ReturnsTwoCardsWithPairCounts()
+    {
+        var teacher = await SeedTeacherAsync();
+        var groupA = await SeedGroupAsync("ИС-21");
+        var groupB = await SeedGroupAsync("ИС-22");
+        await SeedEntryAsync(teacher.Id, "Математика", 2, [1], groupA.Id);
+        await SeedEntryAsync(teacher.Id, "Математика", 3, [1], groupB.Id);
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
+
+        result.IsSuccess.Should().BeTrue();
+        var data = result.Data!;
+        data.Subjects.Should().HaveCount(2);
+
+        var cardA = data.Subjects.Single(s => s.GroupId == groupA.Id);
+        cardA.GroupName.Should().Be("ИС-21");
+        cardA.Subject.Should().Be("Математика");
+        cardA.PairCount.Should().Be(1);
+        cardA.Items.Single().NumberPairs.Should().BeEquivalentTo([2]);
+
+        var cardB = data.Subjects.Single(s => s.GroupId == groupB.Id);
+        cardB.GroupName.Should().Be("ИС-22");
+        cardB.Subject.Should().Be("Математика");
+        cardB.PairCount.Should().Be(1);
+        cardB.Items.Single().NumberPairs.Should().BeEquivalentTo([3]);
+
+        data.TotalPairCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_GroupFilter_ReturnsOnlySelectedGroup()
+    {
+        var teacher = await SeedTeacherAsync();
+        var groupA = await SeedGroupAsync("ИС-21");
+        var groupB = await SeedGroupAsync("ИС-22");
+        await SeedEntryAsync(teacher.Id, "Математика", 2, [1], groupA.Id);
+        await SeedEntryAsync(teacher.Id, "Математика", 3, [1], groupB.Id);
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, groupA.Id, default);
+
+        result.IsSuccess.Should().BeTrue();
+        var data = result.Data!;
+        data.Subjects.Should().ContainSingle();
+        data.Subjects[0].GroupId.Should().Be(groupA.Id);
+        data.Subjects[0].GroupName.Should().Be("ИС-21");
+        data.TotalPairCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_WithoutGroupFilter_ReturnsAllGroups()
+    {
+        var teacher = await SeedTeacherAsync();
+        var groupA = await SeedGroupAsync("ИС-21");
+        var groupB = await SeedGroupAsync("ИС-22");
+        await SeedEntryAsync(teacher.Id, "Математика", 2, [1], groupA.Id);
+        await SeedEntryAsync(teacher.Id, "Физика", 3, [1], groupB.Id);
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result
+            .Data!.Subjects.Select(s => s.GroupId)
+            .Should()
+            .BeEquivalentTo([groupA.Id, groupB.Id]);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_FillsGroupName()
+    {
+        var teacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ПКС-20");
+        await SeedEntryAsync(teacher.Id, "Информатика", 1, [1], group.Id);
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
+
+        result.IsSuccess.Should().BeTrue();
+        var card = result.Data!.Subjects.Single();
+        card.GroupId.Should().Be(group.Id);
+        card.GroupName.Should().Be("ПКС-20");
     }
 }

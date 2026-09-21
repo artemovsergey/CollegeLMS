@@ -305,6 +305,9 @@ export interface JournalEntryItem {
 }
 
 export interface JournalSubjectGroup {
+  /** Группа, для которой сформирована карточка. */
+  groupId: string
+  groupName: string
   subject: string
   items: JournalEntryItem[]
   pairCount: number
@@ -320,10 +323,12 @@ export interface JournalResponse {
 export async function fetchJournal(
   teacherId?: string,
   subject?: string,
+  groupId?: string,
 ): Promise<Result<JournalResponse>> {
   const qs = new URLSearchParams()
   if (teacherId) qs.set("teacherId", teacherId)
   if (subject) qs.set("subject", subject)
+  if (groupId) qs.set("groupId", groupId)
   const suffix = qs.toString()
   const { data } = await api.get<Result<JournalResponse>>(
     `/api/schedule/journal${suffix ? `?${suffix}` : ""}`,

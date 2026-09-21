@@ -37,6 +37,7 @@ public interface IScheduleService
     Task<Result<JournalResponse>> GetJournalAsync(
         Guid teacherId,
         string? subject,
+        Guid? groupId,
         CancellationToken ct = default
     );
     Task<Result<ScheduleResponse>> GetByIdAsync(Guid id, CancellationToken ct = default);

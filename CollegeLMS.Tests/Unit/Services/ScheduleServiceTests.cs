@@ -1076,7 +1076,7 @@ public class ScheduleServiceTests : IDisposable
         );
         await _db.SaveChangesAsync();
 
-        var result = await _sut.GetJournalAsync(teacher.Id, null, default);
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.TeacherName.Should().Be("Марченко И.А.");
@@ -1091,7 +1091,7 @@ public class ScheduleServiceTests : IDisposable
     [Fact]
     public async Task GetJournalAsync_ReturnsNotFound_WhenTeacherMissing()
     {
-        var result = await _sut.GetJournalAsync(Guid.NewGuid(), null, default);
+        var result = await _sut.GetJournalAsync(Guid.NewGuid(), null, null, default);
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);

@@ -18,6 +18,7 @@ import {
   fetchJournal,
   fetchScheduleContext,
   type JournalResponse,
+  type JournalSubjectGroup,
 } from "@/api/schedule"
 import { useAuth } from "@/lib/auth"
 import { cn, extractErrorMessage } from "@/lib/utils"
@@ -76,6 +77,11 @@ function formatDate(value: string): string {
   })
 }
 
+// Карточка журнала — пара «группа + предмет», поэтому ключ составной.
+function journalCardKey(group: Pick<JournalSubjectGroup, "groupId" | "subject">): string {
+  return `${group.groupId}::${group.subject}`
+}
+
 function JournalBadges({ types }: { types: string[] }) {
   if (types.length === 0) return null
   return (
@@ -107,7 +113,10 @@ export default function TeacherJournalPage() {
   const [ownTeacherName, setOwnTeacherName] = useState<string | undefined>()
   const [contextReady, setContextReady] = useState(false)
   const [journal, setJournal] = useState<JournalResponse | null>(null)
-  const [subject, setSubject] = useState<string | null>(null)
+  // Полный список карточек без фильтра по группе — источник опций фильтра.
+  const [allGroups, setAllGroups] = useState<JournalSubjectGroup[]>([])
+  const [selectedGroupId, setSelectedGroupId] = useState("")
+  const [subjectKey, setSubjectKey] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -161,30 +170,47 @@ export default function TeacherJournalPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetchJournal(effectiveTeacherId)
+      const res = await fetchJournal(
+        effectiveTeacherId,
+        undefined,
+        selectedGroupId || undefined,
+      )
       if (!res.isSuccess || !res.data) {
         throw new Error(res.errorMessage ?? "Не удалось загрузить журнал")
       }
-      setJournal(res.data)
-      setSubject((prev) => {
-        const subjects = res.data!.subjects.map((s) => s.subject)
-        if (prev && subjects.includes(prev)) return prev
-        return subjects[0] ?? null
+      const data = res.data
+      setJournal(data)
+      // Опции фильтра по группе строим только по полному ответу.
+      if (!selectedGroupId) setAllGroups(data.subjects)
+      setSubjectKey((prev) => {
+        const keys = data.subjects.map(journalCardKey)
+        if (prev && keys.includes(prev)) return prev
+        return keys[0] ?? null
       })
     } catch (err) {
       setError(extractErrorMessage(err) ?? "Не удалось загрузить журнал")
     } finally {
       setLoading(false)
     }
-  }, [effectiveTeacherId])
+  }, [effectiveTeacherId, selectedGroupId])
 
   useEffect(() => {
     void load()
   }, [load])
 
+  const groupOptions = useMemo(() => {
+    const map = new Map<string, string>()
+    allGroups.forEach((group) => {
+      if (group.groupId) map.set(group.groupId, group.groupName)
+    })
+    return Array.from(map, ([id, name]) => ({ id, name }))
+  }, [allGroups])
+
   const subjectGroup = useMemo(
-    () => journal?.subjects.find((s) => s.subject === subject) ?? null,
-    [journal, subject],
+    () =>
+      journal?.subjects.find((group) => journalCardKey(group) === subjectKey) ??
+      null,
+    [journal, subjectKey],
   )
 
   const items = useMemo(
@@ -228,23 +254,48 @@ export default function TeacherJournalPage() {
         </div>
       </div>
 
-      {canPickTeacher && (
-        <FilterSelect
-          id="journal-teacher"
-          label="Преподаватель"
-          containerClassName="sm:max-w-sm"
-          value={selectedTeacherId || "none"}
-          onChange={(e) =>
-            setSelectedTeacherId(e.target.value === "none" ? "" : e.target.value)
-          }
-        >
-          <option value="none">Выберите преподавателя</option>
-          {teachers.map((teacher) => (
-            <option key={teacher.id} value={teacher.id}>
-              {teacher.fullName}
-            </option>
-          ))}
-        </FilterSelect>
+      {(canPickTeacher || groupOptions.length > 0) && (
+        <div className="flex flex-wrap items-end gap-3">
+          {canPickTeacher && (
+            <FilterSelect
+              id="journal-teacher"
+              label="Преподаватель"
+              containerClassName="w-full sm:w-auto sm:min-w-64"
+              value={selectedTeacherId || "none"}
+              onChange={(e) => {
+                setSelectedTeacherId(e.target.value === "none" ? "" : e.target.value)
+                setSelectedGroupId("")
+                setSubjectKey(null)
+              }}
+            >
+              <option value="none">Выберите преподавателя</option>
+              {teachers.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>
+                  {teacher.fullName}
+                </option>
+              ))}
+            </FilterSelect>
+          )}
+
+          {groupOptions.length > 0 && (
+            <FilterSelect
+              id="journal-group"
+              label="Группа"
+              containerClassName="w-full sm:w-auto sm:min-w-52"
+              value={selectedGroupId || "all"}
+              onChange={(e) =>
+                setSelectedGroupId(e.target.value === "all" ? "" : e.target.value)
+              }
+            >
+              <option value="all">Все группы</option>
+              {groupOptions.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </FilterSelect>
+          )}
+        </div>
       )}
 
       {!canPickTeacher && journal && (
@@ -300,13 +351,15 @@ export default function TeacherJournalPage() {
             aria-label="Фильтр по предмету"
           >
             {journal.subjects.map((group) => {
-              const active = group.subject === subject
+              const key = journalCardKey(group)
+              const active = key === subjectKey
               return (
                 <button
-                  key={group.subject}
+                  key={key}
                   type="button"
-                  onClick={() => setSubject(group.subject)}
+                  onClick={() => setSubjectKey(key)}
                   aria-pressed={active}
+                  title={group.groupName}
                   className={cn(
                     "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     active
@@ -324,9 +377,14 @@ export default function TeacherJournalPage() {
           {subjectGroup && (
             <Card className="gap-0">
               <CardContent className="flex flex-col gap-3 py-4">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-base font-semibold">{subjectGroup.subject}</h3>
-                  <span className="text-sm text-muted-foreground">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {subjectGroup.groupName}
+                    </span>
+                    <h3 className="text-base font-semibold">{subjectGroup.subject}</h3>
+                  </div>
+                  <span className="shrink-0 text-sm text-muted-foreground">
                     {subjectGroup.pairCount} пар по расписанию
                   </span>
                 </div>

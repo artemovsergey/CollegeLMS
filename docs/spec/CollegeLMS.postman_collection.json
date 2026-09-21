@@ -1520,7 +1520,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/schedule/journal?teacherId={{teacherId}}&subject=Математика",
+              "raw": "{{baseUrl}}/api/schedule/journal?teacherId={{teacherId}}&subject=Математика&groupId={{groupId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1537,11 +1537,15 @@
                 {
                   "key": "subject",
                   "value": "Математика"
+                },
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
                 }
               ]
             }
           },
-          "description": "Журнал преподавателя (Teacher/Admin/Dispatcher): subjects[] { subject, items[] { week, dayOfWeek, date, numberPairs[], changeTypes[] }, pairCount }, totalPairCount. Фильтр ?subject= по точному названию предмета. changeTypes — бейджи корректировок: Add, Replace, Move, Remove, SelfStudy (сам.р.). Показываются только проведённые занятия (дата <= сегодня). 400 — не определён преподаватель; 403 — чужой teacherId; 404 — преподаватель не найден."
+          "description": "Журнал преподавателя (Teacher/Admin/Dispatcher): subjects[] { groupId, groupName, subject, items[] { week, dayOfWeek, date, numberPairs[], changeTypes[] }, pairCount }, totalPairCount. Карточки формируются по паре «группа + предмет»: один предмет у нескольких групп даёт отдельные карточки с разными groupId/groupName. Фильтры: ?subject= по точному названию предмета, ?groupId= — только выбранная группа. Без groupId возвращаются все группы преподавателя (из ответа клиент строит список групп). changeTypes — бейджи корректировок: Add, Replace, Move, Remove, SelfStudy (сам.р.). Показываются только проведённые занятия (дата <= сегодня). 400 — не определён преподаватель; 403 — чужой teacherId; 404 — преподаватель не найден."
         },
         {
           "name": "Get subjects",
