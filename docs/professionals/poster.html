@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Постер — отбор на чемпионат «Профессионалы»</title>
+<style>
+  /* Фирменный шрифт чемпионата — Roboto (в комплекте брендбука) */
+  @font-face { font-family:'Roboto'; src:url('assets/fonts/Roboto-Black.ttf') format('truetype'); font-weight:900; font-style:normal; font-display:block; }
+  @font-face { font-family:'Roboto'; src:url('assets/fonts/Roboto-Bold.ttf') format('truetype'); font-weight:700; font-style:normal; font-display:block; }
+  @font-face { font-family:'Roboto'; src:url('assets/fonts/Roboto-Medium.ttf') format('truetype'); font-weight:500; font-style:normal; font-display:block; }
+  @font-face { font-family:'Roboto'; src:url('assets/fonts/Roboto-Regular.ttf') format('truetype'); font-weight:400; font-style:normal; font-display:block; }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:540px; height:675px; }
+
+  body {
+    background:#1D1D1B; /* фирменный чёрный */
+    font-family:'Roboto', system-ui, Arial, sans-serif;
+    color:#fff;
+    position:relative;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:geometricPrecision;
+  }
+
+  /* --- Декор: шевроны и паттерн кубов --- */
+  .decor { position:absolute; pointer-events:none; z-index:0; }
+  .decor--chevrons-r { right:-64px; top:150px; height:360px; opacity:.10; }
+  .decor--chevrons-l { left:-70px; bottom:150px; height:220px; opacity:.08; transform:scaleX(-1); }
+  .decor--cubes { left:-30px; bottom:-40px; width:320px; opacity:.08; }
+
+  /* --- Сетка постера --- */
+  .page {
+    position:relative; z-index:1;
+    height:100%;
+    display:flex; flex-direction:column;
+    padding:24px 30px 0;
+  }
+
+  header { display:flex; justify-content:space-between; align-items:flex-start; }
+  .logo-prof { height:42px; display:block; }
+  .hashtag {
+    color:#4ECC0A;
+    font-weight:900; font-size:9px; letter-spacing:.07em;
+    line-height:1.4; text-align:right; max-width:210px;
+    padding-top:4px;
+  }
+
+  /* зелёная линия — фирменный акцент под шапкой */
+  .brand-bar { position:absolute; z-index:1; left:0; right:0; top:74px; height:3px; background:#4ECC0A; }
+
+  h1 {
+    margin-top:30px;
+    font-weight:900; font-size:46px; line-height:.98; letter-spacing:-.015em;
+  }
+  h1 .accent { color:#4ECC0A; }
+
+  .sub {
+    margin-top:10px;
+    color:#BDC6CB; font-weight:500; font-size:13px; line-height:1.35;
+    max-width:415px;
+  }
+
+  /* --- Карточки компетенций --- */
+  .cards { margin-top:16px; display:flex; gap:11px; }
+  .card {
+    position:relative; flex:1 1 0; min-width:0;
+    background:#fff; color:#1D1D1B;
+    border-radius:14px; padding:11px 9px 10px;
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .card h3 {
+    font-weight:700; font-size:11px; line-height:1.22; letter-spacing:-.01em;
+    min-height:41px;
+  }
+  .card h3 .dot {
+    display:inline-block; width:7px; height:7px; border-radius:2px;
+    background:#4ECC0A; margin-right:5px; vertical-align:1px;
+  }
+  .card .qr { width:100%; height:auto; display:block; margin-top:7px; border-radius:4px; }
+  .card .cap {
+    margin-top:7px;
+    color:#3FA207; font-weight:700; font-size:9px; line-height:1.25;
+    letter-spacing:.01em;
+  }
+
+  /* --- CTA --- */
+  .cta {
+    margin-top:18px;
+    background:#4ECC0A; color:#1D1D1B;
+    border-radius:14px; padding:13px 18px;
+    font-weight:900; font-size:16.5px; letter-spacing:.01em;
+    text-align:center;
+  }
+
+  /* --- Нижняя белая полоса: эмблема колледжа --- */
+  footer {
+    margin-top:auto; margin-left:-30px; margin-right:-30px;
+    height:128px;
+    background:#fff;
+    display:flex; align-items:center; justify-content:center;
+  }
+  footer img { height:88px; display:block; }
+</style>
+</head>
+<body>
+  <img class="decor decor--chevrons-r" src="assets/chevrons.svg" alt="">
+  <img class="decor decor--chevrons-l" src="assets/chevrons.svg" alt="">
+  <img class="decor decor--cubes" src="assets/pattern-cubes.png" alt="">
+  <div class="brand-bar"></div>
+
+  <div class="page">
+    <header>
+      <img class="logo-prof" src="assets/professionals-logo-white.png" alt="Чемпионат «Профессионалы»">
+      <div class="hashtag">#ПРОФЕССИОНАЛЫ<br>СДЕЛАНОВРОССИИ</div>
+    </header>
+
+    <h1>Хочешь на&nbsp;чемпионат?<br><span class="accent">Покажи себя!</span></h1>
+    <p class="sub">Отбор студентов на Всероссийский чемпионат «Профессионалы». Выбери свою компетенцию — и вперёд.</p>
+
+    <div class="cards">
+      <div class="card">
+        <h3><span class="dot"></span>Программные решения для бизнеса</h3>
+        <img class="qr" src="qr/qr-programmnye-resheniya.png" alt="QR: тестовое задание — Программные решения для бизнеса">
+        <div class="cap">Сканируй — тестовое задание</div>
+      </div>
+      <div class="card">
+        <h3><span class="dot"></span>Веб-технологии</h3>
+        <img class="qr" src="qr/qr-veb-tehnologii.png" alt="QR: тестовое задание — Веб-технологии">
+        <div class="cap">Сканируй — тестовое задание</div>
+      </div>
+      <div class="card">
+        <h3><span class="dot"></span>Разработка мобильных приложений</h3>
+        <img class="qr" src="qr/qr-mobilnye-prilozheniya.png" alt="QR: тестовое задание — Разработка мобильных приложений">
+        <div class="cap">Сканируй — тестовое задание</div>
+      </div>
+    </div>
+
+    <div class="cta">Обращаться: кабинет 202л</div>
+
+    <footer>
+      <img src="assets/college-logo.svg" alt="Ставропольский колледж связи им. В.А. Петрова">
+    </footer>
+  </div>
+</body>
+</html>
