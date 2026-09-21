@@ -418,9 +418,16 @@ public class ScheduleController(
 
     [HttpPost("import/preview")]
     [Authorize(Roles = "Dispatcher,Admin")]
-    [SwaggerOperation(Summary = "Превью импорта расписания из XLSX")]
-    [SwaggerResponse(200, "Превью получено", typeof(Result<SchedulePreviewResponse>))]
-    [SwaggerResponse(400, "Ошибка валидации файла")]
+    [SwaggerOperation(
+        Summary = "Превью импорта расписания из XLSX",
+        Description = "200 — файл разобран: в теле записи (Entries) и ошибки валидации (Errors); 400 — файл не выбран, не XLSX, больше 10 МБ или нечитаемый."
+    )]
+    [SwaggerResponse(
+        200,
+        "Файл разобран (Errors может содержать ошибки валидации)",
+        typeof(Result<SchedulePreviewResponse>)
+    )]
+    [SwaggerResponse(400, "Файл не выбран, не XLSX, слишком большой или нечитаемый")]
     [SwaggerResponse(401, "Не авторизован")]
     [SwaggerResponse(403, "Доступ запрещён")]
     [SwaggerResponse(500, "Ошибка сервера")]

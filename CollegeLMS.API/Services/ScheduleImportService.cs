@@ -4,12 +4,13 @@ using CollegeLMS.API.Data;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
+using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Mappers;
 using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class ScheduleImportService(AppDbContext db)
+public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
 {
     private static readonly Dictionary<string, DayOfWeek> DayMap = new(
         StringComparer.OrdinalIgnoreCase
@@ -85,45 +86,75 @@ public class ScheduleImportService(AppDbContext db)
         return slots[index];
     }
 
+    private static readonly Dictionary<string, string> SubjectSynonyms = new()
+    {
+        [@"Физ\.культура"] = "Физкультура",
+        [@"Физ\.кул\."] = "Физкультура",
+        [@"Ин\.язык\."] = "Ин.язык",
+        [@"Ист\.Р\."] = "ИсторияРоссии",
+        [@"Матем\.(?!\d)"] = "Математика",
+        [@"Охр\.тр\."] = "ОхранаТруда",
+        [@"Охрана труда"] = "ОхранаТруда",
+        [@"ОсновыЭлект\."] = "ОсновыЭлектр.",
+        [@"Эконом\. отр\."] = "ЭкономОтр.",
+        [@"Эконом\.отр\."] = "ЭкономОтр.",
+        [@"ЭлектротехиЭ\."] = "ЭлектрТех.",
+        [@"Электр\.и Э\."] = "ЭлектрТех.",
+        [@"Электротех\.(?!и)"] = "ЭлектрТех.",
+        [@"Электр\.тех\."] = "ЭлектрТех.",
+        [@"Электр\.(?!д|Т|т)"] = "ЭлектрТех.",
+        [@"Эл\.тех\."] = "ЭлектрТех.",
+        [@"Электробез\."] = "ЭлектрБезопасность",
+        [@"ОсновыЭлектрТех\."] = "ОсновыЭлектр.",
+    };
+
     internal static string NormalizeSubject(string subject)
     {
         var v = subject.Trim();
 
-        v = Regex.Replace(v, @"Физ\.культура", "Физкультура");
-        v = Regex.Replace(v, @"Физ\.кул\.", "Физкультура");
-        v = Regex.Replace(v, @"Ин\.язык\.", "Ин.язык");
-        v = Regex.Replace(v, @"Ист\.Р\.", "ИсторияРоссии");
-        v = Regex.Replace(v, @"Матем\.(?!\d)", "Математика");
-        v = Regex.Replace(v, @"Охр\.тр\.", "ОхранаТруда");
-        v = Regex.Replace(v, @"Охрана труда", "ОхранаТруда");
-        v = Regex.Replace(v, @"ОсновыЭлект\.", "ОсновыЭлектр.");
-        v = Regex.Replace(v, @"Эконом\. отр\.", "ЭкономОтр.");
-        v = Regex.Replace(v, @"Эконом\.отр\.", "ЭкономОтр.");
-        v = Regex.Replace(v, @"ЭлектротехиЭ\.", "ЭлектрТех.");
-        v = Regex.Replace(v, @"Электр\.и Э\.", "ЭлектрТех.");
-        v = Regex.Replace(v, @"Электротех\.(?!и)", "ЭлектрТех.");
-        v = Regex.Replace(v, @"Электр\.тех\.", "ЭлектрТех.");
-        v = Regex.Replace(v, @"Электр\.(?!д|Т|т)", "ЭлектрТех.");
-        v = Regex.Replace(v, @"Эл\.тех\.", "ЭлектрТех.");
-        v = Regex.Replace(v, @"Электробез\.", "ЭлектрБезопасность");
-        v = Regex.Replace(v, @"ОсновыЭлектрТех\.", "ОсновыЭлектр.");
+        foreach (var (pattern, replacement) in SubjectSynonyms)
+            v = Regex.Replace(v, pattern, replacement, RegexOptions.IgnoreCase);
 
         return v;
     }
 
     internal static string NormalizeTeacherName(string name)
     {
-        return Regex.Replace(name.Trim(), @"\s+", " ");
+        var v = Regex.Replace(name.Trim(), @"\s+", " ");
+        v = Regex.Replace(v, @"([А-Яа-яЁё])\.\s+([А-Яа-яЁё])", "$1.$2");
+        v = Regex.Replace(v, @"\.\s*\.", "..");
+        return v;
     }
+
+    private static ScheduleValidationError Error(
+        string sheet,
+        int row,
+        int column,
+        string level,
+        string message
+    ) =>
+        new()
+        {
+            Sheet = sheet,
+            Row = row,
+            Column = column,
+            Level = level,
+            Message = $"Лист {sheet}, строка {row}, столбец {column}: {message}",
+        };
 
     public (
         List<SchedulePreviewEntry> Entries,
         List<ScheduleValidationError> Errors
-    ) ParseScheduleMatrix(IXLWorkbook workbook)
+    ) ParseScheduleMatrix(
+        IXLWorkbook workbook,
+        Dictionary<int, (TimeSpan Start, TimeSpan End)>? bellTimes = null
+    )
     {
         var ws = workbook.Worksheet(1);
+        var sheet = ws.Name;
         var entries = new List<SchedulePreviewEntry>();
         var errors = new List<ScheduleValidationError>();
+        bellTimes ??= [];
 
         var lastCol = ws.LastColumnUsed()?.ColumnNumber() ?? 3;
         var groupColumns = new Dictionary<int, string>();
@@ -135,39 +166,27 @@ public class ScheduleImportService(AppDbContext db)
         }
 
         if (groupColumns.Count == 0)
-        {
-            errors.Add(
-                new ScheduleValidationError
-                {
-                    Row = 5,
-                    Column = 0,
-                    Message = "В строке 5 не найдены названия групп",
-                }
-            );
-            return (entries, errors);
-        }
+            errors.Add(Error(sheet, 5, 3, "structure", "не найдены названия групп"));
 
         var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
         var dayBlocks = new List<(int StartRow, DayOfWeek Day)>();
         for (int row = 1; row <= lastRow; row++)
         {
-            var aVal = ws.Cell(row, 1).GetString().Trim().ToUpperInvariant();
-            if (DayMap.TryGetValue(aVal, out var day))
+            var rawA = ws.Cell(row, 1).GetString().Trim();
+            if (DayMap.TryGetValue(rawA.ToUpperInvariant(), out var day))
+            {
                 dayBlocks.Add((row, day));
+            }
+            else if (!string.IsNullOrEmpty(rawA) && ws.Cell(row, 2).Value.IsNumber)
+            {
+                errors.Add(
+                    Error(sheet, row, 1, "structure", $"неизвестный день недели \"{rawA}\"")
+                );
+            }
         }
 
         if (dayBlocks.Count == 0)
-        {
-            errors.Add(
-                new ScheduleValidationError
-                {
-                    Row = 0,
-                    Column = 0,
-                    Message = "Не найдены дни недели в столбце A",
-                }
-            );
-            return (entries, errors);
-        }
+            errors.Add(Error(sheet, 0, 1, "structure", "не найдены дни недели"));
 
         for (int bi = 0; bi < dayBlocks.Count; bi++)
         {
@@ -179,11 +198,7 @@ public class ScheduleImportService(AppDbContext db)
             {
                 var bVal = ws.Cell(r, 2).Value;
                 if (bVal.IsNumber)
-                {
-                    var num = bVal.GetNumber();
-                    if (num >= 1 && num <= 7)
-                        pairRows.Add(r);
-                }
+                    pairRows.Add(r);
             }
 
             for (int pi = 0; pi < pairRows.Count; pi++)
@@ -191,15 +206,10 @@ public class ScheduleImportService(AppDbContext db)
                 int pairRow = pairRows[pi];
                 int pairNum = (int)ws.Cell(pairRow, 2).GetDouble();
 
-                if (pairNum < 1 || pairNum > 7)
+                if (pairNum < 1 || pairNum > 8)
                 {
                     errors.Add(
-                        new ScheduleValidationError
-                        {
-                            Row = pairRow,
-                            Column = 2,
-                            Message = $"Строка {pairRow}: номер пары {pairNum} вне диапазона 1-7",
-                        }
+                        Error(sheet, pairRow, 2, "data", $"номер пары {pairNum} вне диапазона 1–8")
                     );
                     continue;
                 }
@@ -220,41 +230,36 @@ public class ScheduleImportService(AppDbContext db)
                         if (string.IsNullOrEmpty(parsed.Subject))
                         {
                             errors.Add(
-                                new ScheduleValidationError
-                                {
-                                    Row = r,
-                                    Column = col,
-                                    Message =
-                                        $"Строка {r}, стлб. {col}: не удалось распознать предмет из \"{cellText}\"",
-                                }
+                                Error(
+                                    sheet,
+                                    r,
+                                    col,
+                                    "data",
+                                    $"не удалось распознать предмет из \"{cellText}\""
+                                )
                             );
                             hasErrors = true;
                         }
 
                         if (parsed.Weeks.Count == 0)
                         {
-                            errors.Add(
-                                new ScheduleValidationError
-                                {
-                                    Row = r,
-                                    Column = col,
-                                    Message = $"Строка {r}, стлб. {col}: не указаны недели",
-                                }
-                            );
+                            errors.Add(Error(sheet, r, col, "data", "не указаны недели"));
                             hasErrors = true;
                         }
 
-                        if (parsed.Weeks.Any(w => w > 52))
+                        if (parsed.Weeks.Any(w => w < 1 || w > StudyWeek.TotalWeeks))
                         {
-                            var badWeek = parsed.Weeks.First(w => w > 52);
+                            var badWeek = parsed.Weeks.First(w =>
+                                w < 1 || w > StudyWeek.TotalWeeks
+                            );
                             errors.Add(
-                                new ScheduleValidationError
-                                {
-                                    Row = r,
-                                    Column = col,
-                                    Message =
-                                        $"Строка {r}, стлб. {col}: номер недели {badWeek} превышает 52",
-                                }
+                                Error(
+                                    sheet,
+                                    r,
+                                    col,
+                                    "data",
+                                    $"неделя {badWeek} вне семестра (1–{StudyWeek.TotalWeeks})"
+                                )
                             );
                             hasErrors = true;
                         }
@@ -262,7 +267,9 @@ public class ScheduleImportService(AppDbContext db)
                         if (hasErrors)
                             continue;
 
-                        var (start, end) = GetPairTime(day, pairNum);
+                        var (start, end) = bellTimes.TryGetValue(pairNum, out var t)
+                            ? t
+                            : GetPairTime(day, pairNum);
                         entries.Add(
                             new SchedulePreviewEntry
                             {
@@ -387,21 +394,28 @@ public class ScheduleImportService(AppDbContext db)
 
         using (workbook)
         {
-            var (entries, errors) = ParseScheduleMatrix(workbook);
+            var bellTimes = await bells.GetTimeMapAsync(ct);
 
-            if (errors.Count > 0)
+            List<SchedulePreviewEntry> entries;
+            List<ScheduleValidationError> errors;
+            try
             {
-                return new PreviewResult
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Файл содержит ошибки валидации",
-                    Preview = new SchedulePreviewResponse
+                (entries, errors) = ParseScheduleMatrix(workbook, bellTimes);
+            }
+            catch (Exception ex)
+            {
+                entries = [];
+                errors =
+                [
+                    new ScheduleValidationError
                     {
-                        TotalEntries = 0,
-                        Entries = [],
-                        Errors = errors,
+                        Sheet = string.Empty,
+                        Row = 0,
+                        Column = 0,
+                        Level = "structure",
+                        Message = $"Не удалось прочитать лист: {ex.Message}",
                     },
-                };
+                ];
             }
 
             return new PreviewResult
@@ -411,7 +425,7 @@ public class ScheduleImportService(AppDbContext db)
                 {
                     TotalEntries = entries.Count,
                     Entries = entries,
-                    Errors = [],
+                    Errors = errors,
                 },
             };
         }
@@ -431,6 +445,8 @@ public class ScheduleImportService(AppDbContext db)
                 Schedule = [],
             };
         }
+
+        var bellTimes = await bells.GetTimeMapAsync(ct);
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
@@ -524,7 +540,9 @@ public class ScheduleImportService(AppDbContext db)
                 }
 
                 Enum.TryParse<DayOfWeek>(entry.Day, true, out var dayOfWeek);
-                var (startTime, endTime) = GetPairTime(dayOfWeek, entry.Pair);
+                var (startTime, endTime) = bellTimes.TryGetValue(entry.Pair, out var t)
+                    ? t
+                    : GetPairTime(dayOfWeek, entry.Pair);
 
                 entriesToAdd.Add(
                     new ScheduleEntry

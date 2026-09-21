@@ -22,6 +22,7 @@ public class SchedulePreviewEntry
 
 public class ScheduleValidationError
 {
+    public string Sheet { get; set; } = string.Empty;
     public int Row { get; set; }
     public int Column { get; set; }
     public string Level { get; set; } = "data";
