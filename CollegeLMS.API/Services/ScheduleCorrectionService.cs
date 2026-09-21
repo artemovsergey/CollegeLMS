@@ -785,13 +785,22 @@ public class ScheduleCorrectionService(
         };
     }
 
+    private static readonly Regex TextPairPattern = new(
+        @"^(\d{1,2})\s*п?\.?$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase
+    );
+
     private static int? ParsePair(XLCellValue pairValue)
     {
         if (pairValue.IsNumber)
             return (int)pairValue.GetNumber();
 
         var text = pairValue.GetText().Trim();
-        return int.TryParse(text, out var n) ? n : null;
+        if (int.TryParse(text, out var n))
+            return n;
+
+        var match = TextPairPattern.Match(text);
+        return match.Success ? int.Parse(match.Groups[1].Value) : null;
     }
 
     private static readonly Regex NotePairPattern = new(

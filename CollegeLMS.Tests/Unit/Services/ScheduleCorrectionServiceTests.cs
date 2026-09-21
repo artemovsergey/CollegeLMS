@@ -173,6 +173,66 @@ public class ScheduleCorrectionServiceTests : IDisposable
         }
     }
 
+    [Theory]
+    [InlineData("1 п", 1)]
+    [InlineData("4п", 4)]
+    [InlineData("4 п.", 4)]
+    [InlineData(" 5 ", 5)]
+    public async Task PreviewAsync_TextPairNumber_ParsesPairNumber(
+        string pairText,
+        int expectedPair
+    )
+    {
+        var group = await SeedGroupAsync();
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = pairText;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Should().BeEmpty();
+            result.Data!.TotalEntries.Should().Be(1);
+            result.Data!.Entries[0].NumberPair.Should().Be(expectedPair);
+        }
+    }
+
+    [Theory]
+    [InlineData("0 п")]
+    [InlineData("9 п")]
+    [InlineData("abc")]
+    public async Task PreviewAsync_InvalidTextPairNumber_ReturnsDataError(string pairText)
+    {
+        var group = await SeedGroupAsync();
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = pairText;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            var error = result.Data!.Errors.Should().ContainSingle().Subject;
+            error.Level.Should().Be("data");
+            error.Message.Should().Contain("пары");
+        }
+    }
+
     [Fact]
     public async Task PreviewAsync_UnknownGroup_ReturnsDataError()
     {
