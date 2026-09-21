@@ -1,6 +1,8 @@
 export type LessonType = "Lecture" | "Practice" | "Lab" | "Exam" | "None"
 
 import type { ChangeTag } from "@/types/correction"
+import type { Practice, PracticeKind } from "@/api/practices"
+import type { ScheduleInsert } from "@/api/inserts"
 
 export interface ScheduleResponse {
   id: string
@@ -43,4 +45,57 @@ export const LESSON_TYPE_STYLES: Record<LessonType, string> = {
   Lab: "border-l-amber-500 bg-amber-50/60 dark:bg-amber-950/20",
   Exam: "border-l-red-500 bg-red-50/60 dark:bg-red-950/20",
   None: "border-l-slate-400 bg-slate-50/60 dark:bg-slate-950/20",
+}
+
+/** Режим отображения расписания на странице /schedule. */
+export type ScheduleViewMode = "day" | "week" | "calendar" | "semester"
+
+/** Серверный вид дня со слоями: вставки, практики, пары с бейджами. */
+export interface ScheduleDayView {
+  date: string
+  week: number
+  dayOfWeek: number
+  isSunday: boolean
+  isNonWorking: boolean
+  nonWorkingTitle: string | null
+  practices: Practice[]
+  inserts: ScheduleInsert[]
+  entries: ScheduleResponse[]
+}
+
+/** Серверный вид недели: Пн–Сб с датами. */
+export interface ScheduleWeekView {
+  week: number
+  weekStart: string
+  days: ScheduleDayView[]
+}
+
+export interface ScheduleSemesterWeek {
+  week: number
+  weekStart: string
+  days: ScheduleDayView[]
+}
+
+/** Серверный вид семестра: матрица недель. */
+export interface ScheduleSemesterView {
+  totalWeeks: number
+  weeks: ScheduleSemesterWeek[]
+}
+
+/** День месячного календаря с количеством пар и маркерами. */
+export interface ScheduleMonthDay {
+  date: string
+  dayOfWeek: number
+  isSunday: boolean
+  isNonWorking: boolean
+  nonWorkingTitle: string | null
+  practiceKinds: PracticeKind[]
+  isOutOfSemester: boolean
+  pairCount: number
+}
+
+export interface ScheduleMonthView {
+  year: number
+  month: number
+  days: ScheduleMonthDay[]
 }

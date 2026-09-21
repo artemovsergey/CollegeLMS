@@ -1,12 +1,17 @@
 import api from "@/lib/api"
 import type { Result, PagedResponse } from "@/types"
-import type { ScheduleResponse } from "@/types/schedule"
+import type {
+  ScheduleDayView,
+  ScheduleMonthView,
+  ScheduleResponse,
+  ScheduleSemesterView,
+  ScheduleWeekView,
+} from "@/types/schedule"
 
 export interface ScheduleFilters {
   groupId?: string
   teacherId?: string
   dayOfWeek?: number
-  period?: string
   week?: number
   date?: string
   page?: number
@@ -68,28 +73,6 @@ export interface ScheduleImportResult {
   schedule: ScheduleResponse[]
 }
 
-export interface ScheduleCalendarResponse {
-  weekStart: string
-  days: {
-    day: string
-    dayOfWeek: number
-    entries: ScheduleResponse[]
-  }[]
-}
-
-export async function fetchScheduleCalendar(
-  filters: Pick<ScheduleFilters, "groupId" | "teacherId"> = {},
-): Promise<Result<ScheduleCalendarResponse>> {
-  const params = new URLSearchParams({ view: "calendar" })
-  if (filters.groupId) params.set("groupId", filters.groupId)
-  if (filters.teacherId) params.set("teacherId", filters.teacherId)
-
-  const { data } = await api.get<Result<ScheduleCalendarResponse>>(
-    `/api/schedule?${params.toString()}`,
-  )
-  return data
-}
-
 export async function fetchSchedule(
   filters: ScheduleFilters = {},
 ): Promise<Result<PagedResponse<ScheduleResponse>>> {
@@ -98,7 +81,6 @@ export async function fetchSchedule(
   if (filters.teacherId) params.set("teacherId", filters.teacherId)
   if (filters.dayOfWeek !== undefined)
     params.set("dayOfWeek", String(filters.dayOfWeek))
-  if (filters.period) params.set("period", filters.period)
   if (filters.week !== undefined)
     params.set("week", String(filters.week))
   if (filters.date) params.set("date", filters.date)
@@ -124,11 +106,81 @@ export async function fetchScheduleMeta(): Promise<Result<ScheduleMeta>> {
   return data
 }
 
+/** Серверный вид дня: пары, вставки, практики, нерабочий день. */
+export async function fetchDayView(params: {
+  date: string
+  groupId?: string
+  teacherId?: string
+  room?: string
+}): Promise<Result<ScheduleDayView>> {
+  const qs = new URLSearchParams({ view: "day", date: params.date })
+  if (params.groupId) qs.set("groupId", params.groupId)
+  if (params.teacherId) qs.set("teacherId", params.teacherId)
+  if (params.room) qs.set("room", params.room)
+  const { data } = await api.get<Result<ScheduleDayView>>(
+    `/api/schedule?${qs.toString()}`,
+  )
+  return data
+}
+
+/** Серверный вид недели: Пн–Сб с датами и слоями. */
+export async function fetchWeekView(params: {
+  week?: number
+  date?: string
+  groupId?: string
+  teacherId?: string
+}): Promise<Result<ScheduleWeekView>> {
+  const qs = new URLSearchParams({ view: "week" })
+  if (params.week !== undefined) qs.set("week", String(params.week))
+  if (params.date) qs.set("date", params.date)
+  if (params.groupId) qs.set("groupId", params.groupId)
+  if (params.teacherId) qs.set("teacherId", params.teacherId)
+  const { data } = await api.get<Result<ScheduleWeekView>>(
+    `/api/schedule?${qs.toString()}`,
+  )
+  return data
+}
+
+/** Серверный вид семестра: требуется ровно один из groupId/teacherId. */
+export async function fetchSemesterView(params: {
+  groupId?: string
+  teacherId?: string
+}): Promise<Result<ScheduleSemesterView>> {
+  const qs = new URLSearchParams({ view: "semester" })
+  if (params.groupId) qs.set("groupId", params.groupId)
+  if (params.teacherId) qs.set("teacherId", params.teacherId)
+  const { data } = await api.get<Result<ScheduleSemesterView>>(
+    `/api/schedule?${qs.toString()}`,
+  )
+  return data
+}
+
+/** Серверный вид календаря месяца: количество пар и маркеры по дням. */
+export async function fetchMonthView(params: {
+  month: string
+  groupId?: string
+  teacherId?: string
+}): Promise<Result<ScheduleMonthView>> {
+  const qs = new URLSearchParams({ view: "calendar", month: params.month })
+  if (params.groupId) qs.set("groupId", params.groupId)
+  if (params.teacherId) qs.set("teacherId", params.teacherId)
+  const { data } = await api.get<Result<ScheduleMonthView>>(
+    `/api/schedule?${qs.toString()}`,
+  )
+  return data
+}
+
 export function toIsoDate(date: Date): string {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, "0")
   const day = String(date.getDate()).padStart(2, "0")
   return `${year}-${month}-${day}`
+}
+
+export function toIsoMonth(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  return `${year}-${month}`
 }
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -306,16 +358,18 @@ export async function deleteSchedule(
 export async function exportSchedule(
   filters: ScheduleFilters,
   format: "pdf" | "xlsx",
-  layout: "grid" | "daycards" = "grid",
-  scope?: ScheduleExportScope,
+  layout: "grid" | "daycards",
+  scope: ScheduleExportScope,
+  opts: { date?: string; week?: number } = {},
 ): Promise<void> {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null
   const params = new URLSearchParams()
   if (filters.groupId) params.set("groupId", filters.groupId)
   if (filters.teacherId) params.set("teacherId", filters.teacherId)
-  if (filters.period) params.set("period", filters.period)
-  if (scope) params.set("scope", scope)
+  params.set("scope", scope)
+  if (opts.date) params.set("date", opts.date)
+  if (opts.week !== undefined) params.set("week", String(opts.week))
   params.set("format", format)
   params.set("layout", layout)
 

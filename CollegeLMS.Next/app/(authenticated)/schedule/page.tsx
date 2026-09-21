@@ -8,7 +8,7 @@ import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import {
   fetchSchedule,
-  fetchScheduleCalendar,
+  fetchSemesterView,
   fetchScheduleMeta,
   exportSchedule,
   deleteSchedule,
@@ -142,13 +142,17 @@ export default function SchedulePage() {
     setIsRefreshing(true)
     setError(null)
     try {
-      const body = await fetchScheduleCalendar({
+      const body = await fetchSemesterView({
         groupId: selectedGroupId || undefined,
         teacherId: selectedTeacherId || undefined,
       })
       if (requestId !== requestIdRef.current) return
       if (body.isSuccess && body.data) {
-        setAllEntries(body.data.days.flatMap((day) => day.entries))
+        setAllEntries(
+          body.data.weeks.flatMap((week) =>
+            week.days.flatMap((day) => day.entries),
+          ),
+        )
       } else {
         setError(body.errorMessage ?? "Ошибка загрузки расписания")
       }
@@ -265,8 +269,10 @@ export default function SchedulePage() {
       if (selectedGroupId) params.groupId = selectedGroupId
       if (selectedTeacherId) params.teacherId = selectedTeacherId
       if (viewMode === "cards" && selectedWeek) params.week = selectedWeek
-      const scope = viewMode === "semester" ? "semester" : undefined
-      await exportSchedule(params, format, layout, scope)
+      const scope = viewMode === "semester" ? "semester" : "week"
+      await exportSchedule(params, format, layout, scope, {
+        week: selectedWeek,
+      })
       toast.success("Экспорт выполнен")
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Ошибка экспорта"
