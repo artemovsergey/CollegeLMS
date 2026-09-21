@@ -234,6 +234,30 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PreviewAsync_BlankPairNumber_ReturnsDataError()
+    {
+        var group = await SeedGroupAsync();
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            var error = result.Data!.Errors.Should().ContainSingle().Subject;
+            error.Level.Should().Be("data");
+            error.Message.Should().Contain("пары");
+        }
+    }
+
+    [Fact]
     public async Task PreviewAsync_UnknownGroup_ReturnsDataError()
     {
         await SeedTeacherAsync("Марченко И.А.");

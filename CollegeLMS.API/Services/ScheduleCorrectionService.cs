@@ -795,6 +795,9 @@ public class ScheduleCorrectionService(
         if (pairValue.IsNumber)
             return (int)pairValue.GetNumber();
 
+        if (!pairValue.IsText)
+            return null;
+
         var text = pairValue.GetText().Trim();
         if (int.TryParse(text, out var n))
             return n;
