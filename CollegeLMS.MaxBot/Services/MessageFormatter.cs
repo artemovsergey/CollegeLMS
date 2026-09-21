@@ -363,58 +363,125 @@ public static class MessageFormatter
     }
 
     /// <summary>
-    /// Сводное уведомление об изменениях: дата корректировки и все позиции,
-    /// затрагивающие выбор подписчика. Одно сообщение на подписчика.
+    /// Сводное уведомление об изменениях: карточки, как в веб-приложении.
+    /// Одно сообщение на подписчика, без ссылок.
     /// </summary>
     public static string FormatCorrectionDigest(
-        DateTime? correctionDate,
         List<ScheduleRevision> revisions,
-        string? miniAppUrl
+        TimeZoneInfo timeZone
     )
     {
-        var date = correctionDate ?? (revisions.Count > 0 ? DateForRevision(revisions[0]) : null);
-
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("🔔 *Изменения в расписании*");
-        sb.AppendLine();
-        if (date is { } d)
-            sb.AppendLine($"📅 {DayLabelForDate(d)}, {d:dd.MM.yyyy}");
-        sb.AppendLine();
+        sb.AppendLine("🔔 **Изменения в расписании**");
 
         foreach (var r in revisions)
         {
-            var pair =
-                r.RemovedNumberPair is { } movedFrom && movedFrom != r.NumberPair
-                    ? $"пара {r.NumberPair} (с пары {movedFrom})"
-                    : $"пара {r.NumberPair}";
-            sb.AppendLine($"▫️ *{r.GroupName}* · {r.DayOfWeek} · нед. {r.Week} · {pair}");
-
-            var subject = string.IsNullOrWhiteSpace(r.RemovedSubject)
-                ? r.Subject
-                : $"«{r.RemovedSubject}» → {r.Subject}";
-            sb.AppendLine($"    📖 {subject} — {FormatChangeNotificationTitle(r.ChangeType)}");
-
-            if (!string.IsNullOrWhiteSpace(r.Room))
-                sb.AppendLine($"    📍 ауд. {r.Room}");
-
-            var teacher = r.TeacherName ?? r.RemovedTeacherName;
-            if (!string.IsNullOrWhiteSpace(teacher))
-                sb.AppendLine($"    👨‍🏫 {teacher}");
-
-            if (!string.IsNullOrWhiteSpace(r.Note))
-                sb.AppendLine(
-                    IsSelfStudyNote(r.Note)
-                        ? "    🟣 сам.р. (самостоятельная работа)"
-                        : $"    📝 {r.Note}"
-                );
-
             sb.AppendLine();
+            sb.AppendLine(FormatRevisionCard(r, timeZone));
         }
 
-        if (miniAppUrl is not null && date is { } linkDate)
-            sb.AppendLine($"📱 Открыть: {MiniAppUrlBuilder.Build(miniAppUrl, "day", linkDate)}");
-
         return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>Карточка одной позиции изменения — как карточка в веб-приложении.</summary>
+    private static string FormatRevisionCard(ScheduleRevision r, TimeZoneInfo timeZone)
+    {
+        var sb = new System.Text.StringBuilder();
+
+        var badges = new List<string> { $"**{FormatChangeCardLabel(r.ChangeType)}**" };
+        if (IsSelfStudyNote(r.Note))
+            badges.Add("🟣 Сам.р.");
+        if (DateForRevision(r) is { } date)
+            badges.Add($"📅 {FormatDayMonthYear(date)}");
+        badges.Add($"{r.DayOfWeek}, {r.Week}-я неделя");
+        sb.AppendLine(string.Join(" · ", badges));
+
+        var details = new List<string> { $"🏫 **{r.GroupName}**", $"🕐 {FormatPairLabel(r)}" };
+        if (!string.IsNullOrWhiteSpace(r.Room))
+            details.Add($"📍 ауд. {r.Room}");
+        sb.AppendLine(string.Join(" · ", details));
+
+        sb.AppendLine($"📖 {FormatSubjectLine(r)}");
+
+        var teacher = r.TeacherName ?? r.RemovedTeacherName;
+        sb.AppendLine(
+            $"👤 {(string.IsNullOrWhiteSpace(teacher) ? "Преподаватель не указан" : teacher)}"
+        );
+
+        if (!string.IsNullOrWhiteSpace(r.Note))
+            sb.AppendLine($"📝 Примечание: {r.Note}");
+
+        sb.Append($"✅ Применено: {FormatAppliedAt(r.CreatedAt, timeZone)}");
+
+        return sb.ToString();
+    }
+
+    /// <summary>Пара: «пара N» или «пара X → Y» при переносе/замене.</summary>
+    private static string FormatPairLabel(ScheduleRevision r)
+    {
+        var isMoveOrReplace = r.ChangeType is "Replace" or "Move";
+        if (isMoveOrReplace && r.RemovedNumberPair is { } from && from != r.NumberPair)
+            return $"пара {from} → {r.NumberPair}";
+
+        return $"пара {r.NumberPair}";
+    }
+
+    /// <summary>Строка предмета: снятие, замена/перенос со зачёркиванием или новый предмет.</summary>
+    private static string FormatSubjectLine(ScheduleRevision r)
+    {
+        var removed = r.RemovedSubject;
+        if (r.ChangeType == "Remove")
+            return $"**{(string.IsNullOrWhiteSpace(removed) ? r.Subject : removed)}**";
+
+        if (r.ChangeType is "Replace" or "Move" && !string.IsNullOrWhiteSpace(removed))
+            return $"~~{removed}~~ → **{r.Subject}**";
+
+        return $"**{r.Subject}**";
+    }
+
+    private static string FormatChangeCardLabel(string changeType)
+    {
+        return changeType switch
+        {
+            "Add" => "Добавлено",
+            "Remove" => "Снято",
+            "Replace" => "Замена",
+            "Move" => "Перенос",
+            _ => "Изменено",
+        };
+    }
+
+    private static readonly string[] MonthNames =
+    [
+        "",
+        "января",
+        "февраля",
+        "марта",
+        "апреля",
+        "мая",
+        "июня",
+        "июля",
+        "августа",
+        "сентября",
+        "октября",
+        "ноября",
+        "декабря",
+    ];
+
+    private static string FormatDayMonthYear(DateTime date) =>
+        $"{date.Day} {MonthNames[date.Month]} {date.Year}";
+
+    private static string FormatAppliedAt(DateTime createdAt, TimeZoneInfo timeZone)
+    {
+        if (createdAt == default)
+            return "—";
+
+        var utc =
+            createdAt.Kind == DateTimeKind.Local
+                ? createdAt.ToUniversalTime()
+                : DateTime.SpecifyKind(createdAt, DateTimeKind.Utc);
+
+        return TimeZoneInfo.ConvertTimeFromUtc(utc, timeZone).ToString("dd.MM.yyyy HH:mm");
     }
 
     /// <summary>Дата занятия по номеру недели и дню недели (индекс 1..7, Пн=1).</summary>

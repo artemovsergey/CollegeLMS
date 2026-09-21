@@ -597,30 +597,73 @@ public class MessageFormatterTests
     }
 
     [Fact]
-    public void FormatCorrectionDigest_SelfStudyNote_ShowsSelfStudyLine()
+    public void FormatCorrectionDigest_RendersWebStyleCard()
+    {
+        var text = MessageFormatter.FormatCorrectionDigest([Revision()], TimeZoneInfo.Utc);
+
+        text.Should().Contain("🔔 **Изменения в расписании**");
+        text.Should().Contain("**Замена**");
+        text.Should().Contain("📅 1 сентября 2026");
+        text.Should().Contain("Вторник, 1-я неделя");
+        text.Should().Contain("🏫 **ПО262**");
+        text.Should().Contain("🕐 пара 2");
+        text.Should().Contain("📍 ауд. 301");
+        text.Should().Contain("📖 **История**");
+        text.Should().Contain("👤 Петренко В.Б.");
+        text.Should().Contain("📝 Примечание: вм.4 п");
+        text.Should().Contain("✅ Применено: 08.09.2026 10:00");
+        text.Should().NotContain("http");
+    }
+
+    [Fact]
+    public void FormatCorrectionDigest_ReplaceWithRemovedSubject_ShowsStrikethrough()
+    {
+        var revision = Revision();
+        revision.ChangeType = "Move";
+        revision.RemovedSubject = "Математика";
+        revision.RemovedNumberPair = 2;
+        revision.NumberPair = 3;
+
+        var text = MessageFormatter.FormatCorrectionDigest([revision], TimeZoneInfo.Utc);
+
+        text.Should().Contain("**Перенос**");
+        text.Should().Contain("🕐 пара 2 → 3");
+        text.Should().Contain("📖 ~~Математика~~ → **История**");
+    }
+
+    [Fact]
+    public void FormatCorrectionDigest_AppliedAt_UsesTimeZone()
+    {
+        var msk = TimeZoneInfo.CreateCustomTimeZone(
+            "msk-test",
+            TimeSpan.FromHours(3),
+            "MSK",
+            "MSK"
+        );
+
+        var text = MessageFormatter.FormatCorrectionDigest([Revision()], msk);
+
+        text.Should().Contain("✅ Применено: 08.09.2026 13:00");
+    }
+
+    [Fact]
+    public void FormatCorrectionDigest_SelfStudyNote_ShowsSelfStudyBadge()
     {
         var revision = Revision(changeType: "Remove");
         revision.Note = "сам.р.";
 
-        var text = MessageFormatter.FormatCorrectionDigest(
-            new DateTime(2026, 9, 8),
-            [revision],
-            miniAppUrl: null
-        );
+        var text = MessageFormatter.FormatCorrectionDigest([revision], TimeZoneInfo.Utc);
 
-        text.Should().Contain("🟣 сам.р. (самостоятельная работа)");
+        text.Should().Contain("🟣 Сам.р.");
+        text.Should().Contain("📖 **История**");
     }
 
     [Fact]
-    public void FormatCorrectionDigest_WithoutSelfStudy_HidesSelfStudyLine()
+    public void FormatCorrectionDigest_WithoutSelfStudy_HidesSelfStudyBadge()
     {
-        var text = MessageFormatter.FormatCorrectionDigest(
-            new DateTime(2026, 9, 8),
-            [Revision()],
-            miniAppUrl: null
-        );
+        var text = MessageFormatter.FormatCorrectionDigest([Revision()], TimeZoneInfo.Utc);
 
-        text.Should().NotContain("самостоятельная работа");
+        text.Should().NotContain("Сам.р.");
     }
 
     [Fact]

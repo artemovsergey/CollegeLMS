@@ -2,7 +2,6 @@ using CollegeLMS.MaxBot.Clients;
 using CollegeLMS.MaxBot.Data;
 using CollegeLMS.MaxBot.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace CollegeLMS.MaxBot.Services;
 
@@ -12,21 +11,21 @@ public class ChangeNotifier
     private readonly MaxBotDbContext _db;
     private readonly MaxApiClient _max;
     private readonly CollegeLmsApiClient _api;
-    private readonly string _miniAppUrl;
+    private readonly TimeZoneInfo _timeZone;
     private readonly ILogger<ChangeNotifier> _logger;
 
     public ChangeNotifier(
         MaxBotDbContext db,
         MaxApiClient max,
         CollegeLmsApiClient api,
-        IOptions<MaxBotOptions> options,
+        TimeZoneInfo timeZone,
         ILogger<ChangeNotifier> logger
     )
     {
         _db = db;
         _max = max;
         _api = api;
-        _miniAppUrl = options.Value.MiniAppUrl;
+        _timeZone = timeZone;
         _logger = logger;
     }
 
@@ -48,15 +47,7 @@ public class ChangeNotifier
         {
             try
             {
-                var date = recipientRevisions
-                    .Select(r => r.CorrectionDate)
-                    .FirstOrDefault(d => d.HasValue);
-
-                var text = MessageFormatter.FormatCorrectionDigest(
-                    date,
-                    recipientRevisions,
-                    _miniAppUrl
-                );
+                var text = MessageFormatter.FormatCorrectionDigest(recipientRevisions, _timeZone);
                 await _max.SendMessageAsync(chatId, text, ct: ct);
             }
             catch (Exception ex)
