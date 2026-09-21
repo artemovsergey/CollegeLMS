@@ -722,24 +722,21 @@ public class ScheduleCorrectionService(
         var teacherNames = entries
             .SelectMany(e => new[] { e.TeacherName, e.RemovedTeacherName })
             .Where(n => !string.IsNullOrWhiteSpace(n))
-            .Select(n => ScheduleImportService.NormalizeTeacherName(n!))
-            .Distinct()
             .ToList();
         if (teacherNames.Count > 0)
         {
-            var teacherIds = await db
-                .Teachers.AsNoTracking()
-                .Include(t => t.User)
-                .Where(t => teacherNames.Contains(t.User.FullName))
-                .ToDictionaryAsync(t => t.User.FullName, t => t.Id, ct);
+            var teachers = await db.Teachers.AsNoTracking().Include(t => t.User).ToListAsync(ct);
+            var (byFullName, bySurname) = BuildTeacherLookups(teachers);
 
             foreach (var entry in entries)
             {
                 if (entry.TeacherId is null && !string.IsNullOrWhiteSpace(entry.TeacherName))
                 {
-                    var normalized = ScheduleImportService.NormalizeTeacherName(entry.TeacherName);
-                    if (teacherIds.TryGetValue(normalized, out var teacherId))
-                        entry.TeacherId = teacherId;
+                    entry.TeacherId = ScheduleImportService.ResolveTeacherId(
+                        entry.TeacherName,
+                        byFullName,
+                        bySurname
+                    );
                 }
 
                 if (
@@ -747,11 +744,11 @@ public class ScheduleCorrectionService(
                     && !string.IsNullOrWhiteSpace(entry.RemovedTeacherName)
                 )
                 {
-                    var normalized = ScheduleImportService.NormalizeTeacherName(
-                        entry.RemovedTeacherName
+                    entry.RemovedTeacherId = ScheduleImportService.ResolveTeacherId(
+                        entry.RemovedTeacherName,
+                        byFullName,
+                        bySurname
                     );
-                    if (teacherIds.TryGetValue(normalized, out var removedTeacherId))
-                        entry.RemovedTeacherId = removedTeacherId;
                 }
             }
         }
@@ -978,12 +975,33 @@ public class ScheduleCorrectionService(
 
     private async Task<Guid?> FindTeacherAsync(string name, CancellationToken ct)
     {
-        var normalized = ScheduleImportService.NormalizeTeacherName(name);
-        var teacher = await db
-            .Teachers.AsNoTracking()
-            .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.User.FullName == normalized, ct);
-        return teacher?.Id;
+        var teachers = await db.Teachers.AsNoTracking().Include(t => t.User).ToListAsync(ct);
+        var (byFullName, bySurname) = BuildTeacherLookups(teachers);
+        return ScheduleImportService.ResolveTeacherId(name, byFullName, bySurname);
+    }
+
+    private static (
+        Dictionary<string, Guid> ByFullName,
+        Dictionary<string, List<Guid>> BySurname
+    ) BuildTeacherLookups(List<Teacher> teachers)
+    {
+        var byFullName = teachers
+            .GroupBy(
+                t => ScheduleImportService.NormalizeTeacherName(t.User.FullName),
+                StringComparer.OrdinalIgnoreCase
+            )
+            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+        var bySurname = teachers
+            .GroupBy(
+                t => ScheduleImportService.SurnameKey(t.User.FullName),
+                StringComparer.OrdinalIgnoreCase
+            )
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(t => t.Id).Distinct().ToList(),
+                StringComparer.OrdinalIgnoreCase
+            );
+        return (byFullName, bySurname);
     }
 
     private static string Normalize(string name) =>

@@ -485,4 +485,102 @@ public class CorrectionApplyEngineTests : IDisposable
         error.Message.Should().StartWith("Строка 1:");
         error.Message.Should().Contain("не найден");
     }
+
+    [Fact]
+    public async Task ValidateBatchAsync_SubjectSpellingDiffers_MatchesByLookupKey()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync("Абатуров С.А.");
+        await SeedEntryAsync(group.Id, teacher.Id, "ОБПиЗР", 5, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Remove,
+                5,
+                removedSubject: "ОБП и ЗР",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ValidateBatchAsync_AbbreviatedSubject_MatchesByUniqueTeacher()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync("Минина М.Х.");
+        await SeedEntryAsync(group.Id, teacher.Id, "Обществоз.", 4, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Remove,
+                4,
+                removedSubject: "Обществ.",
+                removedTeacherName: teacher.User.FullName
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ValidateBatchAsync_AmbiguousPairWithoutTeacher_ReturnsNotFoundError()
+    {
+        var group = await SeedGroupAsync();
+        var firstTeacher = await SeedTeacherAsync("Иванова И.И.");
+        var secondTeacher = await SeedTeacherAsync("Петрова П.П.");
+        await SeedEntryAsync(group.Id, firstTeacher.Id, "Биология", 2, TestWeek);
+        await SeedEntryAsync(group.Id, secondTeacher.Id, "Химия", 2, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(1, ScheduleChangeType.Remove, 2, removedSubject: "Биологи")
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        var error = errors.Should().ContainSingle().Subject;
+        error.Message.Should().StartWith("Строка 1:");
+        error.Message.Should().Contain("пара 2 не найдена");
+    }
+
+    [Fact]
+    public async Task ExecuteBatchAsync_SlashTeacher_ResolvesFirstKnownTeacher()
+    {
+        var group = await SeedGroupAsync();
+        var removedTeacher = await SeedTeacherAsync("Кобзаренко Л.Н.");
+        var firstVariantTeacher = await SeedTeacherAsync("Кривцова С.Н.");
+        await SeedTeacherAsync("Степаненко А.В.");
+        await SeedEntryAsync(group.Id, removedTeacher.Id, "ЭкономОтр.", 4, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Replace,
+                4,
+                subject: "Ин.язык(1и2)",
+                teacherName: "Кривцова/Степаненко",
+                removedSubject: "Эконом.отр.",
+                removedTeacherName: removedTeacher.User.FullName,
+                removedNumberPair: 4
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        errors.Should().BeEmpty();
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.TeacherId.Should().Be(firstVariantTeacher.Id);
+    }
 }

@@ -258,6 +258,35 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PreviewAsync_SlashTeacherName_ResolvesFirstKnownTeacher()
+    {
+        var group = await SeedGroupAsync();
+        var firstVariantTeacher = await SeedTeacherAsync(
+            "Кривцова С.Н.",
+            "krivtsova@collegelms.ru"
+        );
+        await SeedTeacherAsync("Степаненко А.В.", "stepanenko@collegelms.ru");
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 4).Value = "Ин.язык(1и2)";
+            ws.Cell(7, 5).Value = "Кривцова/Степаненко";
+            ws.Cell(7, 6).Value = 1;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Should().BeEmpty();
+            var entry = result.Data.AllEntries.Should().ContainSingle().Subject;
+            entry.TeacherId.Should().Be(firstVariantTeacher.Id);
+        }
+    }
+
+    [Fact]
     public async Task PreviewAsync_UnknownGroup_ReturnsDataError()
     {
         await SeedTeacherAsync("Марченко И.А.");

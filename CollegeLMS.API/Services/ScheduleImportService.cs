@@ -167,6 +167,65 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         return v.ToLowerInvariant().Replace('ё', 'е');
     }
 
+    /// <summary>
+    /// Ключ сопоставления предметов: регистр, пробелы, точки и прочие разделители
+    /// не учитываются, поэтому «ОБП и ЗР», «ОБПиЗР» и «ОБП. и ЗР» — один предмет.
+    /// </summary>
+    internal static string SubjectLookupKey(string subject)
+    {
+        var v = Regex.Replace(NormalizeSubject(subject), @"[^\p{L}\p{Nd}]+", "");
+        return v.ToLowerInvariant().Replace('ё', 'е');
+    }
+
+    /// <summary>
+    /// Варианты ФИО из одной ячейки: «Кривцова/Степаненко» — два преподавателя через слеш.
+    /// </summary>
+    internal static List<string> TeacherNameVariants(string name) =>
+        name.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(NormalizeTeacherName)
+            .Where(v => v.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>Фамилия (первое слово) — для сопоставления «Кривцова» с «Кривцова С.Н.».</summary>
+    internal static string SurnameKey(string fullName)
+    {
+        var trimmed = fullName.Trim();
+        var spaceIndex = trimmed.IndexOf(' ');
+        var surname = spaceIndex > 0 ? trimmed[..spaceIndex] : trimmed;
+        return surname.ToLowerInvariant().Replace('ё', 'е');
+    }
+
+    /// <summary>
+    /// Ищет преподавателя по имени (в т.ч. «A/B»): сначала точное совпадение полного ФИО
+    /// по варианту, затем — единственная подходящая фамилия.
+    /// </summary>
+    internal static Guid? ResolveTeacherId(
+        string? name,
+        IReadOnlyDictionary<string, Guid> byFullName,
+        IReadOnlyDictionary<string, List<Guid>> bySurname
+    )
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        Guid? surnameMatch = null;
+        foreach (var variant in TeacherNameVariants(name))
+        {
+            if (byFullName.TryGetValue(variant, out var id))
+                return id;
+
+            if (
+                surnameMatch is null
+                && bySurname.TryGetValue(SurnameKey(variant), out var ids)
+                && ids.Count == 1
+            )
+                surnameMatch = ids[0];
+        }
+
+        return surnameMatch;
+    }
+
     private static ScheduleValidationError Error(
         string sheet,
         int row,

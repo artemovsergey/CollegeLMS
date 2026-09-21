@@ -173,6 +173,16 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
         var teachersByName = teachers
             .GroupBy(t => t.User.FullName, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+        var teachersBySurname = teachers
+            .GroupBy(
+                t => ScheduleImportService.SurnameKey(t.User.FullName),
+                StringComparer.OrdinalIgnoreCase
+            )
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(t => t.Id).Distinct().ToList(),
+                StringComparer.OrdinalIgnoreCase
+            );
 
         var entries = execute
             ? await db
@@ -298,15 +308,18 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             }
             if (!teacherId.HasValue && !string.IsNullOrWhiteSpace(position.TeacherName))
             {
-                var normalized = ScheduleImportService.NormalizeTeacherName(position.TeacherName);
-                if (!teachersByName.TryGetValue(normalized, out var resolvedTeacherId))
+                teacherId = ScheduleImportService.ResolveTeacherId(
+                    position.TeacherName,
+                    teachersByName,
+                    teachersBySurname
+                );
+                if (!teacherId.HasValue)
                 {
                     result.Errors.Add(
                         Error(position.Row, 5, $"преподаватель «{position.TeacherName}» не найден.")
                     );
                     continue;
                 }
-                teacherId = resolvedTeacherId;
             }
 
             var removedTeacherId = position.RemovedTeacherId;
@@ -326,12 +339,11 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                 && !string.IsNullOrWhiteSpace(position.RemovedTeacherName)
             )
             {
-                var normalized = ScheduleImportService.NormalizeTeacherName(
-                    position.RemovedTeacherName
+                removedTeacherId = ScheduleImportService.ResolveTeacherId(
+                    position.RemovedTeacherName,
+                    teachersByName,
+                    teachersBySurname
                 );
-                removedTeacherId = teachersByName.TryGetValue(normalized, out var removedId)
-                    ? removedId
-                    : null;
             }
 
             if (!virtualMap.TryGetValue(key, out var list))
@@ -651,29 +663,56 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
         string? teacherName
     )
     {
-        IEnumerable<SimulatedEntry> candidates = list.Where(e =>
-            !e.Removed && e.NumberPair == numberPair
+        var candidates = list.Where(e => !e.Removed && e.NumberPair == numberPair).ToList();
+        if (candidates.Count == 0)
+            return null;
+
+        var strict = candidates
+            .Where(e => MatchesSubject(e, subject) && MatchesTeacher(e, teacherId, teacherName))
+            .ToList();
+        if (strict.Count > 0)
+            return strict[0];
+
+        // Предмет в файле мог быть записан иначе (сокращение, пунктуация) — если
+        // преподаватель однозначно указывает на пару, считаем её искомой.
+        var byTeacher = candidates.Where(e => MatchesTeacher(e, teacherId, teacherName)).ToList();
+        return byTeacher.Count == 1 ? byTeacher[0] : null;
+    }
+
+    private static bool MatchesSubject(SimulatedEntry entry, string? subject) =>
+        string.IsNullOrWhiteSpace(subject)
+        || string.Equals(
+            ScheduleImportService.SubjectLookupKey(entry.Subject),
+            ScheduleImportService.SubjectLookupKey(subject),
+            StringComparison.OrdinalIgnoreCase
         );
 
-        if (!string.IsNullOrWhiteSpace(subject))
-        {
-            var normalized = ScheduleImportService.NormalizeSubject(subject);
-            candidates = candidates.Where(e =>
-                string.Equals(e.Subject, normalized, StringComparison.OrdinalIgnoreCase)
-            );
-        }
-
+    private static bool MatchesTeacher(SimulatedEntry entry, Guid? teacherId, string? teacherName)
+    {
         if (teacherId.HasValue)
-            candidates = candidates.Where(e => e.TeacherId == teacherId.Value);
-        else if (!string.IsNullOrWhiteSpace(teacherName))
+            return entry.TeacherId == teacherId.Value;
+
+        if (string.IsNullOrWhiteSpace(teacherName))
+            return true;
+
+        return MatchesTeacherName(entry.TeacherName, teacherName);
+    }
+
+    private static bool MatchesTeacherName(string? entryName, string teacherName)
+    {
+        if (string.IsNullOrWhiteSpace(entryName))
+            return false;
+
+        foreach (var variant in ScheduleImportService.TeacherNameVariants(teacherName))
         {
-            var normalized = ScheduleImportService.NormalizeTeacherName(teacherName);
-            candidates = candidates.Where(e =>
-                string.Equals(e.TeacherName, normalized, StringComparison.OrdinalIgnoreCase)
-            );
+            if (string.Equals(entryName, variant, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (entryName.StartsWith(variant + " ", StringComparison.OrdinalIgnoreCase))
+                return true;
         }
 
-        return candidates.FirstOrDefault();
+        return false;
     }
 
     private static string? ResolveTeacherName(
