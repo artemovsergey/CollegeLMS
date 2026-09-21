@@ -25,7 +25,7 @@
 
   /* --- Декор: шевроны и паттерн кубов --- */
   .decor { position:absolute; pointer-events:none; z-index:0; }
-  .decor--chevrons-r { right:-64px; top:120px; height:360px; opacity:.10; }
+  .decor--chevrons-r { right:-92px; top:150px; height:360px; opacity:.08; }
   .decor--chevrons-l { left:-70px; bottom:30px; height:200px; opacity:.07; transform:scaleX(-1); }
   .decor--cubes { left:-30px; bottom:-40px; width:300px; opacity:.07; }
 
@@ -49,36 +49,29 @@
   /* зелёная линия — фирменный акцент под шапкой */
   .brand-bar { position:absolute; z-index:1; left:0; right:0; top:74px; height:3px; background:#4ECC0A; }
 
+  /* --- Заголовок с эмблемой колледжа (SVG, без подложки) --- */
+  .title-row { margin-top:32px; display:flex; align-items:center; gap:14px; }
   h1 {
-    margin-top:30px;
     font-weight:900; font-size:46px; line-height:.98; letter-spacing:-.015em;
   }
   h1 .accent { color:#4ECC0A; }
+  .title-row .emblem { height:148px; width:auto; display:block; flex:none; }
 
   .sub {
-    margin-top:10px;
+    margin-top:14px;
     color:#BDC6CB; font-weight:500; font-size:13px; line-height:1.35;
   }
 
-  /* --- Центральный знак: эмблема колледжа --- */
-  .brandmark {
-    margin:12px auto 0; width:fit-content;
-    background:#fff; border-radius:18px;
-    padding:10px 20px;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .brandmark img { height:102px; display:block; }
-
   /* --- Единая подпись для всех QR --- */
-  .hint { margin-top:12px; text-align:center; color:#BDC6CB; font-weight:500; font-size:11px; }
+  .hint { margin-top:20px; text-align:center; color:#BDC6CB; font-weight:500; font-size:11px; }
   .hint b { color:#4ECC0A; font-weight:900; letter-spacing:.01em; }
 
   /* --- Карточки компетенций --- */
-  .cards { margin-top:12px; display:flex; gap:11px; }
+  .cards { margin-top:20px; display:flex; gap:11px; }
   .card {
     position:relative; flex:1 1 0; min-width:0;
     background:#fff; color:#1D1D1B;
-    border-radius:14px; padding:11px 9px 11px;
+    border-radius:14px; padding:15px 9px 15px;
   }
   .card h3 {
     font-weight:700; font-size:11px; line-height:1.22; letter-spacing:-.01em;
@@ -88,10 +81,10 @@
     display:inline-block; width:7px; height:7px; border-radius:2px;
     background:#4ECC0A; margin-right:5px; vertical-align:1px;
   }
-  .card .qr { width:100%; height:auto; display:block; margin-top:7px; border-radius:4px; }
+  .card .qr { width:100%; height:auto; display:block; margin-top:10px; border-radius:4px; }
 
-  /* --- Контакты: компактная строка --- */
-  .contact { margin-top:12px; text-align:center; color:#BDC6CB; font-weight:500; font-size:11px; }
+  /* --- Контакты: компактная строка, прижата к низу --- */
+  .contact { margin-top:auto; padding-bottom:26px; text-align:center; color:#BDC6CB; font-weight:500; font-size:11px; }
   .contact b { color:#fff; font-weight:700; }
 </style>
 </head>
@@ -107,12 +100,11 @@
       <div class="hashtag">#ПРОФЕССИОНАЛЫ<br>СДЕЛАНОВРОССИИ</div>
     </header>
 
-    <h1>Хочешь на&nbsp;чемпионат?<br><span class="accent">Покажи себя!</span></h1>
-    <p class="sub">Отбор студентов на Всероссийский чемпионат «Профессионалы»</p>
-
-    <div class="brandmark">
-      <img src="assets/college-emblem.png" alt="Ставропольский колледж связи им. В.А. Петрова">
+    <div class="title-row">
+      <h1>Хочешь на&nbsp;чемпионат?<br><span class="accent">Покажи себя!</span></h1>
+      <img class="emblem" src="assets/college-emblem.svg" alt="Ставропольский колледж связи им. В.А. Петрова">
     </div>
+    <p class="sub">Отбор студентов на Всероссийский чемпионат «Профессионалы»</p>
 
     <div class="hint"><b>Сканируй QR</b> — откроется тестовое задание твоей компетенции</div>
 
