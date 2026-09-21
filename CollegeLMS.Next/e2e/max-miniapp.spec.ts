@@ -5,7 +5,7 @@ const META = {
   data: {
     // Бэкенд отдаёт DateTime в полном ISO-формате — моки повторяют прод
     semesterStart: "2026-09-01T00:00:00Z",
-    totalWeeks: 16,
+    totalWeeks: 17,
     currentWeek: 2,
     currentDate: "2026-09-07T00:00:00Z",
   },

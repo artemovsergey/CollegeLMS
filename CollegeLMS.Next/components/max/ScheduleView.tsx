@@ -215,7 +215,7 @@ export default function ScheduleView() {
       if (semesterStart && selectedDate) {
         const week = Math.min(
           Math.max(1, weekOfDate(selectedDate, semesterStart)),
-          meta?.totalWeeks ?? 16,
+          meta?.totalWeeks ?? 17,
         )
         setSelectedWeek(week)
       } else if (selectedWeek === null) {
@@ -235,7 +235,7 @@ export default function ScheduleView() {
       setSelectedWeek((prev) =>
         Math.min(
           Math.max(1, (prev ?? 1) + delta),
-          meta?.totalWeeks ?? 16,
+          meta?.totalWeeks ?? 17,
         ),
       )
     }
