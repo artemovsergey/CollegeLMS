@@ -107,9 +107,7 @@ public class MaxApiSubscriptionTests
             ct: CancellationToken.None
         );
 
-        var body = JsonDocument.Parse(
-            await handler.Requests.Single().Content!.ReadAsStringAsync()
-        );
+        var body = JsonDocument.Parse(await handler.Requests.Single().Content!.ReadAsStringAsync());
         body.RootElement.TryGetProperty("secret", out _).Should().BeFalse();
     }
 
