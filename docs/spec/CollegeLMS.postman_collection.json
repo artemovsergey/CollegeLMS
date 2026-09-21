@@ -74,6 +74,10 @@
     {
       "key": "practiceId",
       "value": ""
+    },
+    {
+      "key": "scheduleId",
+      "value": ""
     }
   ],
   "item": [
@@ -1650,6 +1654,111 @@
             }
           },
           "description": "Экспорт недели Пн–Сб со слоями: вставки, практика, пары с бейджами; week (1–16) или date (по умолчанию текущая неделя). layout=grid — таблица «№ пары × дни», layout=daycards — блоки дней. Имя файла (FILE-3): «Расписание_неделя_dd.MM.yyyy_HH-mm-ss.pdf|xlsx». Пример: Расписание_неделя_21.09.2026_14-30-00.xlsx. Пустая неделя → 404 «Нет данных для экспорта»."
+        }
+      ]
+    },
+    {
+      "name": "Schedule (CRUD & import)",
+      "description": "Ручное редактирование расписания (время пар — из справочника звонков, недели 1–16, пересечения по неделям) и XLSX-импорт: preview с записями и ошибками, confirm с отчётом",
+      "item": [
+        {
+          "name": "Create schedule entry",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": \"{{groupId}}\",\n  \"teacherId\": null,\n  \"subject\": \"Математика\",\n  \"room\": \"301\",\n  \"dayOfWeek\": 1,\n  \"numberPair\": 1,\n  \"weeks\": [1, 2, 3, 4, 5, 6, 7, 8],\n  \"lessonType\": \"Lecture\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule"]
+            }
+          },
+          "description": "Создать запись расписания (Dispatcher/Admin). Тело CreateScheduleRequest: groupId, teacherId (UUID или null), subject, room, dayOfWeek (0=Sunday..6=Saturday), numberPair (1–8), weeks[], lessonType. Времени в теле нет: startTime/endTime вычисляются сервером из справочника звонков по numberPair; если пары нет в справочнике — fallback на дефолтные слоты дня. Валидации 400: subject не пустой и ≤200; room не пустой и ≤50; groupId задан; numberPair 1–8; weeks не пусты, значения 1–16 (дедупликация и сортировка); lessonType ∈ {None, Lecture, Practice, Lab, Exam}. 404 — группа или преподаватель не найдены. 409 — пересечение по группе/преподавателю/аудитории с учётом недель: «У группы уже есть занятие в эту пару» / «У преподавателя уже есть занятие в эту пару» / «Аудитория уже занята в эту пару». Пример ответа (200): {\"isSuccess\":true,\"data\":{\"id\":\"...\",\"groupId\":\"...\",\"groupName\":\"ИС-21\",\"teacherId\":\"...\",\"teacherName\":\"Иванов И.И.\",\"subject\":\"Математика\",\"room\":\"301\",\"dayOfWeek\":1,\"numberPair\":1,\"startTime\":\"08:30:00\",\"endTime\":\"09:50:00\",\"weeks\":[1,2,3,4,5,6,7,8],\"lessonType\":\"Lecture\",\"changeTags\":[]},\"errorMessage\":null,\"statusCode\":200}."
+        },
+        {
+          "name": "Update schedule entry",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": \"{{groupId}}\",\n  \"teacherId\": null,\n  \"subject\": \"Математика\",\n  \"room\": \"302\",\n  \"dayOfWeek\": 1,\n  \"numberPair\": 2,\n  \"weeks\": [1, 3, 5, 7],\n  \"lessonType\": \"Practice\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "{{scheduleId}}"]
+            }
+          },
+          "description": "Изменить запись расписания (Dispatcher/Admin). Тело UpdateScheduleRequest — как у Create, без времени: startTime/endTime пересчитываются из справочника звонков. 400/409 — по тем же правилам, что и при создании; 404 — запись, группа или преподаватель не найдены. Ответ 200 — Result<ScheduleResponse> с временем из звонков."
+        },
+        {
+          "name": "Get schedule entry by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "{{scheduleId}}"]
+            }
+          },
+          "description": "Запись расписания по ID (AllowAnonymous). 200 — Result<ScheduleResponse>; время приходит из справочника звонков (если пара есть в справочнике). 404 — запись не найдена."
+        },
+        {
+          "name": "Delete schedule entry",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "{{scheduleId}}"]
+            }
+          },
+          "description": "Удалить запись расписания (Dispatcher/Admin). 200 — Result; 404 — запись не найдена."
+        },
+        {
+          "name": "Preview schedule import",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "multipart/form-data" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "/path/to/расписание.xlsx" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/import/preview",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "import", "preview"]
+            }
+          },
+          "description": "Превью импорта расписания из XLSX (Dispatcher/Admin, multipart/form-data, поле file). Ограничения FILE-1: только .xlsx, ≤10 МБ. 400 — файл не выбран / не XLSX / больше 10 МБ (тело Result<T>), для нечитаемого файла — 400 с сырым телом {\"isSuccess\":false,\"errorMessage\":\"Не удалось прочитать файл. Убедитесь, что это XLSX-файл.\"}. Ошибки разбора не отменяют 200: в одном ответе приходят распознанные entries и errors. Разбор листа 1: названия групп в строке 5 (столбцы с 3-го), дни недели в столбце A, номер пары 1–8 в столбце B, ячейка — «аудитория предмет (недели) преподаватель»; у пары может быть несколько предметов (строки с несколькими ячейками). Формат ошибки: { sheet, row, column, level, message }, где level = structure|data, а message уже содержит префикс «Лист …, строка N, столбец M: …». Пример ответа (200): {\"isSuccess\":true,\"data\":{\"totalEntries\":1,\"entries\":[{\"groupName\":\"ИС-21\",\"day\":\"Monday\",\"pair\":1,\"subject\":\"Математика\",\"room\":\"301\",\"teacherName\":\"Иванов И.И.\",\"weeks\":[1,2,3,4],\"startTime\":\"08:30:00\",\"endTime\":\"09:50:00\"}],\"errors\":[{\"sheet\":\"Лист1\",\"row\":9,\"column\":4,\"level\":\"data\",\"message\":\"Лист Лист1, строка 9, столбец 4: неделя 17 вне семестра (1–16)\"}]},\"errorMessage\":null,\"statusCode\":200}."
+        },
+        {
+          "name": "Confirm schedule import",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entries\": [\n    {\n      \"groupName\": \"ИС-21\",\n      \"day\": \"Monday\",\n      \"pair\": 1,\n      \"subject\": \"Математика\",\n      \"room\": \"301\",\n      \"teacherName\": \"Иванов И.И.\",\n      \"weeks\": [1, 2, 3, 4],\n      \"startTime\": \"08:30:00\",\n      \"endTime\": \"09:50:00\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/import/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedule", "import", "confirm"]
+            }
+          },
+          "description": "Подтвердить импорт расписания (Dispatcher/Admin). Тело — сырой ConfirmImportRequest { entries[] } (поля как у SchedulePreviewEntry из preview; startTime/endTime игнорируются — время берётся из справочника звонков). Сервер повторно валидирует позиции: пара 1–8, недели 1–16, день недели, непустые группа/предмет/аудитория. При ошибках — 400 с СЫРЫМ телом ConfirmResult (не Result<T>): { isSuccess: false, imported: 0, groups: 0, teachers: 0, schedule: [], errors: [] }; пустой список — 400 {\"isSuccess\":false,\"errors\":[{\"sheet\":\"импорт\",\"row\":0,\"column\":0,\"level\":\"structure\",\"message\":\"Нет позиций для импорта\"}]}. При успехе — полная замена расписания в одной транзакции (schedule_entries + schedule_history), автосоздание групп (курс — первая цифра имени, кламп 1–4) и преподавателей (поиск User по канонизированному ФИО, без дублей; профиль Teacher создаётся при необходимости). Пример 400: {\"isSuccess\":false,\"imported\":0,\"groups\":0,\"teachers\":0,\"schedule\":[],\"errors\":[{\"sheet\":\"импорт\",\"row\":2,\"column\":0,\"level\":\"data\",\"message\":\"Лист импорт, строка 2, столбец 0: номер пары должен быть от 1 до 8\"}]}. Пример 200: {\"isSuccess\":true,\"imported\":1,\"groups\":1,\"teachers\":1,\"schedule\":[{\"id\":\"...\",\"groupId\":\"...\",\"groupName\":\"ИС-21\",\"teacherId\":\"...\",\"teacherName\":\"Иванов И.И.\",\"subject\":\"Математика\",\"room\":\"301\",\"dayOfWeek\":1,\"numberPair\":1,\"startTime\":\"08:30:00\",\"endTime\":\"09:50:00\",\"weeks\":[1,2,3,4],\"lessonType\":\"None\",\"changeTags\":[]}],\"errors\":[]}, где groups/teachers — количество СОЗДАННЫХ записей."
         }
       ]
     },
