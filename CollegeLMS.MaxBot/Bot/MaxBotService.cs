@@ -1820,16 +1820,40 @@ public class MaxBotService : BackgroundService
 
         try
         {
-            await _max.SendMessageAsync(
+            var upload = await _max.GetUploadUrlAsync("file", ct);
+            var payload = await _max.UploadFileAsync(
+                upload.Url,
+                bytes,
+                $"Расписание_{DateTime.Now:dd.MM.yyyy_HH-mm-ss}.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ct
+            );
+
+            var buttons = new List<List<MaxButton>>
+            {
+                new()
+                {
+                    new()
+                    {
+                        Type = "link",
+                        Text = "📥 Скачать XLSX",
+                        Url = link,
+                    },
+                },
+            };
+
+            await _max.SendDocumentAsync(
                 target,
-                $"📊 Расписание (XLSX, {bytes.Length} байт). Ссылка на скачивание:\n{link}",
-                ct: ct
+                payload,
+                $"📊 Расписание (XLSX, {bytes.Length} байт)",
+                buttons,
+                ct
             );
             await _max.SendMessageAsync(chatId, "✅ XLSX отправлен.", ct: ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send XLSX message");
+            _logger.LogError(ex, "Failed to send XLSX file");
             await _max.SendMessageAsync(chatId, "❌ Не удалось отправить XLSX.", ct: ct);
         }
     }
@@ -2461,21 +2485,7 @@ public class MaxBotService : BackgroundService
 
         var positionAdded = await _api.AddCorrectionPositionAsync(
             batch.Id,
-            new CreateCorrectionPositionDto
-            {
-                ChangeType = entry.ChangeType,
-                GroupId = entry.GroupId,
-                GroupName = entry.GroupName,
-                NumberPair = entry.NumberPair,
-                Subject = entry.Subject,
-                TeacherId = entry.TeacherId,
-                TeacherName = entry.TeacherName,
-                RemovedSubject = entry.RemovedSubject,
-                RemovedTeacherId = entry.RemovedTeacherId,
-                RemovedTeacherName = entry.RemovedTeacherName,
-                RemovedNumberPair = entry.RemovedNumberPair,
-                Note = entry.Note ?? (entry.ChangeType == "Move" ? $"вм.{entry.NumberPair}" : null),
-            },
+            DispatcherCorrectionWizard.BuildPosition(entry),
             token,
             ct
         );

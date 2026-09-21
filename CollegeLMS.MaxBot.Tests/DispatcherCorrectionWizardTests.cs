@@ -166,4 +166,42 @@ public class DispatcherCorrectionWizardTests
         text.Should().Contain("Пара: 2");
         text.Should().Contain("Снимается: История");
     }
+
+    [Fact]
+    public void BuildPosition_Move_KeepsNoteNullAndRemovedPair()
+    {
+        var state = State("Move");
+        state.Note = null;
+        var entry = DispatcherCorrectionWizard.BuildEntry(state);
+
+        var position = DispatcherCorrectionWizard.BuildPosition(entry);
+
+        position.ChangeType.Should().Be("Move");
+        position.NumberPair.Should().Be(4);
+        position.RemovedNumberPair.Should().Be(2);
+        position.Subject.Should().Be("Информатика");
+        position.Note.Should().BeNull();
+    }
+
+    [Fact]
+    public void BuildPosition_RemoveWithSelfStudy_KeepsNote()
+    {
+        var state = State("Remove");
+        state.Note = "сам.р.";
+        var entry = DispatcherCorrectionWizard.BuildEntry(state);
+
+        var position = DispatcherCorrectionWizard.BuildPosition(entry);
+
+        position.ChangeType.Should().Be("Remove");
+        position.RemovedNumberPair.Should().Be(2);
+        position.Note.Should().Be("сам.р.");
+    }
+
+    [Fact]
+    public void BuildPreview_Move_ShowsVmRemovedPair()
+    {
+        var text = DispatcherCorrectionWizard.BuildPreview(State("Move"));
+
+        text.Should().Contain("Примечание: вм.2");
+    }
 }

@@ -88,6 +88,27 @@ public static class DispatcherCorrectionWizard
         };
     }
 
+    /// <summary>
+    /// Позиция для batch API: Note передаётся как есть, без предзаполнения —
+    /// сервер сам подставит «вм.{RemovedNumberPair}» для переноса.
+    /// </summary>
+    public static CreateCorrectionPositionDto BuildPosition(CorrectionEntryDto entry) =>
+        new()
+        {
+            ChangeType = entry.ChangeType,
+            GroupId = entry.GroupId,
+            GroupName = entry.GroupName,
+            NumberPair = entry.NumberPair,
+            Subject = entry.Subject,
+            TeacherId = entry.TeacherId,
+            TeacherName = entry.TeacherName,
+            RemovedSubject = entry.RemovedSubject,
+            RemovedTeacherId = entry.RemovedTeacherId,
+            RemovedTeacherName = entry.RemovedTeacherName,
+            RemovedNumberPair = entry.RemovedNumberPair,
+            Note = entry.Note,
+        };
+
     /// <summary>Сетка недель по 4 кнопки в строке.</summary>
     public static List<List<MaxButton>> BuildWeekGrid(int currentWeek, int totalWeeks)
     {
@@ -245,6 +266,8 @@ public static class DispatcherCorrectionWizard
 
         if (entry.Note is not null)
             sb.AppendLine($"Примечание: {entry.Note}");
+        else if (entry.ChangeType == "Move" && entry.RemovedNumberPair.HasValue)
+            sb.AppendLine($"Примечание: вм.{entry.RemovedNumberPair}");
 
         return sb.ToString().TrimEnd();
     }
