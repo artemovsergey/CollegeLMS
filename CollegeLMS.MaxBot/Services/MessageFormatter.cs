@@ -378,24 +378,41 @@ public static class MessageFormatter
         sb.AppendLine("🔔 *Изменения в расписании*");
         sb.AppendLine();
         if (date is { } d)
-            sb.AppendLine($"📅 Дата: {d:dd.MM.yyyy}");
+            sb.AppendLine($"📅 {DayLabelForDate(d)}, {d:dd.MM.yyyy}");
         sb.AppendLine();
 
         foreach (var r in revisions)
         {
-            sb.AppendLine($"• {r.GroupName} · {r.DayOfWeek} · Нед. {r.Week} · Пара {r.NumberPair}");
-            sb.AppendLine($"  📖 {r.Subject} — {FormatChangeNotificationTitle(r.ChangeType)}");
-            if (r.TeacherName is not null)
-                sb.AppendLine($"  👨‍🏫 {r.TeacherName}");
-            if (r.Note is not null)
-                sb.AppendLine($"  📝 {r.Note}");
-            if (IsSelfStudyNote(r.Note))
-                sb.AppendLine("  🟣 сам.р. (самостоятельная работа)");
+            var pair =
+                r.RemovedNumberPair is { } movedFrom && movedFrom != r.NumberPair
+                    ? $"пара {r.NumberPair} (с пары {movedFrom})"
+                    : $"пара {r.NumberPair}";
+            sb.AppendLine($"▫️ *{r.GroupName}* · {r.DayOfWeek} · нед. {r.Week} · {pair}");
+
+            var subject = string.IsNullOrWhiteSpace(r.RemovedSubject)
+                ? r.Subject
+                : $"«{r.RemovedSubject}» → {r.Subject}";
+            sb.AppendLine($"    📖 {subject} — {FormatChangeNotificationTitle(r.ChangeType)}");
+
+            if (!string.IsNullOrWhiteSpace(r.Room))
+                sb.AppendLine($"    📍 ауд. {r.Room}");
+
+            var teacher = r.TeacherName ?? r.RemovedTeacherName;
+            if (!string.IsNullOrWhiteSpace(teacher))
+                sb.AppendLine($"    👨‍🏫 {teacher}");
+
+            if (!string.IsNullOrWhiteSpace(r.Note))
+                sb.AppendLine(
+                    IsSelfStudyNote(r.Note)
+                        ? "    🟣 сам.р. (самостоятельная работа)"
+                        : $"    📝 {r.Note}"
+                );
+
             sb.AppendLine();
         }
 
         if (miniAppUrl is not null && date is { } linkDate)
-            sb.AppendLine($"📅 Открыть: {MiniAppUrlBuilder.Build(miniAppUrl, "day", linkDate)}");
+            sb.AppendLine($"📱 Открыть: {MiniAppUrlBuilder.Build(miniAppUrl, "day", linkDate)}");
 
         return sb.ToString().TrimEnd();
     }
@@ -409,52 +426,5 @@ public static class MessageFormatter
 
         var monday = StudyWeek.MondayOf(StudyWeek.SemesterStart);
         return monday.AddDays((revision.Week - 1) * 7 + (dayIndex - 1));
-    }
-
-    /// <summary>
-    /// Нумерованный список изменений для подписчика (пагинация 20/стр.).
-    /// Показывает дату занятия и deep link на дату последнего изменения.
-    /// </summary>
-    public static string FormatMyChanges(
-        List<ScheduleRevision> revisions,
-        int page,
-        int totalPages,
-        int pageSize = 20,
-        string? miniAppUrl = null
-    )
-    {
-        if (revisions.Count == 0)
-            return "📭 *Мои изменения*\n\nИзменений пока нет.";
-
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"🔄 *Мои изменения* (стр. {page + 1} из {Math.Max(1, totalPages)})");
-        sb.AppendLine();
-
-        var index = page * pageSize + 1;
-        foreach (var r in revisions)
-        {
-            sb.AppendLine(
-                $"{index}. {r.GroupName} · {r.DayOfWeek} · Нед. {r.Week} · Пара {r.NumberPair}"
-            );
-            sb.AppendLine($"   📖 {r.Subject} ({FormatChangeNotificationTitle(r.ChangeType)})");
-            if (r.TeacherName is not null)
-                sb.AppendLine($"   👨‍🏫 {r.TeacherName}");
-            if (DateForRevision(r) is { } lessonDate)
-                sb.AppendLine($"   🗓 {FormatShortDate(lessonDate)}");
-            sb.AppendLine($"   🕐 {r.CreatedAt:dd.MM.yyyy HH:mm}");
-            sb.AppendLine();
-            index++;
-        }
-
-        if (
-            miniAppUrl is not null
-            && revisions.Count > 0
-            && DateForRevision(revisions[0]) is { } lastDate
-        )
-            sb.AppendLine(
-                $"📅 Открыть дату последнего изменения: {MiniAppUrlBuilder.Build(miniAppUrl, "day", lastDate)}"
-            );
-
-        return sb.ToString().TrimEnd();
     }
 }

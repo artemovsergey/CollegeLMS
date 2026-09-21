@@ -69,7 +69,7 @@ public class MiniAppUrlBuilderTests
             groupId: groupId
         );
 
-        payload.Should().Be($"day-2026-09-22-{groupId}");
+        payload.Should().Be($"day-2026-09-22-g-{groupId}");
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class MiniAppUrlBuilderTests
 
         var payload = MiniAppUrlBuilder.BuildStartPayload("week", teacherId: teacherId);
 
-        payload.Should().Be($"week-{teacherId}");
+        payload.Should().Be($"week-t-{teacherId}");
     }
 
     [Fact]

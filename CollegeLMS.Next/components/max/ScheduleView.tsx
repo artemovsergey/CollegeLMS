@@ -55,7 +55,7 @@ function dateInWeek(date: string, week: number, semesterStart: string): string {
 }
 
 export default function ScheduleView() {
-  const { viewContext, loading: contextLoading } = useMaxContext()
+  const { viewContext, loading: contextLoading, deepLink } = useMaxContext()
   const [view, setView] = useState<"day" | "week">("week")
   const [meta, setMeta] = useState<ScheduleMeta | null>(null)
   const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()))
@@ -73,9 +73,11 @@ export default function ScheduleView() {
       const res = await fetchScheduleMeta()
       if (cancelled || !res.isSuccess || !res.data) return
       setMeta(res.data)
-      const link = parseMaxDeepLink(
-        typeof window !== "undefined" ? window.location.search : "",
-      )
+      const link =
+        deepLink ??
+        parseMaxDeepLink(
+          typeof window !== "undefined" ? window.location.search : "",
+        )
       let initialWeek = res.data.currentWeek
       let initialDate =
         normalizeDateOnly(res.data.currentDate) || toIsoDate(new Date())
@@ -109,7 +111,7 @@ export default function ScheduleView() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [deepLink])
 
   const load = useCallback(async () => {
     const requestId = ++requestIdRef.current

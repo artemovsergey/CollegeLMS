@@ -26,7 +26,7 @@ interface LocalScope {
 }
 
 export default function ChangesView() {
-  const { viewContext } = useMaxContext()
+  const { viewContext, deepLink } = useMaxContext()
   const [items, setItems] = useState<ScheduleHistoryItem[]>([])
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
@@ -49,12 +49,6 @@ export default function ChangesView() {
   const effectiveTeacherId = viewContext.teacherId ?? scope.teacherId
 
   useEffect(() => {
-    const link = parseMaxDeepLink(
-      typeof window !== "undefined" ? window.location.search : "",
-    )
-    if ((link.route === "correction" || link.route === "changes") && link.id) {
-      setHighlightId(link.id)
-    }
     void fetchScheduleMeta()
       .then((res) => {
         if (res.isSuccess && res.data) {
@@ -64,6 +58,14 @@ export default function ChangesView() {
       })
       .catch(() => undefined)
   }, [])
+
+  // Deep-link: id изменения из start_param (MAX Bridge) или query-параметров.
+  useEffect(() => {
+    const link = deepLink ?? parseMaxDeepLink(window.location.search)
+    if (link.route === "changes" && link.id) {
+      setHighlightId(link.id)
+    }
+  }, [deepLink])
 
   // Поиск получателя, если в контексте нет группы/преподавателя.
   useEffect(() => {

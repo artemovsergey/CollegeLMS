@@ -7,33 +7,9 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 })
 
-/** Диспетчерские API: вход по паролю и batch-корректировки. */
-function isDispatcherRoute(url: string | undefined): boolean {
-  const path = url ?? ""
-  return (
-    path.startsWith("/api/schedule/correction/") ||
-    path.startsWith("/api/dispatcher/")
-  )
-}
-
-/** Вход диспетчера по паролю: 401 здесь — неверный пароль, а не истёкшая сессия. */
-function isDispatcherLoginRoute(url: string | undefined): boolean {
-  return (url ?? "").startsWith("/api/dispatcher/login")
-}
-
-/** Контекст мини-приложения Max (все его страницы — под /max). */
-function isMaxApp(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.location.pathname.startsWith("/max")
-  )
-}
-
 api.interceptors.request.use(config => {
   if (typeof window !== "undefined") {
-    const token = isDispatcherRoute(config.url)
-      ? sessionStorage.getItem("dispatcherToken") ?? localStorage.getItem("token")
-      : localStorage.getItem("token")
+    const token = localStorage.getItem("token")
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -56,16 +32,6 @@ api.interceptors.response.use(
   error => {
     const status = error.response?.status as number | undefined
     if (typeof window !== "undefined" && status) {
-      if (
-        status === 401 &&
-        (isDispatcherLoginRoute(error.config?.url) ||
-          (isMaxApp() && isDispatcherRoute(error.config?.url)))
-      ) {
-        // Вход диспетчера с неверным паролем и диспетчерские 401 мини-приложения
-        // обрабатываются на месте (DispatcherGate / handleDispatcherAuthError),
-        // без очистки CRM-сессии и редиректа на /login.
-        return Promise.reject(error)
-      }
       if (status === 401) {
         localStorage.removeItem("token")
         localStorage.removeItem("user")

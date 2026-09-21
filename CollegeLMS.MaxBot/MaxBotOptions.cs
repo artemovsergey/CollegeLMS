@@ -20,6 +20,4 @@ public class MaxBotOptions
 
     /// <summary>Секрет вебхука: MAX присылает его в заголовке X-Max-Bot-Api-Secret.</summary>
     public string WebhookSecret { get; set; } = "";
-
-    public List<string> DispatchChatIds { get; set; } = [];
 }

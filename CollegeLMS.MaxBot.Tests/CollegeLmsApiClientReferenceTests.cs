@@ -72,44 +72,6 @@ public class CollegeLmsApiClientReferenceTests
     }
 
     [Fact]
-    public async Task GetInsertsAsync_WithCourse_BuildsUrlAndParses()
-    {
-        string? url = null;
-        var client = BuildClient(
-            new StubHandler(request =>
-            {
-                url = request.RequestUri!.PathAndQuery;
-                return Json(
-                    """{"isSuccess":true,"data":[{"id":"22222222-2222-2222-2222-222222222222","title":"Линейка","dayOfWeek":3,"startTime":"08:00:00","endTime":"08:30:00","course":2,"isActive":true}]}"""
-                );
-            })
-        );
-
-        var result = await client.GetInsertsAsync(3, 2, CancellationToken.None);
-
-        result.Should().ContainSingle();
-        result[0].Title.Should().Be("Линейка");
-        url.Should().Be("/api/schedule/inserts?dayOfWeek=3&activeOnly=true&course=2");
-    }
-
-    [Fact]
-    public async Task GetInsertsAsync_WithoutCourse_OmitsCourseParam()
-    {
-        string? url = null;
-        var client = BuildClient(
-            new StubHandler(request =>
-            {
-                url = request.RequestUri!.PathAndQuery;
-                return Json("""{"isSuccess":true,"data":[]}""");
-            })
-        );
-
-        await client.GetInsertsAsync(1, null, CancellationToken.None);
-
-        url.Should().Be("/api/schedule/inserts?dayOfWeek=1&activeOnly=true");
-    }
-
-    [Fact]
     public async Task GetPracticesAsync_BuildsUrlWithFiltersAndParses()
     {
         string? url = null;

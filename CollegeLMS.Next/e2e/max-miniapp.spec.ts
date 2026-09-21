@@ -126,9 +126,9 @@ const HISTORY = {
         numberPair: 3,
         week: 2,
         note: null,
-        removedSubject: null,
+        removedSubject: "Математика",
         removedRoom: null,
-        removedNumberPair: null,
+        removedNumberPair: 2,
       },
     ],
     totalCount: 1,
@@ -150,41 +150,6 @@ const SEARCH = {
   errorMessage: null,
   statusCode: 200,
 }
-
-// Ответ импорта XLSX (CorrectionImportResponse): одна валидная строка.
-const IMPORT_RESULT = ok({
-  batchId: "b1",
-  correctionDate: "2026-09-07",
-  week: 2,
-  dayOfWeek: 1,
-  totalEntries: 1,
-  positions: [
-    {
-      id: "p1",
-      row: 1,
-      changeType: "Add",
-      groupId: "g1",
-      groupName: "ПО262",
-      dayOfWeek: 1,
-      week: 2,
-      numberPair: 1,
-      subject: "Математика",
-      teacherId: null,
-      teacherName: null,
-      removedSubject: null,
-      removedTeacherId: null,
-      removedTeacherName: null,
-      removedNumberPair: null,
-      note: null,
-      status: "Draft",
-      historyId: null,
-      errors: [],
-    },
-  ],
-  errors: [],
-})
-
-const APPLY_RESULT = ok({ applied: 1, batchId: "b1", history: [] })
 
 function inlineJson(body: object) {
   return {
@@ -217,6 +182,16 @@ test.describe("MAX mini-app", () => {
     await expect(page.getByRole("button", { name: "Поиск" })).toBeVisible()
     await expect(page.getByText("Invalid Date")).toHaveCount(0)
     await expect(page.getByText("undefined")).toHaveCount(0)
+  })
+
+  test("Вкладки мини-аппа без диспетчера", async ({ page }) => {
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+
+    const tabbar = page.locator(".max-app__tabbar")
+    await expect(tabbar.getByText("Расписание")).toBeVisible()
+    await expect(tabbar.getByText("Избранное")).toBeVisible()
+    await expect(tabbar.getByText("Изменения")).toBeVisible()
+    await expect(tabbar.getByText("Диспетчер")).toHaveCount(0)
   })
 
   test("Deep link на дату открывает день расписания", async ({ page }) => {
@@ -263,162 +238,27 @@ test.describe("MAX mini-app", () => {
     await expect(sheet.getByText("Петренко В.Б.")).toBeVisible()
   })
 
-  test("Изменения открываются по deep link", async ({ page }) => {
+  test("Изменения: карточка как в веб-версии и deep link", async ({ page }) => {
     await page.goto("/max/changes", { waitUntil: "networkidle" })
 
     await expect(page.getByText("Изменения")).toBeVisible()
-    await expect(page.getByText("Физика")).toBeVisible()
-  })
 
-  test("Диспетчер без токена показывает гейт", async ({ page }) => {
-    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
-
-    await expect(page.getByText("Доступ диспетчера")).toBeVisible()
-    await expect(page.getByRole("button", { name: "Войти" })).toBeVisible()
-    await expect(page.getByRole("tab", { name: "Файл XLSX" })).toHaveCount(0)
-  })
-
-  test("Диспетчер с token показывает режимы корректировки", async ({ page }) => {
-    await page.addInitScript(() => {
-      sessionStorage.setItem("dispatcherToken", "test")
-    })
-    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
-
-    await expect(page.getByRole("tab", { name: "Файл XLSX" })).toBeVisible()
-    await expect(page.getByRole("tab", { name: "Вручную" })).toBeVisible()
-    await expect(page.getByText("Доступ диспетчера")).toHaveCount(0)
-  })
-
-  test("Импорт: шторка подтверждения и автоскачивание XLSX", async ({ page }) => {
-    await page.addInitScript(() => {
-      sessionStorage.setItem("dispatcherToken", "test")
-    })
-    await page.route("**/api/schedule/correction/batches/import", (route) =>
-      route.fulfill(inlineJson(IMPORT_RESULT)),
-    )
-    await page.route("**/api/schedule/correction/batches/b1/apply", (route) =>
-      route.fulfill(inlineJson(APPLY_RESULT)),
-    )
-    await page.route("**/api/schedule/correction/batches/b1/export", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers: { "Content-Disposition": 'attachment; filename="correction.xlsx"' },
-        body: Buffer.from("PK"),
-      }),
-    )
-
-    const downloadPromise = page.waitForEvent("download")
-    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
-    await page.locator('input[type="file"]').setInputFiles({
-      name: "corrections.xlsx",
-      mimeType:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      buffer: Buffer.from("test"),
-    })
-    await expect(page.getByText("Математика")).toBeVisible()
-
-    await page.getByRole("button", { name: "Применить изменения" }).click()
-    const dialog = page.getByRole("dialog", {
-      name: "Подтверждение применения изменений",
-    })
-    await expect(dialog).toBeVisible()
-    await expect(dialog.getByText("Применить 1 изменение?")).toBeVisible()
-
-    await dialog.getByRole("button", { name: "Отмена" }).click()
-    await expect(dialog).toHaveCount(0)
-
-    await page.getByRole("button", { name: "Применить изменения" }).click()
-    await dialog
-      .getByRole("button", { name: "Применить", exact: true })
-      .click()
-
-    await expect(page.getByText("Изменения применены")).toBeVisible()
-    await downloadPromise
-  })
-
-  test("Вручную: перенос уходит без note — «вм.X» заполняет сервер", async ({ page }) => {
-    await page.addInitScript(() => {
-      sessionStorage.setItem("dispatcherToken", "test")
-    })
-
-    let positionBody: Record<string, unknown> | null = null
-    await page.route("**/api/schedule**", (route) => {
-      const url = route.request().url()
-      if (url.includes("/meta")) return route.fulfill(inlineJson(META))
-      if (url.includes("/search")) return route.fulfill(inlineJson(SEARCH))
-      return route.fulfill(
-        inlineJson(ok({ items: [ENTRY], totalCount: 1, page: 1, pageSize: 100 })),
-      )
-    })
-    await page.route("**/api/schedule/correction/batches", (route) =>
-      route.fulfill(inlineJson(ok({ id: "b-manual", status: "Draft" }))),
-    )
-    await page.route(
-      "**/api/schedule/correction/batches/b-manual/positions",
-      (route) => {
-        positionBody = JSON.parse(route.request().postData() ?? "{}")
-        return route.fulfill(inlineJson(ok({ id: "p1" })))
-      },
-    )
-    await page.route("**/api/schedule/correction/batches/b-manual/apply", (route) =>
-      route.fulfill(inlineJson(APPLY_RESULT)),
-    )
-
-    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
-    await page.getByRole("tab", { name: "Вручную" }).click()
-
-    await page
-      .getByPlaceholder("Начните вводить название группы")
-      .fill("ПО262")
-    await page.getByRole("button", { name: "ПО262" }).click()
-
-    await page.getByRole("tab", { name: "Перенести" }).click()
-    await page.locator('input[name="removed"]').first().check()
-    await page.getByLabel("На пару").selectOption("3")
-
-    await page.getByRole("button", { name: "Добавить операцию" }).click()
-    await page.getByRole("button", { name: "Применить изменения" }).click()
-
-    const sheet = page.getByRole("dialog", { name: "Подтверждение корректировки" })
-    await expect(sheet.getByText("1 → 3")).toBeVisible()
-    await sheet.getByRole("button", { name: "Применить изменения" }).click()
-
-    await expect(page.getByText("Изменения применены")).toBeVisible()
-    expect(positionBody).not.toBeNull()
-    expect((positionBody as unknown as Record<string, unknown>).note).toBeNull()
-    expect(JSON.stringify(positionBody)).not.toContain("вм.")
-  })
-
-  test("Истёкший dispatcher-токен возвращает к гейту", async ({ page }) => {
-    await page.addInitScript(() => {
-      sessionStorage.setItem("dispatcherToken", "expired")
-    })
-    await page.route("**/api/schedule/correction/batches/import", (route) =>
-      route.fulfill({
-        status: 401,
-        contentType: "application/json",
-        body: JSON.stringify({
-          isSuccess: false,
-          data: null,
-          errorMessage: "Не авторизован",
-          statusCode: 401,
-        }),
-      }),
-    )
-
-    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
-    await page.locator('input[type="file"]').setInputFiles({
-      name: "corrections.xlsx",
-      mimeType:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      buffer: Buffer.from("test"),
-    })
-
-    // 401 не редиректит на /login, а возвращает к форме пароля.
-    await expect(page.getByText("Доступ диспетчера")).toBeVisible()
-    await expect(page).toHaveURL(/\/max\/dispatcher/)
-    await expect(page.getByRole("tab", { name: "Файл XLSX" })).toHaveCount(0)
+    const card = page.locator(".max-app__change-card")
+    await expect(card).toHaveCount(1)
+    // Тип, предмет (старый зачёркнут, новый показан) и пара «2 → 3».
+    await expect(card.getByText("Замена")).toBeVisible()
+    await expect(card.getByText("Математика")).toBeVisible()
+    await expect(card.getByText("Физика")).toBeVisible()
+    await expect(card.getByText("пара 2 → 3")).toBeVisible()
+    // Группа, аудитория, дата занятия и неделя.
+    await expect(card.getByText("ПО262")).toBeVisible()
+    await expect(card.getByText("ауд. 204")).toBeVisible()
+    await expect(card.getByText("Вторник, 2-я неделя")).toBeVisible()
+    await expect(card.getByText("сентября 2026")).toBeVisible()
+    // Преподаватель не указан, примечания нет, есть время применения.
+    await expect(card.getByText("Преподаватель не указан")).toBeVisible()
+    await expect(card.getByText("Применено:")).toBeVisible()
+    await expect(page.getByText("Invalid Date")).toHaveCount(0)
+    await expect(page.getByText("undefined")).toHaveCount(0)
   })
 })

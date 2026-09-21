@@ -11,11 +11,7 @@ export default function MaxHomePage({
 }) {
   const route = typeof searchParams.route === "string" ? searchParams.route : ""
   const dispatchTarget =
-    route === "changes" || route === "correction"
-      ? "/max/changes"
-      : route === "dispatcher"
-        ? "/max/dispatcher"
-        : "/max/schedule"
+    route === "changes" || route === "correction" ? "/max/changes" : "/max/schedule"
 
   const params = new URLSearchParams()
   if (route) params.set("route", route)

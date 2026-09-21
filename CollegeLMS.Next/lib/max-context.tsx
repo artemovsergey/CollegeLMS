@@ -8,7 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { useRouter } from "next/navigation"
 import api from "@/lib/api"
+import { resolveMaxDeepLink, type MaxDeepLink } from "@/lib/max-deeplink"
 
 export interface ViewContext {
   groupId?: string
@@ -42,6 +44,7 @@ interface MaxContextValue {
   profile: MaxProfile | null
   viewContext: ViewContext
   setViewContext: (ctx: ViewContext) => void
+  deepLink: MaxDeepLink | null
   loading: boolean
   reload: () => void
 }
@@ -82,6 +85,7 @@ const MaxContext = createContext<MaxContextValue>({
   profile: null,
   viewContext: EMPTY,
   setViewContext: () => {},
+  deepLink: null,
   loading: true,
   reload: () => {},
 })
@@ -91,6 +95,8 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
   const [isAuthed, setIsAuthed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [viewContext, setViewContextState] = useState<ViewContext>(() => readStoredViewContext())
+  const [deepLink, setDeepLink] = useState<MaxDeepLink | null>(null)
+  const router = useRouter()
 
   const setViewContext = useCallback((ctx: ViewContext) => {
     storeViewContext(ctx)
@@ -142,9 +148,37 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
     reload()
   }, [reload])
 
+  useEffect(() => {
+    // Deep-link из кнопки open_app: MAX Bridge передаёт payload в start_param.
+    const startParam = (
+      window as unknown as {
+        WebApp?: { initDataUnsafe?: { start_param?: string } }
+      }
+    ).WebApp?.initDataUnsafe?.start_param
+    if (!startParam) return
+
+    const link = resolveMaxDeepLink(window.location.search, startParam)
+    setDeepLink(link)
+
+    if (link.groupId || link.teacherId) {
+      setViewContext({ groupId: link.groupId, teacherId: link.teacherId })
+    }
+
+    if (link.route === "changes") {
+      const qs = link.id ? `?route=changes&id=${link.id}` : "?route=changes"
+      router.replace(`/max/changes${qs}`)
+      return
+    }
+
+    const params = new URLSearchParams()
+    params.set("route", link.route)
+    if (link.date) params.set("date", link.date)
+    router.replace(`/max/schedule?${params.toString()}`)
+  }, [router, setViewContext])
+
   return (
     <MaxContext.Provider
-      value={{ isAuthed, profile, viewContext, setViewContext, loading, reload }}
+      value={{ isAuthed, profile, viewContext, setViewContext, deepLink, loading, reload }}
     >
       {children}
     </MaxContext.Provider>

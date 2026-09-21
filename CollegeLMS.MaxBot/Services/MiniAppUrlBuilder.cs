@@ -23,8 +23,9 @@ public static class MiniAppUrlBuilder
 
     /// <summary>
     /// Формирует payload для кнопки <c>open_app</c> (допускаются только символы <c>[\w-]</c>):
-    /// <c>{route}[-yyyy-MM-dd][-{group|teacher guid}]</c>.
-    /// Mini App читает его из <c>start_param</c> в MAX Bridge.
+    /// <c>{route}[-yyyy-MM-dd][-g-{groupId}|-t-{teacherId}]</c>.
+    /// Маркер <c>g</c>/<c>t</c> позволяет Mini App отличить группу от преподавателя.
+    /// Mini App читает payload из <c>start_param</c> в MAX Bridge.
     /// </summary>
     public static string BuildStartPayload(
         string route,
@@ -37,16 +38,11 @@ public static class MiniAppUrlBuilder
         if (date.HasValue)
             payload += $"-{date:yyyy-MM-dd}";
 
-        var entityId = groupId ?? teacherId;
-        if (entityId.HasValue)
-            payload += $"-{entityId.Value}";
+        if (groupId.HasValue)
+            payload += $"-g-{groupId.Value}";
+        else if (teacherId.HasValue)
+            payload += $"-t-{teacherId.Value}";
 
         return payload;
-    }
-
-    public static string BuildScheduleExportXlsxUrl(string baseUrl, Guid? groupId)
-    {
-        var query = groupId.HasValue ? $"&groupId={groupId}" : "";
-        return $"{baseUrl}/api/schedule/export?format=xlsx{query}";
     }
 }

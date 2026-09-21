@@ -609,7 +609,6 @@ public class MessageFormatterTests
         );
 
         text.Should().Contain("🟣 сам.р. (самостоятельная работа)");
-        text.Should().Contain("📝 сам.р.");
     }
 
     [Fact]
@@ -649,91 +648,5 @@ public class MessageFormatterTests
         text.Should().Contain("📖 История — замена");
         text.Should().NotContain("👨‍🏫");
         text.Should().NotContain("📝");
-    }
-
-    [Fact]
-    public void FormatMyChanges_Empty_ShowsEmptyState()
-    {
-        var text = MessageFormatter.FormatMyChanges([], 0, 1);
-
-        text.Should().Contain("Изменений пока нет.");
-    }
-
-    private static ScheduleRevision CreateRevision(int index) =>
-        new()
-        {
-            Id = index,
-            ForeignId = Guid.NewGuid(),
-            ChangeType = "Replace",
-            GroupName = "ПО262",
-            TeacherName = "Петренко В.Б.",
-            Subject = "История",
-            Room = "301",
-            DayOfWeek = "Вторник",
-            Week = 1,
-            NumberPair = 2,
-            CreatedAt = new DateTime(2026, 9, 8, 10, 0, 0, DateTimeKind.Utc).AddMinutes(index),
-        };
-
-    [Fact]
-    public void FormatMyChanges_FirstPage_ListsIndexedItems()
-    {
-        var items = Enumerable.Range(1, 20).Select(CreateRevision).ToList();
-
-        var text = MessageFormatter.FormatMyChanges(items, 0, 2);
-
-        text.Should().Contain("стр. 1 из 2");
-        text.Should().Contain("1. ПО262 · Вторник · Нед. 1 · Пара 2");
-        text.Should().Contain("20. ПО262 · Вторник · Нед. 1 · Пара 2");
-        text.Should().Contain("📖 История (замена)");
-    }
-
-    [Fact]
-    public void FormatMyChanges_SecondPage_StartsIndexAt21()
-    {
-        var items = Enumerable.Range(1, 25).Select(CreateRevision).Skip(20).Take(5).ToList();
-
-        var text = MessageFormatter.FormatMyChanges(items, 1, 2);
-
-        text.Should().Contain("стр. 2 из 2");
-        text.Should().Contain("21. ПО262 · Вторник · Нед. 1 · Пара 2");
-        text.Should().Contain("25. ПО262 · Вторник · Нед. 1 · Пара 2");
-    }
-
-    [Fact]
-    public void FormatMyChanges_ShowsLessonDateFromWeekAndDay()
-    {
-        var items = new List<ScheduleRevision> { CreateRevision(1) };
-
-        var text = MessageFormatter.FormatMyChanges(items, 0, 1);
-
-        // Нед. 1, Вторник → 01.09.2026 (семестр с 01.09, первый понедельник — 31.08)
-        text.Should().Contain("🗓 01.09");
-    }
-
-    [Fact]
-    public void FormatMyChanges_WithMiniAppUrl_AppendsDeepLinkToLastItemDate()
-    {
-        var items = new List<ScheduleRevision> { CreateRevision(1) };
-
-        var text = MessageFormatter.FormatMyChanges(
-            items,
-            0,
-            1,
-            miniAppUrl: "https://stvcc.tech/max"
-        );
-
-        text.Should().Contain("📅 Открыть дату последнего изменения:");
-        text.Should().Contain("route=day&date=2026-09-01");
-    }
-
-    [Fact]
-    public void FormatMyChanges_WithoutMiniAppUrl_OmitsDeepLink()
-    {
-        var items = new List<ScheduleRevision> { CreateRevision(1) };
-
-        var text = MessageFormatter.FormatMyChanges(items, 0, 1);
-
-        text.Should().NotContain("route=day");
     }
 }
