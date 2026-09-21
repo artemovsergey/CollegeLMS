@@ -151,7 +151,7 @@ jobs:
             echo "=== Webhook endpoint check ==="
             WEBHOOK_CODE=000
             for i in 1 2 3 4 5; do
-              WEBHOOK_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://stvcc.tech/maxbot/webhook -H "Content-Type: application/json" -d '{}' 2>/dev/null || true)
+              WEBHOOK_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 15 -X POST https://localhost/maxbot/webhook -H "Content-Type: application/json" -d '{}' 2>/dev/null || true)
               if [ "$WEBHOOK_CODE" = "200" ] || [ "$WEBHOOK_CODE" = "400" ] || [ "$WEBHOOK_CODE" = "401" ]; then
                 break
               fi
