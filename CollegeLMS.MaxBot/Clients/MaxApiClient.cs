@@ -153,19 +153,20 @@ public class MaxApiClient
     }
 
     /// <summary>
-    /// Загружает изображение по абсолютному URL (multipart, поле data)
+    /// Загружает файл по абсолютному URL (multipart, поле data) с заданным Content-Type
     /// и возвращает payload вложения — JSON-объект с token.
     /// </summary>
-    public async Task<JsonElement> UploadImageAsync(
+    public async Task<JsonElement> UploadFileAsync(
         string uploadUrl,
         byte[] content,
         string fileName,
+        string contentType,
         CancellationToken ct = default
     )
     {
         using var form = new MultipartFormDataContent();
         using var file = new ByteArrayContent(content);
-        file.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         form.Add(file, "data", fileName);
 
         // uploadUrl — абсолютный адрес CDN, он переопределяет BaseAddress
@@ -176,32 +177,99 @@ public class MaxApiClient
     }
 
     /// <summary>
-    /// Отправляет сообщение с изображением: POST /messages?chat_id={chatId}.
-    /// При ошибке attachment.not.ready — пауза 3 с и повтор (до 3 попыток),
-    /// затем EnsureSuccessStatusCode.
+    /// Загружает изображение (image/png) — обёртка над <see cref="UploadFileAsync"/>
+    /// и возвращает payload вложения — JSON-объект с token.
     /// </summary>
-    public async Task<MaxMessageResponse?> SendImageAsync(
+    public Task<JsonElement> UploadImageAsync(
+        string uploadUrl,
+        byte[] content,
+        string fileName,
+        CancellationToken ct = default
+    ) => UploadFileAsync(uploadUrl, content, fileName, "image/png", ct);
+
+    /// <summary>
+    /// Отправляет сообщение с изображением: POST /messages?chat_id={chatId}.
+    /// При ошибке attachment.not.ready — пауза 3 с и повтор (до 3 попыток).
+    /// </summary>
+    public Task<MaxMessageResponse?> SendImageAsync(
         long chatId,
         JsonElement payload,
         string caption,
         CancellationToken ct = default
     )
     {
+        var body = new Dictionary<string, object>
+        {
+            ["text"] = caption,
+            ["format"] = "markdown",
+            ["notify"] = true,
+            ["attachments"] = new[]
+            {
+                new Dictionary<string, object> { ["type"] = "image", ["payload"] = payload },
+            },
+        };
+
+        return SendMessageWithRetryAsync(
+            chatId,
+            body,
+            $"Не удалось отправить изображение в чат {chatId}",
+            ct
+        );
+    }
+
+    /// <summary>
+    /// Отправляет сообщение с файлом и inline-клавиатурой:
+    /// POST /messages?chat_id={chatId}, attachments: [file, inline_keyboard].
+    /// При ошибке attachment.not.ready — пауза 3 с и повтор (до 3 попыток).
+    /// </summary>
+    public Task<MaxMessageResponse?> SendDocumentAsync(
+        long chatId,
+        JsonElement payload,
+        string caption,
+        List<List<MaxButton>> buttons,
+        CancellationToken ct = default
+    )
+    {
+        var attachments = new List<Dictionary<string, object>>
+        {
+            new() { ["type"] = "file", ["payload"] = payload },
+        };
+        if (buttons.Count > 0)
+        {
+            attachments.Add(new() { ["type"] = "inline_keyboard", ["payload"] = new { buttons } });
+        }
+
+        var body = new Dictionary<string, object>
+        {
+            ["text"] = caption,
+            ["format"] = "markdown",
+            ["notify"] = true,
+            ["attachments"] = attachments,
+        };
+
+        return SendMessageWithRetryAsync(
+            chatId,
+            body,
+            $"Не удалось отправить файл в чат {chatId}",
+            ct
+        );
+    }
+
+    /// <summary>
+    /// Отправляет сообщение с вложениями. При ошибке attachment.not.ready —
+    /// пауза 3 с и повтор до 3 попыток, затем EnsureSuccessStatusCode.
+    /// </summary>
+    private async Task<MaxMessageResponse?> SendMessageWithRetryAsync(
+        long chatId,
+        object body,
+        string errorMessage,
+        CancellationToken ct
+    )
+    {
         const int maxAttempts = 3;
 
         for (var attempt = 1; ; attempt++)
         {
-            var body = new Dictionary<string, object>
-            {
-                ["text"] = caption,
-                ["format"] = "markdown",
-                ["notify"] = true,
-                ["attachments"] = new[]
-                {
-                    new Dictionary<string, object> { ["type"] = "image", ["payload"] = payload },
-                },
-            };
-
             var resp = await _http.PostAsJsonAsync(
                 $"/messages?chat_id={chatId}",
                 body,
@@ -218,7 +286,7 @@ public class MaxApiClient
             )
             {
                 _logger.LogWarning(
-                    "Вложение изображения ещё не обработано (попытка {Attempt} из {MaxAttempts}) — повтор через 3 с",
+                    "Вложение ещё не обработано (попытка {Attempt} из {MaxAttempts}) — повтор через 3 с",
                     attempt,
                     maxAttempts
                 );
@@ -228,9 +296,7 @@ public class MaxApiClient
 
             // Попытки исчерпаны или ошибка не связана с обработкой вложения
             resp.EnsureSuccessStatusCode();
-            throw new HttpRequestException(
-                $"Не удалось отправить изображение в чат {chatId}: {errBody}"
-            );
+            throw new HttpRequestException($"{errorMessage}: {errBody}");
         }
     }
 }
