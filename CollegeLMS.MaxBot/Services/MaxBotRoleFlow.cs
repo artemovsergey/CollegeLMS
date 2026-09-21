@@ -5,6 +5,10 @@ namespace CollegeLMS.MaxBot.Services;
 /// <summary>Правила переключения ролей: фильтры студента и преподавателя не пересекаются.</summary>
 public static class MaxBotRoleFlow
 {
+    /// <summary>Онбординг нужен, если группа и преподаватель не выбраны.</summary>
+    public static bool RequiresOnboarding(UserSettings? settings) =>
+        settings is null || (settings.GroupId is null && settings.TeacherId is null);
+
     public static void ApplyRole(UserSettings settings, string role)
     {
         settings.Role = role;

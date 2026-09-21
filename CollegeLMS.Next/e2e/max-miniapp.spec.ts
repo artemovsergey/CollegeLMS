@@ -338,6 +338,59 @@ test.describe("MAX mini-app", () => {
     await downloadPromise
   })
 
+  test("Вручную: перенос уходит без note — «вм.X» заполняет сервер", async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem("dispatcherToken", "test")
+    })
+
+    let positionBody: Record<string, unknown> | null = null
+    await page.route("**/api/schedule**", (route) => {
+      const url = route.request().url()
+      if (url.includes("/meta")) return route.fulfill(inlineJson(META))
+      if (url.includes("/search")) return route.fulfill(inlineJson(SEARCH))
+      return route.fulfill(
+        inlineJson(ok({ items: [ENTRY], totalCount: 1, page: 1, pageSize: 100 })),
+      )
+    })
+    await page.route("**/api/schedule/correction/batches", (route) =>
+      route.fulfill(inlineJson(ok({ id: "b-manual", status: "Draft" }))),
+    )
+    await page.route(
+      "**/api/schedule/correction/batches/b-manual/positions",
+      (route) => {
+        positionBody = JSON.parse(route.request().postData() ?? "{}")
+        return route.fulfill(inlineJson(ok({ id: "p1" })))
+      },
+    )
+    await page.route("**/api/schedule/correction/batches/b-manual/apply", (route) =>
+      route.fulfill(inlineJson(APPLY_RESULT)),
+    )
+
+    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
+    await page.getByRole("tab", { name: "Вручную" }).click()
+
+    await page
+      .getByPlaceholder("Начните вводить название группы")
+      .fill("ПО262")
+    await page.getByRole("button", { name: "ПО262" }).click()
+
+    await page.getByRole("tab", { name: "Перенести" }).click()
+    await page.locator('input[name="removed"]').first().check()
+    await page.getByLabel("На пару").selectOption("3")
+
+    await page.getByRole("button", { name: "Добавить операцию" }).click()
+    await page.getByRole("button", { name: "Применить изменения" }).click()
+
+    const sheet = page.getByRole("dialog", { name: "Подтверждение корректировки" })
+    await expect(sheet.getByText("1 → 3")).toBeVisible()
+    await sheet.getByRole("button", { name: "Применить изменения" }).click()
+
+    await expect(page.getByText("Изменения применены")).toBeVisible()
+    expect(positionBody).not.toBeNull()
+    expect((positionBody as Record<string, unknown>).note).toBeNull()
+    expect(JSON.stringify(positionBody)).not.toContain("вм.")
+  })
+
   test("Истёкший dispatcher-токен возвращает к гейту", async ({ page }) => {
     await page.addInitScript(() => {
       sessionStorage.setItem("dispatcherToken", "expired")

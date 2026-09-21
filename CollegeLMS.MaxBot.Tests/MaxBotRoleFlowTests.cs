@@ -14,6 +14,36 @@ public class MaxBotRoleFlowTests
         };
 
     [Fact]
+    public void RequiresOnboarding_NoSettings_True()
+    {
+        MaxBotRoleFlow.RequiresOnboarding(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public void RequiresOnboarding_NoGroupAndNoTeacher_True()
+    {
+        var settings = new UserSettings { Role = "student" };
+
+        MaxBotRoleFlow.RequiresOnboarding(settings).Should().BeTrue();
+    }
+
+    [Fact]
+    public void RequiresOnboarding_GroupSelected_False()
+    {
+        var settings = new UserSettings { Role = "student", GroupId = Guid.NewGuid() };
+
+        MaxBotRoleFlow.RequiresOnboarding(settings).Should().BeFalse();
+    }
+
+    [Fact]
+    public void RequiresOnboarding_TeacherSelected_False()
+    {
+        var settings = new UserSettings { Role = "teacher", TeacherId = Guid.NewGuid() };
+
+        MaxBotRoleFlow.RequiresOnboarding(settings).Should().BeFalse();
+    }
+
+    [Fact]
     public void ApplyRole_Teacher_ClearsGroupId()
     {
         var settings = SettingsWithBothEntities();

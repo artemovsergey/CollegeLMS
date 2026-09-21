@@ -65,7 +65,7 @@ export default function ConfirmOpsSheet({
             removedTeacherId: op.removedTeacherId,
             removedTeacherName: op.removedTeacherName,
             removedNumberPair: op.removedNumberPair,
-            note: op.note || (op.changeType === "Move" ? `вм.${op.numberPair}` : null),
+            note: op.note || null,
           }
           await addPosition(currentBatchId, position)
         }

@@ -178,7 +178,7 @@ public class MaxBotService : BackgroundService
             await db.SaveChangesAsync(ct);
         }
 
-        if (existing.GroupId is null && existing.TeacherId is null)
+        if (MaxBotRoleFlow.RequiresOnboarding(existing))
         {
             await ShowRoleSelectionAsync(chatId, ct, onboarding: true);
             return;
@@ -242,6 +242,18 @@ public class MaxBotService : BackgroundService
 
         if (lower == "/help")
         {
+            using var scope = _sp.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
+            var settings = await db
+                .UserSettings.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MaxUserId == userId, ct);
+
+            if (MaxBotRoleFlow.RequiresOnboarding(settings))
+            {
+                await HandleBotStartedAsync(chatId, userId, ct);
+                return;
+            }
+
             await _max.SendMessageAsync(
                 chatId,
                 "🤖 *Бот расписания*\n\n"
