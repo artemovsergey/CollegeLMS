@@ -23,6 +23,8 @@ public class MaxBotService : BackgroundService
     private const int PageSize = 5;
     private const int PollTimeoutSeconds = 30;
 
+    private readonly Dictionary<long, SearchState> _searchStates = [];
+
     private static readonly string[] WebhookUpdateTypes =
     [
         "message_created",
@@ -269,6 +271,8 @@ public class MaxBotService : BackgroundService
 
     private async Task HandleBotStartedAsync(long chatId, long userId, CancellationToken ct)
     {
+        _searchStates.Remove(userId);
+
         using var scope = _sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
 
@@ -347,6 +351,7 @@ public class MaxBotService : BackgroundService
 
         if (lower == "/start")
         {
+            _searchStates.Remove(userId);
             await HandleBotStartedAsync(chatId, userId, ct);
             return;
         }
@@ -379,7 +384,14 @@ public class MaxBotService : BackgroundService
 
         if (lower == "/settings")
         {
+            _searchStates.Remove(userId);
             await ShowSettingsAsync(chatId, userId, ct);
+            return;
+        }
+
+        if (_searchStates.TryGetValue(userId, out var search))
+        {
+            await HandleSearchTextAsync(chatId, userId, text.Trim(), search, ct);
             return;
         }
 
@@ -427,6 +439,7 @@ public class MaxBotService : BackgroundService
         switch (p.Action)
         {
             case "menu":
+                _searchStates.Remove(userId);
                 await ShowMainMenuAsync(chatId, userId, ct);
                 break;
             case "role":
@@ -441,19 +454,15 @@ public class MaxBotService : BackgroundService
             case "onboard":
                 await HandleOnboardingCallbackAsync(chatId, userId, p, ct);
                 break;
-            case "page":
-                if (p.Param1 == "groups")
-                    await ShowGroupSelectionAsync(chatId, userId, int.Parse(p.Param2!), ct);
-                if (p.Param1 == "teachers")
-                    await ShowTeacherSelectionAsync(chatId, userId, int.Parse(p.Param2!), ct);
-                break;
             case "settings":
-                if (p.Param1 == "group")
-                    await ShowGroupSelectionAsync(chatId, userId, 0, ct);
-                else if (p.Param1 == "teacher")
-                    await ShowTeacherSelectionAsync(chatId, userId, 0, ct);
+                if (p.Param1 is "student" or "teacher")
+                    await StartSearchAsync(chatId, userId, p.Param1, ct);
                 else
                     await ShowSettingsAsync(chatId, userId, ct);
+                break;
+            case "sresult":
+                if (p.Param1 is "group" or "teacher")
+                    await ShowSearchResultsAsync(chatId, userId, ParsePage(p.Param2), ct);
                 break;
             case "role-choice":
                 await ShowRoleSelectionAsync(chatId, ct);
@@ -489,51 +498,9 @@ public class MaxBotService : BackgroundService
         {
             case "role":
                 if (payload.Param2 is "student" or "teacher")
-                    await HandleRoleSelectionAsync(
-                        chatId,
-                        userId,
-                        payload.Param2,
-                        ct,
-                        onboarding: true
-                    );
+                    await HandleRoleSelectionAsync(chatId, userId, payload.Param2, ct);
                 else
                     await ShowMainMenuAsync(chatId, userId, ct);
-                break;
-            case "group":
-                if (Guid.TryParse(payload.Param2, out var groupId))
-                    await HandleGroupSelectionAsync(
-                        chatId,
-                        userId,
-                        groupId.ToString(),
-                        ct,
-                        onboarding: true
-                    );
-                else
-                    await ShowGroupSelectionAsync(
-                        chatId,
-                        userId,
-                        ParsePage(payload.Param2),
-                        ct,
-                        onboarding: true
-                    );
-                break;
-            case "teacher":
-                if (Guid.TryParse(payload.Param2, out var teacherId))
-                    await HandleTeacherSelectionAsync(
-                        chatId,
-                        userId,
-                        teacherId.ToString(),
-                        ct,
-                        onboarding: true
-                    );
-                else
-                    await ShowTeacherSelectionAsync(
-                        chatId,
-                        userId,
-                        ParsePage(payload.Param2),
-                        ct,
-                        onboarding: true
-                    );
                 break;
             default:
                 await ShowMainMenuAsync(chatId, userId, ct);
@@ -549,8 +516,17 @@ public class MaxBotService : BackgroundService
         long chatId,
         long userId,
         string role,
-        CancellationToken ct,
-        bool onboarding = false
+        CancellationToken ct
+    ) => await StartSearchAsync(chatId, userId, role == "teacher" ? "teacher" : "student", ct);
+
+    /// <summary>
+    /// Сохраняет роль и запускает поиск: студент ищет группу, преподаватель — себя в списке.
+    /// </summary>
+    private async Task StartSearchAsync(
+        long chatId,
+        long userId,
+        string target,
+        CancellationToken ct
     )
     {
         using var scope = _sp.CreateScope();
@@ -560,49 +536,115 @@ public class MaxBotService : BackgroundService
         if (settings is null)
             return;
 
-        MaxBotRoleFlow.ApplyRole(settings, role);
+        MaxBotRoleFlow.ApplyRole(settings, target);
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        if (role == "student")
-            await ShowGroupSelectionAsync(chatId, userId, 0, ct, onboarding);
-        else
-            await ShowTeacherSelectionAsync(chatId, userId, 0, ct, onboarding);
-    }
+        _searchStates[userId] = new SearchState { Target = target };
 
-    private async Task ShowGroupSelectionAsync(
-        long chatId,
-        long userId,
-        int page,
-        CancellationToken ct,
-        bool onboarding = false
-    )
-    {
-        var groups = await _api.GetGroupsAsync(ct);
-        if (groups.Count == 0)
-        {
-            await _max.SendMessageAsync(chatId, "❌ Группы не найдены.", ct: ct);
-            return;
-        }
+        var prompt =
+            target == "student"
+                ? "👨‍🎓 *Студент*\n\nНапиши номер или название группы — я найду её в списке."
+                : "👨‍🏫 *Преподаватель*\n\nНапиши ФИО преподавателя (или его часть) — я найду его в списке.";
 
-        var totalPages = (int)Math.Ceiling((double)groups.Count / PageSize);
-        var paged = groups.Skip(page * PageSize).Take(PageSize).ToList();
-
-        var selectionPrefix = onboarding ? "onboard:group" : "group";
-        var buttons = new List<List<MaxButton>>();
-
-        foreach (var g in paged)
-            buttons.Add(
+        await _max.SendInlineKeyboardAsync(
+            chatId,
+            prompt,
+            [
                 new List<MaxButton>
                 {
                     new()
                     {
                         Type = "callback",
-                        Text = g.Name,
-                        Payload = $"{selectionPrefix}:{g.Id}",
+                        Text = "🔙 Отмена",
+                        Payload = "menu",
                     },
-                }
+                },
+            ],
+            ct: ct
+        );
+    }
+
+    /// <summary>Фильтрует варианты поиска по подстроке без учёта регистра.</summary>
+    private static List<SearchOption> FilterOptions(
+        IEnumerable<SearchOption> options,
+        string query
+    ) => options.Where(o => o.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private async Task HandleSearchTextAsync(
+        long chatId,
+        long userId,
+        string query,
+        SearchState search,
+        CancellationToken ct
+    )
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            await _max.SendMessageAsync(chatId, "✍️ Напиши текст для поиска.", ct: ct);
+            return;
+        }
+
+        if (search.Target == "teacher")
+        {
+            var teachers = await _api.GetTeachersAsync(ct);
+            search.Results = FilterOptions(
+                teachers.Select(t => new SearchOption(t.Id, t.FullName)),
+                query
             );
+        }
+        else
+        {
+            var groups = await _api.GetGroupsAsync(ct);
+            search.Results = FilterOptions(
+                groups.Select(g => new SearchOption(g.Id, g.Name)),
+                query
+            );
+        }
+
+        search.Query = query;
+
+        if (search.Results.Count == 0)
+        {
+            await _max.SendMessageAsync(
+                chatId,
+                $"❌ По запросу «{query}» ничего не найдено. Попробуй другой вариант.",
+                ct: ct
+            );
+            return;
+        }
+
+        await ShowSearchResultsAsync(chatId, userId, 0, ct);
+    }
+
+    private async Task ShowSearchResultsAsync(
+        long chatId,
+        long userId,
+        int page,
+        CancellationToken ct
+    )
+    {
+        if (!_searchStates.TryGetValue(userId, out var search) || search.Results.Count == 0)
+        {
+            await _max.SendMessageAsync(chatId, "🔎 Сначала выполни поиск в настройках.", ct: ct);
+            return;
+        }
+
+        var totalPages = (int)Math.Ceiling((double)search.Results.Count / PageSize);
+        page = Math.Clamp(page, 0, totalPages - 1);
+        var paged = search.Results.Skip(page * PageSize).Take(PageSize).ToList();
+
+        var buttons = paged
+            .Select(o => new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = o.Name,
+                    Payload = $"{(search.Target == "teacher" ? "teacher" : "group")}:{o.Id}",
+                },
+            })
+            .ToList();
 
         var navRow = new List<MaxButton>();
         if (page > 0)
@@ -611,7 +653,7 @@ public class MaxBotService : BackgroundService
                 {
                     Type = "callback",
                     Text = "← Назад",
-                    Payload = onboarding ? $"onboard:group:{page - 1}" : $"page:groups:{page - 1}",
+                    Payload = $"sresult:{search.Target}:{page - 1}",
                 }
             );
         if (page < totalPages - 1)
@@ -620,15 +662,16 @@ public class MaxBotService : BackgroundService
                 {
                     Type = "callback",
                     Text = "Далее →",
-                    Payload = onboarding ? $"onboard:group:{page + 1}" : $"page:groups:{page + 1}",
+                    Payload = $"sresult:{search.Target}:{page + 1}",
                 }
             );
         if (navRow.Count > 0)
             buttons.Add(navRow);
 
+        var title = search.Target == "teacher" ? "Преподаватели" : "Группы";
         await _max.SendInlineKeyboardAsync(
             chatId,
-            $"📚 *Выбери группу:* (стр. {page + 1}/{totalPages})",
+            $"🔎 {title} по запросу «{search.Query}» (стр. {page + 1}/{totalPages}):",
             buttons,
             ct: ct
         );
@@ -638,8 +681,7 @@ public class MaxBotService : BackgroundService
         long chatId,
         long userId,
         string groupId,
-        CancellationToken ct,
-        bool onboarding = false
+        CancellationToken ct
     )
     {
         using var scope = _sp.CreateScope();
@@ -653,96 +695,22 @@ public class MaxBotService : BackgroundService
         MaxBotRoleFlow.SelectGroup(settings, id);
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
+        _searchStates.Remove(userId);
 
-        if (onboarding)
-        {
-            var name = (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == id)?.Name;
-            await _max.SendMessageAsync(
-                chatId,
-                name is null ? "✅ Готово! Группа сохранена." : $"✅ Готово! Группа: {name}.",
-                ct: ct
-            );
-            await ShowMainMenuAsync(chatId, userId, ct);
-            return;
-        }
-
-        await ShowSettingsAsync(chatId, userId, ct);
-    }
-
-    private async Task ShowTeacherSelectionAsync(
-        long chatId,
-        long userId,
-        int page,
-        CancellationToken ct,
-        bool onboarding = false
-    )
-    {
-        var teachers = await _api.GetTeachersAsync(ct);
-        if (teachers.Count == 0)
-        {
-            await _max.SendMessageAsync(chatId, "❌ Преподаватели не найдены.", ct: ct);
-            return;
-        }
-
-        var totalPages = (int)Math.Ceiling((double)teachers.Count / PageSize);
-        var paged = teachers.Skip(page * PageSize).Take(PageSize).ToList();
-
-        var selectionPrefix = onboarding ? "onboard:teacher" : "teacher";
-        var buttons = new List<List<MaxButton>>();
-
-        foreach (var t in paged)
-            buttons.Add(
-                new List<MaxButton>
-                {
-                    new()
-                    {
-                        Type = "callback",
-                        Text = t.FullName,
-                        Payload = $"{selectionPrefix}:{t.Id}",
-                    },
-                }
-            );
-
-        var navRow = new List<MaxButton>();
-        if (page > 0)
-            navRow.Add(
-                new MaxButton
-                {
-                    Type = "callback",
-                    Text = "← Назад",
-                    Payload = onboarding
-                        ? $"onboard:teacher:{page - 1}"
-                        : $"page:teachers:{page - 1}",
-                }
-            );
-        if (page < totalPages - 1)
-            navRow.Add(
-                new MaxButton
-                {
-                    Type = "callback",
-                    Text = "Далее →",
-                    Payload = onboarding
-                        ? $"onboard:teacher:{page + 1}"
-                        : $"page:teachers:{page + 1}",
-                }
-            );
-        if (navRow.Count > 0)
-            buttons.Add(navRow);
-
-        await _max.SendInlineKeyboardAsync(
+        var name = (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == id)?.Name;
+        await _max.SendMessageAsync(
             chatId,
-            $"👨‍🏫 *Выбери преподавателя:* (стр. {page + 1}/{totalPages})",
-            buttons,
+            name is null ? "✅ Готово! Группа сохранена." : $"✅ Готово! Ты студент группы {name}.",
             ct: ct
         );
+        await ShowMainMenuAsync(chatId, userId, ct);
     }
 
     private async Task HandleTeacherSelectionAsync(
         long chatId,
         long userId,
         string teacherId,
-        CancellationToken ct,
-        bool onboarding = false
+        CancellationToken ct
     )
     {
         using var scope = _sp.CreateScope();
@@ -756,22 +724,17 @@ public class MaxBotService : BackgroundService
         MaxBotRoleFlow.SelectTeacher(settings, id);
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
+        _searchStates.Remove(userId);
 
-        if (onboarding)
-        {
-            var name = (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == id)?.FullName;
-            await _max.SendMessageAsync(
-                chatId,
-                name is null
-                    ? "✅ Готово! Преподаватель сохранён."
-                    : $"✅ Готово! Преподаватель: {name}.",
-                ct: ct
-            );
-            await ShowMainMenuAsync(chatId, userId, ct);
-            return;
-        }
-
-        await ShowSettingsAsync(chatId, userId, ct);
+        var name = (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == id)?.FullName;
+        await _max.SendMessageAsync(
+            chatId,
+            name is null
+                ? "✅ Готово! Преподаватель сохранён."
+                : $"✅ Готово! Преподаватель: {name}.",
+            ct: ct
+        );
+        await ShowMainMenuAsync(chatId, userId, ct);
     }
 
     private async Task<UserSettings?> GetSettingsAsync(long userId, CancellationToken ct)
@@ -791,10 +754,16 @@ public class MaxBotService : BackgroundService
         }
 
         var roleLabel = settings.Role == "student" ? "Студент" : "Преподаватель";
-        var entity =
-            settings.GroupId.HasValue ? "группа"
-            : settings.TeacherId.HasValue ? "преподаватель"
-            : "не выбран";
+        var entityLabel = settings.Role == "student" ? "Группа" : "Преподаватель";
+        var entity = "не выбран";
+        if (settings.GroupId is { } groupId)
+            entity =
+                (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == groupId)?.Name
+                ?? "группа";
+        else if (settings.TeacherId is { } teacherId)
+            entity =
+                (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == teacherId)?.FullName
+                ?? "преподаватель";
 
         var notifyStatus = settings.NotifyEnabled ? "включены ✅" : "выключены ❌";
 
@@ -823,7 +792,7 @@ public class MaxBotService : BackgroundService
         var text =
             $"🏠 *Главное меню*\n\n"
             + $"Роль: {roleLabel}\n"
-            + $"Группа/Преподаватель: {entity}\n"
+            + $"{entityLabel}: {entity}\n"
             + $"Уведомления: {notifyStatus}";
 
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
@@ -847,7 +816,8 @@ public class MaxBotService : BackgroundService
         var text =
             $"⚙️ *Настройки*\n\n"
             + $"Роль: {roleLabel}\n"
-            + $"Группа/Преподаватель: {(hasEntity ? "✅ выбран" : "❌ не выбран")}";
+            + $"Группа/Преподаватель: {(hasEntity ? "✅ выбран" : "❌ не выбран")}\n\n"
+            + "Выбери, кто ты, — и найди себя поиском.";
 
         var buttons = new List<List<MaxButton>>
         {
@@ -856,38 +826,19 @@ public class MaxBotService : BackgroundService
                 new()
                 {
                     Type = "callback",
-                    Text = "🎓 Сменить роль",
-                    Payload = "role-choice",
+                    Text = "🎓 Студент",
+                    Payload = "settings:student",
                 },
             },
-        };
-
-        if (settings.Role == "student")
-            buttons.Add(
-                new List<MaxButton>
+            new List<MaxButton>
+            {
+                new()
                 {
-                    new()
-                    {
-                        Type = "callback",
-                        Text = "📚 Сменить группу",
-                        Payload = "settings:group",
-                    },
-                }
-            );
-        else
-            buttons.Add(
-                new List<MaxButton>
-                {
-                    new()
-                    {
-                        Type = "callback",
-                        Text = "👨‍🏫 Сменить преподавателя",
-                        Payload = "settings:teacher",
-                    },
-                }
-            );
-
-        buttons.Add(
+                    Type = "callback",
+                    Text = "👨‍🏫 Преподаватель",
+                    Payload = "settings:teacher",
+                },
+            },
             new List<MaxButton>
             {
                 new()
@@ -896,8 +847,8 @@ public class MaxBotService : BackgroundService
                     Text = "🔙 Меню",
                     Payload = "menu",
                 },
-            }
-        );
+            },
+        };
 
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
@@ -1068,4 +1019,14 @@ public class MaxBotService : BackgroundService
 
         await ShowNotificationsAsync(chatId, userId, ct);
     }
+
+    /// <summary>Состояние поиска группы/преподавателя после выбора роли.</summary>
+    private sealed class SearchState
+    {
+        public string Target { get; init; } = "group";
+        public string Query { get; set; } = "";
+        public List<SearchOption> Results { get; set; } = [];
+    }
+
+    private sealed record SearchOption(Guid Id, string Name);
 }

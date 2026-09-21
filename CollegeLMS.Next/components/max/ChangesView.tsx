@@ -2,13 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { History, Search, X } from "lucide-react"
-import {
-  Button,
-  CellList,
-  MaxUI,
-  Spinner,
-  Typography,
-} from "@maxhub/max-ui"
+import { Button, MaxUI, Spinner, Typography } from "@maxhub/max-ui"
 import { getHistory } from "@/api/correction"
 import type { ScheduleHistoryItem } from "@/types/correction"
 import { useMaxContext } from "@/lib/max-context"
@@ -313,24 +307,21 @@ export default function ChangesView() {
             </Typography.Body>
           </div>
         ) : (
-          <CellList mode="island">
+          <div className="max-app__change-list">
             {items.map((item) => (
               <div
                 key={item.id}
                 ref={item.id === highlightId ? focusedRef : undefined}
                 className={
                   item.id === highlightId
-                    ? "max-app__change-card--highlight"
-                    : undefined
+                    ? "max-app__change-card-item max-app__change-card--highlight"
+                    : "max-app__change-card-item"
                 }
               >
-                <ChangeCard
-                  item={item}
-                  semesterStartIso={semesterStart}
-                />
+                <ChangeCard item={item} semesterStartIso={semesterStart} />
               </div>
             ))}
-          </CellList>
+          </div>
         )}
 
         {hasMore && !loading ? (

@@ -804,6 +804,13 @@
   font-size: 14px;
 }
 
+/* Список карточек изменений: отступ между карточками */
+.max-app__change-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* Карточка изменения расписания — как в веб-версии */
 .max-app__change-card {
   display: flex;
