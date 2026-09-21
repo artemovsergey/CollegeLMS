@@ -403,6 +403,16 @@ public class ScheduleControllerTests : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task GetAll_DayView_InvalidDate_Returns400WithRussianMessage()
+    {
+        var response = await Client.GetAsync("/api/schedule?view=day&date=21-09-2026");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var json = await response.Content.ReadAsStringAsync();
+        json.Should().Contain("Неверный формат даты.");
+    }
+
+    [Fact]
     public async Task GetAll_UnknownView_FallsBackToPagedList()
     {
         var entries = ScheduleEntryFixture.CreateFaker().Generate(2);
@@ -456,6 +466,16 @@ public class ScheduleControllerTests : BaseIntegrationTest
         disposition
             .Should()
             .MatchRegex(@"Расписание_день_\d{2}\.\d{2}\.\d{4}_\d{2}-\d{2}-\d{2}\.xlsx");
+    }
+
+    [Fact]
+    public async Task Export_InvalidDate_Returns400WithRussianMessage()
+    {
+        var response = await Client.GetAsync("/api/schedule/export?scope=day&date=21-09-2026");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var json = await response.Content.ReadAsStringAsync();
+        json.Should().Contain("Неверный формат даты.");
     }
 
     [Fact]

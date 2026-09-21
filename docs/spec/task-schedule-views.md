@@ -63,7 +63,8 @@ GET /api/schedule?view=day&date=YYYY-MM-DD&groupId=&teacherId=&room=
 | `inserts[]` | `ScheduleInsertResponse[]` |
 | `entries[]` | `ScheduleResponse[]` (с `changeTags` недели) |
 
-Слои — по приоритету §5. Невалидный формат `date` → `400` (ошибка привязки модели ASP.NET Core).
+Слои — по приоритету §5. Невалидный формат `date` (не `YYYY-MM-DD`) → `400` «Неверный формат даты.»
+в обёртке `Result<T>`.
 
 ### 4.2. Неделя — `view=week`
 
@@ -256,7 +257,5 @@ GET /api/schedule/export?scope=day|week|semester&format=pdf|xlsx&layout=grid|day
 - `UC-SCH-09` требует `AUTH-1` для экспорта — `GET /api/schedule/export` остаётся
   `AllowAnonymous` (зафиксировано в `task-schedule-reference-data.md`); веб-кнопка экспорта
   доступна только авторизованным (страница в `(authenticated)`). Кандидат на отдельное решение.
-- Невалидный `date` даёт стандартный `400` привязки модели, а не русское сообщение
-  «Неверный формат даты.» из дизайн-спеки; русское сообщение есть только для `month`.
 - Практики в видах запрашиваются с `pageSize = 100` (`IPracticeService` ограничивает 1–100);
   при > 100 практиках в диапазоне возможна неполнота слоя практик — известное ограничение.

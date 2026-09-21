@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, Search, CalendarDays } from "lucide-react"
 import {
   Button,
@@ -65,6 +65,7 @@ export default function ScheduleView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
     let cancelled = false
@@ -111,6 +112,7 @@ export default function ScheduleView() {
   }, [])
 
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setError(null)
     try {
@@ -124,6 +126,7 @@ export default function ScheduleView() {
           groupId: viewContext.groupId,
           teacherId: viewContext.teacherId,
         })
+        if (requestId !== requestIdRef.current) return
         if (!res.isSuccess) {
           throw new Error(res.errorMessage ?? "Не удалось загрузить расписание")
         }
@@ -134,17 +137,20 @@ export default function ScheduleView() {
           groupId: viewContext.groupId,
           teacherId: viewContext.teacherId,
         })
+        if (requestId !== requestIdRef.current) return
         if (!res.isSuccess) {
           throw new Error(res.errorMessage ?? "Не удалось загрузить расписание")
         }
         setDayData(res.data ?? null)
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Не удалось загрузить расписание",
-      )
+      if (requestId === requestIdRef.current) {
+        setError(
+          err instanceof Error ? err.message : "Не удалось загрузить расписание",
+        )
+      }
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
   }, [view, selectedWeek, selectedDate, meta, viewContext.groupId, viewContext.teacherId])
 

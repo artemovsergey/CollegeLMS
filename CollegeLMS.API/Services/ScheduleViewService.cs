@@ -33,8 +33,13 @@ public class ScheduleViewService(
     {
         var target = (date ?? DateTime.UtcNow).Date;
         var week = Math.Clamp(StudyWeek.WeekOf(target), 1, StudyWeek.TotalWeeks);
-        var data = await LoadRangeAsync(groupId, teacherId, room, target, target, ct);
-        return Result<ScheduleDayViewResponse>.Ok(BuildDay(data, target, week));
+        var rangeResult = await LoadRangeAsync(groupId, teacherId, room, target, target, ct);
+        if (!rangeResult.IsSuccess)
+            return Result<ScheduleDayViewResponse>.Fail(
+                rangeResult.ErrorMessage ?? "Ошибка загрузки данных",
+                rangeResult.StatusCode
+            );
+        return Result<ScheduleDayViewResponse>.Ok(BuildDay(rangeResult.Data!, target, week));
     }
 
     public async Task<Result<ScheduleWeekViewResponse>> GetWeekAsync(
@@ -49,7 +54,20 @@ public class ScheduleViewService(
         var derived = week ?? StudyWeek.WeekOf(date ?? DateTime.UtcNow);
         var effectiveWeek = Math.Clamp(derived, 1, StudyWeek.TotalWeeks);
         var monday = SemesterMonday.AddDays((effectiveWeek - 1) * 7);
-        var data = await LoadRangeAsync(groupId, teacherId, room, monday, monday.AddDays(5), ct);
+        var rangeResult = await LoadRangeAsync(
+            groupId,
+            teacherId,
+            room,
+            monday,
+            monday.AddDays(5),
+            ct
+        );
+        if (!rangeResult.IsSuccess)
+            return Result<ScheduleWeekViewResponse>.Fail(
+                rangeResult.ErrorMessage ?? "Ошибка загрузки данных",
+                rangeResult.StatusCode
+            );
+        var data = rangeResult.Data!;
 
         var days = new List<ScheduleDayViewResponse>();
         for (var i = 0; i < 6; i++) // Пн–Сб
@@ -101,6 +119,11 @@ public class ScheduleViewService(
             100,
             ct
         );
+        if (!practiceResult.IsSuccess)
+            return Result<ScheduleMonthViewResponse>.Fail(
+                practiceResult.ErrorMessage ?? "Ошибка загрузки данных",
+                practiceResult.StatusCode
+            );
         var practiceList = practiceResult.Data?.Items ?? [];
         var entries = await GetMonthEntriesAsync(groupId, teacherId, room, ct); // все записи фильтра, без недельного среза
 
@@ -162,6 +185,11 @@ public class ScheduleViewService(
             SemesterLastDay,
             ct
         );
+        if (!data.IsSuccess)
+            return Result<ScheduleSemesterViewResponse>.Fail(
+                data.ErrorMessage ?? "Ошибка загрузки данных",
+                data.StatusCode
+            );
 
         var weeks = new List<ScheduleSemesterWeekResponse>();
         for (var week = 1; week <= StudyWeek.TotalWeeks; week++)
@@ -169,7 +197,7 @@ public class ScheduleViewService(
             var weekStart = SemesterMonday.AddDays((week - 1) * 7);
             var days = new List<ScheduleDayViewResponse>();
             for (var i = 0; i < 6; i++)
-                days.Add(BuildDay(data, weekStart.AddDays(i), week));
+                days.Add(BuildDay(data.Data!, weekStart.AddDays(i), week));
             weeks.Add(
                 new ScheduleSemesterWeekResponse
                 {
@@ -185,7 +213,7 @@ public class ScheduleViewService(
     }
 
     /// <summary>Однократная загрузка слоёв на диапазон дат (без запросов на каждый день).</summary>
-    private async Task<ScheduleRangeData> LoadRangeAsync(
+    private async Task<Result<ScheduleRangeData>> LoadRangeAsync(
         Guid? groupId,
         Guid? teacherId,
         string? room,
@@ -209,6 +237,11 @@ public class ScheduleViewService(
             100,
             ct
         );
+        if (!practiceResult.IsSuccess)
+            return Result<ScheduleRangeData>.Fail(
+                practiceResult.ErrorMessage ?? "Ошибка загрузки данных",
+                practiceResult.StatusCode
+            );
         var practiceList = practiceResult.Data?.Items ?? [];
 
         var entriesQuery = db
@@ -236,17 +269,24 @@ public class ScheduleViewService(
                 .Select(g => (int?)g.Course)
                 .FirstOrDefaultAsync(ct);
         var insertResult = await inserts.GetAllAsync(null, course, activeOnly: true, ct);
+        if (!insertResult.IsSuccess)
+            return Result<ScheduleRangeData>.Fail(
+                insertResult.ErrorMessage ?? "Ошибка загрузки данных",
+                insertResult.StatusCode
+            );
         var insertsByDay = (insertResult.Data ?? [])
             .GroupBy(i => (DayOfWeek)i.DayOfWeek)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        return new ScheduleRangeData(
-            nonWorking,
-            practiceList,
-            entries,
-            changeTags,
-            bellTimes,
-            insertsByDay
+        return Result<ScheduleRangeData>.Ok(
+            new ScheduleRangeData(
+                nonWorking,
+                practiceList,
+                entries,
+                changeTags,
+                bellTimes,
+                insertsByDay
+            )
         );
     }
 

@@ -1,9 +1,13 @@
 using CollegeLMS.API.Data;
+using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
+using CollegeLMS.API.Interfaces;
+using CollegeLMS.API.Response;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
+using Moq;
 
 namespace CollegeLMS.Tests.Unit.Services;
 
@@ -235,6 +239,61 @@ public class ScheduleViewServiceTests : IDisposable
             .Data.Entries[0]
             .ChangeTags.Should()
             .ContainSingle(t => t.ChangeType == ScheduleChangeType.Add);
+    }
+
+    [Fact]
+    public async Task GetDayAsync_PracticeServiceFails_PropagatesError()
+    {
+        var practices = new Mock<IPracticeService>();
+        practices
+            .Setup(p =>
+                p.GetAllAsync(
+                    It.IsAny<Guid?>(),
+                    It.IsAny<Guid?>(),
+                    It.IsAny<PracticeKind?>(),
+                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime?>(),
+                    It.IsAny<int?>(),
+                    It.IsAny<int?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(Result<PagedResponse<PracticeResponse>>.Fail("Сбой практик", 500));
+        var sut = new ScheduleViewService(
+            _db,
+            _bells,
+            practices.Object,
+            new ScheduleInsertService(_db)
+        );
+
+        var result = await sut.GetDayAsync(null, null, null, Monday1, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(500);
+        result.ErrorMessage.Should().Be("Сбой практик");
+    }
+
+    [Fact]
+    public async Task GetDayAsync_InsertServiceFails_PropagatesError()
+    {
+        var inserts = new Mock<IScheduleInsertService>();
+        inserts
+            .Setup(i =>
+                i.GetAllAsync(
+                    It.IsAny<DayOfWeek?>(),
+                    It.IsAny<int?>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(Result<List<ScheduleInsertResponse>>.Fail("Сбой вставок", 500));
+        var sut = new ScheduleViewService(_db, _bells, new PracticeService(_db), inserts.Object);
+
+        var result = await sut.GetDayAsync(null, null, null, Monday1, CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(500);
+        result.ErrorMessage.Should().Be("Сбой вставок");
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System.Globalization;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Extensions;
 using CollegeLMS.API.Interfaces;
@@ -68,7 +69,7 @@ public class ScheduleController(
         [FromQuery] DayOfWeek? dayOfWeek,
         [FromQuery] string? period,
         [FromQuery] int? week,
-        [FromQuery] DateTime? date,
+        [FromQuery] string? date,
         [FromQuery] string? month,
         [FromQuery] string? view,
         [FromQuery] int? page,
@@ -76,15 +77,31 @@ public class ScheduleController(
         CancellationToken ct
     )
     {
+        var parsedDate = ParseDate(date);
+        if (!parsedDate.IsSuccess)
+            return BadRequest(
+                Result<ScheduleDayViewResponse>.Fail(
+                    parsedDate.ErrorMessage!,
+                    parsedDate.StatusCode
+                )
+            );
+
         switch (view)
         {
             case "day":
                 return ToResponse(
-                    await viewService.GetDayAsync(groupId, teacherId, room, date, ct)
+                    await viewService.GetDayAsync(groupId, teacherId, room, parsedDate.Data, ct)
                 );
             case "week":
                 return ToResponse(
-                    await viewService.GetWeekAsync(groupId, teacherId, room, week, date, ct)
+                    await viewService.GetWeekAsync(
+                        groupId,
+                        teacherId,
+                        room,
+                        week,
+                        parsedDate.Data,
+                        ct
+                    )
                 );
             case "semester":
                 return ToResponse(await viewService.GetSemesterAsync(groupId, teacherId, ct));
@@ -101,13 +118,33 @@ public class ScheduleController(
             dayOfWeek,
             period,
             week,
-            date,
+            parsedDate.Data,
             view,
             page,
             pageSize,
             ct
         );
         return Ok(result);
+    }
+
+    /// <summary>Разбор даты <c>yyyy-MM-dd</c> из query; невалидный формат — 400.</summary>
+    private static Result<DateTime?> ParseDate(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return Result<DateTime?>.Ok(null);
+
+        if (
+            !DateTime.TryParseExact(
+                raw,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var parsed
+            )
+        )
+            return Result<DateTime?>.Fail("Неверный формат даты.", 400);
+
+        return Result<DateTime?>.Ok(parsed);
     }
 
     private IActionResult ToResponse<T>(Result<T> result) =>
@@ -319,6 +356,7 @@ public class ScheduleController(
     ///
     /// `layout=grid` — таблица «№ пары × дни», `layout=daycards` — блоки дней.
     /// Нерабочий день → 400 «Нерабочий день: {Title}»; нет данных (воскресенье, пустой день/неделя) → 404.
+    /// Неверный формат `date` (не `yyyy-MM-dd`) → 400 «Неверный формат даты.».
     /// Имена файлов: «Расписание_день_», «Расписание_неделя_», «Расписание_семестр_» + дата и время.
     /// </remarks>
     /// <response code="200">Файл готов к скачиванию</response>
@@ -345,13 +383,19 @@ public class ScheduleController(
         [FromQuery] Guid? teacherId,
         [FromQuery] string? room,
         [FromQuery] string? scope,
-        [FromQuery] DateTime? date,
+        [FromQuery] string? date,
         [FromQuery] int? week,
         [FromQuery] string format = "pdf",
         [FromQuery] string layout = "grid",
         CancellationToken ct = default
     )
     {
+        var parsedDate = ParseDate(date);
+        if (!parsedDate.IsSuccess)
+            return BadRequest(
+                Result<ExportResult>.Fail(parsedDate.ErrorMessage!, parsedDate.StatusCode)
+            );
+
         var fmt = format.ToLower() == "xlsx" ? ExportFormat.Xlsx : ExportFormat.Pdf;
         var lyt = layout.ToLower() == "daycards" ? ExportLayout.DayCards : ExportLayout.Grid;
         var result = await service.ExportScheduleAsync(
@@ -359,7 +403,7 @@ public class ScheduleController(
             teacherId,
             room,
             scope,
-            date,
+            parsedDate.Data,
             week,
             fmt,
             lyt,
