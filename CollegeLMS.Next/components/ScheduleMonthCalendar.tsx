@@ -103,11 +103,11 @@ export default function ScheduleMonthCalendar({
     } finally {
       if (requestId === requestIdRef.current) setLoading(false)
     }
-  }, [month, groupId, teacherId, refreshKey])
+  }, [month, groupId, teacherId])
 
   useEffect(() => {
     load()
-  }, [load])
+  }, [load, refreshKey])
 
   const shiftMonth = (delta: number) => {
     const base = parseIsoDate(`${month}-01`)

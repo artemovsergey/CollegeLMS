@@ -118,7 +118,7 @@ export default function ScheduleSemesterMatrix({
     } finally {
       if (requestId === requestIdRef.current) setLoading(false)
     }
-  }, [groupId, teacherId, hasExactlyOneFilter, refreshKey])
+  }, [groupId, teacherId, hasExactlyOneFilter])
 
   useEffect(() => {
     if (!hasExactlyOneFilter) {
@@ -128,7 +128,7 @@ export default function ScheduleSemesterMatrix({
       return
     }
     load()
-  }, [load, hasExactlyOneFilter])
+  }, [load, hasExactlyOneFilter, refreshKey])
 
   if (!hasExactlyOneFilter) {
     return (

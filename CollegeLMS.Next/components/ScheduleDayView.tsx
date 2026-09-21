@@ -74,11 +74,11 @@ export default function ScheduleDayView({
     } finally {
       if (requestId === requestIdRef.current) setLoading(false)
     }
-  }, [date, groupId, teacherId, refreshKey])
+  }, [date, groupId, teacherId])
 
   useEffect(() => {
     load()
-  }, [load])
+  }, [load, refreshKey])
 
   const dayInfo = data ? DAYS.find((d) => d.value === data.dayOfWeek) : undefined
   const isoDate = data ? normalizeDateOnly(data.date) : date

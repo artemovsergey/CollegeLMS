@@ -71,7 +71,7 @@ export default function SchedulePage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
-  const legacyRef = useRef<{ week: number; day: number } | null>(null)
+  const legacyRef = useRef<{ week: number; dayOffset: number } | null>(null)
   const hasUrlDateRef = useRef(false)
   const hasUrlWeekRef = useRef(false)
   const hasUrlMonthRef = useRef(false)
@@ -117,14 +117,16 @@ export default function SchedulePage() {
     }
 
     // Переход из раздела «Изменения»: ?week=5&day=3 → «День» с вычисленной датой.
+    // ChangeCard формирует day как смещение от понедельника (Пн=0…Вс=6),
+    // значение 7 также трактуем как воскресенье.
     if (!viewParam && hasValidWeek) {
-      legacyRef.current = {
-        week: weekParam,
-        day:
-          Number.isFinite(dayParam) && dayParam >= 1 && dayParam <= 7
-            ? dayParam
-            : 1,
-      }
+      const dayOffset =
+        Number.isFinite(dayParam) && dayParam >= 0 && dayParam <= 6
+          ? dayParam
+          : dayParam === 7
+            ? 6
+            : 0
+      legacyRef.current = { week: weekParam, dayOffset }
     }
   }, [])
 
@@ -151,7 +153,7 @@ export default function SchedulePage() {
             )
             const date = new Date(semesterMonday)
             date.setDate(
-              date.getDate() + (legacy.week - 1) * 7 + (legacy.day - 1),
+              date.getDate() + (legacy.week - 1) * 7 + legacy.dayOffset,
             )
             setView("day")
             setSelectedDate(toIsoDate(date))

@@ -28,6 +28,7 @@ interface ScheduleWeekViewProps {
 }
 
 function formatDate(d: Date): string {
+  if (Number.isNaN(d.getTime())) return ""
   return `${String(d.getDate()).padStart(2, "0")}.${String(
     d.getMonth() + 1,
   ).padStart(2, "0")}`
@@ -160,11 +161,11 @@ export default function ScheduleWeekView({
     } finally {
       if (requestId === requestIdRef.current) setLoading(false)
     }
-  }, [week, groupId, teacherId, refreshKey])
+  }, [week, groupId, teacherId])
 
   useEffect(() => {
     load()
-  }, [load])
+  }, [load, refreshKey])
 
   const firstDay = data?.days[0]
   const lastDay = data?.days[data.days.length - 1]
