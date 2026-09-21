@@ -49,13 +49,14 @@
   /* зелёная линия — фирменный акцент под шапкой */
   .brand-bar { position:absolute; z-index:1; left:0; right:0; top:74px; height:3px; background:#4ECC0A; }
 
-  /* --- Заголовок с эмблемой колледжа (SVG, без подложки) --- */
+  /* --- Заголовок с эмблемой колледжа (в белой плашке) --- */
   .title-row { margin-top:32px; display:flex; align-items:center; gap:14px; }
   h1 {
     font-weight:900; font-size:46px; line-height:.98; letter-spacing:-.015em;
   }
   h1 .accent { color:#4ECC0A; }
-  .title-row .emblem { height:148px; width:auto; display:block; flex:none; }
+  .title-row .emblem-plate { flex:none; background:#fff; border-radius:16px; padding:7px; }
+  .title-row .emblem-plate img { height:134px; width:auto; display:block; }
 
   .sub {
     margin-top:14px;
@@ -102,7 +103,9 @@
 
     <div class="title-row">
       <h1>Хочешь на&nbsp;чемпионат?<br><span class="accent">Покажи себя!</span></h1>
-      <img class="emblem" src="assets/college-emblem.svg" alt="Ставропольский колледж связи им. В.А. Петрова">
+      <div class="emblem-plate">
+        <img src="assets/college-emblem.png" alt="Ставропольский колледж связи им. В.А. Петрова">
+      </div>
     </div>
     <p class="sub">Отбор студентов на Всероссийский чемпионат «Профессионалы»</p>
 
