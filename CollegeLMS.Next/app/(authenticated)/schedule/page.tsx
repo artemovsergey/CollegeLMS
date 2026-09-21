@@ -25,6 +25,7 @@ import ScheduleViewSwitcher from "@/components/ScheduleViewSwitcher"
 import WeekNavigation from "@/components/WeekNavigation"
 import ScheduleDayView from "@/components/ScheduleDayView"
 import ScheduleWeekView from "@/components/ScheduleWeekView"
+import ScheduleMonthCalendar from "@/components/ScheduleMonthCalendar"
 import SemesterView from "@/components/SemesterView"
 import ScheduleEntryDialog from "@/components/ScheduleEntryDialog"
 import ScheduleImportDialog from "@/components/ScheduleImportDialog"
@@ -526,10 +527,14 @@ export default function SchedulePage() {
       )}
 
       {view === "calendar" && (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-muted-foreground">
-          <CalendarDays className="size-12 opacity-40" aria-hidden />
-          <p>Календарь месяца</p>
-        </div>
+        <ScheduleMonthCalendar
+          month={selectedMonth}
+          groupId={selectedGroupId || undefined}
+          teacherId={selectedTeacherId || undefined}
+          refreshKey={refreshKey}
+          onMonthChange={setSelectedMonth}
+          onDayClick={handleDayOpen}
+        />
       )}
 
       {view === "semester" &&
