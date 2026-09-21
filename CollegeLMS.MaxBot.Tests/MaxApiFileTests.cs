@@ -243,18 +243,18 @@ public class MaxApiFileTests
     [Fact]
     public async Task SendMessageAsync_NonSuccess_ThrowsWithStatusCodeAndBody()
     {
-        var handler = new RecordingHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.Forbidden)
-            {
-                Content = new StringContent(
-                    """{"code":"access.denied","message":"bot blocked"}""",
-                    Encoding.UTF8,
-                    "application/json"
-                ),
-            });
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)
+        {
+            Content = new StringContent(
+                """{"code":"access.denied","message":"bot blocked"}""",
+                Encoding.UTF8,
+                "application/json"
+            ),
+        });
         var client = BuildClient(handler);
 
-        var act = async () => await client.SendMessageAsync(1, "привет", ct: CancellationToken.None);
+        var act = async () =>
+            await client.SendMessageAsync(1, "привет", ct: CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<HttpRequestException>();
         ex.Which.Message.Should().Contain("403");

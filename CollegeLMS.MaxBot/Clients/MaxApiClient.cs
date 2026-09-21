@@ -42,9 +42,7 @@ public class MaxApiClient
             (int)resp.StatusCode,
             body.Length > 500 ? body[..500] : body
         );
-        throw new HttpRequestException(
-            $"MAX API {context}: HTTP {(int)resp.StatusCode}. {body}"
-        );
+        throw new HttpRequestException($"MAX API {context}: HTTP {(int)resp.StatusCode}. {body}");
     }
 
     public async Task<MaxBotInfo?> GetMeAsync(CancellationToken ct = default)
@@ -327,7 +325,9 @@ public class MaxApiClient
                 (int)resp.StatusCode,
                 errBody.Length > 500 ? errBody[..500] : errBody
             );
-            throw new HttpRequestException($"{errorMessage}: HTTP {(int)resp.StatusCode}. {errBody}");
+            throw new HttpRequestException(
+                $"{errorMessage}: HTTP {(int)resp.StatusCode}. {errBody}"
+            );
         }
     }
 }
