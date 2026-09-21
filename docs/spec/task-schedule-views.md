@@ -37,10 +37,10 @@
 | `ScheduleHistory` | бейджи корректировок недели (`Add`/`Remove`/`Replace`/`Move`) |
 | `BellSlot` | время пар по номеру (`IBellScheduleService.GetTimeMapAsync`) |
 
-Семестр — константы `StudyWeek`: `SemesterStart = 01.09.2026`, `TotalWeeks = 16`;
-неделя 1 начинается с понедельника **31.08.2026**, последний день семестра — **20.12.2026**
-(`MondayOf(SemesterStart) + 16·7 − 1`). `WeekOf` для дат вне семестра даёт ≥ 1, в видах
-значение клампится в `1…16`.
+Семестр — константы `StudyWeek`: `SemesterStart = 01.09.2026`, `TotalWeeks = 17`;
+неделя 1 начинается с понедельника **31.08.2026**, последний день семестра — **27.12.2026**
+(`MondayOf(SemesterStart) + 17·7 − 1`). `WeekOf` для дат вне семестра даёт ≥ 1, в видах
+значение клампится в `1…17`.
 
 ## 4. API (REST)
 
@@ -56,7 +56,7 @@ GET /api/schedule?view=day&date=YYYY-MM-DD&groupId=&teacherId=&room=
 | Поле ответа `ScheduleDayViewResponse` | Значение |
 |---|---|
 | `date` | целевая дата; `date` не задан → сегодня (UTC) |
-| `week` | `Math.Clamp(WeekOf(date), 1, 16)` |
+| `week` | `Math.Clamp(WeekOf(date), 1, 17)` |
 | `dayOfWeek` | `(int)date.DayOfWeek` (0 — Вс) |
 | `isSunday`, `isNonWorking`, `nonWorkingTitle` | признаки дня |
 | `practices[]` | `PracticeResponse[]` |
@@ -98,7 +98,7 @@ GET /api/schedule?view=semester&groupId=|teacherId=
 
 - Требуется ровно один из `groupId`/`teacherId`, иначе `400`
   «Укажите одну группу или одного преподавателя.».
-- Ответ `ScheduleSemesterViewResponse`: `totalWeeks` (16) и `weeks[]`
+- Ответ `ScheduleSemesterViewResponse`: `totalWeeks` (17) и `weeks[]`
   (`week`, `weekStart`, `days[6]`); каждая ячейка — структура `view=day`.
 - Данные загружаются одним диапазоном на весь семестр (без N+1).
 
@@ -116,7 +116,7 @@ GET /api/schedule?view=semester&groupId=|teacherId=
 1. **Воскресенье** → `isSunday = true`; `entries`, `inserts`, `practices` пусты.
 2. **Нерабочий день** (дата входит в `DateFrom…DateTo`) → `isNonWorking = true`,
    `nonWorkingTitle = Title`; `entries`, `inserts`, `practices` пусты (в том числе вне семестра).
-3. **Дата вне семестра** (до 31.08.2026 или после 20.12.2026) → пустой день; `week` клампится.
+3. **Дата вне семестра** (до 31.08.2026 или после 27.12.2026) → пустой день; `week` клампится.
 4. **Практика** (для группы — по `GroupId`, для преподавателя — по `TeacherId`, дата в периоде)
    → `practices[]`; `entries` и `inserts` пусты.
 5. **Обычный день**:
@@ -141,8 +141,8 @@ GET /api/schedule/export?scope=day|week|semester&format=pdf|xlsx&layout=grid|day
 |---|---|---|
 | не задан | легаси-экспорт всего расписания по фильтрам (бот/мини-апп) | `Расписание_dd.MM.yyyy_HH-mm-ss.xlsx\|pdf` |
 | `day` | день по `date` (по умолчанию сегодня) со слоями | `Расписание_день_dd.MM.yyyy_HH-mm-ss.xlsx\|pdf` |
-| `week` | неделя Пн–Сб по `week` (1–16, по умолчанию текущая) или `date` | `Расписание_неделя_dd.MM.yyyy_HH-mm-ss.xlsx\|pdf` |
-| `semester` | матрица «недели 1–16 × Пн–Сб»; ровно один из `groupId`/`teacherId` | `Расписание_семестр_dd.MM.yyyy_HH-mm-ss.xlsx\|pdf` |
+| `week` | неделя Пн–Сб по `week` (1–17, по умолчанию текущая) или `date` | `Расписание_неделя_dd.MM.yyyy_HH-mm-ss.xlsx\|pdf` |
+| `semester` | матрица «недели 1–17 × Пн–Сб»; ровно один из `groupId`/`teacherId` | `Расписание_семестр_dd.MM.yyyy_HH-mm-ss.xlsx\|pdf` |
 
 - Состав day/week — из `IScheduleViewService` (те же слои): время звонков, бейджи, вставки,
   практики, нерабочие дни; в XLSX/PDF: `grid` — таблица «№ пары × дни», `daycards` — блоки дней.
@@ -211,7 +211,7 @@ GET /api/schedule/export?scope=day|week|semester&format=pdf|xlsx&layout=grid|day
 
 | Уровень | Файл | Покрытие |
 |---|---|---|
-| Unit | `CollegeLMS.Tests/Unit/Services/ScheduleViewServiceTests.cs` | приоритет слоёв (воскресенье → нерабочий → практика), фильтр вставок по курсу/активности, время из звонков, бейджи, неделя из даты, 6 дней Пн–Сб, клампинг, месяц (`pairCount`, `practiceKinds`, `isOutOfSemester`), семестр (16 недель × 6 дней, ровно один фильтр) |
+| Unit | `CollegeLMS.Tests/Unit/Services/ScheduleViewServiceTests.cs` | приоритет слоёв (воскресенье → нерабочий → практика), фильтр вставок по курсу/активности, время из звонков, бейджи, неделя из даты, 6 дней Пн–Сб, клампинг, месяц (`pairCount`, `practiceKinds`, `isOutOfSemester`), семестр (17 недель × 6 дней, ровно один фильтр) |
 | Unit | `CollegeLMS.Tests/Unit/Services/ScheduleExportServiceTests.cs` | `scope=day/week`: слои, `400` нерабочий, `404` пусто, регулярка FILE-3 |
 | Интеграционные | `CollegeLMS.Tests/Integration/Controllers/ScheduleControllerTests.cs` | `view=day/week/semester/calendar` (коды и форма), неизвестный `view` → paged-список |
 | Регресс | Весь `CollegeLMS.Tests` (566), `CollegeLMS.MaxBot.Tests` (123) | зелёные на HEAD `1e3331a` |
