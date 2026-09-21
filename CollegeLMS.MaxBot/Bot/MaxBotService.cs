@@ -24,6 +24,7 @@ public class MaxBotService : BackgroundService
     private readonly HashSet<long> _pendingDispatcherPasswords = [];
     private readonly Dictionary<long, string> _dispatcherTokens = [];
     private readonly Dictionary<long, DispatcherWizardState> _wizardStates = [];
+    private readonly DispatcherLoginThrottle _dispatcherLoginThrottle = new();
 
     public MaxBotService(
         MaxApiClient max,
@@ -162,27 +163,37 @@ public class MaxBotService : BackgroundService
         var existing = await db.UserSettings.FirstOrDefaultAsync(x => x.MaxUserId == userId, ct);
         if (existing is null)
         {
-            db.UserSettings.Add(
-                new UserSettings
-                {
-                    Id = Guid.NewGuid(),
-                    MaxUserId = userId,
-                    MaxChatId = chatId,
-                    Role = "student",
-                    NotifyEnabled = true,
-                    NotifyDays = [1, 2, 3, 4, 5],
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                }
-            );
+            existing = new UserSettings
+            {
+                Id = Guid.NewGuid(),
+                MaxUserId = userId,
+                MaxChatId = chatId,
+                Role = "student",
+                NotifyEnabled = true,
+                NotifyDays = [1, 2, 3, 4, 5],
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            db.UserSettings.Add(existing);
             await db.SaveChangesAsync(ct);
         }
 
-        await _max.SendMessageAsync(chatId, "👋 Привет! Я бот расписания.", ct: ct);
+        if (existing.GroupId is null && existing.TeacherId is null)
+        {
+            await ShowRoleSelectionAsync(chatId, ct, onboarding: true);
+            return;
+        }
+
+        await ShowMainMenuAsync(chatId, userId, ct);
     }
 
-    private async Task ShowRoleSelectionAsync(long chatId, CancellationToken ct)
+    private async Task ShowRoleSelectionAsync(
+        long chatId,
+        CancellationToken ct,
+        bool onboarding = false
+    )
     {
+        var rolePrefix = onboarding ? "onboard:role" : "role";
         var keyboard = new List<List<MaxButton>>
         {
             new List<MaxButton>
@@ -191,7 +202,7 @@ public class MaxBotService : BackgroundService
                 {
                     Type = "callback",
                     Text = "🎓 Студент",
-                    Payload = "role:student",
+                    Payload = $"{rolePrefix}:student",
                 },
             },
             new List<MaxButton>
@@ -200,7 +211,7 @@ public class MaxBotService : BackgroundService
                 {
                     Type = "callback",
                     Text = "👨‍🏫 Преподаватель",
-                    Payload = "role:teacher",
+                    Payload = $"{rolePrefix}:teacher",
                 },
             },
         };
@@ -363,6 +374,9 @@ public class MaxBotService : BackgroundService
             case "teacher":
                 await HandleTeacherSelectionAsync(chatId, userId, p.Param1!, ct);
                 break;
+            case "onboard":
+                await HandleOnboardingCallbackAsync(chatId, userId, p, ct);
+                break;
             case "page":
                 if (p.Param1 == "groups")
                     await ShowGroupSelectionAsync(chatId, userId, int.Parse(p.Param2!), ct);
@@ -424,11 +438,80 @@ public class MaxBotService : BackgroundService
         }
     }
 
+    /// <summary>Онбординг: выбор роли, группы/преподавателя и подтверждение после выбора.</summary>
+    private async Task HandleOnboardingCallbackAsync(
+        long chatId,
+        long userId,
+        CallbackPayload payload,
+        CancellationToken ct
+    )
+    {
+        switch (payload.Param1)
+        {
+            case "role":
+                if (payload.Param2 is "student" or "teacher")
+                    await HandleRoleSelectionAsync(
+                        chatId,
+                        userId,
+                        payload.Param2,
+                        ct,
+                        onboarding: true
+                    );
+                else
+                    await ShowMainMenuAsync(chatId, userId, ct);
+                break;
+            case "group":
+                if (Guid.TryParse(payload.Param2, out var groupId))
+                    await HandleGroupSelectionAsync(
+                        chatId,
+                        userId,
+                        groupId.ToString(),
+                        ct,
+                        onboarding: true
+                    );
+                else
+                    await ShowGroupSelectionAsync(
+                        chatId,
+                        userId,
+                        ParsePage(payload.Param2),
+                        ct,
+                        onboarding: true
+                    );
+                break;
+            case "teacher":
+                if (Guid.TryParse(payload.Param2, out var teacherId))
+                    await HandleTeacherSelectionAsync(
+                        chatId,
+                        userId,
+                        teacherId.ToString(),
+                        ct,
+                        onboarding: true
+                    );
+                else
+                    await ShowTeacherSelectionAsync(
+                        chatId,
+                        userId,
+                        ParsePage(payload.Param2),
+                        ct,
+                        onboarding: true
+                    );
+                break;
+            default:
+                await ShowMainMenuAsync(chatId, userId, ct);
+                break;
+        }
+    }
+
+    /// <summary>Номер страницы из payload; отсутствие/мусор — первая страница.</summary>
+    private static int ParsePage(string? value) =>
+        value is not null && int.TryParse(value, out var page) && page >= 0 ? page : 0;
+
     private async Task HandleRoleSelectionAsync(
         long chatId,
         long userId,
         string role,
-        CancellationToken ct
+        CancellationToken ct,
+        bool onboarding = false
     )
     {
         using var scope = _sp.CreateScope();
@@ -443,16 +526,17 @@ public class MaxBotService : BackgroundService
         await db.SaveChangesAsync(ct);
 
         if (role == "student")
-            await ShowGroupSelectionAsync(chatId, userId, 0, ct);
+            await ShowGroupSelectionAsync(chatId, userId, 0, ct, onboarding);
         else
-            await ShowTeacherSelectionAsync(chatId, userId, 0, ct);
+            await ShowTeacherSelectionAsync(chatId, userId, 0, ct, onboarding);
     }
 
     private async Task ShowGroupSelectionAsync(
         long chatId,
         long userId,
         int page,
-        CancellationToken ct
+        CancellationToken ct,
+        bool onboarding = false
     )
     {
         var groups = await _api.GetGroupsAsync(ct);
@@ -468,6 +552,7 @@ public class MaxBotService : BackgroundService
         var groupFavorites = await GetFavoritesAsync(userId, "Group", ct);
         var favIds = groupFavorites.Select(f => f.TargetId).ToHashSet();
 
+        var selectionPrefix = onboarding ? "onboard:group" : "group";
         var buttons = new List<List<MaxButton>>();
         if (page == 0)
         {
@@ -479,7 +564,7 @@ public class MaxBotService : BackgroundService
                         {
                             Type = "callback",
                             Text = $"★ {f.Name}",
-                            Payload = $"group:{f.TargetId}",
+                            Payload = $"{selectionPrefix}:{f.TargetId}",
                         },
                     }
                 );
@@ -493,7 +578,7 @@ public class MaxBotService : BackgroundService
                     {
                         Type = "callback",
                         Text = favIds.Contains(g.Id) ? $"★ {g.Name}" : g.Name,
-                        Payload = $"group:{g.Id}",
+                        Payload = $"{selectionPrefix}:{g.Id}",
                     },
                 }
             );
@@ -505,7 +590,7 @@ public class MaxBotService : BackgroundService
                 {
                     Type = "callback",
                     Text = "← Назад",
-                    Payload = $"page:groups:{page - 1}",
+                    Payload = onboarding ? $"onboard:group:{page - 1}" : $"page:groups:{page - 1}",
                 }
             );
         if (page < totalPages - 1)
@@ -514,7 +599,7 @@ public class MaxBotService : BackgroundService
                 {
                     Type = "callback",
                     Text = "Далее →",
-                    Payload = $"page:groups:{page + 1}",
+                    Payload = onboarding ? $"onboard:group:{page + 1}" : $"page:groups:{page + 1}",
                 }
             );
         if (navRow.Count > 0)
@@ -532,7 +617,8 @@ public class MaxBotService : BackgroundService
         long chatId,
         long userId,
         string groupId,
-        CancellationToken ct
+        CancellationToken ct,
+        bool onboarding = false
     )
     {
         using var scope = _sp.CreateScope();
@@ -542,18 +628,32 @@ public class MaxBotService : BackgroundService
         if (settings is null)
             return;
 
-        MaxBotRoleFlow.SelectGroup(settings, Guid.Parse(groupId));
+        var id = Guid.Parse(groupId);
+        MaxBotRoleFlow.SelectGroup(settings, id);
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        await ShowMainMenuAsync(chatId, userId, ct);
+        if (onboarding)
+        {
+            var name = (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == id)?.Name;
+            await _max.SendMessageAsync(
+                chatId,
+                name is null ? "✅ Готово! Группа сохранена." : $"✅ Готово! Группа: {name}.",
+                ct: ct
+            );
+            await ShowMainMenuAsync(chatId, userId, ct);
+            return;
+        }
+
+        await ShowSettingsAsync(chatId, userId, ct);
     }
 
     private async Task ShowTeacherSelectionAsync(
         long chatId,
         long userId,
         int page,
-        CancellationToken ct
+        CancellationToken ct,
+        bool onboarding = false
     )
     {
         var teachers = await _api.GetTeachersAsync(ct);
@@ -569,6 +669,7 @@ public class MaxBotService : BackgroundService
         var teacherFavorites = await GetFavoritesAsync(userId, "Teacher", ct);
         var favIds = teacherFavorites.Select(f => f.TargetId).ToHashSet();
 
+        var selectionPrefix = onboarding ? "onboard:teacher" : "teacher";
         var buttons = new List<List<MaxButton>>();
         if (page == 0)
         {
@@ -580,7 +681,7 @@ public class MaxBotService : BackgroundService
                         {
                             Type = "callback",
                             Text = $"★ {f.Name}",
-                            Payload = $"teacher:{f.TargetId}",
+                            Payload = $"{selectionPrefix}:{f.TargetId}",
                         },
                     }
                 );
@@ -594,7 +695,7 @@ public class MaxBotService : BackgroundService
                     {
                         Type = "callback",
                         Text = favIds.Contains(t.Id) ? $"★ {t.FullName}" : t.FullName,
-                        Payload = $"teacher:{t.Id}",
+                        Payload = $"{selectionPrefix}:{t.Id}",
                     },
                 }
             );
@@ -606,7 +707,9 @@ public class MaxBotService : BackgroundService
                 {
                     Type = "callback",
                     Text = "← Назад",
-                    Payload = $"page:teachers:{page - 1}",
+                    Payload = onboarding
+                        ? $"onboard:teacher:{page - 1}"
+                        : $"page:teachers:{page - 1}",
                 }
             );
         if (page < totalPages - 1)
@@ -615,7 +718,9 @@ public class MaxBotService : BackgroundService
                 {
                     Type = "callback",
                     Text = "Далее →",
-                    Payload = $"page:teachers:{page + 1}",
+                    Payload = onboarding
+                        ? $"onboard:teacher:{page + 1}"
+                        : $"page:teachers:{page + 1}",
                 }
             );
         if (navRow.Count > 0)
@@ -633,7 +738,8 @@ public class MaxBotService : BackgroundService
         long chatId,
         long userId,
         string teacherId,
-        CancellationToken ct
+        CancellationToken ct,
+        bool onboarding = false
     )
     {
         using var scope = _sp.CreateScope();
@@ -643,11 +749,26 @@ public class MaxBotService : BackgroundService
         if (settings is null)
             return;
 
-        MaxBotRoleFlow.SelectTeacher(settings, Guid.Parse(teacherId));
+        var id = Guid.Parse(teacherId);
+        MaxBotRoleFlow.SelectTeacher(settings, id);
         settings.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        await ShowMainMenuAsync(chatId, userId, ct);
+        if (onboarding)
+        {
+            var name = (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == id)?.FullName;
+            await _max.SendMessageAsync(
+                chatId,
+                name is null
+                    ? "✅ Готово! Преподаватель сохранён."
+                    : $"✅ Готово! Преподаватель: {name}.",
+                ct: ct
+            );
+            await ShowMainMenuAsync(chatId, userId, ct);
+            return;
+        }
+
+        await ShowSettingsAsync(chatId, userId, ct);
     }
 
     private async Task<UserSettings?> GetSettingsAsync(long userId, CancellationToken ct)
@@ -1541,13 +1662,28 @@ public class MaxBotService : BackgroundService
         CancellationToken ct
     )
     {
+        var now = DateTime.UtcNow;
+        if (_dispatcherLoginThrottle.IsBlocked(userId, now))
+        {
+            var minutes = (int)
+                Math.Ceiling(_dispatcherLoginThrottle.RetryAfter(userId, now).TotalMinutes);
+            await _max.SendMessageAsync(
+                chatId,
+                $"❌ Слишком много попыток. Повторите через {minutes} мин.",
+                ct: ct
+            );
+            return;
+        }
+
         var token = await _api.DispatcherLoginAsync(password.Trim(), ct);
         if (token is null)
         {
+            _dispatcherLoginThrottle.RegisterFailure(userId, now);
             await _max.SendMessageAsync(chatId, "❌ Пароль неверный. Попробуй ещё раз.", ct: ct);
             return;
         }
 
+        _dispatcherLoginThrottle.Reset(userId);
         _dispatcherTokens[userId] = token;
         _pendingDispatcherPasswords.Remove(userId);
         await _max.SendMessageAsync(chatId, "✅ Диспетчер авторизован.", ct: ct);
