@@ -43,4 +43,54 @@ public class MiniAppUrlBuilderTests
             .And.Contain("date=2026-09-13")
             .And.Contain($"teacherId={teacherId}");
     }
+
+    [Fact]
+    public void BuildStartPayload_WithRouteOnly_ReturnsRoute()
+    {
+        MiniAppUrlBuilder.BuildStartPayload("today").Should().Be("today");
+    }
+
+    [Fact]
+    public void BuildStartPayload_WithDate_AppendsIsoDate()
+    {
+        var payload = MiniAppUrlBuilder.BuildStartPayload("day", new DateTime(2026, 9, 22));
+
+        payload.Should().Be("day-2026-09-22");
+    }
+
+    [Fact]
+    public void BuildStartPayload_WithGroupId_AppendsEntityId()
+    {
+        var groupId = Guid.NewGuid();
+
+        var payload = MiniAppUrlBuilder.BuildStartPayload(
+            "day",
+            new DateTime(2026, 9, 22),
+            groupId: groupId
+        );
+
+        payload.Should().Be($"day-2026-09-22-{groupId}");
+    }
+
+    [Fact]
+    public void BuildStartPayload_WithTeacherId_AppendsEntityId()
+    {
+        var teacherId = Guid.NewGuid();
+
+        var payload = MiniAppUrlBuilder.BuildStartPayload("week", teacherId: teacherId);
+
+        payload.Should().Be($"week-{teacherId}");
+    }
+
+    [Fact]
+    public void BuildStartPayload_AlwaysMatchesMaxApiPattern()
+    {
+        var payload = MiniAppUrlBuilder.BuildStartPayload(
+            "day",
+            new DateTime(2026, 9, 22),
+            groupId: Guid.NewGuid()
+        );
+
+        payload.Should().MatchRegex("^[\\w-]*$");
+    }
 }

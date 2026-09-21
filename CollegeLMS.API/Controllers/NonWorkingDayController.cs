@@ -16,6 +16,7 @@ public class NonWorkingDayController(INonWorkingDayService service) : Controller
 {
     /// <summary>Список нерабочих дат с фильтром по периоду и пагинацией.</summary>
     [HttpGet]
+    [AllowAnonymous]
     [SwaggerOperation(Summary = "Список нерабочих дат")]
     [SwaggerResponse(200, "Список получен", typeof(Result<PagedResponse<NonWorkingDayResponse>>))]
     [ProducesResponseType(

@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CollegeLMS.MaxBot.Models.Max;
 
 namespace CollegeLMS.MaxBot.Clients;
@@ -13,6 +14,7 @@ public class MaxApiClient
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
     public MaxApiClient(HttpClient http, ILogger<MaxApiClient> logger)
@@ -120,7 +122,19 @@ public class MaxApiClient
         };
 
         var resp = await _http.PostAsJsonAsync($"/messages?chat_id={chatId}", body, JsonOpts, ct);
-        await EnsureSuccessWithBodyAsync(resp, $"POST /messages?chat_id={chatId}", ct);
+        try
+        {
+            await EnsureSuccessWithBodyAsync(resp, $"POST /messages?chat_id={chatId}", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Не удалось отправить сообщение с клавиатурой в чат {ChatId} — отправляю текст без кнопок",
+                chatId
+            );
+            return await SendMessageAsync(chatId, text, format, ct: ct);
+        }
         return await resp.Content.ReadFromJsonAsync<MaxMessageResponse>(JsonOpts, ct);
     }
 

@@ -17,6 +17,8 @@ public class MaxBotService : BackgroundService
     private readonly TimeZoneInfo _tz;
     private readonly MaxBotOptions _options;
 
+    private string _botUsername = "";
+
     private const int PageSize = 5;
     private const int PollTimeoutSeconds = 30;
     private const int ChangesPageSize = 20;
@@ -62,6 +64,7 @@ public class MaxBotService : BackgroundService
                     me?.Name,
                     me?.Username
                 );
+                _botUsername = me?.Username ?? "";
 
                 try
                 {
@@ -1013,15 +1016,7 @@ public class MaxBotService : BackgroundService
                     Payload = CallbackPayload.Cal(today),
                 },
             },
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "open_app",
-                    Text = "📱 Открыть расписание",
-                    Url = BuildMiniAppUrl(settings, "today"),
-                },
-            },
+            new List<MaxButton> { MiniAppButton("📱 Открыть расписание", "today", settings) },
             new List<MaxButton>
             {
                 new()
@@ -1077,6 +1072,34 @@ public class MaxBotService : BackgroundService
             settings.GroupId,
             settings.TeacherId
         );
+    }
+
+    private MaxButton MiniAppButton(
+        string text,
+        string route,
+        UserSettings settings,
+        DateTime? date = null
+    )
+    {
+        return string.IsNullOrWhiteSpace(_botUsername)
+            ? new MaxButton
+            {
+                Type = "link",
+                Text = text,
+                Url = BuildMiniAppUrl(settings, route, date),
+            }
+            : new MaxButton
+            {
+                Type = "open_app",
+                Text = text,
+                WebApp = _botUsername,
+                Payload = MiniAppUrlBuilder.BuildStartPayload(
+                    route,
+                    date,
+                    settings.GroupId,
+                    settings.TeacherId
+                ),
+            };
     }
 
     private async Task ShowDayAsync(long chatId, long userId, DateTime date, CancellationToken ct)
@@ -1144,15 +1167,7 @@ public class MaxBotService : BackgroundService
                     Payload = CallbackPayload.DayNext(date),
                 },
             },
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "open_app",
-                    Text = "📱 Открыть в mini-app",
-                    Url = BuildMiniAppUrl(settings, "day", date),
-                },
-            },
+            new List<MaxButton> { MiniAppButton("📱 Открыть в mini-app", "day", settings, date) },
             new List<MaxButton>
             {
                 new()
@@ -1267,12 +1282,7 @@ public class MaxBotService : BackgroundService
 
         var actionRow = new List<MaxButton>
         {
-            new()
-            {
-                Type = "open_app",
-                Text = "📱 Открыть в mini-app",
-                Url = BuildMiniAppUrl(settings, "week", weekStart),
-            },
+            MiniAppButton("📱 Открыть в mini-app", "week", settings, weekStart),
             new()
             {
                 Type = "callback",
@@ -1506,15 +1516,7 @@ public class MaxBotService : BackgroundService
             buttons.Add(navRow);
 
         buttons.Add(
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "open_app",
-                    Text = "📱 Открыть изменения",
-                    Url = BuildMiniAppUrl(settings, "changes"),
-                },
-            }
+            new List<MaxButton> { MiniAppButton("📱 Открыть изменения", "changes", settings) }
         );
         buttons.Add(
             new List<MaxButton>

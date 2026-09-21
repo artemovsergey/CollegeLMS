@@ -71,6 +71,12 @@ jobs:
               echo "MAX_BOT_TOKEN=${MAX_BOT_TOKEN}"
             } > .env
 
+            if [ -z "${MAX_BOT_TOKEN}" ]; then
+              echo "MAX_BOT_TOKEN secret пуст — бот не сможет подключиться к MAX API."
+              echo "Задайте секрет MAX_BOT_TOKEN в GitHub Actions и повторите деплой."
+              exit 1
+            fi
+
             echo "=== Stop old containers ==="
             docker compose --profile max-bot down --remove-orphans || true
 
