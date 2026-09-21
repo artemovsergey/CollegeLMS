@@ -444,14 +444,12 @@ public class ScheduleService(
         if (request.NumberPair < 1 || request.NumberPair > 8)
             return Result<ScheduleResponse>.Fail("Номер пары должен быть от 1 до 8", 400);
 
-        if (request.StartTime >= request.EndTime)
+        var weeks = request.Weeks.Distinct().OrderBy(w => w).ToList();
+        if (weeks.Count == 0 || weeks.Any(w => w < 1 || w > StudyWeek.TotalWeeks))
             return Result<ScheduleResponse>.Fail(
-                "Время начала должно быть раньше времени окончания",
+                $"Недели должны быть в диапазоне 1–{StudyWeek.TotalWeeks}",
                 400
             );
-
-        if (request.Weeks.Count == 0)
-            return Result<ScheduleResponse>.Fail("Укажите хотя бы одну неделю", 400);
 
         var groupExists = await db.Groups.AnyAsync(g => g.Id == request.GroupId, ct);
         if (!groupExists)
@@ -474,14 +472,21 @@ public class ScheduleService(
             request.Room,
             request.DayOfWeek,
             request.NumberPair,
-            request.StartTime,
-            request.EndTime,
+            weeks,
             ct
         );
         if (overlap is not null)
             return Result<ScheduleResponse>.Fail(overlap, 409);
 
+        var bellTimes = await bells.GetTimeMapAsync(ct);
+        var (start, end) = bellTimes.TryGetValue(request.NumberPair, out var time)
+            ? time
+            : ScheduleImportService.GetPairTime(request.DayOfWeek, request.NumberPair);
+
         var entry = request.ToEntity();
+        entry.Weeks = weeks;
+        entry.StartTime = start;
+        entry.EndTime = end;
         db.ScheduleEntries.Add(entry);
         await db.SaveChangesAsync(ct);
 
@@ -504,14 +509,12 @@ public class ScheduleService(
         if (request.NumberPair < 1 || request.NumberPair > 8)
             return Result<ScheduleResponse>.Fail("Номер пары должен быть от 1 до 8", 400);
 
-        if (request.StartTime >= request.EndTime)
+        var weeks = request.Weeks.Distinct().OrderBy(w => w).ToList();
+        if (weeks.Count == 0 || weeks.Any(w => w < 1 || w > StudyWeek.TotalWeeks))
             return Result<ScheduleResponse>.Fail(
-                "Время начала должно быть раньше времени окончания",
+                $"Недели должны быть в диапазоне 1–{StudyWeek.TotalWeeks}",
                 400
             );
-
-        if (request.Weeks.Count == 0)
-            return Result<ScheduleResponse>.Fail("Укажите хотя бы одну неделю", 400);
 
         var entry = await db.ScheduleEntries.FindAsync([id], ct);
         if (entry is null)
@@ -538,12 +541,16 @@ public class ScheduleService(
             request.Room,
             request.DayOfWeek,
             request.NumberPair,
-            request.StartTime,
-            request.EndTime,
+            weeks,
             ct
         );
         if (overlap is not null)
             return Result<ScheduleResponse>.Fail(overlap, 409);
+
+        var bellTimes = await bells.GetTimeMapAsync(ct);
+        var (start, end) = bellTimes.TryGetValue(request.NumberPair, out var time)
+            ? time
+            : ScheduleImportService.GetPairTime(request.DayOfWeek, request.NumberPair);
 
         entry.GroupId = request.GroupId;
         entry.TeacherId = request.TeacherId;
@@ -551,9 +558,9 @@ public class ScheduleService(
         entry.Room = request.Room;
         entry.DayOfWeek = request.DayOfWeek;
         entry.NumberPair = request.NumberPair;
-        entry.StartTime = request.StartTime;
-        entry.EndTime = request.EndTime;
-        entry.Weeks = request.Weeks;
+        entry.StartTime = start;
+        entry.EndTime = end;
+        entry.Weeks = weeks;
         entry.LessonType = Enum.Parse<LessonType>(request.LessonType);
         entry.UpdatedAt = DateTime.UtcNow;
 
@@ -613,31 +620,40 @@ public class ScheduleService(
         string room,
         DayOfWeek dayOfWeek,
         int numberPair,
-        TimeSpan startTime,
-        TimeSpan endTime,
+        List<int> weeks,
         CancellationToken ct
     )
     {
-        var baseQuery = db.ScheduleEntries.Where(s =>
-            s.DayOfWeek == dayOfWeek
-            && s.NumberPair == numberPair
-            && startTime < s.EndTime
-            && endTime > s.StartTime
-        );
+        var candidates = await db
+            .ScheduleEntries.AsNoTracking()
+            .Where(s =>
+                s.Id != (excludeId ?? Guid.Empty)
+                && s.DayOfWeek == dayOfWeek
+                && s.NumberPair == numberPair
+                && (
+                    s.GroupId == groupId
+                    || (teacherId.HasValue && s.TeacherId == teacherId)
+                    || s.Room == room
+                )
+            )
+            .Select(s => new
+            {
+                s.GroupId,
+                s.TeacherId,
+                s.Room,
+                s.Weeks,
+            })
+            .ToListAsync(ct);
 
-        if (excludeId.HasValue)
-            baseQuery = baseQuery.Where(s => s.Id != excludeId.Value);
+        var overlapping = candidates.Where(c => c.Weeks.Intersect(weeks).Any()).ToList();
 
-        if (await baseQuery.AnyAsync(s => s.GroupId == groupId, ct))
+        if (overlapping.Any(c => c.GroupId == groupId))
             return "У группы уже есть занятие в эту пару";
 
-        if (teacherId.HasValue)
-        {
-            if (await baseQuery.AnyAsync(s => s.TeacherId == teacherId.Value, ct))
-                return "У преподавателя уже есть занятие в эту пару";
-        }
+        if (teacherId.HasValue && overlapping.Any(c => c.TeacherId == teacherId))
+            return "У преподавателя уже есть занятие в эту пару";
 
-        if (await baseQuery.AnyAsync(s => s.Room == room, ct))
+        if (overlapping.Any(c => c.Room == room))
             return "Аудитория уже занята в эту пару";
 
         return null;

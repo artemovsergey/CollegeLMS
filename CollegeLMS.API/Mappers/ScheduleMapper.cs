@@ -38,8 +38,6 @@ public static class ScheduleMapper
             Room = request.Room,
             DayOfWeek = request.DayOfWeek,
             NumberPair = request.NumberPair,
-            StartTime = request.StartTime,
-            EndTime = request.EndTime,
             Weeks = request.Weeks,
             LessonType = Enum.Parse<LessonType>(request.LessonType),
         };

@@ -37,8 +37,6 @@ public class CreateScheduleRequest
     public string Room { get; set; } = string.Empty;
     public DayOfWeek DayOfWeek { get; set; }
     public int NumberPair { get; set; }
-    public TimeSpan StartTime { get; set; }
-    public TimeSpan EndTime { get; set; }
     public List<int> Weeks { get; set; } = new();
     public string LessonType { get; set; } = string.Empty;
 }
@@ -51,8 +49,6 @@ public class UpdateScheduleRequest
     public string Room { get; set; } = string.Empty;
     public DayOfWeek DayOfWeek { get; set; }
     public int NumberPair { get; set; }
-    public TimeSpan StartTime { get; set; }
-    public TimeSpan EndTime { get; set; }
     public List<int> Weeks { get; set; } = new();
     public string LessonType { get; set; } = string.Empty;
 }

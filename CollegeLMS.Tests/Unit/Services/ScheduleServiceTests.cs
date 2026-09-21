@@ -11,23 +11,24 @@ namespace CollegeLMS.Tests.Unit.Services;
 public class ScheduleServiceTests : IDisposable
 {
     private readonly API.Data.AppDbContext _db;
+    private readonly BellScheduleServiceStub _bells;
     private readonly ScheduleService _sut;
 
     public ScheduleServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        var bells = new BellScheduleServiceStub();
+        _bells = new BellScheduleServiceStub();
         var exportService = new ScheduleExportService(
             _db,
-            bells,
+            _bells,
             new ScheduleViewService(
                 _db,
-                bells,
+                _bells,
                 new PracticeService(_db),
                 new ScheduleInsertService(_db)
             )
         );
-        _sut = new ScheduleService(_db, exportService, bells);
+        _sut = new ScheduleService(_db, exportService, _bells);
     }
 
     public void Dispose() => _db.Dispose();
@@ -230,8 +231,6 @@ public class ScheduleServiceTests : IDisposable
             Room = "301",
             DayOfWeek = DayOfWeek.Monday,
             NumberPair = 1,
-            StartTime = new TimeSpan(9, 0, 0),
-            EndTime = new TimeSpan(10, 30, 0),
             Weeks = new() { 1 },
             LessonType = LessonType.Lecture.ToString(),
         };
@@ -253,8 +252,6 @@ public class ScheduleServiceTests : IDisposable
             Room = "301",
             DayOfWeek = DayOfWeek.Monday,
             NumberPair = 1,
-            StartTime = new TimeSpan(9, 0, 0),
-            EndTime = new TimeSpan(10, 30, 0),
             Weeks = new() { 1 },
             LessonType = LessonType.Lecture.ToString(),
         };
@@ -285,8 +282,6 @@ public class ScheduleServiceTests : IDisposable
             Room = "301",
             DayOfWeek = DayOfWeek.Monday,
             NumberPair = 1,
-            StartTime = new TimeSpan(9, 0, 0),
-            EndTime = new TimeSpan(10, 30, 0),
             Weeks = new() { 1 },
             LessonType = LessonType.Lecture.ToString(),
         };
@@ -298,7 +293,7 @@ public class ScheduleServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateAsync_ReturnsFail_WhenTimeOverlap()
+    public async Task CreateAsync_ReturnsFail_WhenRoomOverlap()
     {
         var group = new Group
         {
@@ -306,19 +301,24 @@ public class ScheduleServiceTests : IDisposable
             Name = "ГР-11",
             Course = 1,
         };
-        _db.Groups.Add(group);
-        await _db.SaveChangesAsync();
+        var otherGroup = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-12",
+            Course = 1,
+        };
+        _db.Groups.AddRange(group, otherGroup);
 
         var existing = new ScheduleEntry
         {
             Id = Guid.NewGuid(),
-            GroupId = group.Id,
+            GroupId = otherGroup.Id,
             Subject = "Физика",
             Room = "301",
             DayOfWeek = DayOfWeek.Monday,
             NumberPair = 1,
-            StartTime = new TimeSpan(9, 0, 0),
-            EndTime = new TimeSpan(10, 30, 0),
+            StartTime = new TimeSpan(9, 10, 0),
+            EndTime = new TimeSpan(10, 40, 0),
             Weeks = new() { 1 },
             LessonType = LessonType.Lecture,
         };
@@ -329,11 +329,9 @@ public class ScheduleServiceTests : IDisposable
         {
             GroupId = group.Id,
             Subject = "Математика",
-            Room = "302",
+            Room = "301",
             DayOfWeek = DayOfWeek.Monday,
             NumberPair = 1,
-            StartTime = new TimeSpan(9, 30, 0),
-            EndTime = new TimeSpan(11, 0, 0),
             Weeks = new() { 1 },
             LessonType = LessonType.Practice.ToString(),
         };
@@ -342,6 +340,271 @@ public class ScheduleServiceTests : IDisposable
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(409);
+        result.ErrorMessage.Should().Be("Аудитория уже занята в эту пару");
+    }
+
+    [Fact]
+    public async Task CreateAsync_UsesBellTimes_NotRequest()
+    {
+        _bells.TimeMap[1] = (new TimeSpan(10, 0, 0), new TimeSpan(11, 20, 0));
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        await _db.SaveChangesAsync();
+
+        var request = new CreateScheduleRequest
+        {
+            GroupId = group.Id,
+            Subject = "Математика",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            Weeks = new() { 1 },
+            LessonType = LessonType.Lecture.ToString(),
+        };
+
+        var result = await _sut.CreateAsync(request, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.StartTime.Should().Be(new TimeSpan(10, 0, 0));
+        result.Data.EndTime.Should().Be(new TimeSpan(11, 20, 0));
+
+        var saved = await _db
+            .ScheduleEntries.AsNoTracking()
+            .SingleAsync(s => s.Id == result.Data.Id);
+        saved.StartTime.Should().Be(new TimeSpan(10, 0, 0));
+        saved.EndTime.Should().Be(new TimeSpan(11, 20, 0));
+    }
+
+    [Fact]
+    public async Task CreateAsync_NoBellEntry_FallsBackToDefaultSlot()
+    {
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        await _db.SaveChangesAsync();
+
+        var request = new CreateScheduleRequest
+        {
+            GroupId = group.Id,
+            Subject = "Математика",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 2,
+            Weeks = new() { 1 },
+            LessonType = LessonType.Lecture.ToString(),
+        };
+
+        var result = await _sut.CreateAsync(request, default);
+
+        result.IsSuccess.Should().BeTrue();
+        // Пустая карта звонков — дефолтный слот понедельника, пара 2 (ScheduleImportService.GetPairTime).
+        result.Data!.StartTime.Should().Be(new TimeSpan(10, 50, 0));
+        result.Data.EndTime.Should().Be(new TimeSpan(12, 20, 0));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WeekZero_Returns400()
+    {
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        await _db.SaveChangesAsync();
+
+        var request = new CreateScheduleRequest
+        {
+            GroupId = group.Id,
+            Subject = "Математика",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            Weeks = new() { 0 },
+            LessonType = LessonType.Lecture.ToString(),
+        };
+
+        var result = await _sut.CreateAsync(request, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+        result.ErrorMessage.Should().Contain($"диапазоне 1–{StudyWeek.TotalWeeks}");
+    }
+
+    [Fact]
+    public async Task CreateAsync_WeekAboveSemester_Returns400()
+    {
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        await _db.SaveChangesAsync();
+
+        var request = new CreateScheduleRequest
+        {
+            GroupId = group.Id,
+            Subject = "Математика",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            Weeks = new() { StudyWeek.TotalWeeks + 1 },
+            LessonType = LessonType.Lecture.ToString(),
+        };
+
+        var result = await _sut.CreateAsync(request, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(400);
+    }
+
+    [Fact]
+    public async Task CreateAsync_OverlapSameWeeks_Returns409()
+    {
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        _db.ScheduleEntries.Add(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                Subject = "Физика",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
+                StartTime = new TimeSpan(9, 10, 0),
+                EndTime = new TimeSpan(10, 40, 0),
+                Weeks = new() { 1 },
+                LessonType = LessonType.Lecture,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var request = new CreateScheduleRequest
+        {
+            GroupId = group.Id,
+            Subject = "Математика",
+            Room = "302",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            Weeks = new() { 1 },
+            LessonType = LessonType.Practice.ToString(),
+        };
+
+        var result = await _sut.CreateAsync(request, default);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(409);
+        result.ErrorMessage.Should().Be("У группы уже есть занятие в эту пару");
+    }
+
+    [Fact]
+    public async Task CreateAsync_OverlapDisjointWeeks_Allowed()
+    {
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        _db.ScheduleEntries.Add(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                Subject = "Физика",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
+                StartTime = new TimeSpan(9, 10, 0),
+                EndTime = new TimeSpan(10, 40, 0),
+                Weeks = new() { 1 },
+                LessonType = LessonType.Lecture,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var request = new CreateScheduleRequest
+        {
+            GroupId = group.Id,
+            Subject = "Математика",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            Weeks = new() { 2 },
+            LessonType = LessonType.Practice.ToString(),
+        };
+
+        var result = await _sut.CreateAsync(request, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Weeks.Should().BeEquivalentTo([2]);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_OverlapDisjointWeeks_AllowsSelfUpdate()
+    {
+        _bells.TimeMap[1] = (new TimeSpan(10, 0, 0), new TimeSpan(11, 20, 0));
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        var entry = new ScheduleEntry
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            Subject = "Физика",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            StartTime = new TimeSpan(9, 10, 0),
+            EndTime = new TimeSpan(10, 40, 0),
+            Weeks = new() { 1 },
+            LessonType = LessonType.Lecture,
+        };
+        _db.ScheduleEntries.Add(entry);
+        await _db.SaveChangesAsync();
+
+        // Кандидат на пересечение — только сама запись; excludeId не даёт ей конфликтовать с собой.
+        var request = new UpdateScheduleRequest
+        {
+            GroupId = group.Id,
+            Subject = "Математика",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            Weeks = new() { 1, 2 },
+            LessonType = LessonType.Practice.ToString(),
+        };
+
+        var result = await _sut.UpdateAsync(entry.Id, request, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Weeks.Should().BeEquivalentTo([1, 2]);
+        result.Data.StartTime.Should().Be(new TimeSpan(10, 0, 0));
+        result.Data.EndTime.Should().Be(new TimeSpan(11, 20, 0));
+        (await _db.ScheduleEntries.CountAsync()).Should().Be(1);
     }
 
     [Fact]
@@ -375,8 +638,6 @@ public class ScheduleServiceTests : IDisposable
             Room = "402",
             DayOfWeek = DayOfWeek.Tuesday,
             NumberPair = 1,
-            StartTime = new TimeSpan(10, 0, 0),
-            EndTime = new TimeSpan(11, 30, 0),
             Weeks = new() { 1 },
             LessonType = LessonType.Lab.ToString(),
         };
@@ -398,8 +659,6 @@ public class ScheduleServiceTests : IDisposable
             Room = "301",
             DayOfWeek = DayOfWeek.Monday,
             NumberPair = 1,
-            StartTime = new TimeSpan(9, 0, 0),
-            EndTime = new TimeSpan(10, 30, 0),
             Weeks = new() { 1 },
             LessonType = LessonType.Lecture.ToString(),
         };

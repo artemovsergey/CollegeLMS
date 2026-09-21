@@ -1,5 +1,6 @@
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities.Enums;
+using CollegeLMS.API.Services;
 using FluentValidation;
 
 namespace CollegeLMS.API.Validators;
@@ -26,11 +27,11 @@ public class CreateScheduleRequestValidator : AbstractValidator<CreateScheduleRe
             .InclusiveBetween(1, 8)
             .WithMessage("Номер пары должен быть от 1 до 8");
 
-        RuleFor(x => x.StartTime)
-            .LessThan(x => x.EndTime)
-            .WithMessage("Время начала должно быть меньше времени окончания");
-
         RuleFor(x => x.Weeks).NotEmpty().WithMessage("Укажите хотя бы одну неделю");
+
+        RuleForEach(x => x.Weeks)
+            .InclusiveBetween(1, StudyWeek.TotalWeeks)
+            .WithMessage($"Неделя должна быть в диапазоне 1–{StudyWeek.TotalWeeks}");
 
         RuleFor(x => x.LessonType)
             .NotEmpty()
@@ -64,11 +65,11 @@ public class UpdateScheduleRequestValidator : AbstractValidator<UpdateScheduleRe
             .InclusiveBetween(1, 8)
             .WithMessage("Номер пары должен быть от 1 до 8");
 
-        RuleFor(x => x.StartTime)
-            .LessThan(x => x.EndTime)
-            .WithMessage("Время начала должно быть меньше времени окончания");
-
         RuleFor(x => x.Weeks).NotEmpty().WithMessage("Укажите хотя бы одну неделю");
+
+        RuleForEach(x => x.Weeks)
+            .InclusiveBetween(1, StudyWeek.TotalWeeks)
+            .WithMessage($"Неделя должна быть в диапазоне 1–{StudyWeek.TotalWeeks}");
 
         RuleFor(x => x.LessonType)
             .NotEmpty()
