@@ -7,13 +7,31 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 })
 
+/** Диспетчерские API: вход по паролю и batch-корректировки. */
+function isDispatcherRoute(url: string | undefined): boolean {
+  const path = url ?? ""
+  return (
+    path.startsWith("/api/schedule/correction/") ||
+    path.startsWith("/api/dispatcher/")
+  )
+}
+
+/** Вход диспетчера по паролю: 401 здесь — неверный пароль, а не истёкшая сессия. */
+function isDispatcherLoginRoute(url: string | undefined): boolean {
+  return (url ?? "").startsWith("/api/dispatcher/login")
+}
+
+/** Контекст мини-приложения Max (все его страницы — под /max). */
+function isMaxApp(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/max")
+  )
+}
+
 api.interceptors.request.use(config => {
   if (typeof window !== "undefined") {
-    const url = config.url ?? ""
-    const isDispatcherRoute =
-      url.startsWith("/api/schedule/correction/") ||
-      url.startsWith("/api/dispatcher/")
-    const token = isDispatcherRoute
+    const token = isDispatcherRoute(config.url)
       ? sessionStorage.getItem("dispatcherToken") ?? localStorage.getItem("token")
       : localStorage.getItem("token")
     if (token) {
@@ -22,19 +40,6 @@ api.interceptors.request.use(config => {
   }
   return config
 })
-
-/**
- * Диспетчерские маршруты мини-приложения: их 401/403 обрабатываются
- * на месте (handleDispatcherAuthError → возврат к гейту), а не редиректом
- * на /login общей авторизации CRM.
- */
-function isDispatcherRequest(url: string | undefined): boolean {
-  const path = url ?? ""
-  return (
-    path.startsWith("/api/schedule/correction/") ||
-    path.startsWith("/api/dispatcher/")
-  )
-}
 
 const TOAST_DEBOUNCE_MS = 5000
 const lastShownAt: Record<number, number> = {}
@@ -50,10 +55,17 @@ api.interceptors.response.use(
   response => response,
   error => {
     const status = error.response?.status as number | undefined
-    if (typeof window !== "undefined" && status === 401 && isDispatcherRequest(error.config?.url)) {
-      return Promise.reject(error)
-    }
     if (typeof window !== "undefined" && status) {
+      if (
+        status === 401 &&
+        (isDispatcherLoginRoute(error.config?.url) ||
+          (isMaxApp() && isDispatcherRoute(error.config?.url)))
+      ) {
+        // Вход диспетчера с неверным паролем и диспетчерские 401 мини-приложения
+        // обрабатываются на месте (DispatcherGate / handleDispatcherAuthError),
+        // без очистки CRM-сессии и редиректа на /login.
+        return Promise.reject(error)
+      }
       if (status === 401) {
         localStorage.removeItem("token")
         localStorage.removeItem("user")

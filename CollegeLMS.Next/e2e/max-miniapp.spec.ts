@@ -337,4 +337,35 @@ test.describe("MAX mini-app", () => {
     await expect(page.getByText("Изменения применены")).toBeVisible()
     await downloadPromise
   })
+
+  test("Истёкший dispatcher-токен возвращает к гейту", async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem("dispatcherToken", "expired")
+    })
+    await page.route("**/api/schedule/correction/batches/import", (route) =>
+      route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({
+          isSuccess: false,
+          data: null,
+          errorMessage: "Не авторизован",
+          statusCode: 401,
+        }),
+      }),
+    )
+
+    await page.goto("/max/dispatcher", { waitUntil: "networkidle" })
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "corrections.xlsx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: Buffer.from("test"),
+    })
+
+    // 401 не редиректит на /login, а возвращает к форме пароля.
+    await expect(page.getByText("Доступ диспетчера")).toBeVisible()
+    await expect(page).toHaveURL(/\/max\/dispatcher/)
+    await expect(page.getByRole("tab", { name: "Файл XLSX" })).toHaveCount(0)
+  })
 })
