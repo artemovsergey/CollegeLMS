@@ -6,101 +6,97 @@ import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react"
 interface WeekNavigationProps {
   currentWeek: number
   onChange: (week: number) => void
-  totalWeeks?: number
+  totalWeeks: number
+  /** Начало семестра (из GET /api/schedule/meta). */
+  semesterStart: Date
+  /** Текущая учебная неделя (из GET /api/schedule/meta). */
+  todayWeek?: number
 }
 
-const SEMESTER_START = new Date(2026, 8, 1) // 1 сентября 2026
-
-function getMondayOfWeek(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const offset = day === 0 ? 6 : day - 1
+function mondayOfWeekOne(semesterStart: Date): Date {
+  const d = new Date(semesterStart)
+  const offset = (d.getDay() + 6) % 7
   d.setDate(d.getDate() - offset)
   d.setHours(0, 0, 0, 0)
   return d
 }
 
-function getWeekDates(week: number): { start: Date; end: Date } {
-  const start = new Date(SEMESTER_START)
-  if (week <= 1) {
-    const end = new Date(start)
-    end.setDate(end.getDate() + 3) // 01.09 → 04.09
-    return { start, end }
-  }
-  start.setDate(start.getDate() + (week - 1) * 7 - 1)
+function getWeekDates(
+  week: number,
+  semesterStart: Date,
+): { start: Date; end: Date } {
+  const monday = mondayOfWeekOne(semesterStart)
+  const start = new Date(monday)
+  start.setDate(start.getDate() + (week - 1) * 7)
   const end = new Date(start)
-  end.setDate(end.getDate() + 4)
+  end.setDate(end.getDate() + 5) // Пн–Сб
   return { start, end }
 }
 
 function formatDate(d: Date): string {
-  return `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1).toString().padStart(2, "0")}`
+  return `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}`
 }
 
 export default function WeekNavigation({
   currentWeek,
   onChange,
-  totalWeeks = 52,
+  totalWeeks,
+  semesterStart,
+  todayWeek,
 }: WeekNavigationProps) {
-  const { start, end } = getWeekDates(currentWeek)
-  const isCurrentWeek = (() => {
-    const now = new Date()
-    const currentMonday = getMondayOfWeek(now)
-    const semesterMonday = getMondayOfWeek(SEMESTER_START)
-    const diffMs = currentMonday.getTime() - semesterMonday.getTime()
-    const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
-    return diffWeeks + 1 === currentWeek
-  })()
-
-  const goToToday = () => {
-    const now = new Date()
-    const currentMonday = getMondayOfWeek(now)
-    const semesterMonday = getMondayOfWeek(SEMESTER_START)
-    const diffMs = currentMonday.getTime() - semesterMonday.getTime()
-    const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
-    onChange(Math.max(1, Math.min(totalWeeks, diffWeeks + 1)))
-  }
+  const { start, end } = getWeekDates(currentWeek, semesterStart)
+  const isCurrentWeek = todayWeek !== undefined && todayWeek === currentWeek
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button
+        type="button"
         variant="outline"
         size="icon"
-        className="size-8"
+        className="size-11"
+        aria-label="Предыдущая неделя"
         onClick={() => onChange(Math.max(1, currentWeek - 1))}
         disabled={currentWeek <= 1}
       >
-        <ChevronLeft className="size-4" />
+        <ChevronLeft className="size-4" aria-hidden />
       </Button>
 
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-sm font-medium whitespace-nowrap">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="whitespace-nowrap text-sm font-medium">
           Неделя {currentWeek}
         </span>
-        <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+        <span className="hidden whitespace-nowrap text-xs text-muted-foreground sm:inline">
           {formatDate(start)} – {formatDate(end)}
         </span>
       </div>
 
       <Button
+        type="button"
         variant="outline"
         size="icon"
-        className="size-8"
+        className="size-11"
+        aria-label="Следующая неделя"
         onClick={() => onChange(Math.min(totalWeeks, currentWeek + 1))}
         disabled={currentWeek >= totalWeeks}
       >
-        <ChevronRight className="size-4" />
+        <ChevronRight className="size-4" aria-hidden />
       </Button>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={goToToday}
-        className={`ml-1 transition-opacity ${isCurrentWeek ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-      >
-        <CalendarDays className="size-3.5 mr-1" />
-        Сегодня
-      </Button>
+      {todayWeek !== undefined && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onChange(todayWeek)}
+          disabled={isCurrentWeek}
+          className="ml-1 h-11"
+        >
+          <CalendarDays className="size-3.5" aria-hidden />
+          Сегодня
+        </Button>
+      )}
     </div>
   )
 }

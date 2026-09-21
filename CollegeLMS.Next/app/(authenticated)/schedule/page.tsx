@@ -3,28 +3,27 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import type { Result, GroupResponse, TeacherResponse } from "@/types"
-import type { ScheduleResponse } from "@/types/schedule"
+import type { ScheduleResponse, ScheduleViewMode } from "@/types/schedule"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import {
   fetchSchedule,
-  fetchSemesterView,
+  fetchScheduleContext,
   fetchScheduleMeta,
+  fetchSemesterView,
   exportSchedule,
   deleteSchedule,
+  isValidDate,
+  normalizeDateOnly,
+  parseIsoDate,
+  toIsoDate,
+  toIsoMonth,
+  type ScheduleFilters,
+  type ScheduleMeta,
 } from "@/api/schedule"
 import { Button } from "@/components/ui/button"
-import {
-  NativeDialog,
-  NativeDialogHeader,
-  NativeDialogTitle,
-  NativeDialogDescription,
-  NativeDialogFooter,
-} from "@/components/ui/native-dialog"
-import {
-  NativeSelect,
-  NativeSelectItem,
-} from "@/components/ui/native-select"
+import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
+import ScheduleViewSwitcher from "@/components/ScheduleViewSwitcher"
 import WeekNavigation from "@/components/WeekNavigation"
 import DayTabs from "@/components/DayTabs"
 import ScheduleTable from "@/components/ScheduleTable"
@@ -34,62 +33,43 @@ import ScheduleImportDialog from "@/components/ScheduleImportDialog"
 import { CAN_MANAGE_ROLES } from "@/lib/constants"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
-import {
-  CalendarDays,
-  Filter,
-  SearchX,
-  FileDown,
-  FileSpreadsheet,
-  Upload,
-  LayoutGrid,
-} from "lucide-react"
+import { CalendarDays, Filter, SearchX, Upload } from "lucide-react"
 import { toast } from "sonner"
 
-const SEMESTER_START = new Date(2026, 8, 1)
-
-function getMondayOfWeek(date: Date): Date {
+function mondayOf(date: Date): Date {
   const d = new Date(date)
-  const day = d.getDay()
-  const offset = day === 0 ? 6 : day - 1
+  const offset = (d.getDay() + 6) % 7
   d.setDate(d.getDate() - offset)
   d.setHours(0, 0, 0, 0)
   return d
-}
-
-function getCurrentWeek(): number {
-  const now = new Date()
-  const currentMonday = getMondayOfWeek(now)
-  const semesterMonday = getMondayOfWeek(SEMESTER_START)
-  const diffMs = currentMonday.getTime() - semesterMonday.getTime()
-  const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
-  return Math.max(1, diffWeeks + 1)
-}
-
-function defaultDay(): number {
-  const day = new Date().getDay()
-  return day >= 1 && day <= 5 ? day : 1
 }
 
 export default function SchedulePage() {
   const { user, token, isLoading: authLoading } = useAuth()
   const router = useRouter()
 
-  const [entries, setEntries] = useState<ScheduleResponse[]>([])
-  const [allEntries, setAllEntries] = useState<ScheduleResponse[]>([])
-  const [initialLoading, setInitialLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [semesterLoading, setSemesterLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [view, setView] = useState<ScheduleViewMode>("day")
+  const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()))
+  const [selectedWeek, setSelectedWeek] = useState(1)
+  const [selectedMonth, setSelectedMonth] = useState(() =>
+    toIsoMonth(new Date()),
+  )
+  const [meta, setMeta] = useState<ScheduleMeta | null>(null)
 
   const [groups, setGroups] = useState<GroupResponse[]>([])
   const [teachers, setTeachers] = useState<TeacherResponse[]>([])
 
   const [selectedGroupId, setSelectedGroupId] = useState("")
   const [selectedTeacherId, setSelectedTeacherId] = useState("")
-  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek())
-  const [totalWeeks, setTotalWeeks] = useState(52)
-  const [selectedDay, setSelectedDay] = useState<number | null>(defaultDay())
-  const [viewMode, setViewMode] = useState<"cards" | "semester">("cards")
+  const [defaultGroupId, setDefaultGroupId] = useState("")
+  const [defaultTeacherId, setDefaultTeacherId] = useState("")
+
+  const [entries, setEntries] = useState<ScheduleResponse[]>([])
+  const [semesterEntries, setSemesterEntries] = useState<ScheduleResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [urlReady, setUrlReady] = useState(false)
 
   const [entryDialogOpen, setEntryDialogOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<ScheduleResponse | null>(
@@ -97,76 +77,139 @@ export default function SchedulePage() {
   )
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
   const requestIdRef = useRef(0)
-  const hasLoadedRef = useRef(false)
+  const legacyRef = useRef<{ week: number; day: number } | null>(null)
+  const hasUrlDateRef = useRef(false)
   const hasUrlWeekRef = useRef(false)
+  const hasUrlMonthRef = useRef(false)
 
-  const canManage = user?.roles ? user.roles.some(role => CAN_MANAGE_ROLES.includes(role)) : false
+  const canManage = user?.roles
+    ? user.roles.some((role) => CAN_MANAGE_ROLES.includes(role))
+    : false
+  const hasCustomFilters =
+    selectedGroupId !== defaultGroupId ||
+    selectedTeacherId !== defaultTeacherId
+  const semesterFilterMissing =
+    Boolean(selectedGroupId) === Boolean(selectedTeacherId)
 
-  const loadSchedule = useCallback(async () => {
-    const requestId = ++requestIdRef.current
-    const isInitialLoad = !hasLoadedRef.current
-    setInitialLoading(isInitialLoad)
-    setIsRefreshing(true)
-    setError(null)
-    try {
-      const params: Record<string, string | number | undefined> = {
-        pageSize: 200,
-      }
-      if (selectedGroupId) params.groupId = selectedGroupId
-      if (selectedTeacherId) params.teacherId = selectedTeacherId
-      if (selectedWeek) params.week = selectedWeek
-      const body = await fetchSchedule(params)
-      if (requestId !== requestIdRef.current) return
-      if (body.isSuccess && body.data) {
-        setEntries(body.data.items)
-        hasLoadedRef.current = true
-      } else {
-        setError(body.errorMessage ?? "Ошибка загрузки расписания")
-      }
-    } catch {
-      if (requestId === requestIdRef.current) {
-        setError("Ошибка загрузки расписания")
-      }
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setInitialLoading(false)
-        setIsRefreshing(false)
+  const parsedSelectedDate = parseIsoDate(selectedDate)
+  const selectedDayNum = isValidDate(parsedSelectedDate)
+    ? parsedSelectedDate.getDay()
+    : null
+
+  // Разбор URL: view|date|week|month и миграция старых ?week=&day=.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const sp = new URLSearchParams(window.location.search)
+
+    const viewParam = sp.get("view")
+    const dateParam = normalizeDateOnly(sp.get("date"))
+    const monthParam = sp.get("month")
+    const weekParam = Number(sp.get("week"))
+    const dayParam = Number(sp.get("day"))
+    const hasValidWeek = Number.isFinite(weekParam) && weekParam >= 1
+
+    if (
+      viewParam === "week" ||
+      viewParam === "calendar" ||
+      viewParam === "semester"
+    ) {
+      setView(viewParam)
+    }
+
+    if (dateParam) {
+      setSelectedDate(dateParam)
+      hasUrlDateRef.current = true
+    }
+    if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+      setSelectedMonth(monthParam)
+      hasUrlMonthRef.current = true
+    }
+    if (viewParam === "week" && hasValidWeek) {
+      setSelectedWeek(weekParam)
+      hasUrlWeekRef.current = true
+    }
+
+    // Переход из раздела «Изменения»: ?week=5&day=3 → «День» с вычисленной датой.
+    if (!viewParam && hasValidWeek) {
+      legacyRef.current = {
+        week: weekParam,
+        day:
+          Number.isFinite(dayParam) && dayParam >= 1 && dayParam <= 7
+            ? dayParam
+            : 1,
       }
     }
-  }, [selectedGroupId, selectedTeacherId, selectedWeek])
+  }, [])
 
-  const loadAllEntries = useCallback(async () => {
-    const requestId = ++requestIdRef.current
-    setSemesterLoading(true)
-    setIsRefreshing(true)
-    setError(null)
-    try {
-      const body = await fetchSemesterView({
-        groupId: selectedGroupId || undefined,
-        teacherId: selectedTeacherId || undefined,
+  useEffect(() => {
+    if (!authLoading && !token) {
+      router.push("/login")
+    }
+  }, [authLoading, token, router])
+
+  // Мета семестра: дефолтная дата/неделя и миграция легаси-ссылок.
+  useEffect(() => {
+    if (!token) return
+    let cancelled = false
+    fetchScheduleMeta()
+      .then((body) => {
+        if (cancelled) return
+        if (body.isSuccess && body.data) {
+          setMeta(body.data)
+          const legacy = legacyRef.current
+          if (legacy) {
+            legacyRef.current = null
+            const semesterMonday = mondayOf(
+              parseIsoDate(normalizeDateOnly(body.data.semesterStart)),
+            )
+            const date = new Date(semesterMonday)
+            date.setDate(
+              date.getDate() + (legacy.week - 1) * 7 + (legacy.day - 1),
+            )
+            setView("day")
+            setSelectedDate(toIsoDate(date))
+            setSelectedWeek(body.data.currentWeek)
+          } else {
+            if (!hasUrlDateRef.current) {
+              setSelectedDate(
+                normalizeDateOnly(body.data.currentDate) ||
+                  toIsoDate(new Date()),
+              )
+            }
+            if (!hasUrlWeekRef.current) setSelectedWeek(body.data.currentWeek)
+          }
+        }
+        setUrlReady(true)
       })
-      if (requestId !== requestIdRef.current) return
-      if (body.isSuccess && body.data) {
-        setAllEntries(
-          body.data.weeks.flatMap((week) =>
-            week.days.flatMap((day) => day.entries),
-          ),
-        )
-      } else {
-        setError(body.errorMessage ?? "Ошибка загрузки расписания")
-      }
-    } catch {
-      if (requestId === requestIdRef.current) {
-        setError("Ошибка загрузки расписания")
-      }
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setSemesterLoading(false)
-        setIsRefreshing(false)
-      }
+      .catch(() => {
+        if (!cancelled) setUrlReady(true)
+      })
+    return () => {
+      cancelled = true
     }
-  }, [selectedGroupId, selectedTeacherId])
+  }, [token])
+
+  // Дефолт пользователя: студент → своя группа, преподаватель → он сам.
+  useEffect(() => {
+    if (!token) return
+    let cancelled = false
+    fetchScheduleContext()
+      .then((body) => {
+        if (cancelled || !body.isSuccess || !body.data) return
+        const groupId = body.data.groupId ?? ""
+        const teacherId = body.data.teacherId ?? ""
+        setDefaultGroupId(groupId)
+        setDefaultTeacherId(teacherId)
+        setSelectedGroupId(groupId)
+        setSelectedTeacherId(teacherId)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [token])
 
   const loadGroups = useCallback(async () => {
     try {
@@ -187,92 +230,152 @@ export default function SchedulePage() {
   }, [])
 
   useEffect(() => {
-    if (!authLoading && !token) {
-      router.push("/login")
-    }
-  }, [authLoading, token, router])
-
-  // Переход из раздела «Изменения»: /schedule?week=5&day=3 открывает нужный день.
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    const searchParams = new URLSearchParams(window.location.search)
-    const weekParam = Number(searchParams.get("week"))
-    if (Number.isFinite(weekParam) && weekParam >= 1) {
-      setSelectedWeek(weekParam)
-      hasUrlWeekRef.current = true
-    }
-    const dayParam = Number(searchParams.get("day"))
-    if (Number.isFinite(dayParam) && dayParam >= 0 && dayParam <= 6) {
-      setSelectedDay(dayParam)
-    }
-  }, [])
-
-  const loadMeta = useCallback(async () => {
-    try {
-      const body = await fetchScheduleMeta()
-      if (body.isSuccess && body.data) {
-        if (!hasUrlWeekRef.current) setSelectedWeek(body.data.currentWeek)
-        setTotalWeeks(body.data.totalWeeks)
-      }
-    } catch {
-      /* fallback: getCurrentWeek() уже применяется при инициализации */
-    }
-  }, [])
-
-  useEffect(() => {
     if (token) {
       loadGroups()
       loadTeachers()
-      loadMeta()
     }
-  }, [token, loadGroups, loadTeachers, loadMeta])
+  }, [token, loadGroups, loadTeachers])
 
+  // Синхронизация состояния с URL без перезагрузки страницы.
   useEffect(() => {
-    if (!token) return
+    if (!urlReady || typeof window === "undefined") return
+    const params = new URLSearchParams()
+    params.set("view", view)
+    if (view === "day") params.set("date", selectedDate)
+    if (view === "week") params.set("week", String(selectedWeek))
+    if (view === "calendar") params.set("month", selectedMonth)
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}?${params.toString()}`,
+    )
+  }, [urlReady, view, selectedDate, selectedWeek, selectedMonth])
 
-    if (viewMode === "cards") {
-      loadSchedule()
+  // Переходное состояние: до Tasks 10–13 источник данных — постраничный список
+  // и старый семестровый вид.
+  const loadViewData = useCallback(async () => {
+    if (!token) return
+    if (view === "calendar") {
+      setLoading(false)
+      return
+    }
+    if (view === "semester" && semesterFilterMissing) {
+      setSemesterEntries([])
+      setError(null)
+      setLoading(false)
       return
     }
 
-    loadAllEntries()
+    const requestId = ++requestIdRef.current
+    setLoading(true)
+    setError(null)
+    try {
+      if (view === "semester") {
+        const body = await fetchSemesterView({
+          groupId: selectedGroupId || undefined,
+          teacherId: selectedTeacherId || undefined,
+        })
+        if (requestId !== requestIdRef.current) return
+        if (body.isSuccess && body.data) {
+          setSemesterEntries(
+            body.data.weeks.flatMap((week) =>
+              week.days.flatMap((day) => day.entries),
+            ),
+          )
+        } else {
+          setError(body.errorMessage ?? "Ошибка загрузки расписания")
+        }
+      } else {
+        const params: ScheduleFilters = { pageSize: 300 }
+        if (selectedGroupId) params.groupId = selectedGroupId
+        if (selectedTeacherId) params.teacherId = selectedTeacherId
+        if (view === "day") params.date = selectedDate
+        else params.week = selectedWeek
+        const body = await fetchSchedule(params)
+        if (requestId !== requestIdRef.current) return
+        if (body.isSuccess && body.data) {
+          setEntries(body.data.items)
+        } else {
+          setError(body.errorMessage ?? "Ошибка загрузки расписания")
+        }
+      }
+    } catch {
+      if (requestId === requestIdRef.current) {
+        setError("Ошибка загрузки расписания")
+      }
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false)
+    }
   }, [
     token,
-    viewMode,
+    view,
+    selectedDate,
+    selectedWeek,
     selectedGroupId,
     selectedTeacherId,
-    selectedWeek,
-    loadSchedule,
-    loadAllEntries,
+    semesterFilterMissing,
+    refreshKey,
   ])
 
-  const handleViewModeChange = (mode: "cards" | "semester") => {
-    setViewMode(mode)
+  useEffect(() => {
+    loadViewData()
+  }, [loadViewData])
+
+  const handleViewChange = (mode: ScheduleViewMode) => {
+    setView(mode)
+  }
+
+  const handleDateChange = (date: string) => {
+    const normalized = normalizeDateOnly(date)
+    if (normalized) setSelectedDate(normalized)
+  }
+
+  const handleDayOpen = (date: string) => {
+    const normalized = normalizeDateOnly(date)
+    if (normalized) setSelectedDate(normalized)
+    setView("day")
+  }
+
+  const handleDayTabChange = (day: number | null) => {
+    if (day === null) return
+    const base = mondayOf(isValidDate(parsedSelectedDate) ? parsedSelectedDate : new Date())
+    const target = new Date(base)
+    target.setDate(target.getDate() + ((day + 6) % 7))
+    setSelectedDate(toIsoDate(target))
   }
 
   const handleSemesterCellClick = (week: number, day: number) => {
-    setSelectedWeek(week)
-    setSelectedDay(day)
-    setViewMode("cards")
+    if (!meta) return
+    const monday = mondayOf(parseIsoDate(normalizeDateOnly(meta.semesterStart)))
+    const date = new Date(monday)
+    date.setDate(date.getDate() + (week - 1) * 7 + (day - 1))
+    handleDayOpen(toIsoDate(date))
   }
 
   const handleClear = () => {
-    setSelectedGroupId("")
-    setSelectedTeacherId("")
-    setSelectedWeek(getCurrentWeek())
-    setSelectedDay(defaultDay())
+    setSelectedGroupId(defaultGroupId)
+    setSelectedTeacherId(defaultTeacherId)
   }
 
-  const handleExport = async (format: "pdf" | "xlsx", layout: "grid" | "daycards" = "grid") => {
+  const handleExport = async (
+    format: "pdf" | "xlsx",
+    layout: "grid" | "daycards" = "grid",
+  ) => {
+    const filters: ScheduleFilters = {}
+    if (selectedGroupId) filters.groupId = selectedGroupId
+    if (selectedTeacherId) filters.teacherId = selectedTeacherId
     try {
-      const params: Record<string, string | number | undefined> = {}
-      if (selectedGroupId) params.groupId = selectedGroupId
-      if (selectedTeacherId) params.teacherId = selectedTeacherId
-      if (viewMode === "cards" && selectedWeek) params.week = selectedWeek
-      const scope = viewMode === "semester" ? "semester" : "week"
-      await exportSchedule(params, format, layout, scope, {
-        week: selectedWeek,
-      })
+      if (view === "day") {
+        await exportSchedule(filters, format, layout, "day", {
+          date: selectedDate,
+        })
+      } else if (view === "week") {
+        await exportSchedule(filters, format, layout, "week", {
+          week: selectedWeek,
+        })
+      } else {
+        await exportSchedule(filters, format, layout, "semester")
+      }
       toast.success("Экспорт выполнен")
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Ошибка экспорта"
@@ -292,7 +395,9 @@ export default function SchedulePage() {
 
   const handleDelete = async () => {
     if (!deleteConfirmId) return
-    const confirmed = window.confirm("Удалить запись? Это действие нельзя отменить.")
+    const confirmed = window.confirm(
+      "Удалить запись? Это действие нельзя отменить.",
+    )
     if (!confirmed) {
       setDeleteConfirmId(null)
       return
@@ -301,8 +406,7 @@ export default function SchedulePage() {
       const result = await deleteSchedule(deleteConfirmId)
       if (result.isSuccess) {
         toast.success("Запись удалена")
-        if (viewMode === "cards") loadSchedule()
-        else loadAllEntries()
+        setRefreshKey((k) => k + 1)
       } else {
         toast.error(result.errorMessage ?? "Ошибка удаления")
       }
@@ -316,113 +420,90 @@ export default function SchedulePage() {
   if (authLoading) return <LoadingSpinner className="min-h-screen" />
   if (!token) return null
 
-  const displayEntries = viewMode === "semester" ? allEntries : entries
-  const showCards = viewMode === "cards"
-
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 p-6 mx-auto max-w-7xl">
+    <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-4 p-6">
       <div className="flex items-center gap-2">
-        <CalendarDays className="size-5 text-primary" />
+        <CalendarDays className="size-5 text-primary" aria-hidden />
         <h2 className="text-xl font-semibold">Расписание</h2>
       </div>
 
-<div
-        className={[
-          "transition-[opacity,transform] duration-200",
-          showCards ? "opacity-100" : "opacity-0 pointer-events-none",
-          "overflow-hidden",
-        ].join(" ")}
-        style={{ minHeight: showCards ? 44 : 0 }}
-      >
-        <WeekNavigation
-          currentWeek={selectedWeek}
-          onChange={setSelectedWeek}
-          totalWeeks={totalWeeks}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">
-        <Filter className="size-4 text-muted-foreground shrink-0" />
-        <NativeSelect
-          value={selectedGroupId || "all"}
-          onValueChange={(v) => setSelectedGroupId(v === "all" ? "" : v)}
-          placeholder="Все группы"
-          className="w-44"
-        >
-          <NativeSelectItem value="all">Все группы</NativeSelectItem>
-          {groups.map((g) => (
-            <NativeSelectItem key={g.id} value={g.id}>
-              {g.name}
-            </NativeSelectItem>
-          ))}
-        </NativeSelect>
-
-        <NativeSelect
-          value={selectedTeacherId || "all"}
-          onValueChange={(v) => setSelectedTeacherId(v === "all" ? "" : v)}
-          placeholder="Все преподаватели"
-          className="w-44"
-        >
-          <NativeSelectItem value="all">Все преподаватели</NativeSelectItem>
-          {teachers.map((t) => (
-            <NativeSelectItem key={t.id} value={t.id}>
-              {t.fullName}
-            </NativeSelectItem>
-          ))}
-        </NativeSelect>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClear}
-          className={`shrink-0 transition-opacity ${!selectedGroupId && !selectedTeacherId ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-        >
-          <SearchX className="size-3.5" />
-          Сбросить
-        </Button>
-
-        <div className="flex-1" />
-
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex rounded-md border overflow-hidden">
-            <Button
-              variant={showCards ? "default" : "ghost"}
-              size="sm"
-              className="rounded-r-none border-0"
-              onClick={() => handleViewModeChange("cards")}
-            >
-              <CalendarDays className="size-3.5 mr-1" />
-              Карточки
-            </Button>
-            <Button
-              variant={!showCards ? "default" : "ghost"}
-              size="sm"
-              className="rounded-l-none border-0"
-              onClick={() => handleViewModeChange("semester")}
-            >
-              <LayoutGrid className="size-3.5 mr-1" />
-              Семестр
-            </Button>
-          </div>
+      <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 lg:flex-row lg:items-center">
+        <div className="flex flex-wrap items-center gap-3">
+          <Filter
+            className="size-4 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
+          <NativeSelect
+            value={selectedGroupId || "all"}
+            onValueChange={(v) => setSelectedGroupId(v === "all" ? "" : v)}
+            placeholder="Все группы"
+            className="w-44"
+          >
+            <NativeSelectItem value="all">Все группы</NativeSelectItem>
+            {groups.map((g) => (
+              <NativeSelectItem key={g.id} value={g.id}>
+                {g.name}
+              </NativeSelectItem>
+            ))}
+          </NativeSelect>
 
           <NativeSelect
-            value=""
-            onValueChange={(v) => {
-              if (v) {
-                const [format, layout] = v.split(":") as ["pdf" | "xlsx", "grid" | "daycards"]
-                handleExport(format, layout)
-              }
-            }}
-            className="w-[205px]"
+            value={selectedTeacherId || "all"}
+            onValueChange={(v) => setSelectedTeacherId(v === "all" ? "" : v)}
+            placeholder="Все преподаватели"
+            className="w-44"
           >
-            <option value="" disabled>
-              Экспорт
-            </option>
-            <option value="pdf:grid">PDF — Сетка</option>
-            <option value="pdf:daycards">PDF — По дням</option>
-            <option value="xlsx:grid">Excel — Сетка</option>
-            <option value="xlsx:daycards">Excel — По дням</option>
+            <NativeSelectItem value="all">Все преподаватели</NativeSelectItem>
+            {teachers.map((t) => (
+              <NativeSelectItem key={t.id} value={t.id}>
+                {t.fullName}
+              </NativeSelectItem>
+            ))}
           </NativeSelect>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClear}
+            className={`shrink-0 transition-opacity ${
+              hasCustomFilters
+                ? "opacity-100"
+                : "pointer-events-none opacity-0"
+            }`}
+          >
+            <SearchX className="size-3.5" aria-hidden />
+            Сбросить
+          </Button>
+        </div>
+
+        <div className="flex flex-1 flex-wrap items-center gap-2 lg:justify-end">
+          <ScheduleViewSwitcher value={view} onChange={handleViewChange} />
+
+          {view !== "calendar" && (
+            <NativeSelect
+              value=""
+              onValueChange={(v) => {
+                if (v) {
+                  const [format, layout] = v.split(":") as [
+                    "pdf" | "xlsx",
+                    "grid" | "daycards",
+                  ]
+                  handleExport(format, layout)
+                }
+              }}
+              className="w-[205px]"
+              aria-label="Экспорт расписания"
+            >
+              <option value="" disabled>
+                Экспорт
+              </option>
+              <option value="pdf:grid">PDF — Сетка</option>
+              <option value="pdf:daycards">PDF — По дням</option>
+              <option value="xlsx:grid">Excel — Сетка</option>
+              <option value="xlsx:daycards">Excel — По дням</option>
+            </NativeSelect>
+          )}
+
           {canManage && (
             <>
               <Button
@@ -430,7 +511,7 @@ export default function SchedulePage() {
                 size="sm"
                 onClick={() => setImportDialogOpen(true)}
               >
-                <Upload className="size-3.5 mr-1" />
+                <Upload className="size-3.5" aria-hidden />
                 Импорт
               </Button>
               <Button size="sm" onClick={handleAdd}>
@@ -441,59 +522,66 @@ export default function SchedulePage() {
         </div>
       </div>
 
-<div
-        className={[
-          "transition-[opacity,transform] duration-200",
-          showCards ? "opacity-100" : "opacity-0 pointer-events-none",
-          "overflow-hidden",
-        ].join(" ")}
-        style={{ minHeight: showCards ? 52 : 0 }}
-      >
-        <DayTabs selectedDay={selectedDay} onChange={setSelectedDay} />
-      </div>
+      {view === "week" && meta && (
+        <WeekNavigation
+          currentWeek={selectedWeek}
+          onChange={setSelectedWeek}
+          totalWeeks={meta.totalWeeks}
+          semesterStart={parseIsoDate(normalizeDateOnly(meta.semesterStart))}
+          todayWeek={meta.currentWeek}
+        />
+      )}
+
+      {view === "day" && (
+        <DayTabs selectedDay={selectedDayNum} onChange={handleDayTabChange} />
+      )}
 
       {error && <ErrorBanner message={error} />}
 
-      {showCards && initialLoading ? (
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <LoadingSpinner size="lg" />
-        </div>
-      ) : !showCards && semesterLoading && allEntries.length === 0 ? (
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <LoadingSpinner size="lg" />
-        </div>
-      ) : (
-        <div className="relative min-h-[420px] min-w-0">
-          <div className={`min-w-0 ${isRefreshing ? "opacity-60 transition-opacity" : ""}`}>
-            {showCards ? (
-              <ScheduleTable
-                entries={displayEntries}
-                selectedDay={selectedDay}
-                onEntryClick={canManage ? handleEdit : undefined}
-                onDeleteClick={
-                  canManage ? (id) => setDeleteConfirmId(id) : undefined
-                }
-              />
-            ) : (
-              <SemesterView
-                entries={displayEntries}
-                selectedWeek={selectedWeek}
-                onCellClick={handleSemesterCellClick}
-              />
-            )}
+      {(view === "day" || view === "week") &&
+        (loading ? (
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <LoadingSpinner size="lg" />
           </div>
-          {isRefreshing && (
-            <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-4">
-              <LoadingSpinner />
-            </div>
-          )}
+        ) : (
+          <ScheduleTable
+            entries={entries}
+            selectedDay={null}
+            onEntryClick={canManage ? handleEdit : undefined}
+            onDeleteClick={
+              canManage ? (id) => setDeleteConfirmId(id) : undefined
+            }
+          />
+        ))}
+
+      {view === "calendar" && (
+        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-muted-foreground">
+          <CalendarDays className="size-12 opacity-40" aria-hidden />
+          <p>Календарь месяца</p>
         </div>
       )}
+
+      {view === "semester" &&
+        (semesterFilterMissing ? (
+          <div className="flex min-h-[40vh] items-center justify-center rounded-lg border bg-card p-10 text-center text-muted-foreground">
+            Выберите группу или преподавателя
+          </div>
+        ) : loading ? (
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : (
+          <SemesterView
+            entries={semesterEntries}
+            selectedWeek={selectedWeek}
+            onCellClick={handleSemesterCellClick}
+          />
+        ))}
 
       <ScheduleEntryDialog
         open={entryDialogOpen}
         onOpenChange={setEntryDialogOpen}
-        onSaved={showCards ? loadSchedule : loadAllEntries}
+        onSaved={() => setRefreshKey((k) => k + 1)}
         entry={editingEntry}
         groups={groups}
         teachers={teachers}
@@ -502,7 +590,7 @@ export default function SchedulePage() {
       <ScheduleImportDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        onImported={showCards ? loadSchedule : loadAllEntries}
+        onImported={() => setRefreshKey((k) => k + 1)}
       />
     </div>
   )

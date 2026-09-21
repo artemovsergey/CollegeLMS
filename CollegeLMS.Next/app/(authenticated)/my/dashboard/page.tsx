@@ -5,7 +5,13 @@ import type { Result, StudentDashboardResponse, ProfileResponse } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
-import { fetchSchedule } from "@/api/schedule"
+import {
+  fetchSchedule,
+  fetchScheduleMeta,
+  normalizeDateOnly,
+  parseIsoDate,
+  type ScheduleMeta,
+} from "@/api/schedule"
 import { fetchProfile } from "@/api/profile"
 import ErrorBanner from "@/components/ErrorBanner"
 import CourseCard from "@/components/CourseCard"
@@ -14,26 +20,6 @@ import WeekNavigation from "@/components/WeekNavigation"
 import DayTabs from "@/components/DayTabs"
 import ScheduleTable from "@/components/ScheduleTable"
 import { CalendarDays, BookOpen } from "lucide-react"
-
-const SEMESTER_START = new Date(2026, 8, 1) // 1 сентября 2026
-
-function getMondayOfWeek(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const offset = day === 0 ? 6 : day - 1
-  d.setDate(d.getDate() - offset)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function getCurrentWeek(): number {
-  const now = new Date()
-  const currentMonday = getMondayOfWeek(now)
-  const semesterMonday = getMondayOfWeek(SEMESTER_START)
-  const diffMs = currentMonday.getTime() - semesterMonday.getTime()
-  const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
-  return Math.max(1, diffWeeks + 1)
-}
 
 export default function StudentDashboardPage() {
   const { token, user } = useAuth()
@@ -49,7 +35,8 @@ export default function StudentDashboardPage() {
   const [scheduleEntries, setScheduleEntries] = useState<ScheduleResponse[]>([])
   const [scheduleLoading, setScheduleLoading] = useState(false)
 
-  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek())
+  const [meta, setMeta] = useState<ScheduleMeta | null>(null)
+  const [selectedWeek, setSelectedWeek] = useState(1)
   const [selectedDay, setSelectedDay] = useState<number | null>(
     (() => {
       const day = new Date().getDay()
@@ -116,6 +103,21 @@ export default function StudentDashboardPage() {
   }, [token, fetchDashboard, fetchProfileData])
 
   useEffect(() => {
+    if (!token) return
+    let cancelled = false
+    fetchScheduleMeta()
+      .then((body) => {
+        if (cancelled || !body.isSuccess || !body.data) return
+        setMeta(body.data)
+        setSelectedWeek(body.data.currentWeek)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  useEffect(() => {
     if (token && studentGroupId) {
       loadSchedule()
     }
@@ -160,11 +162,17 @@ export default function StudentDashboardPage() {
           </div>
         ) : (
           <>
-            <WeekNavigation
-              currentWeek={selectedWeek}
-              onChange={setSelectedWeek}
-              totalWeeks={52}
-            />
+            {meta && (
+              <WeekNavigation
+                currentWeek={selectedWeek}
+                onChange={setSelectedWeek}
+                totalWeeks={meta.totalWeeks}
+                semesterStart={parseIsoDate(
+                  normalizeDateOnly(meta.semesterStart),
+                )}
+                todayWeek={meta.currentWeek}
+              />
+            )}
 
             <DayTabs selectedDay={selectedDay} onChange={setSelectedDay} />
 
