@@ -3,7 +3,6 @@
 import { useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import Image from "next/image"
 import { useAuth } from "@/lib/auth"
 import { Menu, X, LogOut, User, Lock, type LucideIcon } from "lucide-react"
 import { roleLabels, roleVariants } from "@/lib/constants"
@@ -85,9 +84,8 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
             >
               <Menu size={20} />
             </button>
-            <Link href={homeByRole[user?.roles?.[0] ?? ""] ?? "/my/dashboard"} className="flex items-center gap-2 ml-2">
-              <Image src="/logo.svg" alt="" width={0} height={0} sizes="100vw" className="object-contain" style={{ maxHeight: "40px", width: 'auto', height: 'auto' }} unoptimized />
-              <span className="text-xs font-semibold text-fg leading-tight">Колледж связи</span>
+            <Link href={homeByRole[user?.roles?.[0] ?? ""] ?? "/my/dashboard"} className="ml-2 flex items-center">
+              <span className="text-sm font-semibold text-fg leading-tight">Колледж связи</span>
             </Link>
           </div>
 
