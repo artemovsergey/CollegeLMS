@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { Loader2, AlertTriangle } from "lucide-react"
-import type { Result } from "@/types"
+import type { PagedResponse, Result } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
 import api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -85,22 +85,23 @@ export default function DispatcherDashboardPage() {
   const [dashboard, setDashboard] = useState<DispatcherDashboardResponse | null>(null)
 
   useEffect(() => {
+    // GET /api/schedule отдаёт страницу (items), а не массив: без .items
+    // в entries попадал объект и страница падала на переборе.
     api
-      .get<Result<ScheduleResponse[]>>("/api/schedule", {
+      .get<Result<PagedResponse<ScheduleResponse>>>("/api/schedule", {
         params: { pageSize: 2000 },
       })
       .then((res) => {
         if (res.data.isSuccess && res.data.data)
-          setEntries(res.data.data as ScheduleResponse[])
+          setEntries(res.data.data.items ?? [])
       })
       .catch(() => setError("Ошибка загрузки расписания"))
       .finally(() => setLoading(false))
 
-    const todayStr = new Date().toLocaleDateString("en-CA")
+    // Дату не передаём: сервер сам считает «сегодня» по своей таймзоне,
+    // иначе расхождение часов клиента и сервера даёт чужой день.
     api
-      .get<Result<DispatcherDashboardResponse>>("/api/dispatcher/dashboard", {
-        params: { date: todayStr },
-      })
+      .get<Result<DispatcherDashboardResponse>>("/api/dispatcher/dashboard")
       .then((res) => {
         if (res.data.isSuccess && res.data.data) setDashboard(res.data.data)
       })
@@ -113,9 +114,9 @@ export default function DispatcherDashboardPage() {
       const key = `${e.groupId}|${e.subject}|${e.teacherId}`
       if (map.has(key)) {
         const existing = map.get(key)!
-        const merged = [...new Set([...existing.weeks, ...e.weeks])].sort(
-          (a, b) => a - b,
-        )
+        const merged = [
+          ...new Set([...existing.weeks, ...(e.weeks ?? [])]),
+        ].sort((a, b) => a - b)
         existing.weeks = merged
       } else {
         map.set(key, {
@@ -123,7 +124,7 @@ export default function DispatcherDashboardPage() {
           subject: e.subject,
           teacherName: e.teacherName,
           room: e.room,
-          weeks: [...e.weeks].sort((a, b) => a - b),
+          weeks: [...(e.weeks ?? [])].sort((a, b) => a - b),
           lessonType: e.lessonType,
           groupName: e.groupName,
         })
