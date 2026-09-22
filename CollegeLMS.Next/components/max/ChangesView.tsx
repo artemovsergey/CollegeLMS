@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { History, Search, X } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { CalendarDays, History, Search, X } from "lucide-react"
 import { Button, MaxUI, Spinner, Typography } from "@maxhub/max-ui"
 import { getHistory } from "@/api/correction"
 import type { ScheduleHistoryItem } from "@/types/correction"
@@ -11,6 +11,12 @@ import { fetchScheduleMeta, searchSchedule } from "@/api/schedule"
 import type { ScheduleSearchResponse } from "@/api/schedule"
 import ChangeCard from "@/components/max/ChangeCard"
 import ScheduleError from "@/components/max/ScheduleError"
+
+function formatShortDate(iso: string): string {
+  const parts = iso.split("-")
+  if (parts.length !== 3) return iso
+  return `${parts[2]}.${parts[1]}`
+}
 
 interface LocalScope {
   groupId?: string
@@ -27,9 +33,7 @@ export default function ChangesView() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [weekFilter, setWeekFilter] = useState<number | undefined>(undefined)
   const [dateFilter, setDateFilter] = useState("")
-  const [totalWeeks, setTotalWeeks] = useState<number | null>(null)
   const [semesterStart, setSemesterStart] = useState<string | undefined>(undefined)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [scope, setScope] = useState<LocalScope>({})
@@ -37,6 +41,7 @@ export default function ChangesView() {
   const [searchResult, setSearchResult] = useState<ScheduleSearchResponse | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
   const focusedRef = useRef<HTMLDivElement | null>(null)
+  const dateInputRef = useRef<HTMLInputElement | null>(null)
 
   const needsRecipientSearch = !viewContext.groupId && !viewContext.teacherId
   const effectiveGroupId = viewContext.groupId ?? scope.groupId
@@ -46,7 +51,6 @@ export default function ChangesView() {
     void fetchScheduleMeta()
       .then((res) => {
         if (res.isSuccess && res.data) {
-          setTotalWeeks(res.data.totalWeeks)
           setSemesterStart(res.data.semesterStart)
         }
       })
@@ -97,7 +101,6 @@ export default function ChangesView() {
         const res = await getHistory({
           groupId: effectiveGroupId,
           teacherId: effectiveTeacherId,
-          week: weekFilter,
           date: dateFilter || undefined,
           page: nextPage,
           pageSize: 20,
@@ -114,7 +117,7 @@ export default function ChangesView() {
         setLoadingMore(false)
       }
     },
-    [effectiveGroupId, effectiveTeacherId, weekFilter, dateFilter],
+    [effectiveGroupId, effectiveTeacherId, dateFilter],
   )
 
   useEffect(() => {
@@ -135,11 +138,6 @@ export default function ChangesView() {
 
   const hasMore = items.length < total
 
-  const weekOptions = useMemo(() => {
-    if (!totalWeeks) return []
-    return Array.from({ length: totalWeeks }, (_, i) => i + 1)
-  }, [totalWeeks])
-
   const scopeLabel = effectiveGroupId
     ? (viewContext.groupName ?? scope.groupName ?? "Группа")
     : effectiveTeacherId
@@ -157,49 +155,47 @@ export default function ChangesView() {
           </div>
         </header>
 
-        {weekOptions.length > 0 ? (
-          <div className="max-app__filter-row">
-            <label className="max-app__note" htmlFor="max-week-filter">
-              Неделя:
-            </label>
-            <select
-              id="max-week-filter"
-              value={weekFilter ?? 0}
-              onChange={(e) => {
-                const value = Number(e.target.value)
-                setWeekFilter(value === 0 ? undefined : value)
-              }}
-            >
-              <option value={0}>Все</option>
-              {weekOptions.map((w) => (
-                <option key={w} value={w}>
-                  {w}
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null}
-
         <div className="max-app__filter-row">
-          <label className="max-app__note" htmlFor="max-date-filter">
-            Дата:
-          </label>
-          <input
-            id="max-date-filter"
-            type="date"
-            className="max-app__select"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-          />
-          {dateFilter ? (
+          <div className="max-app__date-field">
             <Button
               size="small"
-              variant="ghost"
-              aria-label="Сбросить дату"
-              iconBefore={<X size={16} aria-hidden />}
-              onClick={() => setDateFilter("")}
+              variant="secondary"
+              aria-label="Выбрать дату"
+              iconBefore={<CalendarDays size={16} aria-hidden />}
+              onClick={() => {
+                const input = dateInputRef.current
+                if (!input) return
+                try {
+                  input.showPicker()
+                } catch {
+                  input.focus()
+                }
+              }}
             />
-          ) : null}
+            <input
+              ref={dateInputRef}
+              type="date"
+              className="max-app__date-input"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              aria-label="Выбрать дату"
+              tabIndex={-1}
+            />
+            {dateFilter ? (
+              <>
+                <span className="max-app__chip max-app__chip--on">
+                  {formatShortDate(dateFilter)}
+                </span>
+                <Button
+                  size="small"
+                  variant="ghost"
+                  aria-label="Сбросить дату"
+                  iconBefore={<X size={16} aria-hidden />}
+                  onClick={() => setDateFilter("")}
+                />
+              </>
+            ) : null}
+          </div>
         </div>
 
         {needsRecipientSearch && scopeLabel ? (
