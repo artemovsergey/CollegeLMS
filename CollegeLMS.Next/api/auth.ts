@@ -15,7 +15,7 @@ export interface MaxAuthResponse {
   profile: MaxAuthProfile
 }
 
-interface ResultEnvelope<T> {
+export interface ResultEnvelope<T> {
   isSuccess: boolean
   data: T | null
   errorMessage?: string | null

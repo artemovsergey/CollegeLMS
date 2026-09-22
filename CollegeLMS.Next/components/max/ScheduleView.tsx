@@ -375,7 +375,8 @@ export default function ScheduleView() {
             <CalendarDays size={32} className="max-app__state-icon" aria-hidden />
             <Typography.Title>Выберите расписание</Typography.Title>
             <Typography.Body className="max-app__muted">
-              Откройте группу или преподавателя через поиск
+              Выбор ещё не задан. Найдите группу или преподавателя — выбор
+              сохранится в боте, и уведомления начнут приходить.
             </Typography.Body>
             <Button onClick={() => setSearchOpen(true)}>Поиск</Button>
           </div>

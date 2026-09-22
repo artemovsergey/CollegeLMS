@@ -24,11 +24,12 @@ export default function SearchSheet({
   open: boolean
   onClose: () => void
 }) {
-  const { setViewContext } = useMaxContext()
+  const { viewContext, makeCurrentSelection } = useMaxContext()
   const [query, setQuery] = useState("")
   const [result, setResult] = useState<ScheduleSearchResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingId, setPendingId] = useState<string | null>(null)
   const [favIds, setFavIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function SearchSheet({
       setQuery("")
       setResult(null)
       setError(null)
+      setPendingId(null)
       return
     }
     setFavIds(new Set(listLocalFavorites().map((f) => f.targetId)))
@@ -68,9 +70,19 @@ export default function SearchSheet({
     return () => window.clearTimeout(timer)
   }, [open, query])
 
-  const openItem = (ctx: ViewContext) => {
-    setViewContext(ctx)
-    onClose()
+  const selectItem = async (ctx: ViewContext) => {
+    const id = ctx.groupId ?? ctx.teacherId ?? null
+    if (!id || pendingId !== null) return
+    setPendingId(id)
+    setError(null)
+    try {
+      await makeCurrentSelection(ctx)
+      onClose()
+    } catch {
+      setError("Не удалось сохранить выбор. Попробуйте позже.")
+    } finally {
+      setPendingId(null)
+    }
   }
 
   const toggleFavorite = (
@@ -160,9 +172,11 @@ export default function SearchSheet({
               icon={<Users size={14} aria-hidden />}
               items={result.groups}
               favIds={favIds}
+              currentId={viewContext.groupId}
+              pending={pendingId !== null}
               renderLabel={(item) => (item as ScheduleSearchGroup).name}
-              onOpen={(item) =>
-                openItem({
+              onSelect={(item) =>
+                void selectItem({
                   groupId: item.id,
                   groupName: (item as ScheduleSearchGroup).name,
                 })
@@ -182,9 +196,11 @@ export default function SearchSheet({
               icon={<GraduationCap size={14} aria-hidden />}
               items={result.teachers}
               favIds={favIds}
+              currentId={viewContext.teacherId}
+              pending={pendingId !== null}
               renderLabel={(item) => (item as ScheduleSearchTeacher).fullName}
-              onOpen={(item) =>
-                openItem({
+              onSelect={(item) =>
+                void selectItem({
                   teacherId: item.id,
                   teacherName: (item as ScheduleSearchTeacher).fullName,
                 })
@@ -209,16 +225,20 @@ function SearchSection({
   icon,
   items,
   favIds,
+  currentId,
+  pending,
   renderLabel,
-  onOpen,
+  onSelect,
   onToggleFavorite,
 }: {
   title: string
   icon: React.ReactNode
   items: (ScheduleSearchGroup | ScheduleSearchTeacher)[]
   favIds: Set<string>
+  currentId?: string | null
+  pending: boolean
   renderLabel: (item: ScheduleSearchGroup | ScheduleSearchTeacher) => string
-  onOpen: (item: ScheduleSearchGroup | ScheduleSearchTeacher) => void
+  onSelect: (item: ScheduleSearchGroup | ScheduleSearchTeacher) => void
   onToggleFavorite: (item: ScheduleSearchGroup | ScheduleSearchTeacher) => void
 }) {
   return (
@@ -230,9 +250,17 @@ function SearchSection({
       </Typography.Label>
       {items.map((item) => {
         const fav = favIds.has(item.id)
+        const isCurrent = Boolean(currentId) && item.id === currentId
         return (
           <div className="max-app__search-item" key={item.id}>
-            <Typography.Body>{renderLabel(item)}</Typography.Body>
+            <div className="max-app__search-item-label">
+              <Typography.Body>{renderLabel(item)}</Typography.Body>
+              {isCurrent ? (
+                <span className="max-app__badge max-app__badge--current">
+                  Текущий
+                </span>
+              ) : null}
+            </div>
             <span className="max-app__search-actions">
               <Button
                 size="small"
@@ -255,9 +283,10 @@ function SearchSection({
               <Button
                 size="small"
                 variant="secondary"
-                onClick={() => onOpen(item)}
+                disabled={pending}
+                onClick={() => onSelect(item)}
               >
-                Открыть
+                Выбрать
               </Button>
             </span>
           </div>

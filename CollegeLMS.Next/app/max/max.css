@@ -269,6 +269,12 @@
   background: var(--color-tint-violet);
 }
 
+/* Отметка «Текущий» у выбранной группы/преподавателя в результатах поиска */
+.max-app__badge--current {
+  color: var(--text-themed);
+  background: var(--color-tint-primary);
+}
+
 .max-app__change-chip {
   display: inline-flex;
   align-items: center;
@@ -337,6 +343,14 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.max-app__search-item-label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
 }
 
 .max-app__favorite {

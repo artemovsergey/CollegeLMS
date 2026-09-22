@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation"
 import api from "@/lib/api"
 import { loginWithMax } from "@/api/auth"
+import { saveMaxSelection } from "@/api/selection"
 import { resolveMaxDeepLink, type MaxDeepLink } from "@/lib/max-deeplink"
 
 export interface ViewContext {
@@ -45,6 +46,7 @@ interface MaxContextValue {
   profile: MaxProfile | null
   viewContext: ViewContext
   setViewContext: (ctx: ViewContext) => void
+  makeCurrentSelection: (target: ViewContext) => Promise<void>
   deepLink: MaxDeepLink | null
   loading: boolean
   reload: () => void
@@ -116,6 +118,7 @@ const MaxContext = createContext<MaxContextValue>({
   profile: null,
   viewContext: EMPTY,
   setViewContext: () => {},
+  makeCurrentSelection: async () => {},
   deepLink: null,
   loading: true,
   reload: () => {},
@@ -133,6 +136,37 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
     storeViewContext(ctx)
     setViewContextState(ctx)
   }, [])
+
+  // Сохраняет выбор группы/преподавателя в боте MAX. Оптимистично применяет
+  // выбор локально, при ошибке — откатывает и пробрасывает её вызывающему,
+  // чтобы компонент показал сообщение пользователю.
+  const makeCurrentSelection = useCallback(
+    async (target: ViewContext) => {
+      const previous = viewContext
+      setViewContext(target)
+      try {
+        // Ровно одна цель: группа приоритетнее, иначе преподаватель. Без имён
+        // и без второго id — бэкенд принимает только один идентификатор.
+        const payload: { groupId?: string; teacherId?: string } = {}
+        if (target.groupId) payload.groupId = target.groupId
+        else if (target.teacherId) payload.teacherId = target.teacherId
+
+        const data = await saveMaxSelection(payload)
+        localStorage.setItem(MAX_TOKEN_KEY, data.token)
+        setProfile((prev) => ({
+          ...prev,
+          ...data.profile,
+          // В selection-запросе нет initData: fullName приходит только если
+          // бот его отдал — не затираем прежнее значение.
+          fullName: data.profile.fullName ?? prev?.fullName,
+        }))
+      } catch (err) {
+        setViewContext(previous)
+        throw err
+      }
+    },
+    [viewContext, setViewContext],
+  )
 
   const reload = useCallback(() => {
     setLoading(true)
@@ -247,7 +281,7 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
 
   return (
     <MaxContext.Provider
-      value={{ isAuthed, profile, viewContext, setViewContext, deepLink, loading, reload }}
+      value={{ isAuthed, profile, viewContext, setViewContext, makeCurrentSelection, deepLink, loading, reload }}
     >
       {children}
     </MaxContext.Provider>

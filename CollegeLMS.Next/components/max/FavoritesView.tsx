@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Star, Users, GraduationCap } from "lucide-react"
+import { AlertCircle, Star, Users, GraduationCap } from "lucide-react"
 import {
   Button,
   CellHeader,
@@ -43,9 +43,11 @@ function toLocal(fav: LocalFavorite): LocalItem {
 }
 
 export default function FavoritesView() {
-  const { viewContext, setViewContext } = useMaxContext()
+  const { viewContext, makeCurrentSelection } = useMaxContext()
   const router = useRouter()
   const [items, setItems] = useState<LocalItem[]>([])
+  const [pendingId, setPendingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(() => {
     const local = listLocalFavorites().map(toLocal)
@@ -102,9 +104,18 @@ export default function FavoritesView() {
     removeLocalFavorite(item.targetType, item.id)
   }
 
-  const open = (item: LocalItem) => {
-    setViewContext(item.context)
-    router.push("/max/schedule")
+  const open = async (item: LocalItem) => {
+    if (pendingId !== null) return
+    setPendingId(item.key)
+    setError(null)
+    try {
+      await makeCurrentSelection(item.context)
+      router.push("/max/schedule")
+    } catch {
+      setError("Не удалось сохранить выбор. Попробуйте позже.")
+    } finally {
+      setPendingId(null)
+    }
   }
 
   const renderCell = (item: LocalItem) => (
@@ -133,10 +144,15 @@ export default function FavoritesView() {
           ? item.targetType === "Teacher"
             ? "Преподаватель"
             : "Группа"
-          : "Текущий просмотр"
+          : "Текущий выбор"
       }
       after={
-        <Button size="small" variant="secondary" onClick={() => open(item)}>
+        <Button
+          size="small"
+          variant="secondary"
+          disabled={pendingId !== null}
+          onClick={() => open(item)}
+        >
           Открыть
         </Button>
       }
@@ -149,6 +165,16 @@ export default function FavoritesView() {
         <header className="max-app__page-title">
           <Typography.Title>Избранное</Typography.Title>
         </header>
+        {error ? (
+          <div className="max-app__confirm-error" role="alert">
+            <AlertCircle
+              size={18}
+              className="max-app__confirm-error-icon"
+              aria-hidden
+            />
+            <Typography.Body>{error}</Typography.Body>
+          </div>
+        ) : null}
         {items.length === 0 ? (
           <div className="max-app__state">
             <Star size={32} className="max-app__state-icon" aria-hidden />
