@@ -611,7 +611,6 @@ public class MessageFormatterTests
         text.Should().Contain("📖 **История**");
         text.Should().Contain("👤 Петренко В.Б.");
         text.Should().Contain("📝 Примечание: вм.4 п");
-        text.Should().Contain("✅ Применено: 08.09.2026 10:00");
         text.Should().NotContain("http");
     }
 
@@ -632,18 +631,11 @@ public class MessageFormatterTests
     }
 
     [Fact]
-    public void FormatCorrectionDigest_AppliedAt_UsesTimeZone()
+    public void FormatCorrectionDigest_DoesNotShowAppliedAt()
     {
-        var msk = TimeZoneInfo.CreateCustomTimeZone(
-            "msk-test",
-            TimeSpan.FromHours(3),
-            "MSK",
-            "MSK"
-        );
+        var text = MessageFormatter.FormatCorrectionDigest([Revision()], TimeZoneInfo.Utc);
 
-        var text = MessageFormatter.FormatCorrectionDigest([Revision()], msk);
-
-        text.Should().Contain("✅ Применено: 08.09.2026 13:00");
+        text.Should().NotContain("Применено");
     }
 
     [Fact]

@@ -1,7 +1,9 @@
 using CollegeLMS.MaxBot.Clients;
 using CollegeLMS.MaxBot.Data;
 using CollegeLMS.MaxBot.Models;
+using CollegeLMS.MaxBot.Models.Max;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CollegeLMS.MaxBot.Services;
 
@@ -13,12 +15,14 @@ public class ChangeNotifier
     private readonly CollegeLmsApiClient _api;
     private readonly TimeZoneInfo _timeZone;
     private readonly ILogger<ChangeNotifier> _logger;
+    private readonly MaxBotOptions _options;
 
     public ChangeNotifier(
         MaxBotDbContext db,
         MaxApiClient max,
         CollegeLmsApiClient api,
         TimeZoneInfo timeZone,
+        IOptions<MaxBotOptions> options,
         ILogger<ChangeNotifier> logger
     )
     {
@@ -26,6 +30,7 @@ public class ChangeNotifier
         _max = max;
         _api = api;
         _timeZone = timeZone;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -43,12 +48,13 @@ public class ChangeNotifier
 
         var recipients = SelectRecipientsGrouped(settings, groupNames, teacherNames, revisions);
 
-        foreach (var (chatId, recipientRevisions) in recipients)
+        foreach (var (chatId, groupId, teacherId, recipientRevisions) in recipients)
         {
             try
             {
                 var text = MessageFormatter.FormatCorrectionDigest(recipientRevisions, _timeZone);
-                await _max.SendMessageAsync(chatId, text, ct: ct);
+                var buttons = BuildDayButtons(groupId, teacherId, recipientRevisions);
+                await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
             }
             catch (Exception ex)
             {
@@ -58,11 +64,44 @@ public class ChangeNotifier
         }
     }
 
+    /// <summary>Кнопки дней изменения: до шести дат, по три в ряд.</summary>
+    private List<List<MaxButton>> BuildDayButtons(
+        Guid? groupId,
+        Guid? teacherId,
+        List<ScheduleRevision> revisions
+    )
+    {
+        var dates = revisions
+            .Select(MessageFormatter.DateForRevision)
+            .Where(d => d.HasValue)
+            .Select(d => d!.Value)
+            .Distinct()
+            .OrderBy(d => d)
+            .Take(6)
+            .ToList();
+
+        var rows = new List<List<MaxButton>>();
+        for (var i = 0; i < dates.Count; i += 3)
+            rows.Add(
+                dates
+                    .Skip(i)
+                    .Take(3)
+                    .Select(d => MiniAppButtons.OpenDay(_options, d, groupId, teacherId))
+                    .ToList()
+            );
+        return rows;
+    }
+
     /// <summary>
     /// Группирует уведомления по чату: подписчик получает одно сообщение
     /// со всеми позициями корректировки, затрагивающими его выбор.
     /// </summary>
-    public static List<(long ChatId, List<ScheduleRevision> Revisions)> SelectRecipientsGrouped(
+    public static List<(
+        long ChatId,
+        Guid? GroupId,
+        Guid? TeacherId,
+        List<ScheduleRevision> Revisions
+    )> SelectRecipientsGrouped(
         List<UserSettings> settings,
         Dictionary<Guid, string> groupNames,
         Dictionary<Guid, string> teacherNames,
@@ -70,8 +109,16 @@ public class ChangeNotifier
     )
     {
         var flat = SelectRecipients(settings, groupNames, teacherNames, revisions);
+        var settingsByChat = settings
+            .GroupBy(s => s.MaxChatId)
+            .ToDictionary(g => g.Key, g => g.First());
+
         return flat.GroupBy(x => x.ChatId)
-            .Select(g => (g.Key, g.Select(x => x.Revision).ToList()))
+            .Select(g =>
+            {
+                var s = settingsByChat[g.Key];
+                return (g.Key, s.GroupId, s.TeacherId, g.Select(x => x.Revision).ToList());
+            })
             .ToList();
     }
 

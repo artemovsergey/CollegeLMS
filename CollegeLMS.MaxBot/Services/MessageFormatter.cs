@@ -411,8 +411,6 @@ public static class MessageFormatter
         if (!string.IsNullOrWhiteSpace(r.Note))
             sb.AppendLine($"📝 Примечание: {r.Note}");
 
-        sb.Append($"✅ Применено: {FormatAppliedAt(r.CreatedAt, timeZone)}");
-
         return sb.ToString();
     }
 
@@ -471,21 +469,8 @@ public static class MessageFormatter
     private static string FormatDayMonthYear(DateTime date) =>
         $"{date.Day} {MonthNames[date.Month]} {date.Year}";
 
-    private static string FormatAppliedAt(DateTime createdAt, TimeZoneInfo timeZone)
-    {
-        if (createdAt == default)
-            return "—";
-
-        var utc =
-            createdAt.Kind == DateTimeKind.Local
-                ? createdAt.ToUniversalTime()
-                : DateTime.SpecifyKind(createdAt, DateTimeKind.Utc);
-
-        return TimeZoneInfo.ConvertTimeFromUtc(utc, timeZone).ToString("dd.MM.yyyy HH:mm");
-    }
-
     /// <summary>Дата занятия по номеру недели и дню недели (индекс 1..7, Пн=1).</summary>
-    private static DateTime? DateForRevision(ScheduleRevision revision)
+    public static DateTime? DateForRevision(ScheduleRevision revision)
     {
         var dayIndex = revision.DayOfWeek is null ? 0 : ParseDayOfWeek(revision.DayOfWeek);
         if (dayIndex == 0)
