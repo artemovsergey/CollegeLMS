@@ -20,4 +20,10 @@ public class MaxBotOptions
 
     /// <summary>Секрет вебхука: MAX присылает его в заголовке X-Max-Bot-Api-Secret.</summary>
     public string WebhookSecret { get; set; } = "";
+
+    /// <summary>Публичное имя бота — поле web_app у кнопок open_app.</summary>
+    public string BotPublicName { get; set; } = "";
+
+    /// <summary>Секрет внутреннего endpoint профиля (заголовок X-Internal-Secret).</summary>
+    public string InternalSecret { get; set; } = "";
 }

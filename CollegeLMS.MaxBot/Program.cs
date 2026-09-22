@@ -69,6 +69,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<PracticeNotifier>(
 
 builder.Services.AddScoped<ChangeNotifier>();
 builder.Services.AddScoped<CorrectionImageSender>();
+builder.Services.AddScoped<InternalProfileService>();
 
 // Очередь апдейтов от вебхука MAX
 builder.Services.AddSingleton<MaxUpdateQueue>();
@@ -122,19 +123,6 @@ using (var scope = app.Services.CreateScope())
 
         ALTER TABLE user_settings
             ADD COLUMN IF NOT EXISTS last_notified_on DATE;
-
-        CREATE TABLE IF NOT EXISTS bot_favorites (
-            id UUID PRIMARY KEY,
-            max_user_id BIGINT NOT NULL,
-            target_type VARCHAR(20) NOT NULL,
-            target_id UUID NOT NULL,
-            name VARCHAR(200) NOT NULL,
-            created_at TIMESTAMPTZ NOT NULL,
-            updated_at TIMESTAMPTZ NOT NULL
-        );
-
-        CREATE UNIQUE INDEX IF NOT EXISTS ix_bot_favorites_user_type_target
-            ON bot_favorites (max_user_id, target_type, target_id);
 
         CREATE TABLE IF NOT EXISTS practice_notifications (
             id UUID PRIMARY KEY,
@@ -279,6 +267,26 @@ app.MapPost(
 
         await queue.EnqueueAsync(update, ct);
         return Results.Ok(new { ok = true });
+    }
+);
+
+// Внутренний профиль MAX-пользователя для CollegeLMS API (проверка подписи initData).
+app.MapGet(
+    "/maxbot/internal/users/{maxUserId:long}",
+    async (
+        long maxUserId,
+        HttpRequest request,
+        InternalProfileService profileService,
+        IOptions<MaxBotOptions> options,
+        CancellationToken ct
+    ) =>
+    {
+        var provided = request.Headers["X-Internal-Secret"].ToString();
+        if (!WebhookSecretValidator.IsValid(options.Value.InternalSecret, provided))
+            return Results.Unauthorized();
+
+        var profile = await profileService.GetAsync(maxUserId, ct);
+        return Results.Ok(profile);
     }
 );
 
