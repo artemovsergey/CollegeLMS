@@ -227,6 +227,9 @@ public static class ServiceCollectionExtensions
             c.BaseAddress = new Uri(config["MaxBot:BaseUrl"] ?? "http://localhost:8080");
             c.Timeout = TimeSpan.FromSeconds(5);
         });
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<MaxInitDataValidator>();
+        services.AddScoped<IMaxAuthService, MaxAuthService>();
         services.AddFluentValidationAutoValidation();
         services.AddValidatorsFromAssemblyContaining<Program>();
 
