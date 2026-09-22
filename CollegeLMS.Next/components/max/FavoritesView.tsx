@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircle, Star, Users, GraduationCap } from "lucide-react"
+import {
+  AlertCircle,
+  Eye,
+  GraduationCap,
+  Star,
+  Target,
+  Users,
+} from "lucide-react"
 import {
   Button,
   CellHeader,
@@ -42,8 +49,16 @@ function toLocal(fav: LocalFavorite): LocalItem {
   }
 }
 
+// Сравниваем только по идентификатору цели: имена могли обновиться.
+function matchesContext(item: LocalItem, ctx: ViewContext): boolean {
+  return item.targetType === "Group"
+    ? Boolean(ctx.groupId) && ctx.groupId === item.context.groupId
+    : Boolean(ctx.teacherId) && ctx.teacherId === item.context.teacherId
+}
+
 export default function FavoritesView() {
-  const { viewContext, makeCurrentSelection } = useMaxContext()
+  const { viewContext, currentSelection, setViewContext, makeCurrentSelection } =
+    useMaxContext()
   const router = useRouter()
   const [items, setItems] = useState<LocalItem[]>([])
   const [pendingId, setPendingId] = useState<string | null>(null)
@@ -104,13 +119,21 @@ export default function FavoritesView() {
     removeLocalFavorite(item.targetType, item.id)
   }
 
-  const open = async (item: LocalItem) => {
+  // Просмотр без сохранения: подменяем локальный контекст и открываем
+  // расписание — выбор в боте при этом не меняется.
+  const viewOnly = (item: LocalItem) => {
+    setError(null)
+    setViewContext(item.context)
+    router.push("/max/schedule")
+  }
+
+  // Сохранение выбора в боте (оптимистично, с откатом) — «сделать текущим».
+  const makeCurrent = async (item: LocalItem) => {
     if (pendingId !== null) return
     setPendingId(item.key)
     setError(null)
     try {
       await makeCurrentSelection(item.context)
-      router.push("/max/schedule")
     } catch {
       setError("Не удалось сохранить выбор. Попробуйте позже.")
     } finally {
@@ -118,46 +141,67 @@ export default function FavoritesView() {
     }
   }
 
-  const renderCell = (item: LocalItem) => (
-    <CellSimple
-      key={item.key}
-      separator
-      before={
-        item.isFavorite ? (
-          <Button
-            size="small"
-            variant="ghost"
-            aria-label="Убрать из избранного"
-            className="max-app__favorite max-app__favorite--on"
-            onClick={() => drop(item)}
-            iconBefore={<Star size={18} fill="currentColor" aria-hidden />}
-          />
-        ) : item.targetType === "Teacher" ? (
-          <GraduationCap size={18} aria-hidden />
-        ) : (
-          <Users size={18} aria-hidden />
-        )
-      }
-      title={item.name}
-      subtitle={
-        item.isFavorite
-          ? item.targetType === "Teacher"
-            ? "Преподаватель"
-            : "Группа"
-          : "Текущий выбор"
-      }
-      after={
-        <Button
-          size="small"
-          variant="secondary"
-          disabled={pendingId !== null}
-          onClick={() => open(item)}
-        >
-          Открыть
-        </Button>
-      }
-    />
-  )
+  const renderCell = (item: LocalItem) => {
+    const isCurrent = matchesContext(item, currentSelection)
+    const isView = !isCurrent && matchesContext(item, viewContext)
+    const subtitle = isCurrent
+      ? "Текущий выбор"
+      : isView
+        ? "Просмотр"
+        : item.targetType === "Teacher"
+          ? "Преподаватель"
+          : "Группа"
+
+    return (
+      <CellSimple
+        key={item.key}
+        separator
+        before={
+          item.isFavorite ? (
+            <Button
+              size="small"
+              variant="ghost"
+              aria-label="Убрать из избранного"
+              className="max-app__favorite max-app__favorite--on"
+              onClick={() => drop(item)}
+              iconBefore={<Star size={18} fill="currentColor" aria-hidden />}
+            />
+          ) : item.targetType === "Teacher" ? (
+            <GraduationCap size={18} aria-hidden />
+          ) : (
+            <Users size={18} aria-hidden />
+          )
+        }
+        title={item.name}
+        subtitle={subtitle}
+        after={
+          <span className="max-app__search-actions">
+            <Button
+              size="small"
+              variant="ghost"
+              aria-label="Открыть расписание без сохранения"
+              onClick={() => viewOnly(item)}
+              iconBefore={<Eye size={18} aria-hidden />}
+            />
+            {isCurrent ? (
+              <span className="max-app__badge max-app__badge--current">
+                Текущий
+              </span>
+            ) : (
+              <Button
+                size="small"
+                variant="ghost"
+                aria-label="Сделать текущим"
+                disabled={pendingId !== null}
+                onClick={() => void makeCurrent(item)}
+                iconBefore={<Target size={18} aria-hidden />}
+              />
+            )}
+          </span>
+        }
+      />
+    )
+  }
 
   return (
     <MaxUI>

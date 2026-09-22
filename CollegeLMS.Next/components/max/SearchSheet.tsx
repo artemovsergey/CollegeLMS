@@ -24,7 +24,7 @@ export default function SearchSheet({
   open: boolean
   onClose: () => void
 }) {
-  const { viewContext, makeCurrentSelection } = useMaxContext()
+  const { currentSelection, makeCurrentSelection } = useMaxContext()
   const [query, setQuery] = useState("")
   const [result, setResult] = useState<ScheduleSearchResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -172,7 +172,7 @@ export default function SearchSheet({
               icon={<Users size={14} aria-hidden />}
               items={result.groups}
               favIds={favIds}
-              currentId={viewContext.groupId}
+              currentId={currentSelection.groupId}
               pending={pendingId !== null}
               renderLabel={(item) => (item as ScheduleSearchGroup).name}
               onSelect={(item) =>
@@ -196,7 +196,7 @@ export default function SearchSheet({
               icon={<GraduationCap size={14} aria-hidden />}
               items={result.teachers}
               favIds={favIds}
-              currentId={viewContext.teacherId}
+              currentId={currentSelection.teacherId}
               pending={pendingId !== null}
               renderLabel={(item) => (item as ScheduleSearchTeacher).fullName}
               onSelect={(item) =>

@@ -142,9 +142,6 @@ export default function DayFeed({
 
               {inserts.length > 0 ? (
                 <div className="max-layers__inserts">
-                  <Typography.Label className="max-layers__label">
-                    События
-                  </Typography.Label>
                   {inserts.map((insert) => (
                     <div key={insert.id} className="max-layers__insert">
                       <BellRing size={14} aria-hidden />

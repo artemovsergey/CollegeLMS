@@ -153,13 +153,10 @@ export default function JournalView() {
     <MaxUI>
       <main className="max-app__page">
         <header className="max-app__page-title">
-          <div>
-            <Typography.Title>Журнал</Typography.Title>
-            <Typography.Body className="max-app__muted">
-              {journal?.teacherName ?? "Преподаватель"} · всего пар:{" "}
-              {journal?.totalPairCount ?? 0}
-            </Typography.Body>
-          </div>
+          <Typography.Body className="max-app__muted">
+            {journal?.teacherName ?? "Преподаватель"} · всего пар:{" "}
+            {journal?.totalPairCount ?? 0}
+          </Typography.Body>
         </header>
 
         {loading ? (

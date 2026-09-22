@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react"
@@ -44,7 +45,10 @@ interface ScheduleContextDto {
 interface MaxContextValue {
   isAuthed: boolean
   profile: MaxProfile | null
+  // Что пользователь просматривает сейчас (в т.ч. без сохранения).
   viewContext: ViewContext
+  // Что реально сохранено в боте (производное от профиля) — источник правды.
+  currentSelection: ViewContext
   setViewContext: (ctx: ViewContext) => void
   makeCurrentSelection: (target: ViewContext) => Promise<void>
   deepLink: MaxDeepLink | null
@@ -117,6 +121,7 @@ const MaxContext = createContext<MaxContextValue>({
   isAuthed: false,
   profile: null,
   viewContext: EMPTY,
+  currentSelection: EMPTY,
   setViewContext: () => {},
   makeCurrentSelection: async () => {},
   deepLink: null,
@@ -131,6 +136,17 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
   const [viewContext, setViewContextState] = useState<ViewContext>(() => readStoredViewContext())
   const [deepLink, setDeepLink] = useState<MaxDeepLink | null>(null)
   const router = useRouter()
+
+  // Профиль бота — источник правды о сохранённом выборе. Если профиль пуст
+  // (бот недоступен или выбор ещё не задан) — пустой объект.
+  const currentSelection = useMemo<ViewContext>(() => {
+    const ctx: ViewContext = {}
+    if (profile?.groupId) ctx.groupId = profile.groupId
+    if (profile?.groupName) ctx.groupName = profile.groupName
+    if (profile?.teacherId) ctx.teacherId = profile.teacherId
+    if (profile?.teacherName) ctx.teacherName = profile.teacherName
+    return ctx
+  }, [profile])
 
   const setViewContext = useCallback((ctx: ViewContext) => {
     storeViewContext(ctx)
@@ -285,7 +301,17 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
 
   return (
     <MaxContext.Provider
-      value={{ isAuthed, profile, viewContext, setViewContext, makeCurrentSelection, deepLink, loading, reload }}
+      value={{
+        isAuthed,
+        profile,
+        viewContext,
+        currentSelection,
+        setViewContext,
+        makeCurrentSelection,
+        deepLink,
+        loading,
+        reload,
+      }}
     >
       {children}
     </MaxContext.Provider>

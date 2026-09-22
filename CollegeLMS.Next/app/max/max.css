@@ -422,6 +422,20 @@
   margin: 0;
 }
 
+/* Строка «Просмотр без сохранения» под шапкой расписания */
+.max-schedule__notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--color-text-muted);
+}
+
+.max-schedule__notice .max-app__muted {
+  margin: 0;
+}
+
 /* Навигация расписания */
 .max-schedule__nav {
   display: flex;
@@ -644,10 +658,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.max-layers__label {
-  color: var(--color-text-muted);
 }
 
 .max-layers__insert {

@@ -20,7 +20,7 @@ import {
 import type { ScheduleMeta } from "@/api/schedule"
 import type { ScheduleDayView, ScheduleWeekView } from "@/types/schedule"
 import { DAYS } from "@/types/schedule"
-import { useMaxContext } from "@/lib/max-context"
+import { useMaxContext, type ViewContext } from "@/lib/max-context"
 import { parseMaxDeepLink } from "@/lib/max-deeplink"
 import { formatDay, pluralPairs } from "@/lib/max-lesson"
 import DayFeed from "@/components/max/DayFeed"
@@ -54,9 +54,23 @@ function dateInWeek(date: string, week: number, semesterStart: string): string {
   return toIsoDate(addDays(weekStart, weekdayIndex))
 }
 
+// Сравниваем только по идентификатору цели — имена могли обновиться.
+function sameSelection(a: ViewContext, b: ViewContext): boolean {
+  if (a.groupId && b.groupId) return a.groupId === b.groupId
+  if (a.teacherId && b.teacherId) return a.teacherId === b.teacherId
+  return false
+}
+
 export default function ScheduleView() {
-  const { viewContext, loading: contextLoading, deepLink } = useMaxContext()
+  const {
+    viewContext,
+    currentSelection,
+    makeCurrentSelection,
+    loading: contextLoading,
+    deepLink,
+  } = useMaxContext()
   const [view, setView] = useState<"day" | "week">("week")
+  const [selectionPending, setSelectionPending] = useState(false)
   const [meta, setMeta] = useState<ScheduleMeta | null>(null)
   const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()))
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
@@ -250,6 +264,23 @@ export default function ScheduleView() {
 
   const contextName = viewContext.groupName ?? viewContext.teacherName ?? null
 
+  // Пользователь смотрит расписание выбора, который ещё не сохранён в боте.
+  const viewIsUnsaved =
+    Object.keys(viewContext).length > 0 &&
+    !sameSelection(viewContext, currentSelection)
+
+  const saveViewedSelection = async () => {
+    if (selectionPending) return
+    setSelectionPending(true)
+    try {
+      await makeCurrentSelection(viewContext)
+    } catch {
+      // Строка остаётся — пользователь может повторить попытку.
+    } finally {
+      setSelectionPending(false)
+    }
+  }
+
   return (
     <MaxUI className="max-schedule">
       <main className="max-app__page">
@@ -291,6 +322,22 @@ export default function ScheduleView() {
             </div>
           </div>
         </header>
+
+        {viewIsUnsaved ? (
+          <div className="max-schedule__notice">
+            <Typography.Body className="max-app__muted">
+              Просмотр без сохранения
+            </Typography.Body>
+            <Button
+              size="small"
+              variant="secondary"
+              disabled={selectionPending}
+              onClick={() => void saveViewedSelection()}
+            >
+              Сделать текущим
+            </Button>
+          </div>
+        ) : null}
 
         <div className="max-schedule__nav">
           <div className="max-schedule__nav-info">
