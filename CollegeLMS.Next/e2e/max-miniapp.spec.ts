@@ -191,6 +191,25 @@ async function openSearchSheet(page: Page) {
   return page.getByRole("dialog", { name: "Поиск" })
 }
 
+// Вход через MAX Bridge: профиль бота — источник правды о сохранённом выборе,
+// поэтому бейдж «Текущий» и строка «Просмотр без сохранения» зависят от него,
+// а не от localStorage max-view-context.
+async function loginMaxProfile(
+  page: Page,
+  profile: Record<string, unknown>,
+  token = "max-jwt",
+) {
+  await page.addInitScript(() => {
+    ;(window as unknown as { WebApp?: unknown }).WebApp = {
+      initData: "auth_date=1&user=%7B%22id%22%3A1%7D&hash=stub",
+      initDataUnsafe: {},
+    }
+  })
+  await page.route("**/api/auth/max", (route) =>
+    route.fulfill(inlineJson(ok({ token, profile }))),
+  )
+}
+
 test.describe("MAX mini-app", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((ctx) => {
@@ -240,7 +259,8 @@ test.describe("MAX mini-app", () => {
     await expect(page.locator(".max-app__tabbar")).toBeVisible()
     await expect(page.getByText("Invalid Date")).toHaveCount(0)
     // Слои дня: вставка отображается строкой «HH:mm–HH:mm Название».
-    await expect(page.getByText("События")).toBeVisible()
+    // Подпись «События» над вставками удалена — остаётся только сама строка.
+    await expect(page.getByText("События")).toHaveCount(0)
     await expect(page.getByText("Кураторский час")).toBeVisible()
     await expect(page.getByText("12:20–13:00")).toBeVisible()
   })
@@ -261,6 +281,17 @@ test.describe("MAX mini-app", () => {
   })
 
   test("Поиск возвращает группы и преподавателей", async ({ page }) => {
+    // Профиль бота отдаёт текущую группу g1: именно он, а не localStorage,
+    // определяет бейдж «Текущий» в поиске.
+    await loginMaxProfile(page, {
+      maxUserId: 1,
+      role: "Student",
+      groupId: "g1",
+      groupName: "ПО262",
+      teacherId: null,
+      teacherName: null,
+    })
+
     await page.goto("/max/schedule?route=week&date=2026-09-07", {
       waitUntil: "networkidle",
     })
@@ -273,14 +304,16 @@ test.describe("MAX mini-app", () => {
     await expect(sheet.getByText("ПО262")).toBeVisible()
     await expect(sheet.getByText("Петренко В.Б.")).toBeVisible()
 
-    // Кнопка выбора переименована из «Открыть» в «Выбрать», а у текущей
-    // группы показан бейдж «Текущий» (контекст задан в beforeEach).
+    // Кнопка выбора в поиске — «Выбрать», а у текущей группы (из профиля
+    // бота) показан бейдж «Текущий». Старой кнопки «Открыть» больше нет.
     const groupRow = sheet
       .locator(".max-app__search-item")
       .filter({ hasText: "ПО262" })
     await expect(groupRow.getByText("Текущий")).toBeVisible()
     await expect(groupRow.getByRole("button", { name: "Выбрать" })).toBeVisible()
-    await expect(sheet.getByRole("button", { name: "Открыть" })).toHaveCount(0)
+    await expect(
+      sheet.getByRole("button", { name: "Открыть", exact: true })
+    ).toHaveCount(0)
   })
 
   test("Изменения: карточка как в веб-версии и deep link", async ({ page }) => {
@@ -438,6 +471,30 @@ test.describe("MAX mini-app", () => {
       .toBe("max-jwt-teacher")
   })
 
+  test("Расписание: несохранённый просмотр предлагает «Сделать текущим»", async ({
+    page,
+  }) => {
+    // Локально выбранная группа ещё не сохранена в боте (профиль пуст),
+    // поэтому расписание показывает строку «Просмотр без сохранения».
+    let body: unknown = null
+    await page.route("**/api/auth/max/selection", (route) => {
+      body = route.request().postDataJSON()
+      return route.fulfill(inlineJson(GROUP_SELECTION))
+    })
+
+    await page.goto("/max/schedule?route=day&date=2026-09-07", {
+      waitUntil: "networkidle",
+    })
+
+    const notice = page.locator(".max-schedule__notice")
+    await expect(notice).toContainText("Просмотр без сохранения")
+    await notice.getByRole("button", { name: "Сделать текущим" }).click()
+
+    expect(body).toEqual({ groupId: "g1" })
+    // Выбор сохранён — он стал текущим, и строка исчезает.
+    await expect(page.locator(".max-schedule__notice")).toHaveCount(0)
+  })
+
   test("Расписание без выбора показывает подсказку о сохранении в боте", async ({
     page,
   }) => {
@@ -452,6 +509,144 @@ test.describe("MAX mini-app", () => {
     await expect(
       page.getByText(/выбор сохранится в боте, и уведомления начнут приходить\./),
     ).toBeVisible()
+  })
+
+  test("Избранное: у текущего выбора бейдж, у остальных — просмотр и сохранение", async ({
+    page,
+  }) => {
+    // Профиль бота: текущая группа g1. В избранном — другая группа и преподаватель.
+    await loginMaxProfile(page, {
+      maxUserId: 1,
+      role: "Student",
+      groupId: "g1",
+      groupName: "ПО262",
+      teacherId: null,
+      teacherName: null,
+    })
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "max-favorites",
+        JSON.stringify([
+          { id: "Group:g2", targetType: "Group", targetId: "g2", name: "ПО101" },
+          {
+            id: "Teacher:t1",
+            targetType: "Teacher",
+            targetId: "t1",
+            name: "Петренко В.Б.",
+          },
+        ]),
+      )
+    })
+
+    await page.goto("/max/favorites", { waitUntil: "networkidle" })
+
+    // Текущая группа из профиля: подпись «Текущий выбор» и бейдж «Текущий».
+    await expect(page.getByText("Текущий выбор")).toBeVisible()
+    await expect(page.getByText("Текущий", { exact: true })).toHaveCount(1)
+
+    // У каждой строки есть просмотр без сохранения (Eye); у двух нетекущих —
+    // ещё и «Сделать текущим» (Target). Старой кнопки «Открыть» нет.
+    await expect(
+      page.getByRole("button", { name: "Открыть расписание без сохранения" }),
+    ).toHaveCount(3)
+    await expect(
+      page.getByRole("button", { name: "Сделать текущим" }),
+    ).toHaveCount(2)
+    await expect(
+      page.getByRole("button", { name: "Открыть", exact: true })
+    ).toHaveCount(0)
+  })
+
+  test("Избранное: просмотр не сохраняет выбор, а «Сделать текущим» — сохраняет", async ({
+    page,
+  }) => {
+    await loginMaxProfile(page, {
+      maxUserId: 1,
+      role: "Student",
+      groupId: "g1",
+      groupName: "ПО262",
+      teacherId: null,
+      teacherName: null,
+    })
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "max-favorites",
+        JSON.stringify([
+          {
+            id: "Teacher:t1",
+            targetType: "Teacher",
+            targetId: "t1",
+            name: "Петренко В.Б.",
+          },
+        ]),
+      )
+    })
+
+    let selectionCalls = 0
+    let body: unknown = null
+    await page.route("**/api/auth/max/selection", (route) => {
+      selectionCalls += 1
+      body = route.request().postDataJSON()
+      return route.fulfill(inlineJson(TEACHER_SELECTION))
+    })
+
+    await page.goto("/max/favorites", { waitUntil: "networkidle" })
+
+    // Просмотр (Eye) подменяет локальный контекст и открывает расписание,
+    // но в боте ничего не сохраняет.
+    await page
+      .getByRole("button", { name: "Открыть расписание без сохранения" })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/max\/schedule/)
+    await expect(page.locator(".max-schedule__context")).toContainText(
+      "Петренко В.Б.",
+    )
+    await expect(page.locator(".max-schedule__notice")).toContainText(
+      "Просмотр без сохранения",
+    )
+    expect(selectionCalls).toBe(0)
+  })
+
+  test("Избранное: «Сделать текущим» сохраняет выбор в боте", async ({ page }) => {
+    await loginMaxProfile(page, {
+      maxUserId: 1,
+      role: "Student",
+      groupId: "g1",
+      groupName: "ПО262",
+      teacherId: null,
+      teacherName: null,
+    })
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "max-favorites",
+        JSON.stringify([
+          {
+            id: "Teacher:t1",
+            targetType: "Teacher",
+            targetId: "t1",
+            name: "Петренко В.Б.",
+          },
+        ]),
+      )
+    })
+
+    let body: unknown = null
+    await page.route("**/api/auth/max/selection", (route) => {
+      body = route.request().postDataJSON()
+      return route.fulfill(inlineJson(TEACHER_SELECTION))
+    })
+
+    await page.goto("/max/favorites", { waitUntil: "networkidle" })
+
+    await page.getByRole("button", { name: "Сделать текущим" }).first().click()
+
+    expect(body).toEqual({ teacherId: "t1" })
+    // Преподаватель стал текущим: бейдж один, кнопок сохранения не осталось.
+    await expect(page.getByText("Текущий", { exact: true })).toHaveCount(1)
+    await expect(
+      page.getByRole("button", { name: "Сделать текущим" }),
+    ).toHaveCount(0)
   })
 
   test("MAX initData: гость входит и видит расписание", async ({ page }) => {
@@ -583,6 +778,35 @@ test.describe("MAX mini-app", () => {
     await page.goto("/max/schedule", { waitUntil: "networkidle" })
 
     await expect(page.locator(".max-app__tabbar").getByText("Журнал")).toBeVisible()
+  })
+
+  test("Журнал: в шапке нет заголовка, только ФИО и число пар", async ({ page }) => {
+    await loginMaxProfile(page, {
+      maxUserId: 2,
+      role: "Teacher",
+      groupId: null,
+      groupName: null,
+      teacherId: "t1",
+      teacherName: "Петренко В.Б.",
+    })
+    await page.route("**/api/schedule/journal**", (route) =>
+      route.fulfill(
+        inlineJson(
+          ok({
+            teacherId: "t1",
+            teacherName: "Петренко В.Б.",
+            subjects: [],
+            totalPairCount: 12,
+          }),
+        ),
+      ),
+    )
+
+    await page.goto("/max/journal", { waitUntil: "networkidle" })
+
+    // Заголовок «Журнал» из шапки убран, остаётся строка «ФИО · всего пар: N».
+    await expect(page.getByRole("heading", { name: "Журнал" })).toHaveCount(0)
+    await expect(page.getByText(/Петренко В\.Б\. · всего пар: 12/)).toBeVisible()
   })
 
   test("MAX initData: поздняя загрузка бриджа всё равно логинит", async ({ page }) => {

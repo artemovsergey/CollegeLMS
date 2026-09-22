@@ -83,6 +83,32 @@ test.describe("Specialties page", () => {
   })
 })
 
+test.describe("MAX mini-app preview page", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("token", "test-jwt-token")
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", roles: ["Admin"] })
+      )
+    })
+  })
+
+  test("пункт меню «Мини-апп MAX» открывает страницу с iframe", async ({ page }) => {
+    await page.goto("/admin/max-preview", { waitUntil: "networkidle" })
+
+    await expect(
+      page.getByRole("heading", { name: "Мини-апп MAX — превью" })
+    ).toBeVisible()
+    // Рамка мини-приложения присутствует (содержимое iframe не проверяем).
+    await expect(page.getByTitle("Мини-апп MAX")).toBeVisible()
+
+    // Пункт меню виден в навигации администратора.
+    await page.getByRole("button", { name: "Меню" }).click()
+    await expect(page.getByRole("link", { name: "Мини-апп MAX" })).toBeVisible()
+  })
+})
+
 test.describe("Testing page", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
