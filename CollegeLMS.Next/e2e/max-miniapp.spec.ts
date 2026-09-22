@@ -507,6 +507,53 @@ test.describe("MAX mini-app", () => {
     expect(authRequests).toBeGreaterThanOrEqual(1)
   })
 
+  test("MAX initData: смена выбора в боте перекрывает устаревший локальный", async ({
+    page,
+  }) => {
+    // Локально сохранён старый выбор (группа g9), а бот при входе отдаёт
+    // актуальный (g1): профиль бота — источник правды, выбор могли поменять
+    // в чате, пока мини-апп был закрыт.
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "max-view-context",
+        JSON.stringify({ groupId: "g9", groupName: "ПО000" }),
+      )
+      ;(window as unknown as { WebApp?: unknown }).WebApp = {
+        initData: "auth_date=1&user=%7B%22id%22%3A4%7D&hash=stub",
+        initDataUnsafe: {},
+      }
+    })
+    await page.route("**/api/auth/max", (route) =>
+      route.fulfill(
+        inlineJson(
+          ok({
+            token: "max-jwt-fresh",
+            profile: {
+              maxUserId: 4,
+              fullName: "Студент",
+              role: "Student",
+              groupId: "g1",
+              groupName: "ПО262",
+              teacherId: null,
+              teacherName: null,
+            },
+          }),
+        ),
+      ),
+    )
+
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+
+    await expect(page.locator(".max-schedule__context")).toContainText("ПО262")
+    await expect(page.locator(".max-schedule__context")).not.toContainText("ПО000")
+    // Свежий выбор перезаписан и в localStorage: остальные вкладки читают его.
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("max-view-context")), {
+        message: "устаревший локальный выбор должен быть заменён выбором из бота",
+      })
+      .toContain("g1")
+  })
+
   test("MAX initData: роль Teacher показывает вкладку Журнал", async ({ page }) => {
     await page.addInitScript(() => {
       ;(window as unknown as { WebApp?: unknown }).WebApp = {

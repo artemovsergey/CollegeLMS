@@ -194,7 +194,11 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
             if (res.profile.teacherId) own.teacherId = res.profile.teacherId
             if (res.profile.teacherName) own.teacherName = res.profile.teacherName
             setViewContextState((prev) => {
-              const next = Object.keys(prev).length === 0 ? own : prev
+              // Профиль бота — источник правды: выбор могли поменять в чате,
+              // пока мини-апп был закрыт, поэтому свежий выбор перекрывает
+              // устаревший локальный. Локальный остаётся только при пустом
+              // профиле (бот недоступен или выбор ещё не задан).
+              const next = Object.keys(own).length > 0 ? own : prev
               storeViewContext(next)
               return next
             })
