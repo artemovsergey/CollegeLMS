@@ -159,6 +159,48 @@ public class ScheduleService(
         return Result<ScheduleContextResponse>.Ok(new ScheduleContextResponse { Role = "Other" });
     }
 
+    public async Task<Result<ScheduleContextResponse>> GetContextByTargetAsync(
+        Guid? groupId,
+        Guid? teacherId,
+        CancellationToken ct
+    )
+    {
+        if (teacherId.HasValue)
+        {
+            var teacher = await db
+                .Teachers.AsNoTracking()
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.Id == teacherId.Value, ct);
+            if (teacher is not null)
+                return Result<ScheduleContextResponse>.Ok(
+                    new ScheduleContextResponse
+                    {
+                        TeacherId = teacher.Id,
+                        TeacherName = teacher.User.FullName,
+                        Role = "Teacher",
+                    }
+                );
+        }
+
+        if (groupId.HasValue)
+        {
+            var group = await db
+                .Groups.AsNoTracking()
+                .FirstOrDefaultAsync(g => g.Id == groupId.Value, ct);
+            if (group is not null)
+                return Result<ScheduleContextResponse>.Ok(
+                    new ScheduleContextResponse
+                    {
+                        GroupId = group.Id,
+                        GroupName = group.Name,
+                        Role = "Student",
+                    }
+                );
+        }
+
+        return Result<ScheduleContextResponse>.Ok(new ScheduleContextResponse { Role = "Other" });
+    }
+
     public async Task<Result<JournalResponse>> GetJournalAsync(
         Guid teacherId,
         string? subject,

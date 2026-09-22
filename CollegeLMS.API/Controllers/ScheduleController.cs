@@ -150,6 +150,19 @@ public class ScheduleController(
     private IActionResult ToResponse<T>(Result<T> result) =>
         result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
 
+    private async Task<Result<ScheduleContextResponse>> ResolveContextAsync(CancellationToken ct)
+    {
+        var result = await service.GetContextAsync(User.GetUserId(), ct);
+        if (result.Data?.Role == "Other")
+        {
+            var groupId = User.GetMaxGroupId();
+            var teacherId = User.GetMaxTeacherId();
+            if (groupId.HasValue || teacherId.HasValue)
+                return await service.GetContextByTargetAsync(groupId, teacherId, ct);
+        }
+        return result;
+    }
+
     [HttpGet("meta")]
     [AllowAnonymous]
     [SwaggerOperation(Summary = "Получить календарь семестра (даты и недели)")]
@@ -172,7 +185,7 @@ public class ScheduleController(
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetContext(CancellationToken ct)
     {
-        var result = await service.GetContextAsync(User.GetUserId(), ct);
+        var result = await ResolveContextAsync(ct);
         return Ok(result);
     }
 
@@ -223,13 +236,12 @@ public class ScheduleController(
     {
         if (teacherId.HasValue && !User.IsInRole("Admin") && !User.IsInRole("Dispatcher"))
         {
-            var context = await service.GetContextAsync(User.GetUserId(), ct);
+            var context = await ResolveContextAsync(ct);
             if (!context.IsSuccess || context.Data!.TeacherId != teacherId)
                 return Forbid();
         }
 
-        var effectiveTeacherId =
-            teacherId ?? (await service.GetContextAsync(User.GetUserId(), ct)).Data?.TeacherId;
+        var effectiveTeacherId = teacherId ?? (await ResolveContextAsync(ct)).Data?.TeacherId;
         if (!effectiveTeacherId.HasValue)
             return BadRequest(Result<JournalResponse>.Fail("Не указан преподаватель.", 400));
 

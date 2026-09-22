@@ -23,6 +23,11 @@ public interface IScheduleService
         Guid userId,
         CancellationToken ct = default
     );
+    Task<Result<ScheduleContextResponse>> GetContextByTargetAsync(
+        Guid? groupId,
+        Guid? teacherId,
+        CancellationToken ct = default
+    );
     Task<Result<ScheduleSearchResponse>> SearchAsync(
         string? query,
         int page,
