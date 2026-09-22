@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test"
+import { test, expect, type Page } from "@playwright/test"
 
 const META = {
   isSuccess: true,
@@ -151,12 +151,44 @@ const SEARCH = {
   statusCode: 200,
 }
 
+// Ответ POST /api/auth/max/selection повторяет формат /api/auth/max:
+// новый MAX-JWT и профиль с выбранной целью (ровно одна из groupId/teacherId).
+const GROUP_SELECTION = ok({
+  token: "max-jwt-group",
+  profile: {
+    maxUserId: 1,
+    role: "Student",
+    groupId: "g1",
+    groupName: "ПО262",
+    teacherId: null,
+    teacherName: null,
+  },
+})
+
+const TEACHER_SELECTION = ok({
+  token: "max-jwt-teacher",
+  profile: {
+    maxUserId: 1,
+    role: "Teacher",
+    groupId: null,
+    groupName: null,
+    teacherId: "t1",
+    teacherName: "Петренко В.Б.",
+  },
+})
+
 function inlineJson(body: object) {
   return {
     status: 200,
     contentType: "application/json",
     body: JSON.stringify(body),
   }
+}
+
+// Открывает шторку поиска и возвращает её диалог.
+async function openSearchSheet(page: Page) {
+  await page.getByRole("button", { name: "Поиск" }).click()
+  return page.getByRole("dialog", { name: "Поиск" })
 }
 
 test.describe("MAX mini-app", () => {
@@ -240,6 +272,15 @@ test.describe("MAX mini-app", () => {
 
     await expect(sheet.getByText("ПО262")).toBeVisible()
     await expect(sheet.getByText("Петренко В.Б.")).toBeVisible()
+
+    // Кнопка выбора переименована из «Открыть» в «Выбрать», а у текущей
+    // группы показан бейдж «Текущий» (контекст задан в beforeEach).
+    const groupRow = sheet
+      .locator(".max-app__search-item")
+      .filter({ hasText: "ПО262" })
+    await expect(groupRow.getByText("Текущий")).toBeVisible()
+    await expect(groupRow.getByRole("button", { name: "Выбрать" })).toBeVisible()
+    await expect(sheet.getByRole("button", { name: "Открыть" })).toHaveCount(0)
   })
 
   test("Изменения: карточка как в веб-версии и deep link", async ({ page }) => {
@@ -247,10 +288,18 @@ test.describe("MAX mini-app", () => {
 
     await expect(page.getByText("Изменения")).toBeVisible()
 
+    // Фильтр по неделям удалён — вместо него компактная кнопка-календарь
+    // с aria-label «Выбрать дату».
+    await expect(page.locator("#max-week-filter")).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "Выбрать дату" })).toBeVisible()
+
     const card = page.locator(".max-app__change-card")
     await expect(card).toHaveCount(1)
     // Тип, предмет (старый зачёркнут, новый показан) и пара «2 → 3».
     await expect(card.getByText("Замена")).toBeVisible()
+    await expect(card.locator(".max-app__badge--replace")).toHaveText(/Замена/)
+    // Компактные бейджи без суффикса «· нед. N».
+    await expect(page.getByText(/нед\./)).toHaveCount(0)
     await expect(card.getByText("Математика")).toBeVisible()
     await expect(card.getByText("Физика")).toBeVisible()
     await expect(card.getByText("пара 2 → 3")).toBeVisible()
@@ -264,6 +313,145 @@ test.describe("MAX mini-app", () => {
     await expect(card.getByText("Применено:")).toBeVisible()
     await expect(page.getByText("Invalid Date")).toHaveCount(0)
     await expect(page.getByText("undefined")).toHaveCount(0)
+  })
+
+  test("Изменения: кнопка-календарь фильтрует по дате и сбрасывается", async ({
+    page,
+  }) => {
+    await page.goto("/max/changes", { waitUntil: "networkidle" })
+
+    await expect(page.getByRole("button", { name: "Выбрать дату" })).toBeVisible()
+    // Нативный input визуально скрыт, но дата применяется через него.
+    await page.locator(".max-app__date-input").fill("2026-09-07")
+
+    await expect(page.locator(".max-app__chip--on")).toContainText("07.09")
+    const reset = page.getByRole("button", { name: "Сбросить дату" })
+    await expect(reset).toBeVisible()
+
+    await reset.click()
+    await expect(page.locator(".max-app__chip--on")).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "Сбросить дату" })).toHaveCount(0)
+  })
+
+  test("Расписание: компактные бейджи изменений без суффикса недели", async ({
+    page,
+  }) => {
+    const badgeEntry = {
+      ...ENTRY,
+      changeTags: [
+        {
+          changeType: "Add",
+          week: 2,
+          removedNumberPair: null,
+          removedSubject: null,
+          note: "сам.р.",
+        },
+        {
+          changeType: "Move",
+          week: 2,
+          removedNumberPair: 1,
+          removedSubject: null,
+          note: null,
+        },
+      ],
+    }
+    await page.route(
+      (url) =>
+        url.pathname === "/api/schedule" && url.searchParams.get("view") === "day",
+      (route) =>
+        route.fulfill(inlineJson(ok(dayView({ entries: [badgeEntry] })))),
+    )
+
+    await page.goto("/max/schedule?route=day&date=2026-09-07", {
+      waitUntil: "networkidle",
+    })
+
+    // Компактные подписи: тип + отдельный бейдж «Сам.р.».
+    await expect(page.getByText("Добавлено")).toBeVisible()
+    await expect(page.getByText("Сам.р.")).toBeVisible()
+    await expect(page.getByText("Перенос")).toBeVisible()
+    await expect(page.getByText(/нед\./)).toHaveCount(0)
+  })
+
+  test("Поиск: «Выбрать» сохраняет группу в боте и делает её контекстом", async ({
+    page,
+  }) => {
+    // Стартуем без получателя — тогда выбор должен стать контекстом.
+    await page.addInitScript(() => {
+      localStorage.setItem("max-view-context", JSON.stringify({}))
+    })
+    let body: unknown = null
+    await page.route("**/api/auth/max/selection", (route) => {
+      body = route.request().postDataJSON()
+      return route.fulfill(inlineJson(GROUP_SELECTION))
+    })
+
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+    await expect(page.getByText("Выберите расписание")).toBeVisible()
+
+    const sheet = await openSearchSheet(page)
+    await sheet.getByRole("searchbox").fill("по")
+    const groupRow = sheet
+      .locator(".max-app__search-item")
+      .filter({ hasText: "ПО262" })
+    await groupRow.getByRole("button", { name: "Выбрать" }).click()
+
+    // Шторка закрылась, выбранная группа стала контекстом расписания.
+    await expect(sheet).toHaveCount(0)
+    await expect(page.locator(".max-schedule__context")).toContainText("ПО262")
+    // В теле ровно одна цель — без имён и второго id.
+    expect(body).toEqual({ groupId: "g1" })
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("max-token")))
+      .toBe("max-jwt-group")
+  })
+
+  test("Поиск: «Выбрать» сохраняет преподавателя и делает его контекстом", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("max-view-context", JSON.stringify({}))
+    })
+    let body: unknown = null
+    await page.route("**/api/auth/max/selection", (route) => {
+      body = route.request().postDataJSON()
+      return route.fulfill(inlineJson(TEACHER_SELECTION))
+    })
+
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+    await expect(page.getByText("Выберите расписание")).toBeVisible()
+
+    const sheet = await openSearchSheet(page)
+    await sheet.getByRole("searchbox").fill("пе")
+    const teacherRow = sheet
+      .locator(".max-app__search-item")
+      .filter({ hasText: "Петренко В.Б." })
+    await teacherRow.getByRole("button", { name: "Выбрать" }).click()
+
+    await expect(sheet).toHaveCount(0)
+    await expect(page.locator(".max-schedule__context")).toContainText(
+      "Петренко В.Б.",
+    )
+    expect(body).toEqual({ teacherId: "t1" })
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("max-token")))
+      .toBe("max-jwt-teacher")
+  })
+
+  test("Расписание без выбора показывает подсказку о сохранении в боте", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("max-view-context", JSON.stringify({}))
+    })
+
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+
+    await expect(page.getByText("Выберите расписание")).toBeVisible()
+    await expect(page.getByText(/Выбор ещё не задан\./)).toBeVisible()
+    await expect(
+      page.getByText(/выбор сохранится в боте, и уведомления начнут приходить\./),
+    ).toBeVisible()
   })
 
   test("MAX initData: гость входит и видит расписание", async ({ page }) => {
