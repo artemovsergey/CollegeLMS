@@ -122,9 +122,11 @@ export default function DispatcherBellsPage() {
     setActiveKey(profile.id)
     setName(profile.name)
     setRows(rowsFromSlots(profile.slots))
-    setSelectedDays([...profile.daysOfWeek].sort((a, b) => a - b))
+    const days = profile.daysOfWeek ?? []
+    const profileDates = profile.dates ?? []
+    setSelectedDays([...days].sort((a, b) => a - b))
     setDates(
-      profile.dates.map((d) => ({
+      profileDates.map((d) => ({
         dateFrom: toDateInput(d.dateFrom),
         dateTo: toDateInput(d.dateTo),
       })),
@@ -330,7 +332,10 @@ export default function DispatcherBellsPage() {
     try {
       let saved: BellProfile
       if (isDefaultProfile) {
-        saved = await updateBells({ slots, bigBreak })
+        const res = await updateBells({ slots, bigBreak })
+        saved = activeProfile
+          ? { ...activeProfile, slots: res.slots, bigBreak: res.bigBreak }
+          : res
         toast.success("Профиль звонков сохранён")
       } else if (isCreating) {
         saved = await createBellProfile({

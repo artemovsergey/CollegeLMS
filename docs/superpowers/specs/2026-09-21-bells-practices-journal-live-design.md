@@ -83,6 +83,9 @@ DELETE /api/working-days/{id}           → Result<null>
 
 ### 3.4. Отображение (5 дней + условные выходные + большая перемена)
 
+> Фикс от 2026-09-22: большая перемена больше **не отображается** в интерфейсе расписания
+> (веб, мини-апп MAX, бот, XLSX/PDF-экспорт) — она только настраивается в профиле звонков.
+
 - `ScheduleViewService`: Пн–Пт в неделе/семестре всегда; Сб/Вс — только при `WorkingDayOverride` на дату или непустом контенте (пары для соответствующего дня, практика, вставки). Воскресенье без override — пусто.
 - Рабочий день: `entries` фильтруются по `SubstituteDayOfWeek ?? date.DayOfWeek`; в `ScheduleDayViewResponse` +`IsWorkingDay`, `SubstituteDayOfWeek`, `WorkingDayTitle`. Корректировки на Сб/Вс разрешены при наличии override.
 - `ScheduleDayViewResponse.BigBreak` (`BigBreakResponse?`) — заполняется из разрешённого профиля; рендер в web (после пары `AfterPair`), мини-аппе (`DayFeed`), боте (`MessageFormatter`), экспорте.

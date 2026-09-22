@@ -67,7 +67,6 @@ export default function WeekFeed({
             isNonWorking={day.isNonWorking}
             nonWorkingTitle={day.nonWorkingTitle}
             nonWorkingLabel="Не работает"
-            bigBreak={day.bigBreak ?? null}
             isWorkingDay={day.isWorkingDay ?? false}
             workingDayTitle={day.workingDayTitle ?? null}
             substituteDayOfWeek={day.substituteDayOfWeek ?? null}

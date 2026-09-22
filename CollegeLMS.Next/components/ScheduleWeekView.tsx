@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Radio, RefreshCw } from "lucide-react"
 import type {
   ScheduleDayView as ScheduleDayData,
@@ -14,7 +14,6 @@ import {
   toIsoDate,
 } from "@/api/schedule"
 import {
-  BigBreakRow,
   InsertRow,
   PracticeCard,
   PracticePairBadge,
@@ -117,12 +116,10 @@ function DayColumn({
             const isNow = isToday && isEntryNow(entry, day.dayOfWeek, week)
             const isPractice = entry.lessonType === "Practice"
             const practicePair = practicePairName(entry)
-            const showBreak =
-              day.bigBreak != null && day.bigBreak.afterPair === entry.numberPair
 
             return (
-              <Fragment key={entry.id}>
               <div
+                key={entry.id}
                 className={cn(
                   "rounded-md border-l-2 px-2 py-1.5 text-xs",
                   isNow
@@ -175,10 +172,6 @@ function DayColumn({
                   </div>
                 )}
               </div>
-              {showBreak && day.bigBreak && (
-                <BigBreakRow bigBreak={day.bigBreak} compact />
-              )}
-              </Fragment>
             )
           })}
         </>

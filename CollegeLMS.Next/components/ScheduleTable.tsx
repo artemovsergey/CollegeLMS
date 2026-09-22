@@ -1,7 +1,6 @@
 "use client"
 
-import { Fragment } from "react"
-import type { ScheduleBigBreak, ScheduleResponse } from "@/types/schedule"
+import type { ScheduleResponse } from "@/types/schedule"
 import type { ScheduleInsert } from "@/api/inserts"
 import {
   Clock,
@@ -16,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
 import {
-  BigBreakRow,
   InsertRow,
   PracticePairBadge,
   practicePairName,
@@ -30,8 +28,6 @@ interface ScheduleCardsProps {
   selectedDay: number | null
   /** Текущая учебная неделя — нужна для подсветки «Сейчас идёт». */
   currentWeek?: number
-  /** Большая перемена: строка после пары afterPair. */
-  bigBreak?: ScheduleBigBreak | null
   onEntryClick?: (entry: ScheduleResponse) => void
   onDeleteClick?: (id: string) => void
 }
@@ -77,7 +73,6 @@ export default function ScheduleCards({
   inserts,
   selectedDay,
   currentWeek,
-  bigBreak = null,
   onEntryClick,
   onDeleteClick,
 }: ScheduleCardsProps) {
@@ -118,11 +113,10 @@ export default function ScheduleCards({
         const isCurrent = entry.id === currentId
         const isPractice = entry.lessonType === "Practice"
         const practicePair = practicePairName(entry)
-        const showBreak = bigBreak !== null && bigBreak.afterPair === entry.numberPair
 
         return (
-          <Fragment key={entry.id}>
           <div
+            key={entry.id}
             className={cn(
               "group relative flex items-stretch gap-3 rounded-lg border-t-2 bg-card p-3 transition-colors",
               isCurrent
@@ -225,16 +219,8 @@ export default function ScheduleCards({
               </div>
             )}
           </div>
-          {showBreak && <BigBreakRow bigBreak={bigBreak} />}
-          </Fragment>
         )
       })}
-      {bigBreak !== null &&
-        rows.length > 0 &&
-        !rows.some(
-          (row) =>
-            row.kind === "entry" && row.entry.numberPair === bigBreak.afterPair,
-        ) && <BigBreakRow bigBreak={bigBreak} />}
     </div>
   )
 }

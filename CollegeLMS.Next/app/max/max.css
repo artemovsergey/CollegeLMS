@@ -662,33 +662,6 @@
   white-space: nowrap;
 }
 
-/* Большая перемена */
-.max-layers__bigbreak {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1px solid
-    color-mix(
-      in srgb,
-      var(--background-accent-attention-primary) 40%,
-      transparent
-    );
-  border-radius: 10px;
-  background: var(--color-tint-attention);
-  color: var(--background-accent-attention-primary);
-  font-size: 14px;
-}
-
-.max-layers__bigbreak svg {
-  flex: none;
-}
-
-.max-layers__bigbreak-time {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 /* Рабочий день (перенос занятий на выходной) */
 .max-layers__workingday {
   display: inline-flex;

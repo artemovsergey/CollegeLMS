@@ -54,14 +54,6 @@ export const LESSON_TYPE_STYLES: Record<LessonType, string> = {
 /** Режим отображения расписания на странице /schedule. */
 export type ScheduleViewMode = "day" | "week" | "calendar" | "semester"
 
-/** Большая перемена разрешённого профиля звонков (время «HH:mm:ss»). */
-export interface ScheduleBigBreak {
-  id?: string
-  afterPair: number
-  startTime: string
-  endTime: string
-}
-
 /** Серверный вид дня со слоями: вставки, практики, пары с бейджами. */
 export interface ScheduleDayView {
   date: string
@@ -73,8 +65,6 @@ export interface ScheduleDayView {
   practices: Practice[]
   inserts: ScheduleInsert[]
   entries: ScheduleResponse[]
-  /** Большая перемена: строка после пары afterPair. */
-  bigBreak?: ScheduleBigBreak | null
   /** День сделан рабочим (перенос с другого дня недели). */
   isWorkingDay?: boolean
   /** День недели, за который идёт работа (1–5). */

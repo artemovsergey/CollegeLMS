@@ -1,9 +1,8 @@
 "use client"
 
-import { Fragment } from "react"
-import { BellRing, CalendarCheck, CalendarOff, Clock3, Coffee } from "lucide-react"
+import { BellRing, CalendarCheck, CalendarOff, Clock3 } from "lucide-react"
 import { CellList, CellSimple, Typography } from "@maxhub/max-ui"
-import type { ScheduleBigBreak, ScheduleResponse } from "@/types/schedule"
+import type { ScheduleResponse } from "@/types/schedule"
 import type { Practice } from "@/api/practices"
 import {
   PRACTICE_KIND_LABELS,
@@ -30,7 +29,6 @@ export default function DayFeed({
   isNonWorking = false,
   nonWorkingTitle = null,
   nonWorkingLabel = "Нерабочий день",
-  bigBreak = null,
   isWorkingDay = false,
   workingDayTitle = null,
   substituteDayOfWeek = null,
@@ -44,8 +42,6 @@ export default function DayFeed({
   isNonWorking?: boolean
   nonWorkingTitle?: string | null
   nonWorkingLabel?: string
-  /** Большая перемена: строка после пары afterPair. */
-  bigBreak?: ScheduleBigBreak | null
   isWorkingDay?: boolean
   workingDayTitle?: string | null
   substituteDayOfWeek?: number | null
@@ -78,19 +74,6 @@ export default function DayFeed({
     !isNonWorking &&
     !isSunday &&
     !isWorkingDay
-
-  const bigBreakRow = bigBreak ? (
-    <div role="note" className="max-layers__bigbreak">
-      <Coffee size={14} aria-hidden />
-      <span className="max-layers__bigbreak-time">
-        {formatTime(bigBreak.startTime)}–{formatTime(bigBreak.endTime)}
-      </span>
-      <span>Большая перемена</span>
-    </div>
-  ) : null
-  const breakAfterPairMissing =
-    bigBreak !== null &&
-    !sorted.some((entry) => entry.numberPair === bigBreak.afterPair)
 
   return (
     <div className="max-feed">
@@ -194,8 +177,8 @@ export default function DayFeed({
               ? entry.groupName
               : entry.teacherName
             return (
-              <Fragment key={entry.id}>
               <CellSimple
+                key={entry.id}
                 separator
                 className={isCurrent ? "max-schedule__cell--current" : undefined}
                 title={entry.subject}
@@ -244,13 +227,8 @@ export default function DayFeed({
                   ) : undefined
                 }
               />
-              {bigBreak && entry.numberPair === bigBreak.afterPair
-                ? bigBreakRow
-                : null}
-              </Fragment>
             )
           })}
-          {breakAfterPairMissing ? bigBreakRow : null}
         </CellList>
       ) : null}
     </div>

@@ -241,13 +241,8 @@ public class ScheduleExportService(
             .Select(i => $"{i.StartTime:hh\\:mm}–{i.EndTime:hh\\:mm} {i.Title}")
             .ToList();
         lines.AddRange(day.Entries.OrderBy(e => e.NumberPair).Select(EntryLine));
-        if (day.BigBreak is { } bigBreak && day.Entries.Count > 0)
-            lines.Add(BigBreakLine(bigBreak));
         return lines;
     }
-
-    private static string BigBreakLine(BigBreakResponse bigBreak) =>
-        $"Большая перемена {bigBreak.StartTime:hh\\:mm}–{bigBreak.EndTime:hh\\:mm} (после {bigBreak.AfterPair} пары)";
 
     /// <summary>Строки без пар: события, практики и пометка нерабочего дня.</summary>
     private static string SpecialLines(ScheduleDayViewResponse day)
@@ -260,8 +255,6 @@ public class ScheduleExportService(
             day.Inserts.OrderBy(i => i.StartTime)
                 .Select(i => $"{i.StartTime:hh\\:mm}–{i.EndTime:hh\\:mm} {i.Title}")
         );
-        if (day.BigBreak is { } bigBreak && day.Entries.Count > 0)
-            lines.Add(BigBreakLine(bigBreak));
         return string.Join("\n", lines);
     }
 

@@ -391,7 +391,6 @@ export default function ScheduleView() {
               isSunday={dayData.isSunday}
               isNonWorking={dayData.isNonWorking}
               nonWorkingTitle={dayData.nonWorkingTitle}
-              bigBreak={dayData.bigBreak ?? null}
               isWorkingDay={dayData.isWorkingDay ?? false}
               workingDayTitle={dayData.workingDayTitle ?? null}
               substituteDayOfWeek={dayData.substituteDayOfWeek ?? null}

@@ -131,7 +131,6 @@ export default function ScheduleDayView({
               inserts={data.inserts}
               selectedDay={null}
               currentWeek={isToday ? data.week : undefined}
-              bigBreak={data.bigBreak ?? null}
               onEntryClick={onEntryClick}
               onDeleteClick={onDeleteClick}
             />

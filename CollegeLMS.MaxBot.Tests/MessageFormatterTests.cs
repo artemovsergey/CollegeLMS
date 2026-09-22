@@ -139,7 +139,7 @@ public class MessageFormatterTests
     }
 
     [Fact]
-    public void FormatDaySchedule_BigBreak_ShownAfterPairs()
+    public void FormatDaySchedule_BigBreak_NotShown()
     {
         var bigBreak = new BigBreakDto
         {
@@ -155,7 +155,8 @@ public class MessageFormatterTests
             showGroup: false
         );
 
-        text.Should().Contain("☕ Большая перемена 11:00–11:20 (после 2 пары)");
+        text.Should().NotContain("Большая перемена");
+        text.Should().NotContain("11:00–11:20");
     }
 
     [Fact]
@@ -179,7 +180,7 @@ public class MessageFormatterTests
     }
 
     [Fact]
-    public void FormatWeekSchedule_BigBreak_ShownInDayBlock()
+    public void FormatWeekSchedule_BigBreak_NotShown()
     {
         var bigBreak = new BigBreakDto
         {
@@ -196,7 +197,8 @@ public class MessageFormatterTests
             showGroup: false
         );
 
-        text.Should().Contain("☕ Большая перемена 09:00–09:20 (после 1 пары)");
+        text.Should().NotContain("Большая перемена");
+        text.Should().NotContain("09:00–09:20");
     }
 
     [Fact]

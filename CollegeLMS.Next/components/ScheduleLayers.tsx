@@ -8,13 +8,12 @@ import {
   practiceTeacherNames,
 } from "@/api/practices"
 import type { ScheduleInsert } from "@/api/inserts"
-import type { ScheduleBigBreak, ScheduleResponse } from "@/types/schedule"
+import type { ScheduleResponse } from "@/types/schedule"
 import {
   BellRing,
   Briefcase,
   CalendarCheck,
   CalendarOff,
-  Coffee,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { workingDayLabel } from "@/lib/reference"
@@ -66,37 +65,6 @@ export function InsertRow({
         {formatTime(insert.startTime)}–{formatTime(insert.endTime)}
       </span>
       <span className="truncate">{insert.title}</span>
-    </div>
-  )
-}
-
-/** Строка большой перемены: «HH:mm–HH:mm Большая перемена». */
-export function BigBreakRow({
-  bigBreak,
-  compact = false,
-  className,
-}: {
-  bigBreak: ScheduleBigBreak
-  compact?: boolean
-  className?: string
-}) {
-  return (
-    <div
-      role="note"
-      className={cn(
-        "flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 text-warning",
-        compact ? "px-2 py-1 text-[11px]" : "px-3 py-2 text-sm",
-        className,
-      )}
-    >
-      <Coffee
-        className={cn("shrink-0", compact ? "size-3" : "size-4")}
-        aria-hidden
-      />
-      <span className="whitespace-nowrap font-medium">
-        {formatTime(bigBreak.startTime)}–{formatTime(bigBreak.endTime)}
-      </span>
-      <span className="truncate">Большая перемена</span>
     </div>
   )
 }
