@@ -1,5 +1,7 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -85,6 +87,37 @@ public class MaxAuthApiTests : BaseIntegrationTest
         return factory.CreateClient();
     }
 
+    private sealed class ProfileStub(MaxInternalUserDto dto) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
+            var json = JsonSerializer.Serialize(dto);
+            return Task.FromResult(
+                new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json"),
+                }
+            );
+        }
+    }
+
+    private HttpClient ClientWithProfile(MaxInternalUserDto dto)
+    {
+        var factory = Factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("MaxAuth:BotToken", BotToken);
+            builder.ConfigureServices(services =>
+                services
+                    .AddHttpClient<MaxBotHttpClient>()
+                    .ConfigurePrimaryHttpMessageHandler(() => new ProfileStub(dto))
+            );
+        });
+        return factory.CreateClient();
+    }
+
     [Fact]
     public async Task Login_ValidInitData_ReturnsTokenAndProfile()
     {
@@ -143,5 +176,95 @@ public class MaxAuthApiTests : BaseIntegrationTest
         );
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_BotHasNoRecord_ReturnsGuestRoleOther()
+    {
+        // Бот отвечает 200, но записи user_settings нет: Found=false и Role="student".
+        var client = ClientWithProfile(
+            new MaxInternalUserDto
+            {
+                Found = false,
+                MaxUserId = MaxUserId,
+                Role = "student",
+            }
+        );
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/max",
+            new { initData = BuildInitData(MaxUserId, DateTimeOffset.UtcNow) }
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeAsync<Result<MaxAuthResponse>>(response);
+        Assert.True(body!.IsSuccess);
+        Assert.Equal("Other", body.Data!.Profile.Role);
+
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(body.Data.Token);
+        Assert.DoesNotContain(token.Claims, c => c.Type == ClaimTypes.Role);
+        Assert.Null(token.Claims.FirstOrDefault(c => c.Type == "groupId"));
+        Assert.Null(token.Claims.FirstOrDefault(c => c.Type == "teacherId"));
+        Assert.Equal(MaxUserId.ToString(), token.Claims.First(c => c.Type == "max_user_id").Value);
+    }
+
+    [Fact]
+    public async Task Login_ValidInitData_TokenCarriesMaxStudentClaims()
+    {
+        var groupId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var client = ClientWithProfile(
+            new MaxInternalUserDto
+            {
+                Found = true,
+                MaxUserId = MaxUserId,
+                Role = "student",
+                GroupId = groupId,
+                GroupName = "ИС-21-1",
+            }
+        );
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/max",
+            new { initData = BuildInitData(MaxUserId, DateTimeOffset.UtcNow) }
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeAsync<Result<MaxAuthResponse>>(response);
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(body!.Data!.Token);
+
+        var roleClaim = token.Claims.First(c => c.Type == ClaimTypes.Role);
+        Assert.Equal("Student", roleClaim.Value);
+        Assert.Equal(MaxUserId.ToString(), token.Claims.First(c => c.Type == "max_user_id").Value);
+        Assert.Equal(groupId.ToString(), token.Claims.First(c => c.Type == "groupId").Value);
+        Assert.Null(token.Claims.FirstOrDefault(c => c.Type == "teacherId"));
+    }
+
+    [Fact]
+    public async Task Login_ValidInitData_TokenCarriesMaxTeacherClaims()
+    {
+        var teacherId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var client = ClientWithProfile(
+            new MaxInternalUserDto
+            {
+                Found = true,
+                MaxUserId = MaxUserId,
+                Role = "teacher",
+                TeacherId = teacherId,
+                TeacherName = "Петров П. П.",
+            }
+        );
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/max",
+            new { initData = BuildInitData(MaxUserId, DateTimeOffset.UtcNow) }
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeAsync<Result<MaxAuthResponse>>(response);
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(body!.Data!.Token);
+
+        Assert.Equal("Teacher", token.Claims.First(c => c.Type == ClaimTypes.Role).Value);
+        Assert.Equal(teacherId.ToString(), token.Claims.First(c => c.Type == "teacherId").Value);
+        Assert.Null(token.Claims.FirstOrDefault(c => c.Type == "groupId"));
     }
 }

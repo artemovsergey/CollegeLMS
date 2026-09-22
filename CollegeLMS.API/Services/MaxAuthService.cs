@@ -30,16 +30,18 @@ public class MaxAuthService(
         var payload = validation.Data!;
         var botProfile = await botClient.GetInternalUserAsync(payload.MaxUserId, ct);
 
-        var role = MapRole(botProfile?.Role);
+        // Нет записи у бота (Found = false) или бот недоступен — гость без роли.
+        var hasProfile = botProfile is { Found: true };
+        var role = hasProfile ? MapRole(botProfile!.Role) : "Other";
         var profile = new MaxAuthProfile
         {
             MaxUserId = payload.MaxUserId,
             FullName = payload.FullName,
             Role = role,
-            GroupId = botProfile?.GroupId,
-            GroupName = botProfile?.GroupName,
-            TeacherId = botProfile?.TeacherId,
-            TeacherName = botProfile?.TeacherName,
+            GroupId = hasProfile ? botProfile!.GroupId : null,
+            GroupName = hasProfile ? botProfile!.GroupName : null,
+            TeacherId = hasProfile ? botProfile!.TeacherId : null,
+            TeacherName = hasProfile ? botProfile!.TeacherName : null,
         };
 
         var claims = new List<Claim> { new("max_user_id", payload.MaxUserId.ToString()) };
