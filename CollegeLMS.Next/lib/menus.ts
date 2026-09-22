@@ -11,6 +11,7 @@ import {
   BadgeInfo,
   History,
   ClipboardList,
+  Smartphone,
   type LucideIcon,
 } from "lucide-react"
 
@@ -33,6 +34,7 @@ export const adminMenuSections: MenuSection[] = [
       { href: "/admin", label: "Пользователи", icon: Users },
       { href: "/admin/news", label: "Новости", icon: Newspaper },
       { href: "/admin/feedback", label: "Обратная связь", icon: MessageSquare },
+      { href: "/admin/max-preview", label: "Мини-апп MAX", icon: Smartphone },
     ],
   },
   {
@@ -61,6 +63,7 @@ export const adminRoleMap: Record<string, string[]> = {
   "/admin": ["Admin"],
   "/admin/news": ["Admin", "Dispatcher"],
   "/admin/feedback": ["Admin"],
+  "/admin/max-preview": ["Admin"],
   "/admin/import": ["Admin"],
   "/courses": ["Admin", "Teacher"],
   "/groups": ["Admin"],
@@ -72,5 +75,4 @@ export const adminRoleMap: Record<string, string[]> = {
   "/dispatcher/correction": ["Dispatcher"],
   "/dispatcher/documents": ["Dispatcher"],
   "/dispatcher/practices": ["Dispatcher"],
-  "/dispatcher/live": ["Dispatcher", "Admin"],
 }
