@@ -769,6 +769,7 @@ public class MaxBotService : BackgroundService
 
         var buttons = new List<List<MaxButton>>
         {
+            new() { MiniAppButtons.OpenSchedule(_options) },
             new List<MaxButton>
             {
                 new()
@@ -821,6 +822,7 @@ public class MaxBotService : BackgroundService
 
         var buttons = new List<List<MaxButton>>
         {
+            new() { MiniAppButtons.OpenSchedule(_options) },
             new List<MaxButton>
             {
                 new()
