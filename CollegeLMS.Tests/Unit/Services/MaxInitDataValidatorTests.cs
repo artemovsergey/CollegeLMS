@@ -138,7 +138,10 @@ public class MaxInitDataValidatorTests
     {
         var pairs = User(42);
         pairs["auth_date"] = Now.ToUnixTimeSeconds().ToString();
-        var launch = string.Join("\n", pairs.OrderBy(p => p.Key).Select(p => $"{p.Key}={p.Value}"));
+        var launch = string.Join(
+            "\n",
+            pairs.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => $"{p.Key}={p.Value}")
+        );
         var secret = HMACSHA256.HashData(
             Encoding.UTF8.GetBytes("WebAppData"),
             Encoding.UTF8.GetBytes("другой-токен")
@@ -149,11 +152,56 @@ public class MaxInitDataValidatorTests
         var initData =
             string.Join(
                 "&",
-                pairs.OrderBy(p => p.Key).Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}")
+                pairs
+                    .OrderBy(p => p.Key, StringComparer.Ordinal)
+                    .Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}")
             ) + $"&hash={hash}";
 
         var result = Create().Validate(initData);
 
         result.IsSuccess.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validate_UnsortedLaunchParams_StillValidates()
+    {
+        var pairs = new List<KeyValuePair<string, string>>
+        {
+            new(
+                "user",
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        id = 42,
+                        first_name = "Иван",
+                        last_name = "Иванов",
+                    }
+                )
+            ),
+            new("auth_date", Now.ToUnixTimeSeconds().ToString()),
+            new("z_key", "z-value"),
+        };
+
+        var sortedLaunch = string.Join(
+            "\n",
+            pairs.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => $"{p.Key}={p.Value}")
+        );
+        var secret = HMACSHA256.HashData(
+            Encoding.UTF8.GetBytes("WebAppData"),
+            Encoding.UTF8.GetBytes(BotToken)
+        );
+        var hash = Convert
+            .ToHexString(HMACSHA256.HashData(secret, Encoding.UTF8.GetBytes(sortedLaunch)))
+            .ToLowerInvariant();
+
+        var initData =
+            string.Join("&", pairs.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"))
+            + $"&hash={hash}";
+
+        var result = Create().Validate(initData);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.MaxUserId.Should().Be(42);
+        result.Data.FullName.Should().Be("Иван Иванов");
     }
 }
