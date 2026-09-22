@@ -39,9 +39,15 @@ import ScheduleSemesterMatrix from "@/components/ScheduleSemesterMatrix"
 import ScheduleFilterPrompt from "@/components/ScheduleFilterPrompt"
 import ScheduleEntryDialog from "@/components/ScheduleEntryDialog"
 import ScheduleImportDialog from "@/components/ScheduleImportDialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { CAN_MANAGE_ROLES } from "@/lib/constants"
 import LoadingSpinner from "@/components/LoadingSpinner"
-import { CalendarDays, Filter, SearchX, Upload } from "lucide-react"
+import { CalendarDays, Download, Filter, SearchX, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 function mondayOf(date: Date): Date {
@@ -95,6 +101,13 @@ export default function SchedulePage() {
     selectedGroupId !== defaultGroupId ||
     selectedTeacherId !== defaultTeacherId
   const hasSelectedFilter = Boolean(selectedGroupId || selectedTeacherId)
+
+  const exportLabel =
+    view === "day"
+      ? "Экспорт: день"
+      : view === "week"
+        ? "Экспорт: неделя"
+        : "Экспорт: семестр"
 
   // Разбор URL: view|date|week|month и миграция старых ?week=&day=.
   useEffect(() => {
@@ -300,11 +313,6 @@ export default function SchedulePage() {
     }
   }
 
-  const handleAdd = () => {
-    setEditingEntry(null)
-    setEntryDialogOpen(true)
-  }
-
   const handleEdit = (entry: ScheduleResponse) => {
     setEditingEntry(entry)
     setEntryDialogOpen(true)
@@ -336,7 +344,7 @@ export default function SchedulePage() {
         <h2 className="text-xl font-semibold">Расписание</h2>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-3">
           <Filter
             className="size-4 shrink-0 text-muted-foreground"
@@ -345,10 +353,10 @@ export default function SchedulePage() {
           <NativeSelect
             value={selectedGroupId || "all"}
             onValueChange={(v) => setSelectedGroupId(v === "all" ? "" : v)}
-            placeholder="Все группы"
-            className="w-44"
+            placeholder="Группы"
+            className="w-44 [&>select]:h-11"
           >
-            <NativeSelectItem value="all">Все группы</NativeSelectItem>
+            <NativeSelectItem value="all">Группы</NativeSelectItem>
             {groups.map((g) => (
               <NativeSelectItem key={g.id} value={g.id}>
                 {g.name}
@@ -359,10 +367,10 @@ export default function SchedulePage() {
           <NativeSelect
             value={selectedTeacherId || "all"}
             onValueChange={(v) => setSelectedTeacherId(v === "all" ? "" : v)}
-            placeholder="Все преподаватели"
-            className="w-44"
+            placeholder="Преподаватели"
+            className="w-44 [&>select]:h-11"
           >
-            <NativeSelectItem value="all">Все преподаватели</NativeSelectItem>
+            <NativeSelectItem value="all">Преподаватели</NativeSelectItem>
             {teachers.map((t) => (
               <NativeSelectItem key={t.id} value={t.id}>
                 {t.fullName}
@@ -370,63 +378,78 @@ export default function SchedulePage() {
             ))}
           </NativeSelect>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClear}
-            className={`shrink-0 transition-opacity ${
-              hasCustomFilters
-                ? "opacity-100"
-                : "pointer-events-none opacity-0"
-            }`}
-          >
-            <SearchX className="size-3.5" aria-hidden />
-            Сбросить
-          </Button>
+          {hasCustomFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              className="h-11 shrink-0"
+            >
+              <SearchX className="size-3.5" aria-hidden />
+              Сбросить
+            </Button>
+          )}
         </div>
 
-        <div className="flex flex-1 flex-wrap items-center gap-2 lg:justify-end">
+        <div className="flex flex-wrap items-center gap-2">
           <ScheduleViewSwitcher value={view} onChange={handleViewChange} />
 
-          <NativeSelect
-            value=""
-            onValueChange={(v) => {
-              if (v) {
-                const [format, layout] = v.split(":") as [
-                  "pdf" | "xlsx",
-                  "grid" | "daycards",
-                ]
-                handleExport(format, layout)
-              }
-            }}
-            className="w-[205px]"
-            aria-label="Экспорт расписания"
-            disabled={view === "calendar"}
-            aria-disabled={view === "calendar"}
-          >
-            <option value="" disabled>
-              Экспорт
-            </option>
-            <option value="pdf:grid">PDF — Сетка</option>
-            <option value="pdf:daycards">PDF — По дням</option>
-            <option value="xlsx:grid">Excel — Сетка</option>
-            <option value="xlsx:daycards">Excel — По дням</option>
-          </NativeSelect>
+          {view !== "calendar" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-11"
+                  aria-label="Экспорт расписания"
+                >
+                  <Download className="size-3.5" aria-hidden />
+                  {exportLabel}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() => {
+                    void handleExport("pdf", "grid")
+                  }}
+                >
+                  PDF — сетка
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    void handleExport("pdf", "daycards")
+                  }}
+                >
+                  PDF — по дням
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    void handleExport("xlsx", "grid")
+                  }}
+                >
+                  Excel — сетка
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    void handleExport("xlsx", "daycards")
+                  }}
+                >
+                  Excel — по дням
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {canManage && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setImportDialogOpen(true)}
-              >
-                <Upload className="size-3.5" aria-hidden />
-                Импорт
-              </Button>
-              <Button size="sm" onClick={handleAdd}>
-                Добавить
-              </Button>
-            </>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-11"
+              onClick={() => setImportDialogOpen(true)}
+            >
+              <Upload className="size-3.5" aria-hidden />
+              Импорт
+            </Button>
           )}
         </div>
       </div>
