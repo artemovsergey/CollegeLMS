@@ -243,6 +243,40 @@ public class ScheduleServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAsync_NormalizesSubject_TrailingDot()
+    {
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-11",
+            Course = 1,
+        };
+        _db.Groups.Add(group);
+        await _db.SaveChangesAsync();
+
+        var request = new CreateScheduleRequest
+        {
+            GroupId = group.Id,
+            Subject = "МДК.01.03.",
+            Room = "301",
+            DayOfWeek = DayOfWeek.Monday,
+            NumberPair = 1,
+            Weeks = new() { 1 },
+            LessonType = LessonType.Lecture.ToString(),
+        };
+
+        var result = await _sut.CreateAsync(request, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Subject.Should().Be("МДК.01.03");
+
+        var saved = await _db
+            .ScheduleEntries.AsNoTracking()
+            .FirstAsync(e => e.Id == result.Data.Id);
+        saved.Subject.Should().Be("МДК.01.03");
+    }
+
+    [Fact]
     public async Task CreateAsync_ReturnsFail_WhenGroupNotFound()
     {
         var request = new CreateScheduleRequest
@@ -856,6 +890,45 @@ public class ScheduleServiceTests : IDisposable
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.Subjects.Should().BeEquivalentTo(["Математика", "История", "Литература"]);
+    }
+
+    [Fact]
+    public async Task GetSubjectsAsync_DeduplicatesByLookupKey_PreservesCanonical()
+    {
+        _db.ScheduleEntries.AddRange(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Subject = "МДК.01.03",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 1,
+                StartTime = new TimeSpan(9, 0, 0),
+                EndTime = new TimeSpan(10, 30, 0),
+                Weeks = new List<int> { 1 },
+                LessonType = LessonType.Lecture,
+            },
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = Guid.NewGuid(),
+                Subject = "МДК.01.03.",
+                Room = "302",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 2,
+                StartTime = new TimeSpan(10, 40, 0),
+                EndTime = new TimeSpan(12, 10, 0),
+                Weeks = new List<int> { 1 },
+                LessonType = LessonType.Lecture,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetSubjectsAsync(null, null, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Subjects.Should().ContainSingle().Which.Should().Be("МДК.01.03");
     }
 
     [Fact]

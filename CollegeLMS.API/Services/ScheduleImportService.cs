@@ -136,10 +136,17 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
     {
         var v = subject.Trim();
 
+        // Схлопываем повторные пробелы, чтобы «МДК 01.03» и «МДК  01.03» совпадали.
+        v = Regex.Replace(v, @"\s+", " ");
+
         foreach (var (pattern, replacement) in SubjectSynonyms)
             v = Regex.Replace(v, pattern, replacement, RegexOptions.IgnoreCase);
 
-        return v;
+        // Убираем завершающие точки только после цифры: «МДК.01.03.» → «МДК.01.03».
+        // Точка в аббревиатурах («ЭлектрТех.») при этом сохраняется.
+        v = Regex.Replace(v, @"(?<=\d)\.+$", "");
+
+        return v.Trim();
     }
 
     internal static string NormalizeTeacherName(string name)

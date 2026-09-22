@@ -769,6 +769,42 @@ public class ScheduleImportServiceTests : IDisposable
     }
 
     [Fact]
+    public void ParseScheduleMatrix_NormalizesMdkTrailingDot()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "ПО 262";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        ws.Cell(6, 3).Value = "232 МДК.01.03. (1-16) Иванов И.И.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries.Should().HaveCount(1);
+        entries[0].Subject.Should().Be("МДК.01.03");
+    }
+
+    [Fact]
+    public void ParseScheduleMatrix_NormalizesMdkDoubleTrailingDot()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "ПО 262";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        ws.Cell(6, 3).Value = "232 МДК.01.03.. (1-16) Иванов И.И.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries.Should().HaveCount(1);
+        entries[0].Subject.Should().Be("МДК.01.03");
+    }
+
+    [Fact]
     public void ParseScheduleMatrix_NoGroups_ReturnsStructureError()
     {
         using var workbook = new XLWorkbook();

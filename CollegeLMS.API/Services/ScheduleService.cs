@@ -411,7 +411,17 @@ public class ScheduleService(
     )
     {
         var qTrim = (q ?? string.Empty).Trim();
-        var subjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Дедуп по ключу сопоставления предметов: варианты «МДК.01.03» и «МДК.01.03.»
+        // схлопываются в один предмет, сохраняя первое встреченное (каноническое) написание.
+        var subjects = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        void AddSubject(string subject)
+        {
+            if (string.IsNullOrWhiteSpace(subject))
+                return;
+            subjects.TryAdd(ScheduleImportService.SubjectLookupKey(subject), subject);
+        }
 
         if (teacherId.HasValue)
         {
@@ -420,14 +430,16 @@ public class ScheduleService(
                 .Where(e => e.TeacherId == teacherId.Value && !string.IsNullOrWhiteSpace(e.Subject))
                 .Select(e => e.Subject)
                 .ToListAsync(ct);
-            subjects.UnionWith(entrySubjects);
+            foreach (var subject in entrySubjects)
+                AddSubject(subject);
 
             var historySubjects = await db
                 .ScheduleHistory.AsNoTracking()
                 .Where(h => h.TeacherId == teacherId.Value && !string.IsNullOrWhiteSpace(h.Subject))
                 .Select(h => h.Subject)
                 .ToListAsync(ct);
-            subjects.UnionWith(historySubjects);
+            foreach (var subject in historySubjects)
+                AddSubject(subject);
 
             var removedSubjects = await db
                 .ScheduleHistory.AsNoTracking()
@@ -438,7 +450,8 @@ public class ScheduleService(
                 )
                 .Select(h => h.RemovedSubject!)
                 .ToListAsync(ct);
-            subjects.UnionWith(removedSubjects);
+            foreach (var subject in removedSubjects)
+                AddSubject(subject);
         }
         else
         {
@@ -447,25 +460,30 @@ public class ScheduleService(
                 .Where(e => !string.IsNullOrWhiteSpace(e.Subject))
                 .Select(e => e.Subject)
                 .ToListAsync(ct);
-            subjects.UnionWith(entrySubjects);
+            foreach (var subject in entrySubjects)
+                AddSubject(subject);
 
             var historySubjects = await db
                 .ScheduleHistory.AsNoTracking()
                 .Where(h => !string.IsNullOrWhiteSpace(h.Subject))
                 .Select(h => h.Subject)
                 .ToListAsync(ct);
-            subjects.UnionWith(historySubjects);
+            foreach (var subject in historySubjects)
+                AddSubject(subject);
 
             var removedSubjects = await db
                 .ScheduleHistory.AsNoTracking()
                 .Where(h => h.RemovedSubject != null && h.RemovedSubject.Trim().Length > 0)
                 .Select(h => h.RemovedSubject!)
                 .ToListAsync(ct);
-            subjects.UnionWith(removedSubjects);
+            foreach (var subject in removedSubjects)
+                AddSubject(subject);
         }
 
         var result = subjects
-            .Where(s => qTrim.Length == 0 || s.Contains(qTrim, StringComparison.OrdinalIgnoreCase))
+            .Values.Where(s =>
+                qTrim.Length == 0 || s.Contains(qTrim, StringComparison.OrdinalIgnoreCase)
+            )
             .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
             .Take(200)
             .ToList();
@@ -544,6 +562,9 @@ public class ScheduleService(
             : ScheduleImportService.GetPairTime(request.DayOfWeek, request.NumberPair);
 
         var entry = request.ToEntity();
+        // Маппер переносит предмет как есть, поэтому нормализуем его здесь,
+        // чтобы ручное создание не порождало дубли вида «МДК.01.03.».
+        entry.Subject = ScheduleImportService.NormalizeSubject(request.Subject);
         entry.Weeks = weeks;
         entry.StartTime = start;
         entry.EndTime = end;
@@ -614,7 +635,7 @@ public class ScheduleService(
 
         entry.GroupId = request.GroupId;
         entry.TeacherId = request.TeacherId;
-        entry.Subject = request.Subject;
+        entry.Subject = ScheduleImportService.NormalizeSubject(request.Subject);
         entry.Room = request.Room;
         entry.DayOfWeek = request.DayOfWeek;
         entry.NumberPair = request.NumberPair;

@@ -162,5 +162,27 @@ public static class DbConstraints
                 END $$;
             """
         );
+
+        // Чистка исторических дублей предметов: схлопываем повторные пробелы
+        // и срезаем завершающие точки после цифры («МДК.01.03.» → «МДК.01.03»).
+        // Блок идемпотентен: повторный запуск не меняет уже нормализованные значения.
+        await db.Database.ExecuteSqlRawAsync(
+            """
+                UPDATE schedule_entries SET subject = btrim(regexp_replace(subject, '\s+', ' ', 'g')) WHERE subject IS NOT NULL AND subject <> btrim(regexp_replace(subject, '\s+', ' ', 'g'));
+                UPDATE schedule_entries SET subject = regexp_replace(subject, '\.+$', '') WHERE subject IS NOT NULL AND subject ~ '\d\.+$';
+
+                UPDATE schedule_history SET subject = btrim(regexp_replace(subject, '\s+', ' ', 'g')) WHERE subject IS NOT NULL AND subject <> btrim(regexp_replace(subject, '\s+', ' ', 'g'));
+                UPDATE schedule_history SET subject = regexp_replace(subject, '\.+$', '') WHERE subject IS NOT NULL AND subject ~ '\d\.+$';
+
+                UPDATE schedule_history SET removed_subject = btrim(regexp_replace(removed_subject, '\s+', ' ', 'g')) WHERE removed_subject IS NOT NULL AND removed_subject <> btrim(regexp_replace(removed_subject, '\s+', ' ', 'g'));
+                UPDATE schedule_history SET removed_subject = regexp_replace(removed_subject, '\.+$', '') WHERE removed_subject IS NOT NULL AND removed_subject ~ '\d\.+$';
+
+                UPDATE correction_positions SET subject = btrim(regexp_replace(subject, '\s+', ' ', 'g')) WHERE subject IS NOT NULL AND subject <> btrim(regexp_replace(subject, '\s+', ' ', 'g'));
+                UPDATE correction_positions SET subject = regexp_replace(subject, '\.+$', '') WHERE subject IS NOT NULL AND subject ~ '\d\.+$';
+
+                UPDATE correction_positions SET removed_subject = btrim(regexp_replace(removed_subject, '\s+', ' ', 'g')) WHERE removed_subject IS NOT NULL AND removed_subject <> btrim(regexp_replace(removed_subject, '\s+', ' ', 'g'));
+                UPDATE correction_positions SET removed_subject = regexp_replace(removed_subject, '\.+$', '') WHERE removed_subject IS NOT NULL AND removed_subject ~ '\d\.+$';
+            """
+        );
     }
 }

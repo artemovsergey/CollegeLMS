@@ -202,10 +202,14 @@ public class CorrectionBatchService(
             DayOfWeek = batch.DayOfWeek,
             Week = batch.Week,
             NumberPair = request.NumberPair,
-            Subject = request.Subject,
+            Subject = request.Subject is null
+                ? null
+                : ScheduleImportService.NormalizeSubject(request.Subject),
             TeacherId = request.TeacherId,
             TeacherName = request.TeacherName,
-            RemovedSubject = request.RemovedSubject,
+            RemovedSubject = string.IsNullOrWhiteSpace(request.RemovedSubject)
+                ? request.RemovedSubject
+                : ScheduleImportService.NormalizeSubject(request.RemovedSubject),
             RemovedTeacherId = request.RemovedTeacherId,
             RemovedTeacherName = request.RemovedTeacherName,
             RemovedNumberPair = request.RemovedNumberPair,
@@ -250,10 +254,14 @@ public class CorrectionBatchService(
         position.GroupId = request.GroupId;
         position.GroupName = request.GroupName;
         position.NumberPair = request.NumberPair;
-        position.Subject = request.Subject;
+        position.Subject = request.Subject is null
+            ? null
+            : ScheduleImportService.NormalizeSubject(request.Subject);
         position.TeacherId = request.TeacherId;
         position.TeacherName = request.TeacherName;
-        position.RemovedSubject = request.RemovedSubject;
+        position.RemovedSubject = string.IsNullOrWhiteSpace(request.RemovedSubject)
+            ? request.RemovedSubject
+            : ScheduleImportService.NormalizeSubject(request.RemovedSubject);
         position.RemovedTeacherId = request.RemovedTeacherId;
         position.RemovedTeacherName = request.RemovedTeacherName;
         position.RemovedNumberPair = request.RemovedNumberPair;
