@@ -109,17 +109,67 @@ public class ChangeNotifier
     )
     {
         var flat = SelectRecipients(settings, groupNames, teacherNames, revisions);
-        var settingsByChat = settings
-            .GroupBy(s => s.MaxChatId)
-            .ToDictionary(g => g.Key, g => g.First());
 
         return flat.GroupBy(x => x.ChatId)
             .Select(g =>
             {
-                var s = settingsByChat[g.Key];
-                return (g.Key, s.GroupId, s.TeacherId, g.Select(x => x.Revision).ToList());
+                var chatRevisions = g.Select(x => x.Revision).ToList();
+                var (groupId, teacherId) = ResolveChatTarget(
+                    chatRevisions,
+                    groupNames,
+                    teacherNames
+                );
+                return (g.Key, groupId, teacherId, chatRevisions);
             })
             .ToList();
+    }
+
+    /// <summary>
+    /// Цель кнопки дня для набора позиций чата: определяется по именам самих позиций,
+    /// а не по настройкам получателя (в чате может быть несколько настроек).
+    /// </summary>
+    private static (Guid? GroupId, Guid? TeacherId) ResolveChatTarget(
+        List<ScheduleRevision> revisions,
+        Dictionary<Guid, string> groupNames,
+        Dictionary<Guid, string> teacherNames
+    )
+    {
+        foreach (var revision in revisions)
+        {
+            var target = ResolveTarget(revision, groupNames, teacherNames);
+            if (target.GroupId.HasValue || target.TeacherId.HasValue)
+                return target;
+        }
+
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Сущность позиции по её собственным именам: сначала группа с именем
+    /// <see cref="ScheduleRevision.GroupName"/>, иначе преподаватель по
+    /// <see cref="ScheduleRevision.TeacherName"/> или <see cref="ScheduleRevision.RemovedTeacherName"/>.
+    /// </summary>
+    public static (Guid? GroupId, Guid? TeacherId) ResolveTarget(
+        ScheduleRevision revision,
+        Dictionary<Guid, string> groupNames,
+        Dictionary<Guid, string> teacherNames
+    )
+    {
+        var groupId = groupNames
+            .Where(kv => kv.Value == revision.GroupName)
+            .Select(kv => (Guid?)kv.Key)
+            .FirstOrDefault();
+        if (groupId.HasValue)
+            return (groupId, null);
+
+        var teacherId = teacherNames
+            .Where(kv =>
+                kv.Value == revision.TeacherName || kv.Value == revision.RemovedTeacherName
+            )
+            .Select(kv => (Guid?)kv.Key)
+            .FirstOrDefault();
+
+        return (null, teacherId);
     }
 
     /// <summary>

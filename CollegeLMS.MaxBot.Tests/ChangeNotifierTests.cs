@@ -186,6 +186,63 @@ public class ChangeNotifierTests
     }
 
     [Fact]
+    public void SelectRecipientsGrouped_SameChatWithGroupAndTeacher_TargetsTeacherRevision()
+    {
+        // Один чат с двумя настройками: студент группы ПО262 и преподаватель Петренко.
+        // Изменение не относится к группе ПО262, значит кнопка дня должна вести к преподавателю.
+        var settings = new List<UserSettings>
+        {
+            Student(),
+            new()
+            {
+                Id = Guid.NewGuid(),
+                MaxUserId = 3,
+                MaxChatId = 100,
+                Role = "teacher",
+                TeacherId = TeacherId,
+                NotifyEnabled = true,
+                NotifyDays = [2],
+            },
+        };
+
+        var grouped = ChangeNotifier.SelectRecipientsGrouped(
+            settings,
+            GroupNames,
+            TeacherNames,
+            [Rev(groupName: "Другая группа", teacherName: "Петренко В.Б.")]
+        );
+
+        grouped.Should().ContainSingle();
+        grouped[0].GroupId.Should().BeNull();
+        grouped[0].TeacherId.Should().Be(TeacherId);
+
+        var button = MiniAppButtons.OpenDay(
+            new MaxBotOptions { BotPublicName = "teacher_scc_bot" },
+            new DateTime(2026, 9, 1),
+            grouped[0].GroupId,
+            grouped[0].TeacherId
+        );
+
+        button.Payload.Should().Be($"day-2026-09-01-t-{TeacherId}");
+    }
+
+    [Fact]
+    public void SelectRecipientsGrouped_GroupRevision_TargetsGroupOverTeacher()
+    {
+        // Позиция по своей группе: даже при совпадении ФИО преподавателя приоритет у группы.
+        var grouped = ChangeNotifier.SelectRecipientsGrouped(
+            [Student()],
+            GroupNames,
+            TeacherNames,
+            [Rev(groupName: "ПО262", teacherName: "Петренко В.Б.")]
+        );
+
+        grouped.Should().ContainSingle();
+        grouped[0].GroupId.Should().Be(GroupId);
+        grouped[0].TeacherId.Should().BeNull();
+    }
+
+    [Fact]
     public void SelectRecipientsGrouped_MultipleRevisions_GroupedIntoOneMessagePerChat()
     {
         var first = Rev();
