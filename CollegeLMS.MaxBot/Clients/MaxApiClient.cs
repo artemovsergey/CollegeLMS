@@ -21,10 +21,36 @@ public class MaxApiClient
         _logger = logger;
     }
 
+    /// <summary>
+    /// Проверяет статус ответа MAX API. При неуспехе пишет в лог код и тело ответа
+    /// (тело — ключ к диагностике: MAX возвращает причину в JSON) и бросает
+    /// <see cref="HttpRequestException"/> с этим телом в сообщении.
+    /// </summary>
+    private async Task<HttpResponseMessage> EnsureSuccessWithBodyAsync(
+        HttpResponseMessage resp,
+        string context,
+        CancellationToken ct
+    )
+    {
+        if (resp.IsSuccessStatusCode)
+            return resp;
+
+        var body = await resp.Content.ReadAsStringAsync(ct);
+        _logger.LogError(
+            "MAX API {Context} вернул HTTP {Code}: {Body}",
+            context,
+            (int)resp.StatusCode,
+            body.Length > 500 ? body[..500] : body
+        );
+        throw new HttpRequestException(
+            $"MAX API {context}: HTTP {(int)resp.StatusCode}. {body}"
+        );
+    }
+
     public async Task<MaxBotInfo?> GetMeAsync(CancellationToken ct = default)
     {
         var resp = await _http.GetAsync("/me", ct);
-        resp.EnsureSuccessStatusCode();
+        await EnsureSuccessWithBodyAsync(resp, "GET /me", ct);
         return await resp.Content.ReadFromJsonAsync<MaxBotInfo>(JsonOpts, ct);
     }
 
@@ -76,7 +102,7 @@ public class MaxApiClient
         };
 
         var resp = await _http.PostAsJsonAsync($"/messages?chat_id={chatId}", body, JsonOpts, ct);
-        resp.EnsureSuccessStatusCode();
+        await EnsureSuccessWithBodyAsync(resp, $"POST /messages?chat_id={chatId}", ct);
         return await resp.Content.ReadFromJsonAsync<MaxMessageResponse>(JsonOpts, ct);
     }
 
@@ -96,7 +122,7 @@ public class MaxApiClient
         };
 
         var resp = await _http.PostAsJsonAsync($"/messages?chat_id={chatId}", body, JsonOpts, ct);
-        resp.EnsureSuccessStatusCode();
+        await EnsureSuccessWithBodyAsync(resp, $"POST /messages?chat_id={chatId}", ct);
         return await resp.Content.ReadFromJsonAsync<MaxMessageResponse>(JsonOpts, ct);
     }
 
@@ -123,14 +149,14 @@ public class MaxApiClient
             JsonOpts,
             ct
         );
-        resp.EnsureSuccessStatusCode();
+        await EnsureSuccessWithBodyAsync(resp, "POST /answers", ct);
     }
 
     public async Task SetCommandsAsync(BotCommand[] commands, CancellationToken ct = default)
     {
         var body = new { commands };
         var resp = await _http.PatchAsJsonAsync("/me/commands", body, JsonOpts, ct);
-        resp.EnsureSuccessStatusCode();
+        await EnsureSuccessWithBodyAsync(resp, "PATCH /me/commands", ct);
     }
 
     /// <summary>
@@ -147,7 +173,7 @@ public class MaxApiClient
             content: null,
             ct
         );
-        resp.EnsureSuccessStatusCode();
+        await EnsureSuccessWithBodyAsync(resp, "POST /uploads", ct);
         return await resp.Content.ReadFromJsonAsync<MaxUploadResponse>(JsonOpts, ct)
             ?? throw new InvalidOperationException("Пустой ответ POST /uploads");
     }
@@ -171,7 +197,7 @@ public class MaxApiClient
 
         // uploadUrl — абсолютный адрес CDN, он переопределяет BaseAddress
         var resp = await _http.PostAsync(uploadUrl, form, ct);
-        resp.EnsureSuccessStatusCode();
+        await EnsureSuccessWithBodyAsync(resp, "POST uploadUrl", ct);
         var raw = await resp.Content.ReadAsStringAsync(ct);
         return JsonSerializer.Deserialize<JsonElement>(raw);
     }
@@ -295,8 +321,13 @@ public class MaxApiClient
             }
 
             // Попытки исчерпаны или ошибка не связана с обработкой вложения
-            resp.EnsureSuccessStatusCode();
-            throw new HttpRequestException($"{errorMessage}: {errBody}");
+            _logger.LogError(
+                "MAX API POST /messages?chat_id={ChatId} вернул HTTP {Code}: {Body}",
+                chatId,
+                (int)resp.StatusCode,
+                errBody.Length > 500 ? errBody[..500] : errBody
+            );
+            throw new HttpRequestException($"{errorMessage}: HTTP {(int)resp.StatusCode}. {errBody}");
         }
     }
 }

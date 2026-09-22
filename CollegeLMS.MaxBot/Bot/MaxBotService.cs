@@ -47,6 +47,11 @@ public class MaxBotService : BackgroundService
     {
         _logger.LogInformation("Max bot starting...");
 
+        if (string.IsNullOrWhiteSpace(_options.AccessToken))
+            _logger.LogError(
+                "MaxBot:AccessToken пуст — бот не сможет подключиться к MAX API. Проверьте переменную MAX_BOT_TOKEN."
+            );
+
         while (!ct.IsCancellationRequested)
         {
             try
@@ -90,6 +95,8 @@ public class MaxBotService : BackgroundService
 
         long? marker = null;
 
+        _logger.LogInformation("Max bot polling loop started");
+
         while (!ct.IsCancellationRequested)
         {
             try
@@ -101,11 +108,6 @@ public class MaxBotService : BackgroundService
                     {
                         foreach (var update in updates.Updates)
                         {
-                            _logger.LogInformation(
-                                "Update: type={Type}, marker={Marker}",
-                                update.UpdateType,
-                                updates.Marker
-                            );
                             await HandleUpdateAsync(update, ct);
                         }
                     }
@@ -127,6 +129,15 @@ public class MaxBotService : BackgroundService
         {
             var userId = MaxUserResolver.ResolveUserId(update);
             var chatId = MaxUserResolver.ResolveChatId(update);
+
+            _logger.LogInformation(
+                "Update {Type}: chatId={ChatId}, userId={UserId}, payload={Payload}, text={Text}",
+                update.UpdateType,
+                chatId,
+                userId,
+                update.Callback?.Payload,
+                update.Message?.Body?.Text
+            );
 
             switch (update.UpdateType)
             {
@@ -151,7 +162,13 @@ public class MaxBotService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling update {Type}", update.UpdateType);
+            _logger.LogError(
+                ex,
+                "Error handling update {Type} (chatId={ChatId}, userId={UserId})",
+                update.UpdateType,
+                MaxUserResolver.ResolveChatId(update),
+                MaxUserResolver.ResolveUserId(update)
+            );
         }
     }
 

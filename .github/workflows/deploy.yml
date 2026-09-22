@@ -121,10 +121,17 @@ jobs:
             echo "MaxBot container id: ${MAXBOT_ID:-missing}"
             if [ -z "$MAXBOT_ID" ]; then
               echo "MaxBot is not running. Logs:"
-              docker compose logs maxbot --tail 100 || true
+              docker compose logs maxbot --tail 150 || true
               exit 1
             fi
-            docker compose logs --since 20s maxbot 2>&1 | grep -q "Fetching updates" && echo "MaxBot polling MAX API: OK" || echo "Warning: polling logs not found yet"
+            echo "--- MaxBot logs (tail 120) ---"
+            docker compose logs maxbot --tail 120 2>&1 || true
+            echo "--- end MaxBot logs ---"
+            if docker compose logs --since 60s maxbot 2>&1 | grep -qE "polling loop started|Max bot started as"; then
+              echo "MaxBot startup detected: OK"
+            else
+              echo "Warning: MaxBot startup logs not found in last 60s"
+            fi
 
             echo "=== Final cleanup ==="
             docker image prune -af || true
