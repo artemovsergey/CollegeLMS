@@ -7,6 +7,7 @@ using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CollegeLMS.Tests.Unit.Services;
@@ -27,7 +28,11 @@ public class ScheduleCorrectionServiceTests : IDisposable
     private ScheduleCorrectionService CreateSut(HttpClient http) =>
         new(
             _db,
-            new MaxBotHttpClient(http, NullLogger<MaxBotHttpClient>.Instance),
+            new MaxBotHttpClient(
+                http,
+                new ConfigurationBuilder().Build(),
+                NullLogger<MaxBotHttpClient>.Instance
+            ),
             new CorrectionApplyEngine(_db, new BellScheduleServiceStub())
         );
 

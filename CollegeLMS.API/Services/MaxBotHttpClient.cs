@@ -1,16 +1,53 @@
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using CollegeLMS.API.Dtos;
 
 namespace CollegeLMS.API.Services;
 
 /// <summary>
-/// HTTP-клиент к боту Max. Отправляет изменения расписания на POST /notify
-/// и PNG-картинку корректировки на POST /notify/correction-image.
+/// HTTP-клиент к боту Max. Отправляет изменения расписания на POST /notify,
+/// PNG-картинку корректировки на POST /notify/correction-image и запрашивает
+/// профиль MAX-пользователя на GET /maxbot/internal/users/{id}.
 /// Fail-safe: недоступность бота не роняет подтверждение корректировки.
 /// </summary>
-public class MaxBotHttpClient(HttpClient http, ILogger<MaxBotHttpClient> logger)
+public class MaxBotHttpClient(
+    HttpClient http,
+    IConfiguration config,
+    ILogger<MaxBotHttpClient> logger
+)
 {
+    public async Task<MaxInternalUserDto?> GetInternalUserAsync(
+        long maxUserId,
+        CancellationToken ct
+    )
+    {
+        try
+        {
+            var secret = config["MaxBot:InternalSecret"] ?? "";
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                $"/maxbot/internal/users/{maxUserId}"
+            );
+            if (!string.IsNullOrEmpty(secret))
+                request.Headers.Add("X-Internal-Secret", secret);
+
+            var resp = await http.SendAsync(request, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                logger.LogWarning("MaxBot internal users вернул {Code}", resp.StatusCode);
+                return null;
+            }
+
+            return await resp.Content.ReadFromJsonAsync<MaxInternalUserDto>(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "MaxBot недоступен — профиль MAX не получен");
+            return null;
+        }
+    }
+
     public async Task SendChangesAsync(
         IReadOnlyList<ScheduleChangeDto> changes,
         CancellationToken ct

@@ -7,6 +7,7 @@ using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CollegeLMS.Tests.Unit.Services;
@@ -20,7 +21,11 @@ public class CorrectionBatchServiceTests : IDisposable
     {
         _db = TestDbContextFactory.Create();
         var engine = new CorrectionApplyEngine(_db, new BellScheduleServiceStub());
-        var maxBot = new MaxBotHttpClient(new HttpClient(), NullLogger<MaxBotHttpClient>.Instance);
+        var maxBot = new MaxBotHttpClient(
+            new HttpClient(),
+            new ConfigurationBuilder().Build(),
+            NullLogger<MaxBotHttpClient>.Instance
+        );
         var correctionService = new ScheduleCorrectionService(_db, maxBot, engine);
         _sut = new CorrectionBatchService(
             _db,
