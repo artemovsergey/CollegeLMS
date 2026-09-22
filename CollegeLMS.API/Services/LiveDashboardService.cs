@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.API.Services;
 
-public class LiveDashboardService(AppDbContext db, IBellScheduleService bells)
+public class LiveDashboardService(AppDbContext db, IBellScheduleService bells, TimeZoneInfo tz)
     : ILiveDashboardService
 {
     public async Task<Result<LiveDashboardResponse>> GetLiveAsync(
@@ -17,8 +17,8 @@ public class LiveDashboardService(AppDbContext db, IBellScheduleService bells)
         CancellationToken ct
     )
     {
-        var target = (date ?? DateTime.UtcNow.Date).Date;
-        var now = at ?? DateTime.UtcNow;
+        var now = at ?? TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+        var target = (date ?? now.Date).Date;
         var week = StudyWeek.ForDate(target);
         var dayOfWeek = target.DayOfWeek;
 

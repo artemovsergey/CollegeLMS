@@ -228,6 +228,7 @@ public static class ServiceCollectionExtensions
             c.Timeout = TimeSpan.FromSeconds(5);
         });
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton(TimeZoneProvider.Resolve(config["TimeZone"]));
         services.AddScoped<MaxInitDataValidator>();
         services.AddScoped<IMaxAuthService, MaxAuthService>();
         services.AddFluentValidationAutoValidation();

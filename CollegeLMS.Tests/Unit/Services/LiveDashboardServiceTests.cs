@@ -11,6 +11,7 @@ public class LiveDashboardServiceTests : IDisposable
 {
     private readonly AppDbContext _db;
     private readonly BellScheduleServiceStub _bells = new();
+    private readonly TimeZoneInfo _tz = TimeZoneProvider.Resolve("Europe/Moscow");
     private readonly LiveDashboardService _sut;
 
     private static readonly DateTime Monday1 = StudyWeek.MondayOf(StudyWeek.SemesterStart);
@@ -18,7 +19,7 @@ public class LiveDashboardServiceTests : IDisposable
     public LiveDashboardServiceTests()
     {
         _db = TestDbContextFactory.Create();
-        _sut = new LiveDashboardService(_db, _bells);
+        _sut = new LiveDashboardService(_db, _bells, _tz);
     }
 
     public void Dispose() => _db.Dispose();
@@ -388,5 +389,30 @@ public class LiveDashboardServiceTests : IDisposable
             .Which.Status.Should()
             .Be(LiveLessonStatus.NoPairs);
         response.Counts.NoPairs.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetLiveAsync_NoDateAndNoAt_UsesMoscowToday()
+    {
+        var before = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _tz).Date;
+
+        var result = await _sut.GetLiveAsync(null, null, CancellationToken.None);
+
+        var after = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _tz).Date;
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Date.Should().BeOneOf(before, after);
+    }
+
+    [Fact]
+    public async Task GetLiveAsync_NoDate_TargetFollowsMoscowWallClock()
+    {
+        // 22:00 UTC — уже следующие сутки по МСК, но `at` передаётся как московское время суток.
+        var at = new DateTime(2030, 6, 10, 23, 30, 0);
+
+        var result = await _sut.GetLiveAsync(null, at, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Date.Should().Be(new DateTime(2030, 6, 10));
+        result.Data.Now.Should().Be(new TimeSpan(23, 30, 0));
     }
 }

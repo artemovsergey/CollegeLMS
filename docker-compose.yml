@@ -70,6 +70,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: http://+:8080
+      TimeZone: Europe/Moscow
       Jwt__Key: ${JWT_KEY}
       MaxBot__BaseUrl: http://maxbot:8080
       MaxBot__InternalSecret: ${MAXBOT_INTERNAL_SECRET:-}

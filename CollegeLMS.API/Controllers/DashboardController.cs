@@ -13,7 +13,8 @@ namespace CollegeLMS.API.Controllers;
 public class DashboardController(
     IDashboardService service,
     IDispatcherDashboardService dispatcherService,
-    ILiveDashboardService liveService
+    ILiveDashboardService liveService,
+    TimeZoneInfo tz
 ) : ControllerBase
 {
     [HttpGet("api/teacher/dashboard")]
@@ -99,7 +100,10 @@ public class DashboardController(
         CancellationToken ct
     )
     {
-        var result = await dispatcherService.GetDailyAsync(date ?? DateTime.UtcNow.Date, ct);
+        var result = await dispatcherService.GetDailyAsync(
+            date ?? TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).Date,
+            ct
+        );
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
         return Ok(result);
