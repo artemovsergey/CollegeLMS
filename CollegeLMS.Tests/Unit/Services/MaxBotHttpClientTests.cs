@@ -14,8 +14,9 @@ public class MaxBotHttpClientTests
     {
         public HttpRequestMessage? Last { get; private set; }
         public string? Secret { get; private set; }
+        public string? Body { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken
         )
@@ -24,12 +25,12 @@ public class MaxBotHttpClientTests
             Secret = request.Headers.TryGetValues("X-Internal-Secret", out var v)
                 ? v.First()
                 : null;
-            return Task.FromResult(
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(body, Encoding.UTF8, "application/json"),
-                }
-            );
+            if (request.Content is not null)
+                Body = await request.Content.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json"),
+            };
         }
     }
 
@@ -65,6 +66,33 @@ public class MaxBotHttpClientTests
     {
         var errorHandler = new StubHandler(HttpStatusCode.InternalServerError, "{}");
         var dto = await Build(errorHandler).GetInternalUserAsync(42, CancellationToken.None);
+
+        dto.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SetSelectionAsync_PostsSelectionWithSecret()
+    {
+        var groupId = Guid.NewGuid();
+        var handler = new CapturingHandler(
+            $$"""{"found":true,"maxUserId":42,"role":"student","groupId":"{{groupId}}","groupName":"ИС-21-1","teacherId":null,"teacherName":null}"""
+        );
+
+        var dto = await Build(handler).SetSelectionAsync(42, groupId, null, CancellationToken.None);
+
+        handler.Last!.Method.Should().Be(HttpMethod.Post);
+        handler.Last.RequestUri!.AbsolutePath.Should().Be("/maxbot/internal/selection");
+        handler.Secret.Should().Be("s3cr3t");
+        handler.Body.Should().Contain(groupId.ToString());
+        dto!.GroupName.Should().Be("ИС-21-1");
+    }
+
+    [Fact]
+    public async Task SetSelectionAsync_BotError_ReturnsNull()
+    {
+        var errorHandler = new StubHandler(HttpStatusCode.ServiceUnavailable, "{}");
+        var dto = await Build(errorHandler)
+            .SetSelectionAsync(42, null, Guid.NewGuid(), CancellationToken.None);
 
         dto.Should().BeNull();
     }

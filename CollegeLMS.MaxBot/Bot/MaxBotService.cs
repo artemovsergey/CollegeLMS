@@ -731,14 +731,12 @@ public class MaxBotService : BackgroundService
             return;
         }
 
-        var groupName =
-            settings.GroupId is { } groupId
-                ? (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == groupId)?.Name
-                : null;
-        var teacherName =
-            settings.TeacherId is { } teacherId
-                ? (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == teacherId)?.FullName
-                : null;
+        var groupName = settings.GroupId is { } groupId
+            ? (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == groupId)?.Name
+            : null;
+        var teacherName = settings.TeacherId is { } teacherId
+            ? (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == teacherId)?.FullName
+            : null;
 
         var (text, buttons) = BotScreens.MainMenuWithSelection(
             settings.Role,
@@ -764,14 +762,12 @@ public class MaxBotService : BackgroundService
             return;
         }
 
-        var groupName =
-            settings.GroupId is { } groupId
-                ? (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == groupId)?.Name
-                : null;
-        var teacherName =
-            settings.TeacherId is { } teacherId
-                ? (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == teacherId)?.FullName
-                : null;
+        var groupName = settings.GroupId is { } groupId
+            ? (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == groupId)?.Name
+            : null;
+        var teacherName = settings.TeacherId is { } teacherId
+            ? (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == teacherId)?.FullName
+            : null;
         var entity = groupName ?? teacherName ?? "не задан";
 
         var text = $"⚙️ *Настройки*\n\nТекущий выбор: {entity}";

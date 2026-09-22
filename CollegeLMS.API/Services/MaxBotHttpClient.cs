@@ -7,8 +7,9 @@ namespace CollegeLMS.API.Services;
 
 /// <summary>
 /// HTTP-клиент к боту Max. Отправляет изменения расписания на POST /notify,
-/// PNG-картинку корректировки на POST /notify/correction-image и запрашивает
-/// профиль MAX-пользователя на GET /maxbot/internal/users/{id}.
+/// PNG-картинку корректировки на POST /notify/correction-image, запрашивает
+/// профиль MAX-пользователя на GET /maxbot/internal/users/{id} и сохраняет
+/// выбор из мини-приложения на POST /maxbot/internal/selection.
 /// Fail-safe: недоступность бота не роняет подтверждение корректировки.
 /// </summary>
 public class MaxBotHttpClient(
@@ -44,6 +45,49 @@ public class MaxBotHttpClient(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "MaxBot недоступен — профиль MAX не получен");
+            return null;
+        }
+    }
+
+    public async Task<MaxInternalUserDto?> SetSelectionAsync(
+        long maxUserId,
+        Guid? groupId,
+        Guid? teacherId,
+        CancellationToken ct
+    )
+    {
+        try
+        {
+            var secret = config["MaxBot:InternalSecret"] ?? "";
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                "/maxbot/internal/selection"
+            )
+            {
+                Content = JsonContent.Create(
+                    new
+                    {
+                        maxUserId,
+                        groupId,
+                        teacherId,
+                    }
+                ),
+            };
+            if (!string.IsNullOrEmpty(secret))
+                request.Headers.Add("X-Internal-Secret", secret);
+
+            var resp = await http.SendAsync(request, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                logger.LogWarning("MaxBot internal selection вернул {Code}", resp.StatusCode);
+                return null;
+            }
+
+            return await resp.Content.ReadFromJsonAsync<MaxInternalUserDto>(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "MaxBot недоступен — выбор из мини-приложения не сохранён");
             return null;
         }
     }

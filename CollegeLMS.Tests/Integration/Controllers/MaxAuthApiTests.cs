@@ -267,4 +267,99 @@ public class MaxAuthApiTests : BaseIntegrationTest
         Assert.Equal(teacherId.ToString(), token.Claims.First(c => c.Type == "teacherId").Value);
         Assert.Null(token.Claims.FirstOrDefault(c => c.Type == "groupId"));
     }
+
+    [Fact]
+    public async Task Select_WithoutToken_Returns401()
+    {
+        var response = await Client.PostAsJsonAsync(
+            "/api/auth/max/selection",
+            new { groupId = Guid.NewGuid() }
+        );
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Select_TwoTargets_Returns400()
+    {
+        var client = ClientWithProfile(
+            new MaxInternalUserDto
+            {
+                Found = true,
+                MaxUserId = MaxUserId,
+                Role = "student",
+                GroupId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                GroupName = "ИС-21-1",
+            }
+        );
+        var token = await LoginTokenAsync(client);
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/max/selection",
+            new { groupId = Guid.NewGuid(), teacherId = Guid.NewGuid() }
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await DeserializeAsync<Result<MaxAuthResponse>>(response);
+        Assert.False(body!.IsSuccess);
+    }
+
+    [Fact]
+    public async Task Select_BotUnavailable_Returns503()
+    {
+        var client = ClientWithBot(HttpStatusCode.InternalServerError);
+        var token = await LoginTokenAsync(client);
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/max/selection",
+            new { groupId = Guid.NewGuid() }
+        );
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        var body = await DeserializeAsync<Result<MaxAuthResponse>>(response);
+        Assert.False(body!.IsSuccess);
+    }
+
+    [Fact]
+    public async Task Select_ValidRequest_ReturnsFreshTokenWithSelection()
+    {
+        var groupId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var client = ClientWithProfile(
+            new MaxInternalUserDto
+            {
+                Found = true,
+                MaxUserId = MaxUserId,
+                Role = "student",
+                GroupId = groupId,
+                GroupName = "ИС-22-2",
+            }
+        );
+        var token = await LoginTokenAsync(client);
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+
+        var response = await client.PostAsJsonAsync("/api/auth/max/selection", new { groupId });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeAsync<Result<MaxAuthResponse>>(response);
+        Assert.True(body!.IsSuccess);
+        Assert.Equal("ИС-22-2", body.Data!.Profile.GroupName);
+        Assert.Equal(groupId, body.Data.Profile.GroupId);
+
+        var freshToken = new JwtSecurityTokenHandler().ReadJwtToken(body.Data.Token);
+        Assert.Equal("Student", freshToken.Claims.First(c => c.Type == ClaimTypes.Role).Value);
+        Assert.Equal(groupId.ToString(), freshToken.Claims.First(c => c.Type == "groupId").Value);
+    }
+
+    private async Task<string> LoginTokenAsync(HttpClient client)
+    {
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/max",
+            new { initData = BuildInitData(MaxUserId, DateTimeOffset.UtcNow) }
+        );
+        response.EnsureSuccessStatusCode();
+        var body = await DeserializeAsync<Result<MaxAuthResponse>>(response);
+        return body!.Data!.Token;
+    }
 }
