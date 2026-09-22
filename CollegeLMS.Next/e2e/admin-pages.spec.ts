@@ -102,6 +102,11 @@ test.describe("MAX mini-app preview page", () => {
     ).toBeVisible()
     // Рамка мини-приложения присутствует (содержимое iframe не проверяем).
     await expect(page.getByTitle("Мини-апп MAX")).toBeVisible()
+    // Превью показывает страницу расписания веб-версии в embed-режиме (без шапки CRM).
+    await expect(page.getByTitle("Мини-апп MAX")).toHaveAttribute(
+      "src",
+      /\/schedule\?embed=1/
+    )
 
     // Пункт меню виден в навигации администратора.
     await page.getByRole("button", { name: "Меню" }).click()

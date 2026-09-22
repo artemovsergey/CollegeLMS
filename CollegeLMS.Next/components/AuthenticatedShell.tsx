@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth"
@@ -32,6 +32,13 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
   const [cpSubmitting, setCpSubmitting] = useState(false)
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  // Embed-режим (?embed=1): прячем шапку CRM, чтобы страницу можно было
+  // показать в телефонной рамке превью мини-приложения.
+  const [embed, setEmbed] = useState(false)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    setEmbed(new URLSearchParams(window.location.search).get("embed") === "1")
+  }, [])
 
   const isActive = (href: string) => pathname === href || (href !== "/admin" && pathname.startsWith(href + "/"))
 
@@ -74,7 +81,8 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-border bg-bg">
+      {!embed && (
+        <header className="sticky top-0 z-30 border-b border-border bg-bg">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <button
@@ -105,6 +113,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
           </button>
         </div>
       </header>
+      )}
 
       {/* Left drawer (menu) */}
       {menuOpen && (

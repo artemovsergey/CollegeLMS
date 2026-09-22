@@ -93,6 +93,11 @@ export default function SchedulePage() {
   const hasUrlDateRef = useRef(false)
   const hasUrlWeekRef = useRef(false)
   const hasUrlMonthRef = useRef(false)
+  const urlGroupRef = useRef<string | null>(null)
+  const urlTeacherRef = useRef<string | null>(null)
+  // Embed-режим для превью: страница открыта в телефонной рамке,
+  // в этом режиме URL не перезаписывается.
+  const [embed, setEmbed] = useState(false)
 
   const canManage = user?.roles
     ? user.roles.some((role) => CAN_MANAGE_ROLES.includes(role))
@@ -141,6 +146,20 @@ export default function SchedulePage() {
       setSelectedWeek(weekParam)
       hasUrlWeekRef.current = true
     }
+
+    // Цель просмотра из query (превью мини-аппа) приоритетнее контекста роли.
+    const groupParam = sp.get("groupId")
+    const teacherParam = sp.get("teacherId")
+    if (groupParam) {
+      urlGroupRef.current = groupParam
+      setSelectedGroupId(groupParam)
+      setSelectedTeacherId("")
+    } else if (teacherParam) {
+      urlTeacherRef.current = teacherParam
+      setSelectedTeacherId(teacherParam)
+      setSelectedGroupId("")
+    }
+    if (sp.get("embed") === "1") setEmbed(true)
 
     // Переход из раздела «Изменения»: ?week=5&day=3 → «День» с вычисленной датой.
     // ChangeCard формирует day как смещение от понедельника (Пн=0…Вс=6),
@@ -217,6 +236,14 @@ export default function SchedulePage() {
         setDefaultTeacherId(teacherId)
         setSelectedGroupId(groupId)
         setSelectedTeacherId(teacherId)
+        // Значения из query (превью) важнее дефолта роли.
+        if (urlGroupRef.current) {
+          setSelectedGroupId(urlGroupRef.current)
+          setSelectedTeacherId("")
+        } else if (urlTeacherRef.current) {
+          setSelectedTeacherId(urlTeacherRef.current)
+          setSelectedGroupId("")
+        }
       })
       .catch(() => undefined)
       .finally(() => {
@@ -254,7 +281,8 @@ export default function SchedulePage() {
 
   // Синхронизация состояния с URL без перезагрузки страницы.
   useEffect(() => {
-    if (!urlReady || typeof window === "undefined") return
+    // В embed-режиме URL не трогаем: иначе потеряются embed и фильтр превью.
+    if (!urlReady || embed || typeof window === "undefined") return
     const params = new URLSearchParams()
     params.set("view", view)
     if (view === "day") params.set("date", selectedDate)
@@ -265,7 +293,7 @@ export default function SchedulePage() {
       "",
       `${window.location.pathname}?${params.toString()}`,
     )
-  }, [urlReady, view, selectedDate, selectedWeek, selectedMonth])
+  }, [urlReady, embed, view, selectedDate, selectedWeek, selectedMonth])
 
   const handleViewChange = (mode: ScheduleViewMode) => {
     setView(mode)
