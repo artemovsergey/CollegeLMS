@@ -46,7 +46,8 @@ public class JwtTokenService(IConfiguration config) : ITokenService
     public string GenerateCustomToken(
         IReadOnlyCollection<string> roles,
         int lifetimeMinutes,
-        string nameIdentifier
+        string nameIdentifier,
+        IEnumerable<Claim>? extraClaims = null
     )
     {
         var claims = new List<Claim>
@@ -56,6 +57,8 @@ public class JwtTokenService(IConfiguration config) : ITokenService
         };
         foreach (var role in roles)
             claims.Add(new Claim(ClaimTypes.Role, role));
+        if (extraClaims is not null)
+            claims.AddRange(extraClaims);
 
         var key = Encoding.UTF8.GetBytes(config["Jwt:Key"]!);
         var issuer = config["Jwt:Issuer"] ?? "CollegeLMS";
