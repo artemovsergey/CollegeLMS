@@ -70,6 +70,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<PracticeNotifier>(
 builder.Services.AddScoped<ChangeNotifier>();
 builder.Services.AddScoped<CorrectionImageSender>();
 builder.Services.AddScoped<InternalProfileService>();
+builder.Services.AddScoped<InternalSelectionService>();
 
 // Очередь апдейтов от вебхука MAX
 builder.Services.AddSingleton<MaxUpdateQueue>();
@@ -291,6 +292,39 @@ app.MapGet(
             return Results.Unauthorized();
 
         var profile = await profileService.GetAsync(maxUserId, ct);
+        return Results.Ok(profile);
+    }
+);
+
+// Выбор группы/преподавателя из мини-приложения: сохраняет выбор в user_settings
+// и отправляет в чат экран выбора. Guard как у чтения профиля (fail-closed).
+app.MapPost(
+    "/maxbot/internal/selection",
+    async (
+        InternalSelectionRequest request,
+        HttpRequest http,
+        InternalSelectionService selectionService,
+        IOptions<MaxBotOptions> options,
+        CancellationToken ct
+    ) =>
+    {
+        var provided = http.Headers["X-Internal-Secret"].ToString();
+        if (string.IsNullOrWhiteSpace(options.Value.InternalSecret))
+            return Results.Unauthorized();
+        if (!WebhookSecretValidator.IsValid(options.Value.InternalSecret, provided))
+            return Results.Unauthorized();
+
+        if ((request.GroupId is null) == (request.TeacherId is null))
+            return Results.BadRequest(
+                new { error = "Нужно указать ровно одну цель: группу или преподавателя." }
+            );
+
+        var profile = await selectionService.SetAsync(
+            request.MaxUserId,
+            request.GroupId,
+            request.TeacherId,
+            ct
+        );
         return Results.Ok(profile);
     }
 );
