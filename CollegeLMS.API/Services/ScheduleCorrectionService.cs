@@ -8,6 +8,7 @@ using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Mappers;
 using CollegeLMS.API.Response;
 using Microsoft.EntityFrameworkCore;
+using Group = CollegeLMS.API.Entities.Group;
 
 namespace CollegeLMS.API.Services;
 
@@ -258,6 +259,7 @@ public class ScheduleCorrectionService(
         }
 
         var week = StudyWeek.ForDate(date);
+        var allGroups = await db.Groups.AsNoTracking().ToListAsync(ct);
 
         for (int row = 7; row <= lastRow; row++)
         {
@@ -344,9 +346,20 @@ public class ScheduleCorrectionService(
                 continue;
             }
 
-            var group = await db
-                .Groups.AsNoTracking()
-                .FirstOrDefaultAsync(g => g.Name == groupName, ct);
+            var (group, ambiguous) = ResolveGroup(groupName, allGroups);
+            if (ambiguous)
+            {
+                errors.Add(
+                    Error(
+                        row,
+                        1,
+                        "data",
+                        $"Строка {row}: группа «{groupName}» неоднозначна — совпадает с несколькими группами в системе."
+                    )
+                );
+                continue;
+            }
+
             if (group is null)
             {
                 errors.Add(
@@ -691,25 +704,19 @@ public class ScheduleCorrectionService(
         if (entries.Count == 0)
             return;
 
-        var groupNames = entries
-            .Where(e => e.GroupId == Guid.Empty && e.GroupName.Length > 0)
-            .Select(e => e.GroupName)
-            .Distinct()
-            .ToList();
-        if (groupNames.Count > 0)
+        var groups = await db.Groups.AsNoTracking().ToListAsync(ct);
+        foreach (var entry in entries)
         {
-            var groupIds = await db
-                .Groups.AsNoTracking()
-                .Where(g => groupNames.Contains(g.Name))
-                .ToDictionaryAsync(g => g.Name, g => g.Id, ct);
-            foreach (var entry in entries)
+            if (entry.GroupId != Guid.Empty || string.IsNullOrWhiteSpace(entry.GroupName))
+                continue;
+
+            var (group, ambiguous) = ResolveGroup(entry.GroupName, groups);
+            if (group is not null)
             {
-                if (
-                    entry.GroupId == Guid.Empty
-                    && groupIds.TryGetValue(entry.GroupName, out var groupId)
-                )
-                    entry.GroupId = groupId;
+                entry.GroupId = group.Id;
+                entry.GroupName = group.Name;
             }
+            // При неоднозначности GroupId не проставляем — ошибка всплывёт при применении.
         }
 
         var teacherNames = entries
@@ -748,6 +755,34 @@ public class ScheduleCorrectionService(
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Ищет группу по имени: сначала точное совпадение (без учёта регистра),
+    /// затем по нормализованному ключу («ИП 235» → «ИП235»). Если ключу
+    /// соответствуют несколько разных групп — возвращает признак неоднозначности.
+    /// </summary>
+    private static (Group? Group, bool Ambiguous) ResolveGroup(
+        string name,
+        IReadOnlyList<Group> groups
+    )
+    {
+        var exact = groups.FirstOrDefault(g =>
+            string.Equals(g.Name, name, StringComparison.OrdinalIgnoreCase)
+        );
+        if (exact is not null)
+            return (exact, false);
+
+        var key = ScheduleImportService.GroupLookupKey(name);
+        var matches = groups
+            .Where(g => ScheduleImportService.GroupLookupKey(g.Name) == key)
+            .ToList();
+        return matches.Count switch
+        {
+            1 => (matches[0], false),
+            > 1 => (null, true),
+            _ => (null, false),
+        };
     }
 
     private static int? ParsePair(XLCellValue pairValue)

@@ -151,6 +151,13 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
     }
 
     /// <summary>
+    /// Ключ сопоставления групп: регистр, пробелы и разделители не учитываются,
+    /// поэтому «ИП 235», «ип-235» и «ИП235» указывают на одну группу.
+    /// </summary>
+    internal static string GroupLookupKey(string name) =>
+        Regex.Replace(name.Trim().ToUpperInvariant(), @"[\s\-–—‑\.]+", "");
+
+    /// <summary>
     /// Ключ сопоставления преподавателей: регистр и «ё/е» не учитываются,
     /// поэтому варианты «петров П.П.», «Петров П.П.» и «Пётр П.П.» находят одного пользователя.
     /// </summary>

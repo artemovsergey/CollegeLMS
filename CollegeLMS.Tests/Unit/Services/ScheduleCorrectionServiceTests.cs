@@ -198,6 +198,112 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PreviewAsync_GroupNameWithExtraSpaces_ResolvesAndCanonicalizes()
+    {
+        var group = await SeedGroupAsync("ИП235");
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = "ИП 235";
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Should().BeEmpty();
+
+            var entry = result.Data!.Entries.Should().ContainSingle().Subject;
+            entry.GroupId.Should().Be(group.Id);
+            entry.GroupName.Should().Be("ИП235");
+
+            var all = result.Data!.AllEntries.Should().ContainSingle().Subject;
+            all.GroupId.Should().Be(group.Id);
+            all.GroupName.Should().Be("ИП235");
+        }
+    }
+
+    [Fact]
+    public async Task PreviewAsync_GroupNameLowerCaseWithDash_ResolvesCanonicalGroup()
+    {
+        var group = await SeedGroupAsync("ИП235");
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = "ип-235";
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Should().BeEmpty();
+            result.Data!.Entries.Should().ContainSingle().Subject.GroupId.Should().Be(group.Id);
+        }
+    }
+
+    [Fact]
+    public async Task PreviewAsync_ExactMatchWinsOverNormalizedDuplicate()
+    {
+        var exact = await SeedGroupAsync("ИП 235");
+        await SeedGroupAsync("ИП235");
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = "ИП 235";
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Should().BeEmpty();
+            result.Data!.Entries.Should().ContainSingle().Subject.GroupId.Should().Be(exact.Id);
+        }
+    }
+
+    [Fact]
+    public async Task PreviewAsync_AmbiguousNormalizedGroup_ReturnsDataError()
+    {
+        await SeedGroupAsync("ИП235");
+        await SeedGroupAsync("ИП 235");
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = "ип-235";
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            var error = result.Data!.Errors.Should().ContainSingle().Subject;
+            error.Level.Should().Be("data");
+            error.Message.Should().Contain("неоднознач");
+        }
+    }
+
+    [Fact]
     public async Task PreviewAsync_AddOnBusyPair_AddsEntryAnyway()
     {
         var group = await SeedGroupAsync();
