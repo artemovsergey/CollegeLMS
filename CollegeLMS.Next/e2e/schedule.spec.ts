@@ -157,11 +157,11 @@ test.describe("Schedule page toolbar", () => {
     await page.goto("/schedule?view=week&week=4", { waitUntil: "networkidle" })
     const downloadPromise = page.waitForEvent("download")
     await page.getByRole("button", { name: "Экспорт расписания" }).click()
-    // Radix-меню выбираем с клавиатуры: пункт «Excel — сетка» — третий в списке.
-    await page.keyboard.press("ArrowDown")
-    await page.keyboard.press("ArrowDown")
-    await page.keyboard.press("ArrowDown")
-    await page.keyboard.press("Enter")
+    // Меню должно быть у экрана: Radix позиционирует его только тогда, когда
+    // триггер пробрасывает ref (иначе оно уезжает за пределы вьюпорта).
+    const item = page.getByRole("menuitem", { name: "Excel — сетка" })
+    await expect(item).toBeInViewport()
+    await item.click()
     const download = await downloadPromise
 
     expect(download.suggestedFilename()).toBe("Расписание_неделя_4.xlsx")
@@ -182,9 +182,9 @@ test.describe("Schedule page toolbar", () => {
     await page.goto("/schedule?view=week&week=4", { waitUntil: "networkidle" })
     const downloadPromise = page.waitForEvent("download")
     await page.getByRole("button", { name: "Экспорт расписания" }).click()
-    // Radix-меню выбираем с клавиатуры: пункт «PDF — сетка» — первый в списке.
-    await page.keyboard.press("ArrowDown")
-    await page.keyboard.press("Enter")
+    const item = page.getByRole("menuitem", { name: "PDF — сетка" })
+    await expect(item).toBeInViewport()
+    await item.click()
     const download = await downloadPromise
 
     expect(download.suggestedFilename()).toBe("schedule-grid.pdf")
