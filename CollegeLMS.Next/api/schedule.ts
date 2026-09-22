@@ -378,6 +378,30 @@ export async function deleteSchedule(
   return data
 }
 
+/**
+ * Достаёт имя файла из заголовка Content-Disposition.
+ * Сервер отдаёт оба варианта (`filename=` с ASCII-заглушкой и `filename*=UTF-8''`
+ * с кириллицей) — приоритет у второго, иначе в a.download попадал «хвост» заголовка.
+ */
+function parseDownloadFilename(
+  disposition: string | null,
+  fallback: string,
+): string {
+  if (!disposition) return fallback
+
+  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+  if (encoded?.[1]) {
+    try {
+      return decodeURIComponent(encoded[1].trim())
+    } catch {
+      return fallback
+    }
+  }
+
+  const plain = disposition.match(/filename="?([^";]+)"?/i)
+  return plain?.[1]?.trim() || fallback
+}
+
 export async function exportSchedule(
   filters: ScheduleFilters,
   format: "pdf" | "xlsx",
@@ -410,8 +434,7 @@ export async function exportSchedule(
 
   const blob = await response.blob()
   const disposition = response.headers.get("Content-Disposition")
-  const match = disposition?.match(/filename="?(.+?)"?$/)
-  const filename = match?.[1] ?? `schedule.${format}`
+  const filename = parseDownloadFilename(disposition, `schedule.${format}`)
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
@@ -419,7 +442,8 @@ export async function exportSchedule(
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
-  window.URL.revokeObjectURL(url)
+  // Отзываем ссылку с задержкой: синхронный revoke может прервать скачивание.
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 10_000)
 }
 
 export async function previewScheduleImport(

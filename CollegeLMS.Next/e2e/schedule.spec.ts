@@ -135,4 +135,58 @@ test.describe("Schedule page toolbar", () => {
       page.getByRole("button", { name: "Экспорт расписания" })
     ).toHaveCount(0)
   })
+
+  test("Экспорт: имя файла берётся из filename* (кириллица)", async ({
+    page,
+  }) => {
+    await page.route("**/api/schedule/export**", (route) =>
+      route.fulfill({
+        status: 200,
+        headers: {
+          "content-type":
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          // Как отдаёт nginx/API: ASCII-фолбэк для старых клиентов + filename* с кириллицей.
+          "content-disposition":
+            "attachment; filename=________________23.09.2026_11-00-00.xlsx; filename*=UTF-8''" +
+            encodeURIComponent("Расписание_неделя_4.xlsx"),
+        },
+        body: "PK\u0003\u0004",
+      })
+    )
+
+    await page.goto("/schedule?view=week&week=4", { waitUntil: "networkidle" })
+    const downloadPromise = page.waitForEvent("download")
+    await page.getByRole("button", { name: "Экспорт расписания" }).click()
+    // Radix-меню выбираем с клавиатуры: пункт «Excel — сетка» — третий в списке.
+    await page.keyboard.press("ArrowDown")
+    await page.keyboard.press("ArrowDown")
+    await page.keyboard.press("ArrowDown")
+    await page.keyboard.press("Enter")
+    const download = await downloadPromise
+
+    expect(download.suggestedFilename()).toBe("Расписание_неделя_4.xlsx")
+  })
+
+  test("Экспорт: имя файла из filename= без filename*", async ({ page }) => {
+    await page.route("**/api/schedule/export**", (route) =>
+      route.fulfill({
+        status: 200,
+        headers: {
+          "content-type": "application/pdf",
+          "content-disposition": 'attachment; filename="schedule-grid.pdf"',
+        },
+        body: "%PDF-1.4",
+      })
+    )
+
+    await page.goto("/schedule?view=week&week=4", { waitUntil: "networkidle" })
+    const downloadPromise = page.waitForEvent("download")
+    await page.getByRole("button", { name: "Экспорт расписания" }).click()
+    // Radix-меню выбираем с клавиатуры: пункт «PDF — сетка» — первый в списке.
+    await page.keyboard.press("ArrowDown")
+    await page.keyboard.press("Enter")
+    const download = await downloadPromise
+
+    expect(download.suggestedFilename()).toBe("schedule-grid.pdf")
+  })
 })
