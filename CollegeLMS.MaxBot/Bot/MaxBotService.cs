@@ -293,52 +293,34 @@ public class MaxBotService : BackgroundService
             db.UserSettings.Add(existing);
             await db.SaveChangesAsync(ct);
         }
+        else if (existing.MaxChatId != chatId)
+        {
+            // Выбор мог быть сделан из мини-приложения до первого /start —
+            // без актуального чата бот не сможет доставить сообщение.
+            existing.MaxChatId = chatId;
+            existing.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
 
         if (MaxBotRoleFlow.RequiresOnboarding(existing))
-        {
-            await ShowRoleSelectionAsync(chatId, ct, onboarding: true);
-            return;
-        }
+            await ShowWelcomeAsync(chatId, ct);
 
         await ShowMainMenuAsync(chatId, userId, ct);
     }
 
-    private async Task ShowRoleSelectionAsync(
-        long chatId,
-        CancellationToken ct,
-        bool onboarding = false
-    )
-    {
-        var rolePrefix = onboarding ? "onboard:role" : "role";
-        var keyboard = new List<List<MaxButton>>
-        {
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "callback",
-                    Text = "🎓 Студент",
-                    Payload = $"{rolePrefix}:student",
-                },
-            },
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "callback",
-                    Text = "👨‍🏫 Преподаватель",
-                    Payload = $"{rolePrefix}:teacher",
-                },
-            },
-        };
-
-        await _max.SendInlineKeyboardAsync(
+    /// <summary>Приветствие при первом запуске: название бота, описание и основные функции.</summary>
+    private async Task ShowWelcomeAsync(long chatId, CancellationToken ct) =>
+        await _max.SendMessageAsync(
             chatId,
-            "👋 Привет! Я бот расписания.\n\nВыбери свою роль:",
-            keyboard,
+            "📚 *Расписание колледжа*\n\n"
+                + "Я бот расписания: слежу за изменениями и присылаю расписание на день.\n\n"
+                + "Что умею:\n"
+                + "• 📅 открывать расписание на день и неделю в мини-приложении;\n"
+                + "• 🔔 присылать расписание на день и уведомления об изменениях;\n"
+                + "• ⭐ хранить избранные группы и преподавателей.\n\n"
+                + "Выбери, кто ты, и найди себя поиском.",
             ct: ct
         );
-    }
 
     private async Task HandleMessageAsync(
         long chatId,
@@ -374,7 +356,7 @@ public class MaxBotService : BackgroundService
                 chatId,
                 "🤖 *Бот расписания*\n\n"
                     + "Всё управление — кнопками под сообщениями.\n"
-                    + "/start — начать заново\n"
+                    + "/start — главное меню\n"
                     + "/settings — настройки\n"
                     + "/help — справка",
                 ct: ct
@@ -451,9 +433,6 @@ public class MaxBotService : BackgroundService
             case "teacher":
                 await HandleTeacherSelectionAsync(chatId, userId, p.Param1!, ct);
                 break;
-            case "onboard":
-                await HandleOnboardingCallbackAsync(chatId, userId, p, ct);
-                break;
             case "settings":
                 if (p.Param1 is "student" or "teacher")
                     await StartSearchAsync(chatId, userId, p.Param1, ct);
@@ -463,9 +442,6 @@ public class MaxBotService : BackgroundService
             case "sresult":
                 if (p.Param1 is "group" or "teacher")
                     await ShowSearchResultsAsync(chatId, userId, ParsePage(p.Param2), ct);
-                break;
-            case "role-choice":
-                await ShowRoleSelectionAsync(chatId, ct);
                 break;
             case "notifications":
                 await ShowNotificationsAsync(chatId, userId, ct);
@@ -486,28 +462,6 @@ public class MaxBotService : BackgroundService
         }
     }
 
-    /// <summary>Онбординг: выбор роли, группы/преподавателя и подтверждение после выбора.</summary>
-    private async Task HandleOnboardingCallbackAsync(
-        long chatId,
-        long userId,
-        CallbackPayload payload,
-        CancellationToken ct
-    )
-    {
-        switch (payload.Param1)
-        {
-            case "role":
-                if (payload.Param2 is "student" or "teacher")
-                    await HandleRoleSelectionAsync(chatId, userId, payload.Param2, ct);
-                else
-                    await ShowMainMenuAsync(chatId, userId, ct);
-                break;
-            default:
-                await ShowMainMenuAsync(chatId, userId, ct);
-                break;
-        }
-    }
-
     /// <summary>Номер страницы из payload; отсутствие/мусор — первая страница.</summary>
     private static int ParsePage(string? value) =>
         value is not null && int.TryParse(value, out var page) && page >= 0 ? page : 0;
@@ -520,7 +474,8 @@ public class MaxBotService : BackgroundService
     ) => await StartSearchAsync(chatId, userId, role == "teacher" ? "teacher" : "student", ct);
 
     /// <summary>
-    /// Сохраняет роль и запускает поиск: студент ищет группу, преподаватель — себя в списке.
+    /// Запускает поиск: студент ищет группу, преподаватель — себя в списке.
+    /// Роль и цель меняются только при подтверждении выбора.
     /// </summary>
     private async Task StartSearchAsync(
         long chatId,
@@ -532,13 +487,9 @@ public class MaxBotService : BackgroundService
         using var scope = _sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MaxBotDbContext>();
 
-        var settings = await db.UserSettings.FirstOrDefaultAsync(x => x.MaxUserId == userId, ct);
-        if (settings is null)
+        var registered = await db.UserSettings.AnyAsync(x => x.MaxUserId == userId, ct);
+        if (!registered)
             return;
-
-        MaxBotRoleFlow.ApplyRole(settings, target);
-        settings.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
 
         _searchStates[userId] = new SearchState { Target = target };
 
@@ -697,12 +648,6 @@ public class MaxBotService : BackgroundService
         await db.SaveChangesAsync(ct);
         _searchStates.Remove(userId);
 
-        var name = (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == id)?.Name;
-        await _max.SendMessageAsync(
-            chatId,
-            name is null ? "✅ Готово! Группа сохранена." : $"✅ Готово! Ты студент группы {name}.",
-            ct: ct
-        );
         await ShowMainMenuAsync(chatId, userId, ct);
     }
 
@@ -726,14 +671,6 @@ public class MaxBotService : BackgroundService
         await db.SaveChangesAsync(ct);
         _searchStates.Remove(userId);
 
-        var name = (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == id)?.FullName;
-        await _max.SendMessageAsync(
-            chatId,
-            name is null
-                ? "✅ Готово! Преподаватель сохранён."
-                : $"✅ Готово! Преподаватель: {name}.",
-            ct: ct
-        );
         await ShowMainMenuAsync(chatId, userId, ct);
     }
 
@@ -753,48 +690,64 @@ public class MaxBotService : BackgroundService
             return;
         }
 
-        var roleLabel = settings.Role == "student" ? "Студент" : "Преподаватель";
-        var entityLabel = settings.Role == "student" ? "Группа" : "Преподаватель";
-        var entity = "не выбран";
-        if (settings.GroupId is { } groupId)
-            entity =
-                (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == groupId)?.Name
-                ?? "группа";
-        else if (settings.TeacherId is { } teacherId)
-            entity =
-                (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == teacherId)?.FullName
-                ?? "преподаватель";
-
-        var notifyStatus = settings.NotifyEnabled ? "включены ✅" : "выключены ❌";
-
-        var buttons = new List<List<MaxButton>>
+        if ((settings.GroupId ?? settings.TeacherId) is null)
         {
-            new() { MiniAppButtons.OpenSchedule(_options) },
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "callback",
-                    Text = "🔔 Уведомления",
-                    Payload = "notifications",
-                },
-            },
-            new List<MaxButton>
-            {
-                new()
-                {
-                    Type = "callback",
-                    Text = "⚙️ Настройки",
-                    Payload = "settings",
-                },
-            },
-        };
+            await _max.SendInlineKeyboardAsync(
+                chatId,
+                "🏠 *Главное меню*\n\n"
+                    + "Текущий выбор: не задан\n\n"
+                    + "Выбери, кто ты, и найди себя поиском.",
+                [
+                    new List<MaxButton>
+                    {
+                        new()
+                        {
+                            Type = "callback",
+                            Text = "🎓 Студент",
+                            Payload = "role:student",
+                        },
+                    },
+                    new List<MaxButton>
+                    {
+                        new()
+                        {
+                            Type = "callback",
+                            Text = "👨‍🏫 Преподаватель",
+                            Payload = "role:teacher",
+                        },
+                    },
+                    new List<MaxButton>
+                    {
+                        new()
+                        {
+                            Type = "callback",
+                            Text = "⚙️ Настройки",
+                            Payload = "settings",
+                        },
+                    },
+                ],
+                ct: ct
+            );
+            return;
+        }
 
-        var text =
-            $"🏠 *Главное меню*\n\n"
-            + $"Роль: {roleLabel}\n"
-            + $"{entityLabel}: {entity}\n"
-            + $"Уведомления: {notifyStatus}";
+        var groupName =
+            settings.GroupId is { } groupId
+                ? (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == groupId)?.Name
+                : null;
+        var teacherName =
+            settings.TeacherId is { } teacherId
+                ? (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == teacherId)?.FullName
+                : null;
+
+        var (text, buttons) = BotScreens.MainMenuWithSelection(
+            settings.Role,
+            settings.GroupId,
+            settings.TeacherId,
+            groupName,
+            teacherName,
+            _options
+        );
 
         await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
     }
@@ -811,18 +764,29 @@ public class MaxBotService : BackgroundService
             return;
         }
 
-        var roleLabel = settings.Role == "student" ? "Студент" : "Преподаватель";
-        var hasEntity = (settings.GroupId ?? settings.TeacherId) is not null;
+        var groupName =
+            settings.GroupId is { } groupId
+                ? (await _api.GetGroupsAsync(ct)).FirstOrDefault(g => g.Id == groupId)?.Name
+                : null;
+        var teacherName =
+            settings.TeacherId is { } teacherId
+                ? (await _api.GetTeachersAsync(ct)).FirstOrDefault(t => t.Id == teacherId)?.FullName
+                : null;
+        var entity = groupName ?? teacherName ?? "не задан";
 
-        var text =
-            $"⚙️ *Настройки*\n\n"
-            + $"Роль: {roleLabel}\n"
-            + $"Группа/Преподаватель: {(hasEntity ? "✅ выбран" : "❌ не выбран")}\n\n"
-            + "Выбери, кто ты, — и найди себя поиском.";
+        var text = $"⚙️ *Настройки*\n\nТекущий выбор: {entity}";
 
         var buttons = new List<List<MaxButton>>
         {
-            new() { MiniAppButtons.OpenSchedule(_options) },
+            new List<MaxButton>
+            {
+                new()
+                {
+                    Type = "callback",
+                    Text = "🔔 Уведомления",
+                    Payload = "notifications",
+                },
+            },
             new List<MaxButton>
             {
                 new()
@@ -871,14 +835,15 @@ public class MaxBotService : BackgroundService
             ", ",
             settings.NotifyDays.Select(d => MessageFormatter.GetShortDayLabel(d))
         );
-        var status = settings.NotifyEnabled ? "включены ✅" : "выключены ❌";
+        var status = settings.NotifyEnabled ? "включено ✅" : "выключено ❌";
 
         var text =
             $"🔔 *Уведомления*\n\n"
-            + $"Статус: {status}\n"
+            + $"Расписание на день: {status}\n"
             + $"Дни: {notifyDays}\n"
-            + $"⏰ Время дайджеста: {settings.NotifyTime:hh\\:mm} (МСК)\n\n"
-            + $"Нажми на день, чтобы включить или выключить его. Время меняется кнопками ±5 минут.";
+            + $"⏰ Время до начала занятий: {settings.NotifyTime:hh\\:mm} (МСК)\n\n"
+            + "Нажми на день, чтобы включить или выключить его. "
+            + "Время меняется кнопками ±5 минут (07:30–08:30).";
 
         var buttons = new List<List<MaxButton>>
         {
@@ -921,8 +886,8 @@ public class MaxBotService : BackgroundService
                 new()
                 {
                     Type = "callback",
-                    Text = "🔙 Меню",
-                    Payload = "menu",
+                    Text = "🔙 Назад",
+                    Payload = "settings",
                 },
             }
         );

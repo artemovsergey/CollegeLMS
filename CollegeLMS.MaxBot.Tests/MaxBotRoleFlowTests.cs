@@ -44,30 +44,6 @@ public class MaxBotRoleFlowTests
     }
 
     [Fact]
-    public void ApplyRole_Teacher_ClearsGroupId()
-    {
-        var settings = SettingsWithBothEntities();
-
-        MaxBotRoleFlow.ApplyRole(settings, "teacher");
-
-        settings.Role.Should().Be("teacher");
-        settings.TeacherId.Should().NotBeNull();
-        settings.GroupId.Should().BeNull();
-    }
-
-    [Fact]
-    public void ApplyRole_Student_ClearsTeacherId()
-    {
-        var settings = SettingsWithBothEntities();
-
-        MaxBotRoleFlow.ApplyRole(settings, "student");
-
-        settings.Role.Should().Be("student");
-        settings.GroupId.Should().NotBeNull();
-        settings.TeacherId.Should().BeNull();
-    }
-
-    [Fact]
     public void SelectGroup_SetsRoleStudentAndClearsTeacherId()
     {
         var settings = SettingsWithBothEntities();
