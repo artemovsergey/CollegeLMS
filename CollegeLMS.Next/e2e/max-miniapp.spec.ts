@@ -267,17 +267,26 @@ test.describe("MAX mini-app", () => {
   })
 
   test("MAX initData: гость входит и видит расписание", async ({ page }) => {
-    await page.addInitScript(() => {
+    // Счётчик обращений к моку: без реального обмена initData запрос не состоится.
+    let authRequests = 0
+    const MAX_TOKEN = "max-jwt"
+    const MAX_INIT_DATA = "auth_date=1&user=%7B%22id%22%3A1%7D&hash=stub"
+    await page.addInitScript((initData) => {
+      // Бридж MAX при загрузке перезаписывает window.WebApp и берёт initData
+      // из sessionStorage.WebAppData — дублируем туда, чтобы вход не зависел
+      // от порядка загрузки бриджа.
+      sessionStorage.setItem("WebAppData", initData)
       ;(window as unknown as { WebApp?: unknown }).WebApp = {
-        initData: "auth_date=1&user=%7B%22id%22%3A1%7D&hash=stub",
+        initData,
         initDataUnsafe: {},
       }
-    })
-    await page.route("**/api/auth/max", (route) =>
-      route.fulfill(
+    }, MAX_INIT_DATA)
+    await page.route("**/api/auth/max", (route) => {
+      authRequests += 1
+      return route.fulfill(
         inlineJson(
           ok({
-            token: "max-jwt",
+            token: MAX_TOKEN,
             profile: {
               maxUserId: 1,
               fullName: "Гость",
@@ -289,13 +298,25 @@ test.describe("MAX mini-app", () => {
             },
           }),
         ),
-      ),
-    )
+      )
+    })
 
     await page.goto("/max/schedule", { waitUntil: "networkidle" })
 
     await expect(page.locator(".max-app__tabbar")).toBeVisible()
     await expect(page.getByText("Расписание")).toBeVisible()
+
+    // Анонимный /max рендерит тот же таббар, поэтому проверяем сам факт входа:
+    // обмен initData состоялся и выданный токен сохранён в localStorage.
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("token")), {
+        message: "токен, выданный /api/auth/max, должен быть сохранён",
+      })
+      .toBe(MAX_TOKEN)
+    // В dev React Strict Mode монтирует провайдер дважды (поэтому и запросы
+    // /api/schedule дублируются), так что эффект reload() вызывается дважды —
+    // проверяем, что обмен initData действительно состоялся.
+    expect(authRequests).toBeGreaterThanOrEqual(1)
   })
 
   test("MAX initData: роль Teacher показывает вкладку Журнал", async ({ page }) => {
