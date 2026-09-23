@@ -7,9 +7,17 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 })
 
+// В разделе мини-приложения /max используется MAX-JWT (отдельный ключ),
+// в остальном CRM — обычный CRM-токен. Если MAX-токена нет, падаем на CRM.
+function isMaxPath(): boolean {
+  return typeof window !== "undefined" && window.location.pathname.startsWith("/max")
+}
+
 api.interceptors.request.use(config => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token")
+    const token = isMaxPath()
+      ? (localStorage.getItem("max-token") ?? localStorage.getItem("token"))
+      : localStorage.getItem("token")
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -33,11 +41,17 @@ api.interceptors.response.use(
     const status = error.response?.status as number | undefined
     if (typeof window !== "undefined" && status) {
       if (status === 401) {
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
         const path = window.location.pathname
-        if (!path.startsWith("/login") && !path.startsWith("/max")) {
-          window.location.href = "/login"
+        if (path.startsWith("/max")) {
+          // Гость мини-приложения не должен выкидываться на /login и не должен
+          // терять CRM-сессию — чистим только MAX-токен.
+          localStorage.removeItem("max-token")
+        } else {
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+          if (!path.startsWith("/login")) {
+            window.location.href = "/login"
+          }
         }
       } else if (status === 500) {
         showDebouncedToast(500, "Внутренняя ошибка сервера")

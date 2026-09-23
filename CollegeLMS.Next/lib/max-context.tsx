@@ -54,6 +54,36 @@ const EMPTY: ViewContext = {}
 
 const VIEW_CONTEXT_KEY = "max-view-context"
 
+// MAX-JWT хранится отдельно от CRM-токена, чтобы не перетирать CRM-сессию.
+const MAX_TOKEN_KEY = "max-token"
+
+// MAX Bridge подключается асинхронно (next/script afterInteractive), поэтому
+// initData может появиться уже после первого рендера. Ждём его с ограниченным
+// таймаутом; в обычном браузере без моста window.WebApp не появится — по
+// таймауту уходим в CRM-ветку, не дёргая /api/auth/max.
+const MAX_BRIDGE_TIMEOUT_MS = 1500
+const MAX_BRIDGE_POLL_MS = 50
+
+function readMaxInitData(): string | undefined {
+  if (typeof window === "undefined") return undefined
+  return (window as unknown as { WebApp?: { initData?: string } }).WebApp?.initData
+}
+
+async function waitForMaxInitData(
+  timeoutMs: number = MAX_BRIDGE_TIMEOUT_MS,
+): Promise<string | null> {
+  const immediate = readMaxInitData()
+  if (immediate) return immediate
+
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, MAX_BRIDGE_POLL_MS))
+    const value = readMaxInitData()
+    if (value) return value
+  }
+  return null
+}
+
 function readStoredViewContext(): ViewContext {
   if (typeof window === "undefined") return EMPTY
   try {
@@ -107,80 +137,80 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
   const reload = useCallback(() => {
     setLoading(true)
 
-    const initData = (
-      window as unknown as { WebApp?: { initData?: string } }
-    ).WebApp?.initData
+    void (async () => {
+      const initData = await waitForMaxInitData()
 
-    if (initData) {
-      loginWithMax(initData)
+      if (initData) {
+        loginWithMax(initData)
+          .then((res) => {
+            localStorage.setItem(MAX_TOKEN_KEY, res.token)
+            setIsAuthed(true)
+            setProfile({
+              id: String(res.profile.maxUserId),
+              fullName: res.profile.fullName ?? null,
+              role: res.profile.role,
+              teacherId: res.profile.teacherId ?? null,
+              teacherName: res.profile.teacherName ?? null,
+              groupId: res.profile.groupId ?? null,
+              groupName: res.profile.groupName ?? null,
+            })
+            const own: ViewContext = {}
+            if (res.profile.groupId) own.groupId = res.profile.groupId
+            if (res.profile.groupName) own.groupName = res.profile.groupName
+            if (res.profile.teacherId) own.teacherId = res.profile.teacherId
+            if (res.profile.teacherName) own.teacherName = res.profile.teacherName
+            setViewContextState((prev) => {
+              const next = Object.keys(prev).length === 0 ? own : prev
+              storeViewContext(next)
+              return next
+            })
+          })
+          .catch(() => {
+            setIsAuthed(false)
+            setProfile(null)
+          })
+          .finally(() => setLoading(false))
+        return
+      }
+
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null
+      if (!token) {
+        setIsAuthed(false)
+        setProfile(null)
+        setLoading(false)
+        return
+      }
+      api
+        .get<{ data: ScheduleContextDto | null }>("/api/schedule/context")
         .then((res) => {
-          localStorage.setItem("token", res.token)
-          setIsAuthed(true)
-          setProfile({
-            id: String(res.profile.maxUserId),
-            fullName: res.profile.fullName ?? null,
-            role: res.profile.role,
-            teacherId: res.profile.teacherId ?? null,
-            teacherName: res.profile.teacherName ?? null,
-            groupId: res.profile.groupId ?? null,
-            groupName: res.profile.groupName ?? null,
-          })
-          const own: ViewContext = {}
-          if (res.profile.groupId) own.groupId = res.profile.groupId
-          if (res.profile.groupName) own.groupName = res.profile.groupName
-          if (res.profile.teacherId) own.teacherId = res.profile.teacherId
-          if (res.profile.teacherName) own.teacherName = res.profile.teacherName
-          setViewContextState((prev) => {
-            const next = Object.keys(prev).length === 0 ? own : prev
-            storeViewContext(next)
-            return next
-          })
+          const ctx = res.data?.data
+          if (ctx) {
+            setIsAuthed(true)
+            setProfile({
+              role: (ctx.role as MaxRole) ?? "Other",
+              teacherId: ctx.teacherId ?? null,
+              teacherName: ctx.teacherName ?? null,
+              groupId: ctx.groupId ?? null,
+              groupName: ctx.groupName ?? null,
+            })
+            const own: ViewContext = {}
+            if (ctx.groupId) own.groupId = ctx.groupId
+            if (ctx.groupName) own.groupName = ctx.groupName
+            if (ctx.teacherId) own.teacherId = ctx.teacherId
+            if (ctx.teacherName) own.teacherName = ctx.teacherName
+            setViewContextState((prev) => {
+              const next = Object.keys(prev).length === 0 ? own : prev
+              storeViewContext(next)
+              return next
+            })
+          } else {
+            setIsAuthed(false)
+          }
         })
-        .catch(() => {
-          setIsAuthed(false)
-          setProfile(null)
-        })
+        .catch(() => setIsAuthed(false))
         .finally(() => setLoading(false))
-      return
-    }
-
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null
-    if (!token) {
-      setIsAuthed(false)
-      setProfile(null)
-      setLoading(false)
-      return
-    }
-    api
-      .get<{ data: ScheduleContextDto | null }>("/api/schedule/context")
-      .then((res) => {
-        const ctx = res.data?.data
-        if (ctx) {
-          setIsAuthed(true)
-          setProfile({
-            role: (ctx.role as MaxRole) ?? "Other",
-            teacherId: ctx.teacherId ?? null,
-            teacherName: ctx.teacherName ?? null,
-            groupId: ctx.groupId ?? null,
-            groupName: ctx.groupName ?? null,
-          })
-          const own: ViewContext = {}
-          if (ctx.groupId) own.groupId = ctx.groupId
-          if (ctx.groupName) own.groupName = ctx.groupName
-          if (ctx.teacherId) own.teacherId = ctx.teacherId
-          if (ctx.teacherName) own.teacherName = ctx.teacherName
-          setViewContextState((prev) => {
-            const next = Object.keys(prev).length === 0 ? own : prev
-            storeViewContext(next)
-            return next
-          })
-        } else {
-          setIsAuthed(false)
-        }
-      })
-      .catch(() => setIsAuthed(false))
-      .finally(() => setLoading(false))
+    })()
   }, [])
 
   useEffect(() => {

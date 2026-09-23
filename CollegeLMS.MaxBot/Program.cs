@@ -282,6 +282,11 @@ app.MapGet(
     ) =>
     {
         var provided = request.Headers["X-Internal-Secret"].ToString();
+        // Fail-closed: пустой InternalSecret не должен открывать внутренний
+        // endpoint — иначе профиль отдаётся без секрета (в отличие от webhook,
+        // где пустой секрет допустим для локальной разработки).
+        if (string.IsNullOrWhiteSpace(options.Value.InternalSecret))
+            return Results.Unauthorized();
         if (!WebhookSecretValidator.IsValid(options.Value.InternalSecret, provided))
             return Results.Unauthorized();
 

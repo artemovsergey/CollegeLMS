@@ -63,13 +63,10 @@ public class MaxBotHttpClientTests
     [Fact]
     public async Task GetInternalUserAsync_BotError_ReturnsNull()
     {
-        var handler = new CapturingHandler("{}");
-        // переиспользуем, но вернём 500
         var errorHandler = new StubHandler(HttpStatusCode.InternalServerError, "{}");
         var dto = await Build(errorHandler).GetInternalUserAsync(42, CancellationToken.None);
 
         dto.Should().BeNull();
-        _ = handler;
     }
 
     private sealed class StubHandler(HttpStatusCode status, string body) : HttpMessageHandler

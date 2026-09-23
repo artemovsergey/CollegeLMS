@@ -366,10 +366,7 @@ public static class MessageFormatter
     /// Сводное уведомление об изменениях: карточки, как в веб-приложении.
     /// Одно сообщение на подписчика, без ссылок.
     /// </summary>
-    public static string FormatCorrectionDigest(
-        List<ScheduleRevision> revisions,
-        TimeZoneInfo timeZone
-    )
+    public static string FormatCorrectionDigest(List<ScheduleRevision> revisions)
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("🔔 **Изменения в расписании**");
@@ -377,14 +374,14 @@ public static class MessageFormatter
         foreach (var r in revisions)
         {
             sb.AppendLine();
-            sb.AppendLine(FormatRevisionCard(r, timeZone));
+            sb.AppendLine(FormatRevisionCard(r));
         }
 
         return sb.ToString().TrimEnd();
     }
 
     /// <summary>Карточка одной позиции изменения — как карточка в веб-приложении.</summary>
-    private static string FormatRevisionCard(ScheduleRevision r, TimeZoneInfo timeZone)
+    private static string FormatRevisionCard(ScheduleRevision r)
     {
         var sb = new System.Text.StringBuilder();
 

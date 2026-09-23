@@ -307,10 +307,10 @@ test.describe("MAX mini-app", () => {
     await expect(page.getByText("Расписание")).toBeVisible()
 
     // Анонимный /max рендерит тот же таббар, поэтому проверяем сам факт входа:
-    // обмен initData состоялся и выданный токен сохранён в localStorage.
+    // обмен initData состоялся и выданный токен сохранён в отдельном ключе.
     await expect
-      .poll(() => page.evaluate(() => localStorage.getItem("token")), {
-        message: "токен, выданный /api/auth/max, должен быть сохранён",
+      .poll(() => page.evaluate(() => localStorage.getItem("max-token")), {
+        message: "токен, выданный /api/auth/max, должен быть сохранён в max-token",
       })
       .toBe(MAX_TOKEN)
     // В dev React Strict Mode монтирует провайдер дважды (поэтому и запросы
@@ -348,6 +348,73 @@ test.describe("MAX mini-app", () => {
     await page.goto("/max/schedule", { waitUntil: "networkidle" })
 
     await expect(page.locator(".max-app__tabbar").getByText("Журнал")).toBeVisible()
+  })
+
+  test("MAX initData: поздняя загрузка бриджа всё равно логинит", async ({ page }) => {
+    let authRequests = 0
+    const MAX_TOKEN = "max-jwt-late"
+    const MAX_INIT_DATA = "auth_date=1&user=%7B%22id%22%3A3%7D&hash=stub"
+
+    // Бридж появляется через 400 мс после старта документа — уже после первого
+    // рендера провайдера, но в пределах окна ожидания (1500 мс).
+    await page.addInitScript((initData) => {
+      setTimeout(() => {
+        ;(window as unknown as { WebApp?: unknown }).WebApp = {
+          initData,
+          initDataUnsafe: {},
+        }
+      }, 400)
+    }, MAX_INIT_DATA)
+
+    await page.route("**/api/auth/max", (route) => {
+      authRequests += 1
+      return route.fulfill(
+        inlineJson(
+          ok({
+            token: MAX_TOKEN,
+            profile: {
+              maxUserId: 3,
+              fullName: "Поздний гость",
+              role: "Student",
+              groupId: "g1",
+              groupName: "ПО262",
+              teacherId: null,
+              teacherName: null,
+            },
+          }),
+        ),
+      )
+    })
+
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+
+    await expect(page.locator(".max-app__tabbar")).toBeVisible()
+    // Вход состоялся, несмотря на позднюю загрузку MAX Bridge.
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("max-token")), {
+        message: "вход должен состояться после поздней загрузки бриджа",
+      })
+      .toBe(MAX_TOKEN)
+    expect(authRequests).toBeGreaterThanOrEqual(1)
+  })
+
+  test("MAX initData: без моста /api/auth/max не вызывается", async ({ page }) => {
+    let authRequests = 0
+    await page.route("**/api/auth/max", (route) => {
+      authRequests += 1
+      return route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ isSuccess: false, errorMessage: "no bridge", statusCode: 401 }),
+      })
+    })
+
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+    await expect(page.locator(".max-app__tabbar")).toBeVisible()
+
+    // Ждём дольше окна ожидания бриджа (1500 мс): позднего запроса быть не должно.
+    await page.waitForTimeout(1800)
+    expect(authRequests).toBe(0)
   })
 
   test("MAX initData: ошибка входа не выкидывает на /login", async ({ page }) => {

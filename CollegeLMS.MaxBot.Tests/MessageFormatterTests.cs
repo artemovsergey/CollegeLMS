@@ -599,7 +599,7 @@ public class MessageFormatterTests
     [Fact]
     public void FormatCorrectionDigest_RendersWebStyleCard()
     {
-        var text = MessageFormatter.FormatCorrectionDigest([Revision()], TimeZoneInfo.Utc);
+        var text = MessageFormatter.FormatCorrectionDigest([Revision()]);
 
         text.Should().Contain("🔔 **Изменения в расписании**");
         text.Should().Contain("**Замена**");
@@ -623,7 +623,7 @@ public class MessageFormatterTests
         revision.RemovedNumberPair = 2;
         revision.NumberPair = 3;
 
-        var text = MessageFormatter.FormatCorrectionDigest([revision], TimeZoneInfo.Utc);
+        var text = MessageFormatter.FormatCorrectionDigest([revision]);
 
         text.Should().Contain("**Перенос**");
         text.Should().Contain("🕐 пара 2 → 3");
@@ -633,7 +633,7 @@ public class MessageFormatterTests
     [Fact]
     public void FormatCorrectionDigest_DoesNotShowAppliedAt()
     {
-        var text = MessageFormatter.FormatCorrectionDigest([Revision()], TimeZoneInfo.Utc);
+        var text = MessageFormatter.FormatCorrectionDigest([Revision()]);
 
         text.Should().NotContain("Применено");
     }
@@ -644,7 +644,7 @@ public class MessageFormatterTests
         var revision = Revision(changeType: "Remove");
         revision.Note = "сам.р.";
 
-        var text = MessageFormatter.FormatCorrectionDigest([revision], TimeZoneInfo.Utc);
+        var text = MessageFormatter.FormatCorrectionDigest([revision]);
 
         text.Should().Contain("🟣 Сам.р.");
         text.Should().Contain("📖 **История**");
@@ -653,7 +653,7 @@ public class MessageFormatterTests
     [Fact]
     public void FormatCorrectionDigest_WithoutSelfStudy_HidesSelfStudyBadge()
     {
-        var text = MessageFormatter.FormatCorrectionDigest([Revision()], TimeZoneInfo.Utc);
+        var text = MessageFormatter.FormatCorrectionDigest([Revision()]);
 
         text.Should().NotContain("Сам.р.");
     }

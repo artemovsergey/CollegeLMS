@@ -13,7 +13,6 @@ public class ChangeNotifier
     private readonly MaxBotDbContext _db;
     private readonly MaxApiClient _max;
     private readonly CollegeLmsApiClient _api;
-    private readonly TimeZoneInfo _timeZone;
     private readonly ILogger<ChangeNotifier> _logger;
     private readonly MaxBotOptions _options;
 
@@ -21,7 +20,6 @@ public class ChangeNotifier
         MaxBotDbContext db,
         MaxApiClient max,
         CollegeLmsApiClient api,
-        TimeZoneInfo timeZone,
         IOptions<MaxBotOptions> options,
         ILogger<ChangeNotifier> logger
     )
@@ -29,7 +27,6 @@ public class ChangeNotifier
         _db = db;
         _max = max;
         _api = api;
-        _timeZone = timeZone;
         _options = options.Value;
         _logger = logger;
     }
@@ -52,7 +49,7 @@ public class ChangeNotifier
         {
             try
             {
-                var text = MessageFormatter.FormatCorrectionDigest(recipientRevisions, _timeZone);
+                var text = MessageFormatter.FormatCorrectionDigest(recipientRevisions);
                 var buttons = BuildDayButtons(groupId, teacherId, recipientRevisions);
                 await _max.SendInlineKeyboardAsync(chatId, text, buttons, ct: ct);
             }
