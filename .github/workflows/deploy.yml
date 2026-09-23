@@ -90,6 +90,18 @@ jobs:
               exit 1
             fi
 
+            if [ -z "${MAXBOT_INTERNAL_SECRET}" ]; then
+              echo "MAXBOT_INTERNAL_SECRET secret пуст — внутренний endpoint профиля бота был бы публично доступен без авторизации."
+              echo "Задайте секрет MAXBOT_INTERNAL_SECRET в GitHub Actions и повторите деплой."
+              exit 1
+            fi
+
+            if [ -z "${MAX_BOT_PUBLIC_NAME}" ]; then
+              echo "MAX_BOT_PUBLIC_NAME secret пуст — кнопки open_app открывали бы мини-приложение без публичного имени бота."
+              echo "Задайте секрет MAX_BOT_PUBLIC_NAME в GitHub Actions и повторите деплой."
+              exit 1
+            fi
+
             echo "=== Stop old containers ==="
             docker compose --profile max-bot down --remove-orphans || true
 
