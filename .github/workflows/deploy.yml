@@ -10,6 +10,8 @@ env:
   JWT_KEY: ${{ secrets.JWT_KEY }}
   MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
   MAX_BOT_WEBHOOK_SECRET: ${{ secrets.MAX_BOT_WEBHOOK_SECRET }}
+  MAXBOT_INTERNAL_SECRET: ${{ secrets.MAXBOT_INTERNAL_SECRET }}
+  MAX_BOT_PUBLIC_NAME: ${{ secrets.MAX_BOT_PUBLIC_NAME }}
   CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
 
 concurrency:
@@ -31,7 +33,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DB_PASSWORD,JWT_KEY,MAX_BOT_TOKEN,CERTBOT_EMAIL,MAX_BOT_WEBHOOK_SECRET
+          envs: DB_PASSWORD,JWT_KEY,MAX_BOT_TOKEN,CERTBOT_EMAIL,MAX_BOT_WEBHOOK_SECRET,MAXBOT_INTERNAL_SECRET,MAX_BOT_PUBLIC_NAME
           command_timeout: 30m
           script: |
             set -e
@@ -72,6 +74,8 @@ jobs:
               echo "MAX_BOT_TOKEN=${MAX_BOT_TOKEN}"
               echo "MAX_BOT_WEBHOOK_URL=https://stvcc.tech/maxbot/webhook"
               echo "MAX_BOT_WEBHOOK_SECRET=${MAX_BOT_WEBHOOK_SECRET}"
+              echo "MAXBOT_INTERNAL_SECRET=${MAXBOT_INTERNAL_SECRET}"
+              echo "MAX_BOT_PUBLIC_NAME=${MAX_BOT_PUBLIC_NAME}"
             } > .env
 
             if [ -z "${MAX_BOT_TOKEN}" ]; then

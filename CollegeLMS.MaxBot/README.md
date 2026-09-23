@@ -252,12 +252,11 @@ long polling для production): при старте он оформляет п�
 
 ### Кнопки мини-приложения
 
-Кнопки «📱 Открыть» в меню и уведомлениях — типа `open_app` с полем
-`web_app` (публичное имя бота) и payload вида
-`{route}[-yyyy-MM-dd][-g-{groupId}|-t-{teacherId}]`. Mini App читает payload
+Кнопки «📱 Открыть расписание» и «📅 Открыть день» — типа `open_app` с полем
+`web_app` (публичное имя бота, `MaxBot:BotPublicName`) и payload вида
+`{route}[-yyyy-MM-dd][-g-<groupId>|-t-<teacherId>]`. Мини-приложение читает payload
 из `start_param` MAX Bridge (`window.WebApp.initDataUnsafe.start_param`) и
-открывает нужный раздел. В обычном браузере Bridge недоступен — приложение
-использует query-параметры.
+навигирует на нужный экран.
 
 ### Учебная неделя
 

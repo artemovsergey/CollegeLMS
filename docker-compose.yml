@@ -72,6 +72,8 @@ services:
       ASPNETCORE_URLS: http://+:8080
       Jwt__Key: ${JWT_KEY}
       MaxBot__BaseUrl: http://maxbot:8080
+      MaxBot__InternalSecret: ${MAXBOT_INTERNAL_SECRET:-}
+      MaxAuth__BotToken: ${MAX_BOT_TOKEN:-}
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${DB_NAME:-collegelms};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
     depends_on:
       db:
@@ -159,6 +161,8 @@ services:
       MaxBot__CorrectionChannelId: ${MAX_CORRECTION_CHANNEL_ID:-}
       MaxBot__WebhookUrl: ${MAX_BOT_WEBHOOK_URL:-https://stvcc.tech/maxbot/webhook}
       MaxBot__WebhookSecret: ${MAX_BOT_WEBHOOK_SECRET:-}
+      MaxBot__BotPublicName: ${MAX_BOT_PUBLIC_NAME:-}
+      MaxBot__InternalSecret: ${MAXBOT_INTERNAL_SECRET:-}
       CollegeLmsApi__BaseUrl: http://api:8080
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${MAX_BOT_DB_NAME:-collegelms_maxbot};Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres}
     depends_on:
