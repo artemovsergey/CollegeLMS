@@ -14,6 +14,7 @@ public class PracticeConfiguration : IEntityTypeConfiguration<Practice>
         builder.Property(x => x.Kind).HasConversion<string>().HasMaxLength(10).IsRequired();
         builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Note).HasMaxLength(500);
+        builder.Property(x => x.Room).HasMaxLength(20);
         builder.Property(x => x.DateFrom).IsRequired();
         builder.Property(x => x.DateTo).IsRequired();
 

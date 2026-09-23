@@ -1,5 +1,6 @@
 import api, { unwrap } from "@/lib/api"
 import type { Result, PagedResponse } from "@/types"
+import type { ScheduleValidationError } from "@/api/schedule"
 
 /** Вид практики: УП — учебная, ПП — производственная. */
 export type PracticeKind = "Up" | "Pp"
@@ -14,18 +15,21 @@ export const PRACTICE_KIND_SHORT: Record<PracticeKind, string> = {
   Pp: "ПП",
 }
 
+/** Номера пар в учебном дне УП (1..8). */
+export const PRACTICE_PAIR_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8] as const
+
 /** Преподаватель практики (ответ API). */
 export interface PracticeTeacher {
   id: string
   name: string
 }
 
-/** День учебной практики с числом пар (1..8). */
+/** День учебной практики с точными номерами пар (1..8, без дублей). */
 export interface PracticeDay {
   /** Дата (ISO). */
   date: string
-  /** Количество пар. */
-  pairCount: number
+  /** Номера пар в этот день. */
+  pairNumbers: number[]
 }
 
 export interface Practice {
@@ -43,9 +47,13 @@ export interface Practice {
   teacherName?: string | null
   dateFrom: string
   dateTo: string
-  /** Дни УП с числом пар (только для вида УП). */
+  /** Дни УП с номерами пар (только для вида УП). */
   days?: PracticeDay[] | null
   note: string | null
+  /** Номер кабинета (для УП). */
+  room?: string | null
+  /** Номер подгруппы (для УП). */
+  subgroup?: number | null
 }
 
 export interface PracticeRequest {
@@ -57,9 +65,13 @@ export interface PracticeRequest {
   teacherIds: string[]
   dateFrom: string
   dateTo: string
-  /** Дни УП с числом пар (только для вида УП). */
+  /** Дни УП с номерами пар (только для вида УП). */
   days?: PracticeDay[]
   note?: string | null
+  /** Номер кабинета (для УП). */
+  room?: string | null
+  /** Номер подгруппы (для УП). */
+  subgroup?: number | null
 }
 
 export interface PracticeFilters {
@@ -98,36 +110,65 @@ export function practiceDays(practice: Practice): PracticeDay[] {
   return practice.days ?? []
 }
 
-/** Строка импорта XLSX (сырые значения; используется и в preview, и в confirm). */
-export interface PracticeImportRow {
+/** Сумма пар по всем дням практики. */
+export function practiceTotalPairs(practice: Practice): number {
+  return practiceDays(practice).reduce(
+    (sum, day) => sum + day.pairNumbers.length,
+    0,
+  )
+}
+
+/** Номера пар без дублей, только 1..8, по возрастанию. */
+export function normalizePairNumbers(values: number[]): number[] {
+  return Array.from(
+    new Set(values.filter((value) => value >= 1 && value <= 8)),
+  ).sort((a, b) => a - b)
+}
+
+/** День графика УП: дата и точные номера пар. */
+export interface PracticeGraphDay {
+  date: string
+  pairNumbers: number[]
+}
+
+/** Строка графика УП — подгруппа с темой, кабинетом, днями и преподавателем. */
+export interface PracticeGraphRow {
   row: number
-  kind: string
+  subgroup?: number | null
   name: string
-  groupName: string
-  dateFrom: string
-  dateTo: string
-  /** Преподаватели одной ячейкой; несколько — через «;». */
+  room?: string | null
   teacherName: string
+  days: PracticeGraphDay[]
   note?: string | null
 }
 
-/** Ошибка импорта: «Строка N». */
-export interface PracticeImportError {
-  row: number
-  column: number
-  level: string
-  message: string
-}
-
-export interface PracticeImportPreview {
+/** Превью импорта графика УП из DOCX. */
+export interface PracticeGraphPreviewResponse {
+  groupName?: string | null
+  practiceName?: string | null
+  dateFrom?: string | null
+  dateTo?: string | null
   totalRows: number
-  rows: PracticeImportRow[]
-  errors: PracticeImportError[]
+  rows: PracticeGraphRow[]
+  errors: ScheduleValidationError[]
 }
 
-export interface PracticeImportConfirmResult {
+/** Подтверждение импорта графика УП. */
+export interface PracticeGraphConfirmRequest {
+  groupName: string
+  name: string
+  dateFrom: string
+  dateTo: string
+  rows: PracticeGraphRow[]
+}
+
+export interface PracticeGraphConfirmResponse {
   imported: number
   practices: Practice[]
+}
+
+export interface PracticeGraphExportRequest {
+  groupId: string
 }
 
 export async function fetchPractices(
@@ -168,27 +209,111 @@ export async function deletePractice(id: string): Promise<void> {
   }
 }
 
-export async function previewPracticeImport(
+/** Превью импорта графика УП из DOCX (multipart, поле file). */
+export async function previewPracticeGraphImport(
   file: File,
-): Promise<PracticeImportPreview> {
+): Promise<PracticeGraphPreviewResponse> {
   const formData = new FormData()
   formData.append("file", file)
   return unwrap(
-    await api.post<Result<PracticeImportPreview>>(
-      "/api/practices/import/preview",
+    await api.post<Result<PracticeGraphPreviewResponse>>(
+      "/api/practices/import/graph/preview",
       formData,
       { headers: { "Content-Type": "multipart/form-data" } },
     ),
   )
 }
 
-export async function confirmPracticeImport(
-  rows: PracticeImportRow[],
-): Promise<PracticeImportConfirmResult> {
+/** Подтверждение импорта графика УП (создаёт практики в транзакции). */
+export async function confirmPracticeGraphImport(
+  payload: PracticeGraphConfirmRequest,
+): Promise<PracticeGraphConfirmResponse> {
   return unwrap(
-    await api.post<Result<PracticeImportConfirmResult>>(
-      "/api/practices/import/confirm",
-      { rows },
+    await api.post<Result<PracticeGraphConfirmResponse>>(
+      "/api/practices/import/graph/confirm",
+      payload,
     ),
   )
+}
+
+/** Ошибка эндпоинта экспорта приходит Blob'ом — извлекаем текст Result. */
+async function readBlobErrorMessage(err: unknown): Promise<string | null> {
+  const data = (err as { response?: { data?: unknown } })?.response?.data
+  if (!(data instanceof Blob)) return null
+  try {
+    const text = await data.text()
+    const parsed = JSON.parse(text) as {
+      errorMessage?: string
+      message?: string
+    }
+    return parsed.errorMessage ?? parsed.message ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Имя файла из заголовка Content-Disposition. Сервер отдаёт оба варианта
+ * (`filename=` с ASCII-заглушкой и `filename*=UTF-8''` с кириллицей) —
+ * приоритет у второго, иначе в `a.download` попадёт «хвост» заголовка.
+ */
+function parseDownloadFilename(
+  disposition: string | null | undefined,
+  fallback: string,
+): string {
+  if (!disposition) return fallback
+
+  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+  if (encoded?.[1]) {
+    try {
+      return decodeURIComponent(encoded[1].trim())
+    } catch {
+      return fallback
+    }
+  }
+
+  const plain = disposition.match(/filename="?([^";]+)"?/i)
+  return plain?.[1]?.trim() || fallback
+}
+
+/**
+ * Экспорт графика УП группы в DOCX. Ответ — файл (не Result),
+ * поэтому скачиваем как blob через createObjectURL. Имя берём из
+ * Content-Disposition, при его отсутствии — «График УП {группа}.docx».
+ */
+export async function exportPracticeGraph(
+  groupId: string,
+  groupName?: string,
+): Promise<void> {
+  const safeGroup = groupName?.trim()
+  const fallback = safeGroup ? `График УП ${safeGroup}.docx` : "График УП.docx"
+
+  let blob: Blob
+  let disposition: string | null = null
+  try {
+    const res = await api.post<Blob>(
+      "/api/practices/graph/export",
+      { groupId } satisfies PracticeGraphExportRequest,
+      { responseType: "blob" },
+    )
+    blob = res.data
+    disposition =
+      (res.headers?.["content-disposition"] as string | undefined) ?? null
+  } catch (err) {
+    throw new Error(
+      (await readBlobErrorMessage(err)) ??
+        "Не удалось сформировать график УП",
+    )
+  }
+
+  const filename = parseDownloadFilename(disposition, fallback)
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  // Отзываем ссылку с задержкой: синхронный revoke может прервать скачивание.
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }

@@ -18,7 +18,7 @@
 |---|---|
 | `AllowAnonymous` | `GET /api/bells`, `GET /api/schedule/inserts`, `GET /api/practices`, `GET /api/schedule/export` |
 | Все авторизованные | `GET /api/non-working-days`, `GET /api/working-days`, `GET /api/schedule/journal` (Teacher/Admin/Dispatcher) |
-| `Dispatcher`, `Admin` | `PUT /api/bells`, CRUD звонков-профилей, нерабочих и рабочих дней, вставок, практик, импорт практик |
+| `Dispatcher`, `Admin` | `PUT /api/bells`, CRUD звонков-профилей, нерабочих и рабочих дней, вставок, практик, импорт/экспорт графика УП (DOCX) |
 
 ## 3. Модель данных
 
@@ -31,9 +31,9 @@
 | `NonWorkingDay` | `non_working_days` | `DateFrom`, `DateTo`, `Title` (≤200) | `DateFrom ≤ DateTo`; индексы `ix_non_working_days_date_from/date_to` |
 | `WorkingDayOverride` | `working_day_overrides` | `DateFrom`, `DateTo`, `SubstituteDayOfWeek?` (1–5), `Title` (≤200) | `DateFrom ≤ DateTo`; пересечение с нерабочими датами → `409`; индексы по датам |
 | `ScheduleInsert` | `schedule_inserts` | `Title` (≤200), `DayOfWeek`, `StartTime`, `EndTime`, `Course?` (1–4), `IsActive` | `DayOfWeek` хранится строкой (`HasConversion<string>`, ≤20); `ix_schedule_inserts_day_of_week` |
-| `Practice` | `practices` | `Kind` (`Up`/`Pp`), `Name` (≤100), `GroupId`, `DateFrom`, `DateTo`, `Note?` (≤500) | `Kind` строкой; `ix_practices_group_id/date_from`; FK `Group` cascade; преподаватели — через `PracticeTeacher`, без `Organization` |
+| `Practice` | `practices` | `Kind` (`Up`/`Pp`), `Name` (≤100), `GroupId`, `DateFrom`, `DateTo`, `Room?` (≤20), `Subgroup?` (int), `Note?` (≤500) | `Kind` строкой; `ix_practices_group_id/date_from`; FK `Group` cascade; преподаватели — через `PracticeTeacher`, без `Organization` |
 | `PracticeTeacher` | `practice_teachers` | `PracticeId`, `TeacherId` | join многие-ко-многим; `ix_practice_teachers_practice_teacher` UNIQUE; FK `Practice`/`Teacher` cascade |
-| `PracticeDay` | `practice_days` | `PracticeId`, `Date`, `PairCount` (1–8) | только для УП; `ix_practice_days_practice_date` UNIQUE; CHECK `ck_practice_days_pair_count_range`; FK `Practice` cascade |
+| `PracticeDay` | `practice_days` | `PracticeId`, `Date`, `PairNumbers` (`int[]`, 1–8) | только для УП; `ix_practice_days_practice_date` UNIQUE; CHECK `ck_practice_days_pair_numbers_range` (непусто, все элементы 1–8); FK `Practice` cascade |
 
 Все сущности наследуют `Entity` (`Id` GUID `ValueGeneratedNever()`, `CreatedAt`, `UpdatedAt`).
 
@@ -111,26 +111,28 @@
 
 | Метод | Роль | Описание |
 |---|---|---|
-| `GET /?groupId=&teacherId=&kind=&from=&to=&page=&pageSize=` | AllowAnonymous | `PagedResponse<PracticeResponse>` (`kind` — `Up`/`Pp` строкой; `name`, `groupName`, `teacherIds[]`, `teachers[] { id, name }`, `days[] { date, pairCount }`); фильтр `teacherId` — по связи с преподавателями; pageSize 1–100 |
+| `GET /?groupId=&teacherId=&kind=&from=&to=&page=&pageSize=` | AllowAnonymous | `PagedResponse<PracticeResponse>` (`kind` — `Up`/`Pp` строкой; `name`, `groupName`, `teacherIds[]`, `teachers[] { id, name }`, `days[] { date, pairNumbers[] }`, `room?`, `subgroup?`); фильтр `teacherId` — по связи с преподавателями; pageSize 1–100 |
 | `POST /` | Dispatcher/Admin | `PracticeResponse`; `409` — пересечение практик группы |
 | `PUT /{id:guid}` | Dispatcher/Admin | `404` — не найдено; `409` — пересечение; преподаватели и дни УП заменяются целиком |
 | `DELETE /{id:guid}` | Dispatcher/Admin | `404` — не найдено |
-| `POST /import/preview` | Dispatcher/Admin | multipart `file` (`.xlsx`, ≤10 МБ). `PracticeImportPreviewResponse { totalRows, rows[], errors[] }` |
-| `POST /import/confirm` | Dispatcher/Admin | `PracticeImportConfirmRequest { rows[] }` → `{ imported, practices[] }`; только без ошибок, одна транзакция |
+| `POST /import/graph/preview` | Dispatcher/Admin | multipart `file` (`.docx`, ≤10 МБ). `PracticeGraphPreviewResponse { groupName?, practiceName?, dateFrom?, dateTo?, totalRows, rows[], errors[] }` |
+| `POST /import/graph/confirm` | Dispatcher/Admin | `PracticeGraphConfirmRequest { groupName, name, dateFrom, dateTo, rows[] }` → `{ imported, practices[] }`; одна УП-практика (подгруппа) на строку; заменяет УП той же группы с идентичным периодом |
+| `POST /graph/export` | Dispatcher/Admin | `PracticeGraphExportRequest { groupId }` → бинарный `.docx` (`FileContentResult`); `404` — группа/УП/шаблон не найдены |
 
 Валидации CRUD `400`: `Kind` определён; `Name` не пусто и ≤100; период задан; `DateFrom.Date ≤ DateTo.Date`;
 период в пределах семестра (`StudyWeek`, старт 01.09.2026, 17 недель); группа найдена; ≥1 преподаватель
-и все существуют; для УП `Days[]` непуст, каждая дата внутри периода и семестра, `PairCount` 1–8, даты без
-дублей; для ПП `Days` игнорируется. Пересечение практик одной группы → `409`
-«У группы уже есть практика в этот период.».
+и все существуют; `Room` ≤20; `Subgroup` >0; для УП `Days[]` непуст, каждая дата внутри периода и семестра,
+`PairNumbers` — номера пар 1–8 (непустой массив, без дублей, отсортирован), даты без дублей; для ПП `Days`
+игнорируется. Несколько УП одной группы с **одинаковым** периодом разрешены — это подгруппы; пересечение
+с другой практикой группы (ПП или иной период) → `409` «У группы уже есть практика в этот период.».
 
-Импорт XLSX (ClosedXML): шапка в строке 1 (`Вид | Название | Группа | Дата начала | Дата окончания | Преподаватель | Примечание`),
-данные со строки 2; `Kind` — «УП»/«UP» → `Up`, «ПП»/«PP» → `Pp`; даты `dd.MM.yyyy`;
-в колонке «Преподаватель» допускается несколько ФИО через «;». Для УП число пар по дням не импортируется —
-дни создаются автоматически (Пн–Пт периода, по 6 пар), далее редактируются вручную.
-Ошибки формата `ScheduleValidationError { row, column, level="data", message }` с префиксом «строка N: …»
-(вид, название, группа, дата начала/окончания, преподаватели). Confirm повторно валидирует строки, при ошибках — `400`
-со списком сообщений; запись пакетом в транзакции с rollback при сбое.
+Импорт графика УП (DOCX): `POST /import/graph/preview` парсит документ и возвращает `PracticeGraphPreviewResponse`
+(`groupName?`, `practiceName?`, `dateFrom?`, `dateTo?`, `totalRows`, `rows[]`, `errors[]`); строка `rows[]` —
+`{ row, subgroup?, name, room?, teacherName, days[] { date, pairNumbers[] }, note? }`. Ошибки — `ScheduleValidationError
+{ sheet, row, column, level, message }`. Ошибки `400`: «Файл не выбран» / «Поддерживается только формат DOCX» /
+«Файл слишком большой. Максимум 10MB.» / ошибки парсинга. `POST /import/graph/confirm` создаёт по одной УП-практике
+(подгруппе) на каждую строку, заменяя существующие УП той же группы с идентичным периодом; `400` при ошибках строк,
+`409` при конфликте периода с другой практикой группы.
 
 ### 4.5. Экспорт — `/api/schedule/export`
 
@@ -170,7 +172,7 @@ GET /api/schedule/export?scope=day|week|semester&format=pdf|xlsx&layout=grid|day
 - **Вставки** — отдельная строка дня без номера пары; видны в вебе, мини-приложении, боте (блок
   «🎓 Вставки:») и семестровом экспорте; неактивные не отдаются при `activeOnly=true`.
 - **Практики** — в период практики группы обычные пары заменяются карточкой УП/ПП в дне бота
-  (`FormatPracticeLine`) и в семестровом экспорте; для УП дополнительно выводятся пары 1..`PairCount`
+  (`FormatPracticeLine`) и в семестровом экспорте; для УП дополнительно выводятся пары по `PairNumbers`
   (`LessonType=Practice`, `isPractice=true`, `practiceName`) с временем из звонков; в расписании
   преподавателя отображается блок практики.
 - **Журнал** — бейджи корректировок, снятые даты скрыты (только проведённые), фильтр по предмету.

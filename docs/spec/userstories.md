@@ -1286,10 +1286,10 @@ UC-SCH-45 — UC-SCH-52 (профили звонков, рабочие дни, �
 - [ ] Поле «Организация» удалено (УП — колледж, ПП — индивидуально у студента)
 - [ ] `POST/PUT /api/practices` — `name`, `teacherIds[]`; `400` без названия или без преподавателей
 - [ ] Пересечение периода практик одной группы → `409`
-- [ ] Импорт XLSX: колонки «Вид | Название | Группа | Дата начала | Дата окончания | Преподаватель | Примечание», ФИО через `;`
+- [ ] Импорт графика УП из DOCX: группа, название практики, период, строки (подгруппа, кабинет, преподаватель, дни с номерами пар)
 
 **API:**
-- `GET/POST /api/practices`, `PUT/DELETE /api/practices/{id}`, `POST /api/practices/import/preview|confirm`
+- `GET/POST /api/practices`, `PUT/DELETE /api/practices/{id}`, `POST /api/practices/import/graph/preview|confirm`, `POST /api/practices/graph/export`
 
 **UI:**
 - Раздел «Практики» (`/dispatcher/practices`): форма с названием, мультивыбором преподавателей и днями УП

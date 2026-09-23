@@ -91,7 +91,7 @@ public class ScheduleViewServiceTests : IDisposable
         DateTime date,
         PracticeKind kind = PracticeKind.Pp,
         string name = "УП 01",
-        int? pairCount = null
+        int[]? pairNumbers = null
     )
     {
         var utcNow = DateTime.UtcNow;
@@ -116,14 +116,14 @@ public class ScheduleViewServiceTests : IDisposable
                 },
             ],
         };
-        if (kind == PracticeKind.Up && pairCount is int count)
+        if (kind == PracticeKind.Up && pairNumbers is not null)
             practice.Days =
             [
                 new PracticeDay
                 {
                     Id = Guid.NewGuid(),
                     Date = date.Date,
-                    PairCount = count,
+                    PairNumbers = pairNumbers,
                     CreatedAt = utcNow,
                     UpdatedAt = utcNow,
                 },
@@ -271,7 +271,14 @@ public class ScheduleViewServiceTests : IDisposable
     {
         var (group, teacher) = await SeedGroupAndTeacherAsync();
         var date = Monday1.AddDays(1);
-        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Up, "УП 01", pairCount: 3);
+        await SeedPracticeAsync(
+            group.Id,
+            teacher.Id,
+            date,
+            PracticeKind.Up,
+            "УП 01",
+            pairNumbers: [1, 2, 3]
+        );
         await SeedEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 1, 1);
         _bells.TimeMap[1] = (new TimeSpan(8, 30, 0), new TimeSpan(9, 50, 0));
         _bells.TimeMap[2] = (new TimeSpan(10, 0, 0), new TimeSpan(11, 20, 0));
@@ -288,6 +295,29 @@ public class ScheduleViewServiceTests : IDisposable
         result.Data.Entries[0].StartTime.Should().Be(new TimeSpan(8, 30, 0));
         result.Data.Entries[0].EndTime.Should().Be(new TimeSpan(9, 50, 0));
         result.Data.Entries.Select(e => e.NumberPair).Should().Equal(1, 2, 3);
+    }
+
+    [Fact]
+    public async Task GetDayAsync_UpPracticeNonContiguousPairs_ReturnsOnlyListedPairs()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(
+            group.Id,
+            teacher.Id,
+            date,
+            PracticeKind.Up,
+            "УП 01",
+            pairNumbers: [1, 3]
+        );
+        _bells.TimeMap[1] = (new TimeSpan(8, 30, 0), new TimeSpan(9, 50, 0));
+        _bells.TimeMap[3] = (new TimeSpan(11, 30, 0), new TimeSpan(12, 50, 0));
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result.Data!.Entries.Should().HaveCount(2);
+        result.Data.Entries.Select(e => e.NumberPair).Should().Equal(1, 3);
+        result.Data.Entries[1].StartTime.Should().Be(new TimeSpan(11, 30, 0));
     }
 
     [Fact]
@@ -581,7 +611,7 @@ public class ScheduleViewServiceTests : IDisposable
             new DateTime(2026, 12, 15),
             PracticeKind.Up,
             "УП 01",
-            pairCount: 4
+            pairNumbers: [1, 2, 3, 4]
         );
 
         var result = await _sut.GetMonthAsync(

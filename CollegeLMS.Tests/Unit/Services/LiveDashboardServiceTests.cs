@@ -75,7 +75,7 @@ public class LiveDashboardServiceTests : IDisposable
         DateTime date,
         PracticeKind kind,
         string name,
-        int? pairCount = null
+        int[]? pairNumbers = null
     )
     {
         var utcNow = DateTime.UtcNow;
@@ -101,14 +101,14 @@ public class LiveDashboardServiceTests : IDisposable
             ],
         };
 
-        if (kind == PracticeKind.Up && pairCount is int count)
+        if (kind == PracticeKind.Up && pairNumbers is not null)
             practice.Days =
             [
                 new PracticeDay
                 {
                     Id = Guid.NewGuid(),
                     Date = date.Date,
-                    PairCount = count,
+                    PairNumbers = pairNumbers,
                     CreatedAt = utcNow,
                     UpdatedAt = utcNow,
                 },
@@ -334,7 +334,14 @@ public class LiveDashboardServiceTests : IDisposable
     {
         var (group, teacher) = await SeedGroupAndTeacherAsync("ИС-21", "Иванов И.И.");
         var date = Monday1.AddDays(1);
-        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Up, "УП 01", pairCount: 3);
+        await SeedPracticeAsync(
+            group.Id,
+            teacher.Id,
+            date,
+            PracticeKind.Up,
+            "УП 01",
+            pairNumbers: [1, 2, 3]
+        );
         SetPairTime(1, 8, 30, 9, 50);
         SetPairTime(2, 10, 0, 11, 20);
         SetPairTime(3, 11, 30, 12, 50);
@@ -363,6 +370,35 @@ public class LiveDashboardServiceTests : IDisposable
         var teacherStatus = result.Data.Teachers.Should().ContainSingle().Which;
         teacherStatus.Name.Should().Be("Иванов И.И.");
         teacherStatus.TotalPairs.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetLiveAsync_UpPracticeNonContiguousPairs_ReturnsListedPairs()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync("ИС-21", "Иванов И.И.");
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(
+            group.Id,
+            teacher.Id,
+            date,
+            PracticeKind.Up,
+            "УП 01",
+            pairNumbers: [2, 4]
+        );
+        SetPairTime(2, 10, 0, 11, 20);
+        SetPairTime(4, 13, 0, 14, 20);
+
+        var result = await _sut.GetLiveAsync(
+            date,
+            date.Add(new TimeSpan(10, 30, 0)),
+            CancellationToken.None
+        );
+
+        var groupStatus = result.Data!.Groups.Should().ContainSingle().Which;
+        groupStatus.Entries.Should().HaveCount(2);
+        groupStatus.Entries.Select(e => e.NumberPair).Should().Equal(2, 4);
+        groupStatus.CurrentPair!.NumberPair.Should().Be(2);
+        groupStatus.TotalPairs.Should().Be(2);
     }
 
     [Fact]

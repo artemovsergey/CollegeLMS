@@ -160,7 +160,7 @@ public class ScheduleViewService(
                 .FirstOrDefault(d => d.Date.Date == date);
             var pairCount =
                 upDay is not null && !isSunday && nwd is null && !isOutOfSemester
-                    ? upDay.PairCount
+                    ? upDay.PairNumbers.Count
                     : (
                         isSunday || nwd is not null || coversPractice.Count > 0 || isOutOfSemester
                             ? 0
@@ -496,7 +496,7 @@ public class ScheduleViewService(
             .ToList();
     }
 
-    /// <summary>Пары УП: синтезируются по PracticeDay (номера 1..PairCount, время из звонков дня).</summary>
+    /// <summary>Пары УП: синтезируются по PracticeDay (номера из PairNumbers, время из звонков дня).</summary>
     private static List<ScheduleResponse> PracticeEntries(
         ScheduleRangeData data,
         DateTime target,
@@ -518,7 +518,7 @@ public class ScheduleViewService(
                 practice.Teachers.Select(t => t.Name).Where(n => n.Length > 0)
             );
 
-            for (var number = 1; number <= day.PairCount; number++)
+            foreach (var number in day.PairNumbers)
             {
                 var entry = new ScheduleResponse
                 {

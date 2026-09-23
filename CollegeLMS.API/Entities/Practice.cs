@@ -16,6 +16,12 @@ public class Practice : Entity
     public DateTime DateTo { get; set; }
     public string? Note { get; set; }
 
+    /// <summary>Номер кабинета (для УП), например «202л».</summary>
+    public string? Room { get; set; }
+
+    /// <summary>Номер подгруппы (для УП).</summary>
+    public int? Subgroup { get; set; }
+
     [JsonIgnore]
     public Group? Group { get; set; }
 

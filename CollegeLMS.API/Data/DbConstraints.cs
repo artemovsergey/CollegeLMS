@@ -151,13 +151,14 @@ public static class DbConstraints
             """
         );
 
-        // Practice days (число пар учебной практики — 1..8)
+        // Practice days (номера пар учебной практики — непустой массив значений 1..8)
         await db.Database.ExecuteSqlRawAsync(
             """
                 DO $$
                 BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_practice_days_pair_count_range') THEN
-                        ALTER TABLE practice_days ADD CONSTRAINT ck_practice_days_pair_count_range CHECK (pair_count BETWEEN 1 AND 8);
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_practice_days_pair_numbers_range') THEN
+                        ALTER TABLE practice_days ADD CONSTRAINT ck_practice_days_pair_numbers_range
+                        CHECK (array_length(pair_numbers, 1) >= 1 AND pair_numbers <@ ARRAY[1,2,3,4,5,6,7,8]);
                     END IF;
                 END $$;
             """

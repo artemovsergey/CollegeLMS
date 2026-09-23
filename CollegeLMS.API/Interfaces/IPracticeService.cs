@@ -26,14 +26,4 @@ public interface IPracticeService
     );
 
     Task<Result> DeleteAsync(Guid id, CancellationToken ct);
-
-    Task<Result<PracticeImportPreviewResponse>> PreviewImportAsync(
-        Stream fileStream,
-        CancellationToken ct
-    );
-
-    Task<Result<PracticeImportConfirmResponse>> ConfirmImportAsync(
-        PracticeImportConfirmRequest request,
-        CancellationToken ct
-    );
 }

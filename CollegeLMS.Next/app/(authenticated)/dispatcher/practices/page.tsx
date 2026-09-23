@@ -1,19 +1,20 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import {
   AlertTriangle,
   Briefcase,
   CalendarDays,
-  FileSpreadsheet,
+  Download,
+  FileText,
   Inbox,
-  Minus,
   Pencil,
   Plus,
   SearchX,
   Trash2,
   Upload,
+  UploadCloud,
 } from "lucide-react"
 import {
   Card,
@@ -56,6 +57,7 @@ import {
   normalizeDateOnly,
   parseIsoDate,
   toIsoDate,
+  type ScheduleValidationError,
 } from "@/api/schedule"
 import {
   fetchNonWorkingDays,
@@ -63,68 +65,40 @@ import {
 } from "@/api/nonWorkingDays"
 import type { GroupResponse, TeacherResponse, Result } from "@/types"
 import {
-  confirmPracticeImport,
+  confirmPracticeGraphImport,
   createPractice,
   deletePractice,
+  exportPracticeGraph,
   fetchPractices,
+  normalizePairNumbers,
   practiceDays,
   practiceName,
   practiceTeacherNames,
   practiceTeachers,
-  previewPracticeImport,
+  practiceTotalPairs,
+  previewPracticeGraphImport,
   updatePractice,
   PRACTICE_KIND_LABELS,
   PRACTICE_KIND_SHORT,
+  PRACTICE_PAIR_NUMBERS,
   type Practice,
   type PracticeDay,
-  type PracticeImportPreview,
-  type PracticeImportRow,
+  type PracticeGraphPreviewResponse,
   type PracticeKind,
 } from "@/api/practices"
 
 const PAGE_SIZE = 20
-const DEFAULT_PAIR_COUNT = 6
-const MIN_PAIR_COUNT = 1
-const MAX_PAIR_COUNT = 8
 const MAX_RANGE_DAYS = 400
+const MAX_IMPORT_SIZE = 10 * 1024 * 1024
+const DEFAULT_PAIR_NUMBERS = [1, 2, 3, 4, 5, 6]
 
 const WEEKDAY_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
 
-function normalizeImportMessage(message: string, row: number): string {
-  return /^Строка\s+\d+/i.test(message) ? message : `Строка ${row}: ${message}`
-}
-
-const IMPORT_FIELD_LABELS: Record<keyof PracticeImportRow, string> = {
-  row: "Строка",
-  kind: "Вид",
-  name: "Название",
-  groupName: "Группа",
-  dateFrom: "Дата начала",
-  dateTo: "Дата окончания",
-  teacherName: "Преподаватель",
-  note: "Примечание",
-}
-
-const IMPORT_EDITABLE_FIELDS: (keyof PracticeImportRow)[] = [
-  "kind",
-  "name",
-  "groupName",
-  "dateFrom",
-  "dateTo",
-  "teacherName",
-  "note",
-]
-
-/** Черновик дня УП: включён ли день и сколько в нём пар. */
+/** Черновик дня УП: включён ли день и какие пары в нём отмечены. */
 interface DayDraft {
   date: string
   included: boolean
-  pairCount: number
-}
-
-function clampPairs(value: number): number {
-  if (!Number.isFinite(value)) return DEFAULT_PAIR_COUNT
-  return Math.min(MAX_PAIR_COUNT, Math.max(MIN_PAIR_COUNT, Math.round(value)))
+  pairNumbers: number[]
 }
 
 function addDaysIso(iso: string, days: number): string {
@@ -178,6 +152,26 @@ function formatDayLabel(iso: string): string {
   return `${WEEKDAY_SHORT[date.getDay()]} · ${formatDate(iso)}`
 }
 
+/** Ошибка импорта графика: «Лист, строка N: сообщение». */
+function formatGraphError(error: ScheduleValidationError): string {
+  const message = error.message ?? ""
+  if (/^Строка\s+\d+/i.test(message)) return message
+  const parts: string[] = []
+  if (error.sheet?.trim()) parts.push(error.sheet.trim())
+  if (error.row > 0) parts.push(`строка ${error.row}`)
+  const prefix = parts.join(", ")
+  return prefix ? `${prefix}: ${message}` : message
+}
+
+/** Проверка файла графика УП до отправки на сервер. */
+function validateGraphFile(file: File): string | null {
+  if (!file.name.toLowerCase().endsWith(".docx"))
+    return "Поддерживается только формат DOCX"
+  if (file.size > MAX_IMPORT_SIZE)
+    return "Файл слишком большой. Максимум 10 МБ"
+  return null
+}
+
 export default function DispatcherPracticesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const daySeedRef = useRef<PracticeDay[]>([])
@@ -196,6 +190,7 @@ export default function DispatcherPracticesPage() {
   const [filterKind, setFilterKind] = useState("all")
   const [filterFrom, setFilterFrom] = useState("")
   const [filterTo, setFilterTo] = useState("")
+  const [exporting, setExporting] = useState(false)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -205,6 +200,8 @@ export default function DispatcherPracticesPage() {
   const [formTeacherIds, setFormTeacherIds] = useState<string[]>([])
   const [formDateFrom, setFormDateFrom] = useState("")
   const [formDateTo, setFormDateTo] = useState("")
+  const [formRoom, setFormRoom] = useState("")
+  const [formSubgroup, setFormSubgroup] = useState("")
   const [formNote, setFormNote] = useState("")
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -222,9 +219,17 @@ export default function DispatcherPracticesPage() {
 
   const [importOpen, setImportOpen] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<PracticeImportPreview | null>(null)
+  const [preview, setPreview] = useState<PracticeGraphPreviewResponse | null>(
+    null,
+  )
+  // Правки шапки графика перед подтверждением: группа, тема, период.
+  const [previewGroup, setPreviewGroup] = useState("")
+  const [previewName, setPreviewName] = useState("")
+  const [previewFrom, setPreviewFrom] = useState("")
+  const [previewTo, setPreviewTo] = useState("")
   const [previewing, setPreviewing] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [dragging, setDragging] = useState(false)
 
   const load = useCallback(
     async (targetPage: number) => {
@@ -326,16 +331,28 @@ export default function DispatcherPracticesPage() {
       semester,
     )
     const seed = new Map(
-      daySeedRef.current.map((day) => [toDateInput(day.date), day.pairCount]),
+      daySeedRef.current.map((day) => [
+        toDateInput(day.date),
+        normalizePairNumbers(day.pairNumbers),
+      ]),
     )
-    const drafts: DayDraft[] = candidates.map((date) => ({
-      date,
-      included: true,
-      pairCount: clampPairs(seed.get(date) ?? DEFAULT_PAIR_COUNT),
-    }))
-    for (const [date, pairCount] of seed) {
+    const drafts: DayDraft[] = candidates.map((date) => {
+      const seeded = seed.get(date)
+      return {
+        date,
+        included: true,
+        pairNumbers:
+          seeded && seeded.length > 0 ? seeded : [...DEFAULT_PAIR_NUMBERS],
+      }
+    })
+    for (const [date, pairNumbers] of seed) {
       if (!drafts.some((draft) => draft.date === date)) {
-        drafts.push({ date, included: true, pairCount: clampPairs(pairCount) })
+        drafts.push({
+          date,
+          included: true,
+          pairNumbers:
+            pairNumbers.length > 0 ? pairNumbers : [...DEFAULT_PAIR_NUMBERS],
+        })
       }
     }
     drafts.sort((a, b) => a.date.localeCompare(b.date))
@@ -371,6 +388,8 @@ export default function DispatcherPracticesPage() {
     setFormTeacherIds([])
     setFormDateFrom("")
     setFormDateTo("")
+    setFormRoom("")
+    setFormSubgroup("")
     setFormNote("")
     daySeedRef.current = []
     setFormError(null)
@@ -390,6 +409,8 @@ export default function DispatcherPracticesPage() {
     )
     setFormDateFrom(toDateInput(practice.dateFrom))
     setFormDateTo(toDateInput(practice.dateTo))
+    setFormRoom(practice.room ?? "")
+    setFormSubgroup(practice.subgroup != null ? String(practice.subgroup) : "")
     setFormNote(practice.note ?? "")
     daySeedRef.current = practiceDays(practice)
     setFormError(null)
@@ -402,9 +423,21 @@ export default function DispatcherPracticesPage() {
     )
   }
 
-  const updateDay = (index: number, patch: Partial<DayDraft>) => {
+  const toggleDayIncluded = (index: number, included: boolean) => {
     setDayDrafts((prev) =>
-      prev.map((day, i) => (i === index ? { ...day, ...patch } : day)),
+      prev.map((day, i) => (i === index ? { ...day, included } : day)),
+    )
+  }
+
+  const toggleDayPair = (index: number, pair: number, checked: boolean) => {
+    setDayDrafts((prev) =>
+      prev.map((day, i) => {
+        if (i !== index) return day
+        const next = checked
+          ? [...day.pairNumbers, pair]
+          : day.pairNumbers.filter((value) => value !== pair)
+        return { ...day, pairNumbers: normalizePairNumbers(next) }
+      }),
     )
   }
 
@@ -413,18 +446,20 @@ export default function DispatcherPracticesPage() {
       prev.map((day) => ({
         ...day,
         included: true,
-        pairCount: DEFAULT_PAIR_COUNT,
+        pairNumbers: [...PRACTICE_PAIR_NUMBERS],
       })),
     )
   }
 
   const clearAllDays = () => {
-    setDayDrafts((prev) => prev.map((day) => ({ ...day, included: false })))
+    setDayDrafts((prev) =>
+      prev.map((day) => ({ ...day, included: false, pairNumbers: [] })),
+    )
   }
 
   const includedDays = dayDrafts.filter((day) => day.included)
   const totalDraftPairs = includedDays.reduce(
-    (sum, day) => sum + day.pairCount,
+    (sum, day) => sum + day.pairNumbers.length,
     0,
   )
 
@@ -451,9 +486,23 @@ export default function DispatcherPracticesPage() {
       setFormError("Дата начала не может быть позже даты окончания.")
       return
     }
-    if (formKind === "Up" && includedDays.length === 0) {
-      setFormError("Для УП выберите хотя бы один день практики с числом пар.")
-      return
+    const subgroupValue = formSubgroup.trim()
+    if (subgroupValue) {
+      const parsed = Number(subgroupValue)
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        setFormError("Номер подгруппы должен быть целым числом больше нуля.")
+        return
+      }
+    }
+    if (formKind === "Up") {
+      if (includedDays.length === 0) {
+        setFormError("Для УП выберите хотя бы один день практики.")
+        return
+      }
+      if (includedDays.some((day) => day.pairNumbers.length === 0)) {
+        setFormError("У каждого выбранного дня отметьте хотя бы одну пару (1–8).")
+        return
+      }
     }
 
     setSubmitting(true)
@@ -469,10 +518,13 @@ export default function DispatcherPracticesPage() {
         formKind === "Up"
           ? includedDays.map((day) => ({
               date: day.date,
-              pairCount: clampPairs(day.pairCount),
+              pairNumbers: normalizePairNumbers(day.pairNumbers),
             }))
           : undefined,
       note: formNote.trim() || null,
+      room: formKind === "Up" ? formRoom.trim() || null : null,
+      subgroup:
+        formKind === "Up" && subgroupValue ? Number(subgroupValue) : null,
     }
     try {
       if (editingId) {
@@ -519,84 +571,124 @@ export default function DispatcherPracticesPage() {
     }
   }
 
+  const handleExport = async () => {
+    if (filterGroup === "all") {
+      toast.error("Выберите группу для экспорта графика УП")
+      return
+    }
+    const groupName = groups.find((g) => g.id === filterGroup)?.name ?? ""
+    setExporting(true)
+    try {
+      await exportPracticeGraph(filterGroup, groupName)
+      toast.success("График УП сформирован")
+    } catch (err) {
+      toast.error(
+        extractErrorMessage(err) ??
+          (err instanceof Error ? err.message : null) ??
+          "Не удалось сформировать график УП",
+      )
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const closeImport = () => {
     setImportOpen(false)
     setImportFile(null)
     setPreview(null)
+    setPreviewGroup("")
+    setPreviewName("")
+    setPreviewFrom("")
+    setPreviewTo("")
+    setDragging(false)
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.name.toLowerCase().endsWith(".xlsx")) {
-      toast.error("Поддерживается только формат XLSX")
-      return
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Файл слишком большой. Максимум 10 МБ")
+  const applyImportFile = (file: File) => {
+    const problem = validateGraphFile(file)
+    if (problem) {
+      toast.error(problem)
       return
     }
     setImportFile(file)
     setPreview(null)
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    applyImportFile(file)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    setDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    applyImportFile(file)
+  }
+
   const runPreview = async () => {
     if (!importFile) return
     setPreviewing(true)
     try {
-      const result = await previewPracticeImport(importFile)
+      const result = await previewPracticeGraphImport(importFile)
       setPreview(result)
+      setPreviewGroup(result.groupName?.trim() ?? "")
+      setPreviewName(result.practiceName?.trim() ?? "")
+      setPreviewFrom(toDateInput(result.dateFrom))
+      setPreviewTo(toDateInput(result.dateTo))
       if (result.errors.length > 0) {
         toast.error(`Найдены ошибки: ${result.errors.length}`, {
-          description: "Исправьте строки в таблице и повторите подтверждение.",
+          description: "Проверьте оформление документа и повторите проверку.",
         })
       }
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось прочитать файл")
+      toast.error(extractErrorMessage(err) ?? "Не удалось прочитать документ")
     } finally {
       setPreviewing(false)
     }
   }
 
-  const updatePreviewRow = (
-    index: number,
-    field: keyof PracticeImportRow,
-    value: string,
-  ) => {
-    setPreview((prev) => {
-      if (!prev) return prev
-      const rows = prev.rows.map((row, i) =>
-        i === index ? { ...row, [field]: value } : row,
-      )
-      return { ...prev, rows }
-    })
-  }
+  const graphHeaderReady = Boolean(
+    previewGroup.trim() &&
+      previewName.trim() &&
+      previewFrom &&
+      previewTo &&
+      previewFrom <= previewTo,
+  )
 
   const runConfirm = async () => {
     if (!preview) return
     if (preview.errors.length > 0) {
-      toast.error("Сначала исправьте ошибки в строках")
+      toast.error("Сначала исправьте ошибки в документе")
+      return
+    }
+    if (!graphHeaderReady) {
+      toast.error("Укажите группу, тему УП и корректный период")
       return
     }
     setConfirming(true)
     try {
-      const result = await confirmPracticeImport(preview.rows)
+      const result = await confirmPracticeGraphImport({
+        groupName: previewGroup.trim(),
+        name: previewName.trim(),
+        dateFrom: previewFrom,
+        dateTo: previewTo,
+        rows: preview.rows,
+      })
       toast.success(`Импортировано практик: ${result.imported}`)
       closeImport()
       await load(1)
       setPage(1)
     } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось импортировать практики")
+      toast.error(
+        extractErrorMessage(err) ?? "Не удалось импортировать практики",
+      )
     } finally {
       setConfirming(false)
     }
   }
-
-  const errorRows = useMemo(
-    () => new Set((preview?.errors ?? []).map((e) => e.row)),
-    [preview],
-  )
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -605,7 +697,7 @@ export default function DispatcherPracticesPage() {
           <h1 className="text-2xl font-semibold">Практики</h1>
           <p className="text-sm text-muted-foreground">
             Периоды УП и ПП: в это время обычные пары группы заменяются
-            карточкой практики. Для УП задаются учебные дни и число пар.
+            карточкой практики. Для УП задаются учебные дни и номера пар.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -615,7 +707,7 @@ export default function DispatcherPracticesPage() {
             className="min-h-11 sm:min-h-9"
           >
             <Upload className="size-4" aria-hidden="true" />
-            Импорт XLSX
+            Импорт графика УП
           </Button>
           <Button onClick={openCreate} className="min-h-11 sm:min-h-9">
             <Plus className="size-4" aria-hidden="true" />
@@ -693,6 +785,24 @@ export default function DispatcherPracticesPage() {
             className="h-11 w-40 bg-card sm:h-9"
           />
         </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">Экспорт</span>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void handleExport()}
+            disabled={filterGroup === "all" || exporting}
+            title={
+              filterGroup === "all"
+                ? "Выберите группу, чтобы скачать график УП"
+                : "Скачать график УП выбранной группы в DOCX"
+            }
+            className="min-h-11 sm:min-h-9"
+          >
+            <Download className="size-4" aria-hidden="true" />
+            {exporting ? "Формирование…" : "Скачать график УП"}
+          </Button>
+        </div>
         {hasFilters && (
           <Button
             variant="ghost"
@@ -741,14 +851,14 @@ export default function DispatcherPracticesPage() {
                   message={
                     hasFilters
                       ? "Измените фильтры или сбросьте их."
-                      : "Добавьте практику вручную или импортируйте список из XLSX."
+                      : "Добавьте практику вручную или импортируйте график УП из DOCX."
                   }
                 />
                 {!hasFilters && (
                   <div className="flex flex-wrap justify-center gap-2">
                     <Button variant="outline" onClick={() => setImportOpen(true)}>
                       <Upload className="size-4" aria-hidden="true" />
-                      Импорт XLSX
+                      Импорт графика УП
                     </Button>
                     <Button onClick={openCreate}>
                       <Plus className="size-4" aria-hidden="true" />
@@ -780,11 +890,16 @@ export default function DispatcherPracticesPage() {
                   <tbody>
                     {items.map((practice) => {
                       const days = practiceDays(practice)
-                      const totalPairs = days.reduce(
-                        (sum, day) => sum + day.pairCount,
-                        0,
-                      )
+                      const totalPairs = practiceTotalPairs(practice)
                       const teacherList = practiceTeachers(practice)
+                      const meta = [
+                        practice.subgroup != null
+                          ? `подгруппа ${practice.subgroup}`
+                          : null,
+                        practice.room ? `каб. ${practice.room}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")
                       return (
                         <tr key={practice.id} className="border-b last:border-0">
                           <td className="px-4 py-3">
@@ -797,7 +912,13 @@ export default function DispatcherPracticesPage() {
                             {practiceName(practice)}
                             {practice.kind === "Up" && days.length > 0 && (
                               <span className="block text-xs font-normal text-muted-fg">
-                                {days.length} дн. · {totalPairs} пар
+                                {days.length} дн. · {totalPairs} пар ·{" "}
+                                {totalPairs * 2} акад. ч
+                              </span>
+                            )}
+                            {practice.kind === "Up" && meta && (
+                              <span className="block text-xs font-normal text-muted-fg">
+                                {meta}
                               </span>
                             )}
                           </td>
@@ -913,6 +1034,35 @@ export default function DispatcherPracticesPage() {
                 />
               </div>
 
+              {formKind === "Up" && (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="pr-room">Кабинет</Label>
+                    <Input
+                      id="pr-room"
+                      value={formRoom}
+                      onChange={(e) => setFormRoom(e.target.value)}
+                      maxLength={20}
+                      placeholder="Например, 305"
+                      className="h-11 bg-card sm:h-9"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="pr-subgroup">№ подгруппы</Label>
+                    <Input
+                      id="pr-subgroup"
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={formSubgroup}
+                      onChange={(e) => setFormSubgroup(e.target.value)}
+                      placeholder="Например, 1"
+                      className="h-11 bg-card sm:h-9"
+                    />
+                  </div>
+                </>
+              )}
+
               <div
                 role="group"
                 aria-labelledby="pr-teachers-label"
@@ -998,7 +1148,7 @@ export default function DispatcherPracticesPage() {
                         <LoadingSpinner size="sm" className="ml-1" />
                       )}
                     </div>
-                    <div className="flex gap-1.5">
+                    <div className="flex flex-wrap gap-1.5">
                       <Button
                         type="button"
                         variant="outline"
@@ -1007,7 +1157,7 @@ export default function DispatcherPracticesPage() {
                         onClick={fillAllDays}
                         disabled={dayDrafts.length === 0}
                       >
-                        Заполнить все
+                        Заполнить все пары
                       </Button>
                       <Button
                         type="button"
@@ -1022,8 +1172,8 @@ export default function DispatcherPracticesPage() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Учебные дни периода (Пн–Сб без нерабочих). По умолчанию 6
-                    пар, допустимо 1–8.
+                    Учебные дни периода (Пн–Сб без нерабочих). Отметьте точные
+                    номера пар 1–8; по умолчанию выбраны пары 1–6.
                   </p>
                   {dayDrafts.length === 0 ? (
                     <p className="rounded-md border border-dashed bg-card px-3 py-4 text-center text-sm text-muted-foreground">
@@ -1032,89 +1182,85 @@ export default function DispatcherPracticesPage() {
                         : "В выбранном периоде нет учебных дней."}
                     </p>
                   ) : (
-                    <div className="max-h-64 overflow-y-auto rounded-md border bg-card">
+                    <div className="max-h-72 overflow-y-auto rounded-md border bg-card">
                       <ul className="divide-y">
                         {dayDrafts.map((day, index) => {
                           const label = formatDayLabel(day.date)
                           return (
                             <li
                               key={day.date}
-                              className="flex items-center gap-2 px-3 py-2"
+                              className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-start sm:gap-3"
                             >
-                              <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
-                                <input
-                                  type="checkbox"
-                                  checked={day.included}
-                                  onChange={(e) =>
-                                    updateDay(index, {
-                                      included: e.target.checked,
-                                    })
-                                  }
-                                  className="size-4 accent-primary"
-                                />
-                                <span
-                                  className={cn(
-                                    !day.included &&
-                                      "text-muted-foreground line-through",
-                                  )}
+                              <div className="flex items-center justify-between gap-2 sm:w-56 sm:shrink-0">
+                                <label className="flex flex-1 cursor-pointer items-center gap-2 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={day.included}
+                                    onChange={(e) =>
+                                      toggleDayIncluded(
+                                        index,
+                                        e.target.checked,
+                                      )
+                                    }
+                                    className="size-4 accent-primary"
+                                  />
+                                  <span
+                                    className={cn(
+                                      !day.included &&
+                                        "text-muted-foreground line-through",
+                                    )}
+                                  >
+                                    {label}
+                                  </span>
+                                </label>
+                                <Badge
+                                  variant="secondary"
+                                  className="tabular-nums"
                                 >
-                                  {label}
-                                </span>
-                              </label>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  className="size-9"
-                                  aria-label={`Уменьшить число пар: ${label}`}
-                                  disabled={!day.included || day.pairCount <= 1}
-                                  onClick={() =>
-                                    updateDay(index, {
-                                      pairCount: Math.max(
-                                        1,
-                                        day.pairCount - 1,
-                                      ),
-                                    })
-                                  }
-                                >
-                                  <Minus className="size-4" aria-hidden="true" />
-                                </Button>
-                                <Input
-                                  type="number"
-                                  min={MIN_PAIR_COUNT}
-                                  max={MAX_PAIR_COUNT}
-                                  step={1}
-                                  value={day.pairCount}
-                                  disabled={!day.included}
-                                  onChange={(e) =>
-                                    updateDay(index, {
-                                      pairCount: clampPairs(
-                                        Number(e.target.value),
-                                      ),
-                                    })
-                                  }
-                                  aria-label={`Число пар: ${label}`}
-                                  className="h-9 w-16 text-center"
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  className="size-9"
-                                  aria-label={`Увеличить число пар: ${label}`}
-                                  disabled={!day.included || day.pairCount >= 8}
-                                  onClick={() =>
-                                    updateDay(index, {
-                                      pairCount: Math.min(
-                                        8,
-                                        day.pairCount + 1,
-                                      ),
-                                    })
-                                  }
-                                >
-                                  <Plus className="size-4" aria-hidden="true" />
-                                </Button>
+                                  {day.pairNumbers.length}
+                                </Badge>
+                              </div>
+                              <div
+                                role="group"
+                                aria-label={`Пары: ${label}`}
+                                className={cn(
+                                  "grid flex-1 grid-cols-4 gap-1.5 sm:grid-cols-8",
+                                  !day.included && "opacity-50",
+                                )}
+                              >
+                                {PRACTICE_PAIR_NUMBERS.map((pair) => {
+                                  const active =
+                                    day.pairNumbers.includes(pair)
+                                  return (
+                                    <label
+                                      key={pair}
+                                      className={cn(
+                                        "flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-md border px-1.5 text-sm tabular-nums transition-colors",
+                                        active
+                                          ? "border-primary bg-primary/[0.06]"
+                                          : "border-border hover:bg-muted",
+                                        !day.included &&
+                                          "cursor-not-allowed hover:bg-transparent",
+                                      )}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={active}
+                                        disabled={!day.included}
+                                        onChange={(e) =>
+                                          toggleDayPair(
+                                            index,
+                                            pair,
+                                            e.target.checked,
+                                          )
+                                        }
+                                        aria-label={`Пара ${pair}, ${label}`}
+                                        className="size-4 accent-primary"
+                                      />
+                                      {pair}
+                                    </label>
+                                  )
+                                })}
                               </div>
                             </li>
                           )
@@ -1124,8 +1270,8 @@ export default function DispatcherPracticesPage() {
                   )}
                   {includedDays.length > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Выбрано дней: {includedDays.length} · всего пар:{" "}
-                      {totalDraftPairs}
+                      Выбрано дней: {includedDays.length} · {totalDraftPairs} пар
+                      = {totalDraftPairs * 2} акад. часов
                     </p>
                   )}
                 </div>
@@ -1159,7 +1305,7 @@ export default function DispatcherPracticesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Импорт XLSX */}
+      {/* Импорт графика УП из DOCX */}
       <Dialog
         open={importOpen}
         onOpenChange={(open) => {
@@ -1167,125 +1313,272 @@ export default function DispatcherPracticesPage() {
           else setImportOpen(true)
         }}
       >
-        <DialogContent className="sm:max-w-5xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
           <DialogHeader>
-            <DialogTitle>Импорт практик из XLSX</DialogTitle>
+            <DialogTitle>Импорт графика УП из DOCX</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
-              Шапка в строке 1: «Вид | Название | Группа | Дата начала | Дата
-              окончания | Преподаватель | Примечание». Даты — в формате
-              ДД.ММ.ГГГГ, вид — УП или ПП, несколько преподавателей — через «;».
+              Загрузите документ «График проведения занятий». Из шапки
+              определяются группа, тема и период, из таблицы — подгруппы,
+              кабинеты, даты с номерами пар и преподаватели. На основе строк
+              будут созданы практики УП.
             </p>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx"
-                className="hidden"
-                onChange={handleFileChange}
-                aria-hidden="true"
-                tabIndex={-1}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="min-h-11 sm:min-h-9"
-              >
-                <FileSpreadsheet className="size-4" aria-hidden="true" />
-                {importFile ? "Выбрать другой файл" : "Выбрать файл XLSX"}
-              </Button>
-              {importFile && (
-                <span className="text-sm text-muted-foreground">
-                  {importFile.name} · {(importFile.size / 1024).toFixed(1)} КБ
-                </span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".docx"
+              className="hidden"
+              onChange={handleFileChange}
+              aria-hidden="true"
+              tabIndex={-1}
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragging(true)
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={handleDrop}
+              className={cn(
+                "flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                dragging
+                  ? "border-primary bg-primary/[0.06]"
+                  : "border-border hover:bg-muted/50",
               )}
+            >
+              {importFile ? (
+                <>
+                  <FileText
+                    className="size-10 text-accent"
+                    aria-hidden="true"
+                  />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="font-medium break-all">
+                      {importFile.name}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {(importFile.size / 1024).toFixed(1)} КБ
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud
+                    className="size-10 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="font-medium">
+                      Перетащите график УП сюда
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      DOCX, до 10 МБ — или нажмите, чтобы выбрать
+                    </span>
+                  </span>
+                </>
+              )}
+            </button>
+
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 onClick={() => void runPreview()}
                 disabled={!importFile || previewing}
                 className="min-h-11 sm:min-h-9"
               >
-                {previewing ? "Чтение…" : "Проверить файл"}
+                {previewing ? "Чтение…" : "Проверить документ"}
               </Button>
+              {importFile && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setImportFile(null)
+                    setPreview(null)
+                    if (fileInputRef.current) fileInputRef.current.value = ""
+                  }}
+                  className="min-h-11 sm:min-h-9"
+                >
+                  Убрать файл
+                </Button>
+              )}
             </div>
 
             {preview && (
               <>
-                <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <span>
-                    Строк в файле: <strong>{preview.totalRows}</strong>
-                  </span>
-                  {preview.errors.length > 0 ? (
-                    <span className="flex items-center gap-1 text-destructive">
-                      <AlertTriangle className="size-4" aria-hidden="true" />
-                      Ошибок: {preview.errors.length}
+                <div
+                  role="group"
+                  aria-labelledby="pr-graph-head-label"
+                  className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span
+                      id="pr-graph-head-label"
+                      className="text-sm font-medium"
+                    >
+                      Шапка графика
                     </span>
-                  ) : (
-                    <span className="text-success">
-                      Ошибок нет — можно импортировать.
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      Строк: {preview.totalRows}
                     </span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="pr-graph-group">Группа *</Label>
+                      <Input
+                        id="pr-graph-group"
+                        value={previewGroup}
+                        onChange={(e) => setPreviewGroup(e.target.value)}
+                        maxLength={100}
+                        className="h-11 bg-card sm:h-9"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="pr-graph-name">Тема УП *</Label>
+                      <Input
+                        id="pr-graph-name"
+                        value={previewName}
+                        onChange={(e) => setPreviewName(e.target.value)}
+                        maxLength={100}
+                        className="h-11 bg-card sm:h-9"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="pr-graph-from">Период с *</Label>
+                      <Input
+                        id="pr-graph-from"
+                        type="date"
+                        value={previewFrom}
+                        onChange={(e) => setPreviewFrom(e.target.value)}
+                        className="h-11 bg-card sm:h-9"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="pr-graph-to">по *</Label>
+                      <Input
+                        id="pr-graph-to"
+                        type="date"
+                        value={previewTo}
+                        onChange={(e) => setPreviewTo(e.target.value)}
+                        className="h-11 bg-card sm:h-9"
+                      />
+                    </div>
+                  </div>
+                  {previewFrom && previewTo && previewFrom > previewTo && (
+                    <p className="text-xs text-destructive">
+                      Дата начала не может быть позже даты окончания.
+                    </p>
                   )}
                 </div>
 
-                {preview.errors.length > 0 && (
-                  <div className="max-h-40 overflow-y-auto rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs">
-                    <ul className="flex flex-col gap-1">
-                      {preview.errors.map((err, i) => (
-                        <li key={i} className="text-destructive">
-                          {normalizeImportMessage(err.message, err.row)}
-                        </li>
-                      ))}
-                    </ul>
+                {preview.errors.length > 0 ? (
+                  <div className="flex flex-col gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-destructive">
+                      <AlertTriangle className="size-4" aria-hidden="true" />
+                      Ошибок: {preview.errors.length}
+                    </p>
+                    <div className="max-h-40 overflow-y-auto text-xs">
+                      <ul className="flex flex-col gap-1">
+                        {preview.errors.map((err, i) => (
+                          <li key={i} className="text-destructive">
+                            {formatGraphError(err)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <span className="text-success">Ошибок нет</span> — можно
+                    импортировать.
+                  </p>
+                )}
+
+                {!graphHeaderReady && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                    <AlertTriangle
+                      className="mt-0.5 size-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <p>
+                      Заполните группу, тему УП и корректный период — без них
+                      импорт недоступен.
+                    </p>
                   </div>
                 )}
 
                 {preview.rows.length > 0 && (
                   <div className="max-h-80 overflow-auto rounded-md border">
-                    <table className="w-full min-w-[1000px] text-xs">
+                    <table className="w-full min-w-[900px] text-xs">
                       <thead className="sticky top-0 bg-muted text-left">
                         <tr>
-                          <th className="px-2 py-2 font-medium">Строка</th>
-                          <th className="px-2 py-2 font-medium">Вид</th>
-                          <th className="px-2 py-2 font-medium">Название</th>
-                          <th className="px-2 py-2 font-medium">Группа</th>
-                          <th className="px-2 py-2 font-medium">Дата начала</th>
-                          <th className="px-2 py-2 font-medium">
-                            Дата окончания
+                          <th className="px-3 py-2 font-medium">№</th>
+                          <th className="px-3 py-2 font-medium">Подгруппа</th>
+                          <th className="px-3 py-2 font-medium">Тема</th>
+                          <th className="px-3 py-2 font-medium">Кабинет</th>
+                          <th className="px-3 py-2 font-medium">
+                            Дни (даты и пары)
                           </th>
-                          <th className="px-2 py-2 font-medium">
+                          <th className="px-3 py-2 font-medium">
                             Преподаватель
                           </th>
-                          <th className="px-2 py-2 font-medium">Примечание</th>
+                          <th className="px-3 py-2 font-medium">Примечание</th>
                         </tr>
                       </thead>
                       <tbody>
                         {preview.rows.map((row, index) => (
                           <tr
                             key={`${row.row}-${index}`}
-                            className={
-                              errorRows.has(row.row)
-                                ? "bg-destructive/5"
-                                : undefined
-                            }
+                            className="border-b align-top last:border-0"
                           >
-                            <td className="px-2 py-1 font-mono tabular-nums text-muted-fg">
+                            <td className="px-3 py-2 font-mono tabular-nums text-muted-fg">
                               {row.row}
                             </td>
-                            {IMPORT_EDITABLE_FIELDS.map((field) => (
-                              <td key={field} className="px-2 py-1">
-                                <Input
-                                  value={(row[field] as string | null) ?? ""}
-                                  onChange={(e) =>
-                                    updatePreviewRow(index, field, e.target.value)
-                                  }
-                                  aria-label={`Строка ${row.row}, поле «${IMPORT_FIELD_LABELS[field]}»`}
-                                  className="h-9 min-w-28 bg-card"
-                                />
-                              </td>
-                            ))}
+                            <td className="px-3 py-2 tabular-nums">
+                              {row.subgroup ?? "—"}
+                            </td>
+                            <td className="min-w-[180px] px-3 py-2">
+                              {row.name || "—"}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2">
+                              {row.room || "—"}
+                            </td>
+                            <td className="min-w-[220px] px-3 py-2">
+                              {row.days.length === 0 ? (
+                                <span className="text-muted-fg">—</span>
+                              ) : (
+                                <ul className="flex flex-col gap-0.5">
+                                  {row.days.map((day, dayIndex) => (
+                                    <li
+                                      key={`${day.date}-${dayIndex}`}
+                                      className="whitespace-nowrap"
+                                    >
+                                      <span className="font-mono tabular-nums">
+                                        {formatDate(day.date)}
+                                      </span>
+                                      {" — "}
+                                      <span>
+                                        пары{" "}
+                                        {day.pairNumbers.length > 0
+                                          ? day.pairNumbers.join(", ")
+                                          : "—"}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </td>
+                            <td className="min-w-[160px] px-3 py-2">
+                              {row.teacherName || "—"}
+                            </td>
+                            <td className="min-w-[140px] px-3 py-2 text-muted-fg">
+                              {row.note || "—"}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1294,9 +1587,9 @@ export default function DispatcherPracticesPage() {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  Можно исправить значения прямо в таблице, затем подтвердить
-                  импорт. Импорт выполняется одной транзакцией. Дни УП задаются
-                  вручную после импорта (по умолчанию 6 пар).
+                  Импорт выполняется одной транзакцией: по одной практике УП на
+                  каждую подгруппу. Существующие практики группы за этот период
+                  будут заменены.
                 </p>
               </>
             )}
@@ -1312,6 +1605,7 @@ export default function DispatcherPracticesPage() {
                 !preview ||
                 preview.errors.length > 0 ||
                 preview.rows.length === 0 ||
+                !graphHeaderReady ||
                 confirming
               }
             >

@@ -122,7 +122,7 @@ public class LiveDashboardService(AppDbContext db, IBellScheduleService bells, T
                     ? teachers.GetValueOrDefault(id)
                     : null;
 
-                for (var number = 1; number <= day.PairCount; number++)
+                foreach (var number in day.PairNumbers)
                 {
                     var (start, end) = ResolveTime(times, number, TimeSpan.Zero, TimeSpan.Zero);
                     var entry = new LiveEntry

@@ -1357,7 +1357,7 @@
               ]
             }
           },
-          "description": "Список шаблонов документов для скачивания"
+          "description": "Список шаблонов документов для скачивания. Дополнительно включает шаблон «Шаблон графика УП.docx» (name «График УП», description «Шаблон графика учебной практики»)."
         },
         {
           "name": "Download document template",
@@ -2143,7 +2143,7 @@
         },
         {
           "name": "Practices",
-          "description": "Практики УП/ПП: CRUD и импорт XLSX",
+          "description": "Практики УП/ПП: CRUD и импорт/экспорт графика УП (DOCX)",
           "item": [
             {
               "name": "List practices",
@@ -2165,7 +2165,7 @@
                   ]
                 }
               },
-              "description": "Постраничный список практик (AllowAnonymous). kind = Up|Pp (строкой). Фильтр teacherId — по связи практики с преподавателями (многие-ко-многим). Поля: id, kind, name, groupId, groupName, teacherIds[], teachers[] { id, name }, dateFrom, dateTo, days[] { date, pairCount }, note?. from/to — пересечение периода; pageSize 1–100 (default 20)."
+              "description": "Постраничный список практик (AllowAnonymous). kind = Up|Pp (строкой). Фильтр teacherId — по связи практики с преподавателями (многие-ко-многим). Поля: id, kind, name, groupId, groupName, teacherIds[], teachers[] { id, name }, dateFrom, dateTo, days[] { date, pairNumbers[] }, room?, subgroup?, note?. from/to — пересечение периода; pageSize 1–100 (default 20)."
             },
             {
               "name": "Create practice",
@@ -2174,7 +2174,7 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"kind\": \"Up\",\n  \"name\": \"УП 01\",\n  \"groupId\": \"{{groupId}}\",\n  \"teacherIds\": [\"{{teacherId}}\"],\n  \"dateFrom\": \"2026-10-01T00:00:00Z\",\n  \"dateTo\": \"2026-10-14T00:00:00Z\",\n  \"note\": \"\",\n  \"days\": [\n    { \"date\": \"2026-10-01T00:00:00Z\", \"pairCount\": 6 },\n    { \"date\": \"2026-10-02T00:00:00Z\", \"pairCount\": 6 }\n  ]\n}",
+                  "raw": "{\n  \"kind\": \"Up\",\n  \"name\": \"УП 01\",\n  \"groupId\": \"{{groupId}}\",\n  \"teacherIds\": [\"{{teacherId}}\"],\n  \"dateFrom\": \"2026-10-01T00:00:00Z\",\n  \"dateTo\": \"2026-10-14T00:00:00Z\",\n  \"room\": \"202л\",\n  \"subgroup\": 1,\n  \"note\": \"\",\n  \"days\": [\n    { \"date\": \"2026-10-01T00:00:00Z\", \"pairNumbers\": [1,2,3,4,5,6] },\n    { \"date\": \"2026-10-02T00:00:00Z\", \"pairNumbers\": [1,2,3,4,5,6] }\n  ]\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": {
@@ -2183,7 +2183,7 @@
                   "path": ["api", "practices"]
                 }
               },
-              "description": "Создать практику (Dispatcher/Admin). Валидации 400: kind определён (Up/Pp); name не пусто и ≤100; период задан; dateFrom.Date ≤ dateTo.Date; период в пределах семестра; группа найдена; ≥1 преподаватель и все существуют; для УП days[] непуст, даты внутри периода и семестра, pairCount 1–8, без дублей; для ПП days игнорируется. Пересечение практик одной группы по периоду → 409 «У группы уже есть практика в этот период.»."
+              "description": "Создать практику (Dispatcher/Admin). Валидации 400: kind определён (Up/Pp); name не пусто и ≤100; период задан; dateFrom.Date ≤ dateTo.Date; период в пределах семестра; группа найдена; ≥1 преподаватель и все существуют; room ≤20; subgroup >0; для УП days[] непуст, даты внутри периода и семестра, pairNumbers — номера пар 1–8 (непустой массив, без дублей, отсортирован), даты без дублей; для ПП days игнорируется. Несколько УП одной группы с ОДИНАКОВЫМ периодом разрешены — это подгруппы. Пересечение с другой практикой группы (ПП или иной период) → 409 «У группы уже есть практика в этот период.»."
             },
             {
               "name": "Update practice",
@@ -2218,41 +2218,59 @@
               "description": "Удалить практику (Dispatcher/Admin). 404 — не найдено."
             },
             {
-              "name": "Preview practice import",
+              "name": "Preview practice graph import",
               "request": {
                 "method": "POST",
                 "header": [{ "key": "Content-Type", "value": "multipart/form-data" }],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "file", "type": "file", "src": "/path/to/практики.xlsx" }
+                    { "key": "file", "type": "file", "src": "/path/to/график-УП.docx" }
                   ]
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/api/practices/import/preview",
+                  "raw": "{{baseUrl}}/api/practices/import/graph/preview",
                   "host": ["{{baseUrl}}"],
-                  "path": ["api", "practices", "import", "preview"]
+                  "path": ["api", "practices", "import", "graph", "preview"]
                 }
               },
-              "description": "Превью импорта практик из XLSX (Dispatcher/Admin, multipart/form-data, поле file). Ограничения: .xlsx, ≤10 МБ. Шапка в строке 1: «Вид | Название | Группа | Дата начала | Дата окончания | Преподаватель | Примечание»; данные со строки 2. В колонке «Преподаватель» допускается несколько ФИО через «;». Ответ: { totalRows, rows[] { row, kind, name, groupName, dateFrom, dateTo, teacherName, note }, errors[] { row, column, level, message } } с сообщениями «строка N: …». 400 — не выбран файл / не XLSX / >10 МБ / повреждён / нет данных."
+              "description": "Превью импорта графика учебной практики (УП) из DOCX (Dispatcher/Admin, multipart/form-data, поле file). Ограничения: .docx, ≤10 МБ. Ответ: Result<PracticeGraphPreviewResponse> { groupName?, practiceName?, dateFrom?, dateTo?, totalRows, rows[] { row, subgroup?, name, room?, teacherName, days[] { date, pairNumbers[] }, note? }, errors[] { sheet, row, column, level, message } }. Пример (200): { \"isSuccess\": true, \"data\": { \"groupName\": \"ИП 224\", \"practiceName\": \"УП.01 Разработка программных модулей\", \"dateFrom\": \"2026-12-01T00:00:00Z\", \"dateTo\": \"2026-12-06T00:00:00Z\", \"totalRows\": 1, \"rows\": [{ \"row\": 1, \"subgroup\": 1, \"name\": \"УП.01 Разработка программных модулей\", \"room\": \"202л\", \"teacherName\": \"Иванов С.В.\", \"days\": [{ \"date\": \"2026-12-02T00:00:00Z\", \"pairNumbers\": [1,2,3,4] }], \"note\": null }], \"errors\": [] } }. Ошибки 400: «Файл не выбран» / «Поддерживается только формат DOCX» / «Файл слишком большой. Максимум 10MB.» / ошибки парсинга."
             },
             {
-              "name": "Confirm practice import",
+              "name": "Confirm practice graph import",
               "request": {
                 "method": "POST",
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"rows\": [\n    {\n      \"row\": 2,\n      \"kind\": \"УП\",\n      \"name\": \"УП 01\",\n      \"groupName\": \"ИС-21\",\n      \"dateFrom\": \"01.10.2026\",\n      \"dateTo\": \"14.10.2026\",\n      \"teacherName\": \"Иванов Иван Иванович; Петров Пётр Петрович\",\n      \"note\": \"\"\n    }\n  ]\n}",
+                  "raw": "{\n  \"groupName\": \"ИП 224\",\n  \"name\": \"УП.01 Разработка программных модулей\",\n  \"dateFrom\": \"2026-12-01T00:00:00Z\",\n  \"dateTo\": \"2026-12-06T00:00:00Z\",\n  \"rows\": [\n    {\n      \"row\": 1,\n      \"subgroup\": 1,\n      \"name\": \"УП.01 Разработка программных модулей\",\n      \"room\": \"202л\",\n      \"teacherName\": \"Иванов С.В.\",\n      \"days\": [{ \"date\": \"2026-12-02T00:00:00Z\", \"pairNumbers\": [1,2,3,4] }],\n      \"note\": null\n    }\n  ]\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/api/practices/import/confirm",
+                  "raw": "{{baseUrl}}/api/practices/import/graph/confirm",
                   "host": ["{{baseUrl}}"],
-                  "path": ["api", "practices", "import", "confirm"]
+                  "path": ["api", "practices", "import", "graph", "confirm"]
                 }
               },
-              "description": "Подтвердить импорт практик (Dispatcher/Admin, транзакция). Вид: «УП»/«UP» → Up, «ПП»/«PP» → Pp; даты дд.мм.гггг; в «teacherName» допускается несколько ФИО через «;». Для УП число пар по дням не импортируется — дни создаются автоматически (Пн–Пт периода по 6 пар). Повторная валидация строк: при ошибках → 400 списком «строка N: …»; пустой rows → 400 «Нет строк для импорта.». Ответ: { imported, practices[] }."
+              "description": "Подтвердить импорт графика УП из DOCX (Dispatcher/Admin). Body: PracticeGraphConfirmRequest { groupName, name, dateFrom, dateTo, rows[] }. Создаёт по одной УП-практике (подгруппе) на каждую строку; заменяет существующие УП той же группы с идентичным периодом. Ответ: Result<PracticeGraphConfirmResponse> { imported, practices[] }. 400 при ошибках строк; 409 при конфликте периода с другой практикой группы."
+            },
+            {
+              "name": "Export practice graph",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"groupId\": \"{{groupId}}\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/practices/graph/export",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "practices", "graph", "export"]
+                }
+              },
+              "description": "Экспорт графика учебной практики (Dispatcher/Admin) в DOCX. Body: PracticeGraphExportRequest { groupId }. Возвращает бинарный .docx (FileContentResult, Content-Type application/vnd.openxmlformats-officedocument.wordprocessingml.document). 404 — группа/УП/шаблон не найдены."
             }
           ]
         }

@@ -8,17 +8,18 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace CollegeLMS.API.Controllers;
 
-/// <summary>Практики УП/ПП: управление и импорт из XLSX.</summary>
+/// <summary>Практики УП/ПП: управление и импорт графика УП из DOCX.</summary>
 [ApiController]
 [Route("api/practices")]
 [Produces("application/json")]
-public class PracticeController(IPracticeService service) : ControllerBase
+public class PracticeController(IPracticeService service, IPracticeGraphService graphService)
+    : ControllerBase
 {
     /// <summary>Список практик с фильтрами и пагинацией.</summary>
     /// <remarks>
     /// Возвращает постраничный список практик. Фильтр по преподавателю выполняется по связи
     /// «практика — преподаватели» (многие-ко-многим). Ответ содержит название практики, список
-    /// преподавателей и дни УП с числом пар.
+    /// преподавателей и дни УП с номерами пар.
     /// </remarks>
     [HttpGet]
     [AllowAnonymous]
@@ -54,7 +55,7 @@ public class PracticeController(IPracticeService service) : ControllerBase
     /// Валидации (400): название не пустое и не длиннее 100 символов; вид определён (УП/ПП);
     /// период задан, дата начала не позже окончания, период в пределах семестра; группа найдена;
     /// минимум один существующий преподаватель; для УП список дней непуст, даты внутри периода,
-    /// число пар 1–8, даты без дублей. Пересечение периода практик одной группы → 409.
+    /// номера пар 1–8 без дублей. Пересечение периода практик одной группы → 409.
     /// </remarks>
     [HttpPost]
     [Authorize(Roles = "Dispatcher,Admin")]
@@ -107,29 +108,33 @@ public class PracticeController(IPracticeService service) : ControllerBase
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Превью импорта практик из XLSX.</summary>
-    [HttpPost("import/preview")]
+    /// <summary>Превью импорта графика УП из DOCX.</summary>
+    /// <remarks>
+    /// Разбирает документ «График проведения занятий»: шапку (период, тему, группу) и таблицу
+    /// подгрупп (номер подгруппы, тема, кабинет, даты с номерами пар, преподаватель).
+    /// </remarks>
+    [HttpPost("import/graph/preview")]
     [Authorize(Roles = "Dispatcher,Admin")]
     [Consumes("multipart/form-data")]
-    [SwaggerOperation(Summary = "Превью импорта практик из XLSX")]
-    [SwaggerResponse(200, "Превью получено", typeof(Result<PracticeImportPreviewResponse>))]
+    [SwaggerOperation(Summary = "Превью импорта графика УП из DOCX")]
+    [SwaggerResponse(200, "Превью получено", typeof(Result<PracticeGraphPreviewResponse>))]
     [SwaggerResponse(400, "Файл невалиден", typeof(ErrorResponse))]
-    [ProducesResponseType(typeof(Result<PracticeImportPreviewResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<PracticeGraphPreviewResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> PreviewImport(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> PreviewGraphImport(IFormFile file, CancellationToken ct)
     {
         if (file == null || file.Length == 0)
-            return BadRequest(Result<PracticeImportPreviewResponse>.Fail("Файл не выбран", 400));
+            return BadRequest(Result<PracticeGraphPreviewResponse>.Fail("Файл не выбран", 400));
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (ext != ".xlsx")
+        if (ext != ".docx")
             return BadRequest(
-                Result<PracticeImportPreviewResponse>.Fail("Поддерживается только формат XLSX", 400)
+                Result<PracticeGraphPreviewResponse>.Fail("Поддерживается только формат DOCX", 400)
             );
 
         if (file.Length > 10 * 1024 * 1024)
             return BadRequest(
-                Result<PracticeImportPreviewResponse>.Fail(
+                Result<PracticeGraphPreviewResponse>.Fail(
                     "Файл слишком большой. Максимум 10MB.",
                     400
                 )
@@ -139,24 +144,55 @@ public class PracticeController(IPracticeService service) : ControllerBase
         await file.CopyToAsync(stream, ct);
         stream.Seek(0, SeekOrigin.Begin);
 
-        var result = await service.PreviewImportAsync(stream, ct);
+        var result = await graphService.PreviewImportAsync(stream, ct);
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Подтвердить импорт практик (в транзакции).</summary>
-    [HttpPost("import/confirm")]
+    /// <summary>Подтвердить импорт графика УП (в транзакции).</summary>
+    /// <remarks>
+    /// Создаёт по одной практике УП на каждую подгруппу: общие тема, группа и период,
+    /// свои кабинет, номер подгруппы, преподаватель и дни с номерами пар.
+    /// </remarks>
+    [HttpPost("import/graph/confirm")]
     [Authorize(Roles = "Dispatcher,Admin")]
-    [SwaggerOperation(Summary = "Подтвердить импорт практик")]
-    [SwaggerResponse(200, "Практики импортированы", typeof(Result<PracticeImportConfirmResponse>))]
-    [SwaggerResponse(400, "Ошибки в строках", typeof(ErrorResponse))]
-    [ProducesResponseType(typeof(Result<PracticeImportConfirmResponse>), StatusCodes.Status200OK)]
+    [SwaggerOperation(Summary = "Подтвердить импорт графика УП")]
+    [SwaggerResponse(200, "Практики импортированы", typeof(Result<PracticeGraphConfirmResponse>))]
+    [SwaggerResponse(400, "Ошибки в данных", typeof(ErrorResponse))]
+    [ProducesResponseType(typeof(Result<PracticeGraphConfirmResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ConfirmImport(
-        PracticeImportConfirmRequest request,
+    public async Task<IActionResult> ConfirmGraphImport(
+        PracticeGraphConfirmRequest request,
         CancellationToken ct
     )
     {
-        var result = await service.ConfirmImportAsync(request, ct);
+        var result = await graphService.ConfirmImportAsync(request, ct);
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Экспорт графика УП группы в DOCX.</summary>
+    /// <remarks>
+    /// Формирует документ по шаблону: одна строка таблицы на каждую практику УП группы
+    /// (подгруппа, тема, кабинет, даты с номерами пар, преподаватель).
+    /// </remarks>
+    [HttpPost("graph/export")]
+    [Authorize(Roles = "Dispatcher,Admin")]
+    [SwaggerOperation(Summary = "Экспорт графика УП группы в DOCX")]
+    [SwaggerResponse(200, "Файл сформирован", typeof(FileResult))]
+    [SwaggerResponse(400, "Некорректные данные", typeof(ErrorResponse))]
+    [SwaggerResponse(404, "Практики или шаблон не найдены", typeof(ErrorResponse))]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ExportGraph(
+        PracticeGraphExportRequest request,
+        CancellationToken ct
+    )
+    {
+        var result = await graphService.ExportAsync(request.GroupId, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+
+        var data = result.Data!;
+        return File(data.Content, data.ContentType, data.FileName);
     }
 }
