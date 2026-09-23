@@ -35,7 +35,8 @@ api.interceptors.response.use(
       if (status === 401) {
         localStorage.removeItem("token")
         localStorage.removeItem("user")
-        if (!window.location.pathname.startsWith("/login")) {
+        const path = window.location.pathname
+        if (!path.startsWith("/login") && !path.startsWith("/max")) {
           window.location.href = "/login"
         }
       } else if (status === 500) {

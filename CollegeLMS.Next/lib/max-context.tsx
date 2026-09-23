@@ -10,6 +10,7 @@ import {
 } from "react"
 import { useRouter } from "next/navigation"
 import api from "@/lib/api"
+import { loginWithMax } from "@/api/auth"
 import { resolveMaxDeepLink, type MaxDeepLink } from "@/lib/max-deeplink"
 
 export interface ViewContext {
@@ -105,6 +106,44 @@ export function MaxContextProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(() => {
     setLoading(true)
+
+    const initData = (
+      window as unknown as { WebApp?: { initData?: string } }
+    ).WebApp?.initData
+
+    if (initData) {
+      loginWithMax(initData)
+        .then((res) => {
+          localStorage.setItem("token", res.token)
+          setIsAuthed(true)
+          setProfile({
+            id: String(res.profile.maxUserId),
+            fullName: res.profile.fullName ?? null,
+            role: res.profile.role,
+            teacherId: res.profile.teacherId ?? null,
+            teacherName: res.profile.teacherName ?? null,
+            groupId: res.profile.groupId ?? null,
+            groupName: res.profile.groupName ?? null,
+          })
+          const own: ViewContext = {}
+          if (res.profile.groupId) own.groupId = res.profile.groupId
+          if (res.profile.groupName) own.groupName = res.profile.groupName
+          if (res.profile.teacherId) own.teacherId = res.profile.teacherId
+          if (res.profile.teacherName) own.teacherName = res.profile.teacherName
+          setViewContextState((prev) => {
+            const next = Object.keys(prev).length === 0 ? own : prev
+            storeViewContext(next)
+            return next
+          })
+        })
+        .catch(() => {
+          setIsAuthed(false)
+          setProfile(null)
+        })
+        .finally(() => setLoading(false))
+      return
+    }
+
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null
     if (!token) {

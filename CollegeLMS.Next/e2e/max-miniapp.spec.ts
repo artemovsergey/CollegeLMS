@@ -170,6 +170,10 @@ test.describe("MAX mini-app", () => {
       if (url.includes("/meta")) return route.fulfill(inlineJson(META))
       if (url.includes("/search")) return route.fulfill(inlineJson(SEARCH))
       if (url.includes("/history")) return route.fulfill(inlineJson(HISTORY))
+      // Мок журнала обязан идти раньше общих моков дня/недели, иначе
+      // /api/schedule/journal перехватывается как расписание.
+      if (url.includes("/journal"))
+        return route.fulfill(inlineJson(ok({ subjects: [], entries: [] })))
       if (url.includes("view=week")) return route.fulfill(inlineJson(WEEK_VIEW))
       return route.fulfill(inlineJson(DAY_VIEW))
     })
@@ -260,5 +264,92 @@ test.describe("MAX mini-app", () => {
     await expect(card.getByText("Применено:")).toBeVisible()
     await expect(page.getByText("Invalid Date")).toHaveCount(0)
     await expect(page.getByText("undefined")).toHaveCount(0)
+  })
+
+  test("MAX initData: гость входит и видит расписание", async ({ page }) => {
+    await page.addInitScript(() => {
+      ;(window as unknown as { WebApp?: unknown }).WebApp = {
+        initData: "auth_date=1&user=%7B%22id%22%3A1%7D&hash=stub",
+        initDataUnsafe: {},
+      }
+    })
+    await page.route("**/api/auth/max", (route) =>
+      route.fulfill(
+        inlineJson(
+          ok({
+            token: "max-jwt",
+            profile: {
+              maxUserId: 1,
+              fullName: "Гость",
+              role: "Student",
+              groupId: "g1",
+              groupName: "ПО262",
+              teacherId: null,
+              teacherName: null,
+            },
+          }),
+        ),
+      ),
+    )
+
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+
+    await expect(page.locator(".max-app__tabbar")).toBeVisible()
+    await expect(page.getByText("Расписание")).toBeVisible()
+  })
+
+  test("MAX initData: роль Teacher показывает вкладку Журнал", async ({ page }) => {
+    await page.addInitScript(() => {
+      ;(window as unknown as { WebApp?: unknown }).WebApp = {
+        initData: "auth_date=1&user=%7B%22id%22%3A2%7D&hash=stub",
+        initDataUnsafe: {},
+      }
+    })
+    await page.route("**/api/auth/max", (route) =>
+      route.fulfill(
+        inlineJson(
+          ok({
+            token: "max-jwt",
+            profile: {
+              maxUserId: 2,
+              fullName: "Преподаватель",
+              role: "Teacher",
+              groupId: null,
+              groupName: null,
+              teacherId: "t1",
+              teacherName: "Петренко В.Б.",
+            },
+          }),
+        ),
+      ),
+    )
+
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+
+    await expect(page.locator(".max-app__tabbar").getByText("Журнал")).toBeVisible()
+  })
+
+  test("MAX initData: ошибка входа не выкидывает на /login", async ({ page }) => {
+    await page.addInitScript(() => {
+      ;(window as unknown as { WebApp?: unknown }).WebApp = {
+        initData: "bad",
+        initDataUnsafe: {},
+      }
+    })
+    await page.route("**/api/auth/max", (route) =>
+      route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({
+          isSuccess: false,
+          errorMessage: "bad",
+          statusCode: 401,
+        }),
+      }),
+    )
+
+    await page.goto("/max/schedule", { waitUntil: "networkidle" })
+
+    await expect(page).toHaveURL(/\/max\//)
   })
 })
