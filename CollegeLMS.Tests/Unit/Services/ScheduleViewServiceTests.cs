@@ -701,4 +701,160 @@ public class ScheduleViewServiceTests : IDisposable
         result.Data.BigBreak!.AfterPair.Should().Be(1);
         result.Data.Entries[0].StartTime.Should().Be(new TimeSpan(9, 10, 0));
     }
+
+    [Fact]
+    public async Task GetDayAsync_TeacherView_UpPractice_KeepsRegularPairsAndAddsUpPairs()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Up, "УП 01", [3]);
+        await SeedEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 1, 1);
+        _bells.TimeMap[1] = (new TimeSpan(8, 30, 0), new TimeSpan(9, 50, 0));
+        _bells.TimeMap[3] = (new TimeSpan(11, 30, 0), new TimeSpan(12, 50, 0));
+
+        var result = await _sut.GetDayAsync(null, teacher.Id, null, date, CancellationToken.None);
+
+        result.Data!.Practices.Should().BeEmpty();
+        result.Data.Entries.Should().HaveCount(2);
+        result.Data.Entries.Select(e => e.NumberPair).Should().Equal(1, 3);
+        result.Data.Entries.Single(e => e.NumberPair == 1).IsPractice.Should().BeFalse();
+        var upPair = result.Data.Entries.Single(e => e.NumberPair == 3);
+        upPair.IsPractice.Should().BeTrue();
+        upPair.Subject.Should().Be("УП 01");
+    }
+
+    [Fact]
+    public async Task GetDayAsync_TeacherView_PpPractice_IsHiddenAndKeepsRegularPairs()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Pp, "ПП 09");
+        await SeedEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 2, 1);
+
+        var result = await _sut.GetDayAsync(null, teacher.Id, null, date, CancellationToken.None);
+
+        result.Data!.Practices.Should().BeEmpty();
+        result.Data.Entries.Should().ContainSingle();
+        result.Data.Entries[0].IsPractice.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetDayAsync_TeacherView_PpPracticeOnly_HasNoEntries()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Pp, "ПП 09");
+
+        var result = await _sut.GetDayAsync(null, teacher.Id, null, date, CancellationToken.None);
+
+        result.Data!.Practices.Should().BeEmpty();
+        result.Data.Entries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetDayAsync_GroupView_UpPractice_StillHidesRegularPairs()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Up, "УП 01", [3]);
+        await SeedEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 1, 1);
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result.Data!.Practices.Should().ContainSingle();
+        result.Data.Entries.Should().ContainSingle();
+        result.Data.Entries[0].NumberPair.Should().Be(3);
+        result.Data.Entries[0].IsPractice.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetWeekAsync_TeacherView_PpOnSaturday_DoesNotIncludeSaturday()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var saturday = Monday1.AddDays(5);
+        await SeedPracticeAsync(group.Id, teacher.Id, saturday, PracticeKind.Pp, "ПП 09");
+
+        var result = await _sut.GetWeekAsync(
+            null,
+            teacher.Id,
+            null,
+            1,
+            null,
+            CancellationToken.None
+        );
+
+        result.Data!.Days.Should().HaveCount(5);
+    }
+
+    [Fact]
+    public async Task GetWeekAsync_GroupView_PpOnSaturday_IncludesSaturday()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var saturday = Monday1.AddDays(5);
+        await SeedPracticeAsync(group.Id, teacher.Id, saturday, PracticeKind.Pp, "ПП 09");
+
+        var result = await _sut.GetWeekAsync(group.Id, null, null, 1, null, CancellationToken.None);
+
+        result.Data!.Days.Should().HaveCount(6);
+    }
+
+    [Fact]
+    public async Task GetMonthAsync_TeacherView_PpPractice_HiddenButRegularCountKept()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = new DateTime(2026, 9, 1); // вторник недели 1
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Pp, "ПП 09");
+        await SeedEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 1, 1);
+
+        var result = await _sut.GetMonthAsync(
+            null,
+            teacher.Id,
+            null,
+            "2026-09",
+            CancellationToken.None
+        );
+
+        var day = result.Data!.Days.Single(d => d.Date == date);
+        day.PracticeKinds.Should().BeEmpty();
+        day.PracticeName.Should().BeNull();
+        day.PairCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetMonthAsync_TeacherView_UpPractice_AddsPairCountToRegular()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = new DateTime(2026, 9, 1);
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Up, "УП 01", [1, 2]);
+        await SeedEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 3, 1);
+
+        var result = await _sut.GetMonthAsync(
+            null,
+            teacher.Id,
+            null,
+            "2026-09",
+            CancellationToken.None
+        );
+
+        var day = result.Data!.Days.Single(d => d.Date == date);
+        day.PracticeKinds.Should().ContainSingle().Which.Should().Be(PracticeKind.Up);
+        day.PracticeName.Should().Be("УП 01");
+        day.PairCount.Should().Be(3); // 1 обычная + 2 УП
+    }
+
+    [Fact]
+    public async Task GetSemesterAsync_TeacherView_UpPractice_KeepsRegularPairsAndAddsUpPairs()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        await SeedPracticeAsync(group.Id, teacher.Id, Monday1, PracticeKind.Up, "УП 01", [2]);
+        await SeedEntryAsync(group.Id, teacher.Id, DayOfWeek.Monday, 1, 1);
+
+        var result = await _sut.GetSemesterAsync(null, teacher.Id, CancellationToken.None);
+
+        var monday = result.Data!.Weeks[0].Days[0];
+        monday.Practices.Should().BeEmpty();
+        monday.Entries.Should().HaveCount(2);
+        monday.Entries.Should().Contain(e => e.IsPractice && e.NumberPair == 2);
+        monday.Entries.Should().Contain(e => !e.IsPractice && e.NumberPair == 1);
+    }
 }

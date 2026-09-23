@@ -118,6 +118,54 @@ public class LiveDashboardServiceTests : IDisposable
         await _db.SaveChangesAsync();
     }
 
+    private async Task SeedPracticeAsync(
+        Guid groupId,
+        IReadOnlyList<Guid> teacherIds,
+        DateTime date,
+        PracticeKind kind,
+        string name,
+        int[]? pairNumbers = null
+    )
+    {
+        var utcNow = DateTime.UtcNow;
+        var practice = new Practice
+        {
+            Id = Guid.NewGuid(),
+            Kind = kind,
+            Name = name,
+            GroupId = groupId,
+            DateFrom = date.Date,
+            DateTo = date.Date,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+            Teachers = teacherIds
+                .Select(id => new PracticeTeacher
+                {
+                    Id = Guid.NewGuid(),
+                    TeacherId = id,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                })
+                .ToList(),
+        };
+
+        if (kind == PracticeKind.Up && pairNumbers is not null)
+            practice.Days =
+            [
+                new PracticeDay
+                {
+                    Id = Guid.NewGuid(),
+                    Date = date.Date,
+                    PairNumbers = pairNumbers,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                },
+            ];
+
+        _db.Practices.Add(practice);
+        await _db.SaveChangesAsync();
+    }
+
     private async Task SeedNonWorkingAsync(DateTime from, DateTime to, string title)
     {
         var utcNow = DateTime.UtcNow;
@@ -450,5 +498,59 @@ public class LiveDashboardServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Data!.Date.Should().Be(new DateTime(2030, 6, 10));
         result.Data.Now.Should().Be(new TimeSpan(23, 30, 0));
+    }
+
+    [Fact]
+    public async Task GetLiveAsync_UpPractice_AddsPairsToAllTeachers()
+    {
+        var (group, first) = await SeedGroupAndTeacherAsync("ИС-21", "Иванов И.И.");
+        var second = TeacherFixture.CreateFaker().Generate();
+        second.User.FullName = "Петров П.П.";
+        _db.Teachers.Add(second);
+        await _db.SaveChangesAsync();
+
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(
+            group.Id,
+            [first.Id, second.Id],
+            date,
+            PracticeKind.Up,
+            "УП 01",
+            [1, 2]
+        );
+        SetPairTime(1, 8, 30, 9, 50);
+        SetPairTime(2, 10, 0, 11, 20);
+
+        var result = await _sut.GetLiveAsync(
+            date,
+            date.Add(new TimeSpan(9, 0, 0)),
+            CancellationToken.None
+        );
+
+        var response = result.Data!;
+        var firstStatus = response.Teachers.Single(t => t.Name == "Иванов И.И.");
+        var secondStatus = response.Teachers.Single(t => t.Name == "Петров П.П.");
+        firstStatus.Entries.Should().HaveCount(2);
+        secondStatus.Entries.Should().HaveCount(2);
+        secondStatus.Entries.Should().OnlyContain(e => e.IsPractice && e.PracticeName == "УП 01");
+    }
+
+    [Fact]
+    public async Task GetLiveAsync_PpPractice_DoesNotAddPairsToItsTeacher()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync("ИС-21", "Иванов И.И.");
+        var date = Monday1.AddDays(1);
+        await SeedPracticeAsync(group.Id, teacher.Id, date, PracticeKind.Pp, "ПП 09");
+
+        var result = await _sut.GetLiveAsync(
+            date,
+            date.Add(new TimeSpan(9, 0, 0)),
+            CancellationToken.None
+        );
+
+        var teacherStatus = result.Data!.Teachers.Should().ContainSingle().Which;
+        teacherStatus.Entries.Should().BeEmpty();
+        teacherStatus.TotalPairs.Should().Be(0);
+        teacherStatus.Status.Should().Be(LiveLessonStatus.NoPairs);
     }
 }

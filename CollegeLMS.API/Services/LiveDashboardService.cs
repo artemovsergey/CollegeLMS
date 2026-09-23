@@ -100,17 +100,21 @@ public class LiveDashboardService(AppDbContext db, IBellScheduleService bells, T
 
             foreach (var practice in practices)
             {
+                // ПП в расписании не отображается (преподаватели ПП получают только уведомления бота).
+                if (practice.Kind != PracticeKind.Up)
+                    continue;
+
+                var day = practice.Days.FirstOrDefault(d => d.Date.Date == target);
+                if (day is null)
+                    continue;
+
                 var group = GetOrCreate(groups, practice.GroupId, practice.Group?.Name);
                 var practiceTeachers = practice
                     .Teachers.Select(t => (Id: t.TeacherId, Name: t.Teacher?.User?.FullName))
                     .ToList();
-
-                foreach (var teacher in practiceTeachers)
-                    GetOrCreate(teachers, teacher.Id, teacher.Name);
-
-                var day = practice.Days.FirstOrDefault(d => d.Date.Date == target);
-                if (practice.Kind != PracticeKind.Up || day is null)
-                    continue;
+                var teacherAccumulators = practiceTeachers
+                    .Select(t => GetOrCreate(teachers, t.Id, t.Name))
+                    .ToList();
 
                 var teacherName = string.Join(
                     ", ",
@@ -118,9 +122,6 @@ public class LiveDashboardService(AppDbContext db, IBellScheduleService bells, T
                 );
                 var firstTeacherId =
                     practiceTeachers.Count > 0 ? practiceTeachers[0].Id : (Guid?)null;
-                var firstTeacher = firstTeacherId is Guid id
-                    ? teachers.GetValueOrDefault(id)
-                    : null;
 
                 foreach (var number in day.PairNumbers)
                 {
@@ -142,7 +143,8 @@ public class LiveDashboardService(AppDbContext db, IBellScheduleService bells, T
                     };
 
                     group.Entries.Add(entry);
-                    firstTeacher?.Entries.Add(entry);
+                    foreach (var accumulator in teacherAccumulators)
+                        accumulator.Entries.Add(entry);
                 }
             }
         }

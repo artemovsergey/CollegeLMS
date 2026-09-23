@@ -40,7 +40,9 @@ public class ScheduleViewService(
                 rangeResult.ErrorMessage ?? "Ошибка загрузки данных",
                 rangeResult.StatusCode
             );
-        return Result<ScheduleDayViewResponse>.Ok(BuildDay(rangeResult.Data!, target, week));
+        return Result<ScheduleDayViewResponse>.Ok(
+            BuildDay(rangeResult.Data!, target, week, teacherId.HasValue)
+        );
     }
 
     public async Task<Result<ScheduleWeekViewResponse>> GetWeekAsync(
@@ -74,9 +76,9 @@ public class ScheduleViewService(
         for (var i = 0; i < 7; i++)
         {
             var target = monday.AddDays(i);
-            if (!ShouldIncludeDay(data, target, effectiveWeek))
+            if (!ShouldIncludeDay(data, target, effectiveWeek, teacherId.HasValue))
                 continue;
-            days.Add(BuildDay(data, target, effectiveWeek));
+            days.Add(BuildDay(data, target, effectiveWeek, teacherId.HasValue));
         }
 
         return Result<ScheduleWeekViewResponse>.Ok(
@@ -154,20 +156,22 @@ public class ScheduleViewService(
             var effectiveDay = overrideDay?.SubstituteDayOfWeek is int s and >= 1 and <= 7
                 ? (DayOfWeek)s
                 : date.DayOfWeek;
-            var upDay = coversPractice
+            var visiblePractice = teacherId.HasValue
+                ? coversPractice.Where(p => p.Kind == PracticeKind.Up).ToList()
+                : coversPractice;
+            var upDay = visiblePractice
                 .Where(p => p.Kind == PracticeKind.Up)
                 .SelectMany(p => p.Days)
                 .FirstOrDefault(d => d.Date.Date == date);
+            var regularCount = entries.Count(e =>
+                e.DayOfWeek == effectiveDay && e.Weeks.Contains(week)
+            );
             var pairCount =
-                upDay is not null && !isSunday && nwd is null && !isOutOfSemester
-                    ? upDay.PairNumbers.Count
-                    : (
-                        isSunday || nwd is not null || coversPractice.Count > 0 || isOutOfSemester
-                            ? 0
-                            : entries.Count(e =>
-                                e.DayOfWeek == effectiveDay && e.Weeks.Contains(week)
-                            )
-                    );
+                isSunday || nwd is not null || isOutOfSemester ? 0
+                : teacherId.HasValue ? regularCount + (upDay?.PairNumbers.Count ?? 0)
+                : upDay is not null ? upDay.PairNumbers.Count
+                : coversPractice.Count > 0 ? 0
+                : regularCount;
             days.Add(
                 new ScheduleMonthDayResponse
                 {
@@ -179,8 +183,8 @@ public class ScheduleViewService(
                     IsWorkingDay = overrideDay is not null,
                     SubstituteDayOfWeek = overrideDay?.SubstituteDayOfWeek,
                     WorkingDayTitle = overrideDay?.Title,
-                    PracticeKinds = coversPractice.Select(p => p.Kind).Distinct().ToList(),
-                    PracticeName = coversPractice
+                    PracticeKinds = visiblePractice.Select(p => p.Kind).Distinct().ToList(),
+                    PracticeName = visiblePractice
                         .FirstOrDefault(p => p.Kind == PracticeKind.Up)
                         ?.Name,
                     IsOutOfSemester = isOutOfSemester,
@@ -232,9 +236,9 @@ public class ScheduleViewService(
             for (var i = 0; i < 7; i++)
             {
                 var target = weekStart.AddDays(i);
-                if (!ShouldIncludeDay(data.Data!, target, week))
+                if (!ShouldIncludeDay(data.Data!, target, week, teacherId.HasValue))
                     continue;
-                days.Add(BuildDay(data.Data!, target, week));
+                days.Add(BuildDay(data.Data!, target, week, teacherId.HasValue));
             }
             weeks.Add(
                 new ScheduleSemesterWeekResponse
@@ -351,7 +355,12 @@ public class ScheduleViewService(
     }
 
     /// <summary>Показывать ли день недели: Пн–Пт всегда, Сб — при override или контенте, Вс — только при override.</summary>
-    private static bool ShouldIncludeDay(ScheduleRangeData data, DateTime target, int week)
+    private static bool ShouldIncludeDay(
+        ScheduleRangeData data,
+        DateTime target,
+        int week,
+        bool teacherView
+    )
     {
         if (target.DayOfWeek is >= DayOfWeek.Monday and <= DayOfWeek.Friday)
             return true;
@@ -362,7 +371,13 @@ public class ScheduleViewService(
         if (target.DayOfWeek == DayOfWeek.Sunday)
             return false;
 
-        if (data.Practices.Any(p => p.DateFrom <= target && p.DateTo >= target))
+        if (
+            data.Practices.Any(p =>
+                p.DateFrom <= target
+                && p.DateTo >= target
+                && (!teacherView || p.Kind == PracticeKind.Up)
+            )
+        )
             return true;
 
         if (data.Entries.Any(e => e.DayOfWeek == target.DayOfWeek && e.Weeks.Contains(week)))
@@ -384,7 +399,8 @@ public class ScheduleViewService(
     private static ScheduleDayViewResponse BuildDay(
         ScheduleRangeData data,
         DateTime target,
-        int week
+        int week,
+        bool teacherView
     )
     {
         var workingDay = FindWorkingOverride(data, target);
@@ -397,6 +413,22 @@ public class ScheduleViewService(
             var practicesToday = data
                 .Practices.Where(p => p.DateFrom <= target && p.DateTo >= target)
                 .ToList();
+            var (practices, entries, inserts) =
+                practicesToday.Count > 0
+                    ? ResolvePracticeLayers(
+                        data,
+                        target,
+                        week,
+                        effectiveDay,
+                        practicesToday,
+                        teacherView
+                    )
+                    : (
+                        new List<PracticeResponse>(),
+                        BuildEntries(data, target, week, effectiveDay),
+                        data.InsertsByDay.GetValueOrDefault(effectiveDay)
+                            ?? new List<ScheduleInsertResponse>()
+                    );
 
             return new ScheduleDayViewResponse
             {
@@ -407,15 +439,9 @@ public class ScheduleViewService(
                 SubstituteDayOfWeek = workingDay.SubstituteDayOfWeek,
                 WorkingDayTitle = workingDay.Title,
                 BigBreak = bell?.BigBreak,
-                Practices = practicesToday,
-                Inserts =
-                    practicesToday.Count > 0
-                        ? []
-                        : data.InsertsByDay.GetValueOrDefault(effectiveDay) ?? [],
-                Entries =
-                    practicesToday.Count > 0
-                        ? PracticeEntries(data, target, week, practicesToday)
-                        : BuildEntries(data, target, week, effectiveDay),
+                Practices = practices,
+                Inserts = inserts,
+                Entries = entries,
             };
         }
 
@@ -446,17 +472,29 @@ public class ScheduleViewService(
         var practiceList = data
             .Practices.Where(p => p.DateFrom <= target && p.DateTo >= target)
             .ToList();
+        var dayBell = data.BellByDate.GetValueOrDefault(target.Date);
         if (practiceList.Count > 0)
+        {
+            var (practices, entries, inserts) = ResolvePracticeLayers(
+                data,
+                target,
+                week,
+                target.DayOfWeek,
+                practiceList,
+                teacherView
+            );
             return new ScheduleDayViewResponse
             {
                 Date = target,
                 Week = week,
                 DayOfWeek = (int)target.DayOfWeek,
-                Practices = practiceList,
-                Entries = PracticeEntries(data, target, week, practiceList),
+                Practices = practices,
+                Inserts = inserts,
+                Entries = entries,
+                BigBreak = dayBell?.BigBreak,
             };
+        }
 
-        var dayBell = data.BellByDate.GetValueOrDefault(target.Date);
         return new ScheduleDayViewResponse
         {
             Date = target,
@@ -466,6 +504,39 @@ public class ScheduleViewService(
             Entries = BuildEntries(data, target, week, target.DayOfWeek),
             BigBreak = dayBell?.BigBreak,
         };
+    }
+
+    /// <summary>
+    /// Слои практик дня. Перспектива группы: карточки практик + УП-пары (обычные пары подавлены).
+    /// Перспектива преподавателя: карточек нет, обычные пары сохраняются и дополняются УП-парами, ПП скрыта.
+    /// </summary>
+    private static (
+        List<PracticeResponse> Practices,
+        List<ScheduleResponse> Entries,
+        List<ScheduleInsertResponse> Inserts
+    ) ResolvePracticeLayers(
+        ScheduleRangeData data,
+        DateTime target,
+        int week,
+        DayOfWeek effectiveDay,
+        List<PracticeResponse> practicesToday,
+        bool teacherView
+    )
+    {
+        if (teacherView)
+        {
+            var upToday = practicesToday.Where(p => p.Kind == PracticeKind.Up).ToList();
+            var entries = BuildEntries(data, target, week, effectiveDay);
+            entries.AddRange(PracticeEntries(data, target, week, upToday));
+            return (
+                [],
+                entries.OrderBy(e => e.NumberPair).ToList(),
+                data.InsertsByDay.GetValueOrDefault(effectiveDay)
+                    ?? new List<ScheduleInsertResponse>()
+            );
+        }
+
+        return (practicesToday, PracticeEntries(data, target, week, practicesToday), []);
     }
 
     private static List<ScheduleResponse> BuildEntries(
