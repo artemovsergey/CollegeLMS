@@ -59,6 +59,7 @@ services:
       context: .
       dockerfile: CollegeLMS.API/Dockerfile
       target: final
+    image: ghcr.io/artemovsergey/collegelms-api:latest
     container_name: collegelms-api
     mem_limit: 1g
     memswap_limit: 2g
@@ -149,6 +150,7 @@ services:
     build:
       context: .
       dockerfile: CollegeLMS.MaxBot/Dockerfile
+    image: ghcr.io/artemovsergey/collegelms-maxbot:latest
     container_name: collegelms-maxbot
     mem_limit: 256m
     memswap_limit: 512m
