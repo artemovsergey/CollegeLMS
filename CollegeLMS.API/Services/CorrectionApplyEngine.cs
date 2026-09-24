@@ -40,7 +40,7 @@ public sealed class CorrectionApplyOutcome
 public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService bells)
 {
     private static bool IsSelfStudyNote(string? note) =>
-        string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
+        ScheduleImportService.IsSelfStudyNote(note);
 
     /// <summary>Ошибки пакета: «Строка N: сообщение» (в БД не хранятся).</summary>
     public async Task<List<ScheduleValidationError>> ValidateBatchAsync(
@@ -256,14 +256,6 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                 continue;
             }
 
-            if (IsSelfStudyNote(position.Note) && position.ChangeType != ScheduleChangeType.Remove)
-            {
-                result.Errors.Add(
-                    Error(position.Row, 7, "примечание «сам.р.» допустимо только для снятия.")
-                );
-                continue;
-            }
-
             var hasSubject = !string.IsNullOrWhiteSpace(position.Subject);
             var hasTeacher =
                 position.TeacherId.HasValue || !string.IsNullOrWhiteSpace(position.TeacherName);
@@ -377,6 +369,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                         TeacherId = teacherId,
                         TeacherName = teacherName,
                         Note = position.Note,
+                        IsSelfStudy = IsSelfStudyNote(position.Note),
                         PendingChangeType = nameof(ScheduleChangeType.Add),
                     };
                     list.Add(entry);
@@ -506,7 +499,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                     var sourcePair =
                         position.ChangeType == ScheduleChangeType.Move
                             ? position.RemovedNumberPair!.Value
-                            : position.RemovedNumberPair ?? position.NumberPair;
+                            : position.NumberPair;
 
                     var source = FindEntry(
                         list,
@@ -527,10 +520,45 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                         continue;
                     }
 
+                    SimulatedEntry? movedSource = null;
+                    if (
+                        position.ChangeType == ScheduleChangeType.Replace
+                        && position.RemovedNumberPair is { } oldPair
+                        && oldPair != position.NumberPair
+                    )
+                    {
+                        movedSource = FindEntry(
+                            list,
+                            oldPair,
+                            position.Subject,
+                            teacherId,
+                            position.TeacherName
+                        );
+                        if (movedSource is null)
+                        {
+                            result.Errors.Add(
+                                Error(
+                                    position.Row,
+                                    6,
+                                    $"занятие для переноса не найдено: пара {oldPair} не найдена в расписании на эту дату."
+                                )
+                            );
+                            continue;
+                        }
+                    }
+
                     source.Removed = true;
                     source.PendingChangeType = position.ChangeType.ToString();
                     if (execute && source.Entity is not null)
                         RemoveWeekOrDelete(source.Entity, position.Week, utcNow);
+
+                    if (movedSource is not null)
+                    {
+                        movedSource.Removed = true;
+                        movedSource.PendingChangeType = nameof(ScheduleChangeType.Remove);
+                        if (execute && movedSource.Entity is not null)
+                            RemoveWeekOrDelete(movedSource.Entity, position.Week, utcNow);
+                    }
 
                     var entry = new SimulatedEntry
                     {
@@ -546,6 +574,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                         TeacherId = teacherId,
                         TeacherName = teacherName,
                         Note = position.Note,
+                        IsSelfStudy = IsSelfStudyNote(position.Note),
                         PendingChangeType = position.ChangeType.ToString(),
                     };
                     list.Add(entry);
@@ -592,6 +621,44 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                                 CorrectionDate = correctionDate,
                             }
                         );
+
+                        if (movedSource is not null)
+                        {
+                            var removeHistory = BuildHistory(
+                                position,
+                                ScheduleChangeType.Remove,
+                                movedSource.Subject,
+                                movedSource.TeacherId,
+                                movedSource.Room,
+                                movedSource.NumberPair,
+                                null,
+                                null,
+                                null,
+                                null,
+                                utcNow,
+                                appliedByUserId
+                            );
+                            db.ScheduleHistory.Add(removeHistory);
+                            result.History.Add(removeHistory);
+
+                            result.Changes.Add(
+                                new ScheduleChangeDto
+                                {
+                                    Id = removeHistory.Id,
+                                    ChangeType = nameof(ScheduleChangeType.Remove),
+                                    GroupId = group.Id,
+                                    GroupName = group.Name,
+                                    TeacherId = movedSource.TeacherId,
+                                    TeacherName = movedSource.TeacherName,
+                                    DayOfWeek = position.DayOfWeek,
+                                    Week = position.Week,
+                                    NumberPair = movedSource.NumberPair,
+                                    Subject = movedSource.Subject,
+                                    Note = position.Note,
+                                    CorrectionDate = correctionDate,
+                                }
+                            );
+                        }
                     }
                     break;
                 }

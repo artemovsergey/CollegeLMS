@@ -52,8 +52,10 @@ function tagDetail(tag: ChangeTag): string {
   return parts.join("\n")
 }
 
+const SELF_STUDY_NOTE_RE = /сам[\s./-]*р/i
+
 function isSelfStudyTag(tag: ChangeTag): boolean {
-  return tag.changeType === "Remove" && tag.note?.trim().toLowerCase() === "сам.р."
+  return SELF_STUDY_NOTE_RE.test(tag.note ?? "")
 }
 
 export default function ChangeTagBadge({ tag }: { tag: ChangeTag }) {

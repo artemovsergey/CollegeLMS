@@ -157,6 +157,18 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         return v;
     }
 
+    private static readonly Regex SelfStudyNoteRegex = new(
+        @"сам[\s./\-]*р",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase
+    );
+
+    /// <summary>
+    /// Проверяет, помечено ли примечание как самостоятельная работа
+    /// («сам.р.», «сам/р», «сам-р», в т.ч. вместе с «вм.X» в любом порядке).
+    /// </summary>
+    internal static bool IsSelfStudyNote(string? note) =>
+        !string.IsNullOrWhiteSpace(note) && SelfStudyNoteRegex.IsMatch(note);
+
     /// <summary>
     /// Ключ сопоставления групп: регистр, пробелы и разделители не учитываются,
     /// поэтому «ИП 235», «ип-235» и «ИП235» указывают на одну группу.
@@ -466,28 +478,38 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         return match.Success ? NormalizeTeacherName(match.Groups[1].Value) : string.Empty;
     }
 
+    private static readonly Regex WeekPartRegex = new(
+        @"^(?<from>\d{1,2})(?:\s*[-–—]\s*(?<to>\d{1,2}))?$",
+        RegexOptions.Compiled
+    );
+
     private static List<int> ParseWeeks(string text)
     {
         if (string.IsNullOrEmpty(text))
             return [];
 
-        var clean = text.Trim('(', ')', ' ');
         var weeks = new List<int>();
 
-        foreach (var part in clean.Split(',', StringSplitOptions.TrimEntries))
+        foreach (var rawPart in text.Split([',', ';', 'и', 'И'], StringSplitOptions.TrimEntries))
         {
-            if (part.Contains('-'))
+            var part = rawPart.Trim('(', ')', ' ', '.');
+            if (part.Length == 0)
+                continue;
+
+            var match = WeekPartRegex.Match(part);
+            if (!match.Success)
+                continue;
+
+            var from = int.Parse(match.Groups["from"].Value);
+            if (match.Groups["to"].Success)
             {
-                var range = part.Split('-');
-                if (int.TryParse(range[0], out var from) && int.TryParse(range[1], out var to))
-                {
-                    for (int i = from; i <= to; i++)
-                        weeks.Add(i);
-                }
+                var to = int.Parse(match.Groups["to"].Value);
+                for (int i = from; i <= to; i++)
+                    weeks.Add(i);
             }
-            else if (int.TryParse(part, out var w))
+            else
             {
-                weeks.Add(w);
+                weeks.Add(from);
             }
         }
 

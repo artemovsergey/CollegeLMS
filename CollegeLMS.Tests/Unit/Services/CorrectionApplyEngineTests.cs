@@ -321,13 +321,8 @@ public class CorrectionApplyEngineTests : IDisposable
         persisted.Weeks.Should().BeEquivalentTo([2]);
     }
 
-    [Theory]
-    [InlineData(ScheduleChangeType.Add)]
-    [InlineData(ScheduleChangeType.Replace)]
-    [InlineData(ScheduleChangeType.Move)]
-    public async Task ValidateBatchAsync_SelfStudyOnNonRemove_ReturnsRowError(
-        ScheduleChangeType changeType
-    )
+    [Fact]
+    public async Task ValidateBatchAsync_AddWithSelfStudyNote_IsAllowed()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
@@ -335,7 +330,7 @@ public class CorrectionApplyEngineTests : IDisposable
             group,
             Pos(
                 1,
-                changeType,
+                ScheduleChangeType.Add,
                 3,
                 subject: "Математика",
                 teacherId: teacher.Id,
@@ -346,9 +341,7 @@ public class CorrectionApplyEngineTests : IDisposable
 
         var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
 
-        var error = errors.Should().ContainSingle().Subject;
-        error.Message.Should().StartWith("Строка 1:");
-        error.Message.Should().Contain("сам.р.");
+        errors.Should().BeEmpty();
     }
 
     [Fact]
@@ -422,6 +415,89 @@ public class CorrectionApplyEngineTests : IDisposable
         history.NumberPair.Should().Be(4);
         history.RemovedNumberPair.Should().Be(2);
         history.RemovedSubject.Should().Be("Физика");
+    }
+
+    [Fact]
+    public async Task ExecuteBatchAsync_ReplaceWithMove_RemovesBothPairsAndWritesTwoHistories()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 3, TestWeek);
+        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 5, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Replace,
+                3,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "Физика",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
+                removedNumberPair: 5,
+                note: "вм.5 п."
+            )
+        );
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(3);
+        entry.Subject.Should().Be("Математика");
+
+        _db.ScheduleHistory.Should().HaveCount(2);
+        _db.ScheduleHistory.Should()
+            .Contain(h =>
+                h.ChangeType == ScheduleChangeType.Replace
+                && h.NumberPair == 3
+                && h.RemovedNumberPair == 3
+                && h.RemovedSubject == "Физика"
+            );
+        _db.ScheduleHistory.Should()
+            .Contain(h =>
+                h.ChangeType == ScheduleChangeType.Remove
+                && h.NumberPair == 5
+                && h.Subject == "Математика"
+            );
+    }
+
+    [Fact]
+    public async Task BuildEffectiveEntriesAsync_MoveWithSelfStudyNote_MarksNewPairAsSelfStudy()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync("Федорова А.А.");
+        await SeedEntryAsync(group.Id, teacher.Id, "МДК.04.02.", 1, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Move,
+                5,
+                subject: "МДК.04.02.",
+                teacherName: teacher.User.FullName,
+                removedSubject: "МДК.04.02.",
+                removedTeacherName: teacher.User.FullName,
+                removedNumberPair: 1,
+                note: "сам.р.вм.1 п."
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+        errors.Should().BeEmpty();
+
+        var entries = await _sut.BuildEffectiveEntriesAsync(
+            group.Id,
+            DayOfWeek.Tuesday,
+            TestWeek,
+            batch.Id,
+            CancellationToken.None
+        );
+
+        entries.Should().NotContain(e => e.NumberPair == 1);
+        entries.Should().Contain(e => e.NumberPair == 5 && e.IsSelfStudy);
     }
 
     [Fact]

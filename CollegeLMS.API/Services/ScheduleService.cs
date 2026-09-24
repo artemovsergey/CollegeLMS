@@ -332,10 +332,7 @@ public class ScheduleService(
                 continue;
 
             types.Add(h.ChangeType.ToString());
-            if (
-                h.ChangeType == Entities.Enums.ScheduleChangeType.Remove
-                && string.Equals(h.Note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase)
-            )
+            if (ScheduleImportService.IsSelfStudyNote(h.Note))
                 types.Add("SelfStudy");
         }
 

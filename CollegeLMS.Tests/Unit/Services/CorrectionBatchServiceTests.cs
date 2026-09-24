@@ -144,7 +144,7 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task AddPositionAsync_RejectsSelfStudyOnAdd()
+    public async Task AddPositionAsync_AllowsSelfStudyOnAdd()
     {
         var group = await SeedGroupAsync();
         var batch = await CreateBatchAsync();
@@ -163,8 +163,8 @@ public class CorrectionBatchServiceTests : IDisposable
             CancellationToken.None
         );
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("сам.р.");
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Note.Should().Be("сам.р.");
     }
 
     [Fact]

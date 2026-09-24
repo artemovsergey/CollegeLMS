@@ -136,6 +136,49 @@ public class ScheduleImportServiceTests : IDisposable
         entries[1].Weeks.Should().BeEquivalentTo([3]);
     }
 
+    [Theory]
+    [InlineData("232 История (3,4.) Петренко В.Б.", new[] { 3, 4 })]
+    [InlineData("232 История (15,16.) Петренко В.Б.", new[] { 15, 16 })]
+    [InlineData("232 История (8,12,13.) Петренко В.Б.", new[] { 8, 12, 13 })]
+    [InlineData("232 История (1и2) Петренко В.Б.", new[] { 1, 2 })]
+    [InlineData("232 История ( 2, 4 ) Петренко В.Б.", new[] { 2, 4 })]
+    [InlineData(
+        "232 История (1-10,12-15,17) Петренко В.Б.",
+        new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 17 }
+    )]
+    public void ParseWeeks_TolerantFormats(string cell, int[] expected)
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "ПО 262";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        ws.Cell(6, 3).Value = cell;
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries.Should().ContainSingle();
+        entries[0].Weeks.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public void ParseWeeks_GarbageInsideParentheses_ReturnsError()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "ПО 262";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        ws.Cell(6, 3).Value = "232 История (мусор) Петренко В.Б.";
+
+        var (_, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().NotBeEmpty();
+    }
+
     [Fact]
     public void ParseScheduleMatrix_HandlesMultipleSubjectsPerPair()
     {

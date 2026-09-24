@@ -571,7 +571,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task PreviewAsync_ReplaceWithMoveNote_ProducesTwoEntries()
+    public async Task PreviewAsync_ReplaceWithMoveNote_ProducesSingleEntry()
     {
         var group = await SeedGroupAsync();
         var fTeacher = await SeedTeacherAsync("Иванов И.И.", "ivanov@collegelms.ru");
@@ -596,21 +596,12 @@ public class ScheduleCorrectionServiceTests : IDisposable
 
             result.IsSuccess.Should().BeTrue();
             result.Data!.Errors.Should().BeEmpty();
-            var replace = result
-                .Data!.Entries.Should()
-                .ContainSingle(e => e.ChangeType == ScheduleChangeType.Replace)
-                .Subject;
+            var replace = result.Data!.Entries.Should().ContainSingle().Subject;
+            replace.ChangeType.Should().Be(ScheduleChangeType.Replace);
             replace.NumberPair.Should().Be(3);
-            replace.RemovedNumberPair.Should().Be(3);
+            replace.RemovedNumberPair.Should().Be(5);
             replace.Subject.Should().Be("Математика");
             replace.RemovedSubject.Should().Be("Физика");
-
-            var remove = result
-                .Data!.Entries.Should()
-                .ContainSingle(e => e.ChangeType == ScheduleChangeType.Remove)
-                .Subject;
-            remove.NumberPair.Should().Be(5);
-            remove.RemovedSubject.Should().Be("Математика");
         }
     }
 
@@ -685,7 +676,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ConfirmAsync_AddWithSelfStudyNote_IsRejected()
+    public async Task ConfirmAsync_AddWithSelfStudyNote_IsAccepted()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
@@ -715,8 +706,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
             CancellationToken.None
         );
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("сам.р.");
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]

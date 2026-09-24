@@ -21,7 +21,7 @@ public class ScheduleCorrectionService(
     private readonly string templatesPath = Path.Combine("..", "import", "schedule");
 
     private static bool IsSelfStudyNote(string? note) =>
-        string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
+        ScheduleImportService.IsSelfStudyNote(note);
 
     /// <summary>Есть ли на дату рабочий день (override) — разрешает корректировку на выходной.</summary>
     private async Task<bool> HasWorkingOverrideAsync(DateTime date, CancellationToken ct) =>
@@ -60,7 +60,7 @@ public class ScheduleCorrectionService(
         using var workbook = new XLWorkbook(template);
         var sheet = workbook.Worksheet(1);
         sheet.Cell(3, 1).Value =
-            $"Корректировка на {request.CorrectionDate:dd.MM.yyyy} г. ({DayName(request.CorrectionDate.DayOfWeek)})";
+            $"на {request.CorrectionDate:dd.MM.yyyy} г. ({DayName(request.CorrectionDate.DayOfWeek).ToLowerInvariant()})";
 
         var lastRow = Math.Max(sheet.LastRowUsed()?.RowNumber() ?? 7, 7);
         if (lastRow >= 7)
@@ -424,10 +424,7 @@ public class ScheduleCorrectionService(
 
             if (changeType == ScheduleChangeType.Add)
             {
-                var subject =
-                    addSubject.Length > 0
-                        ? ScheduleImportService.NormalizeSubject(addSubject)
-                        : string.Empty;
+                var subject = addSubject;
 
                 // Примечание «вм.X» → перенос: снять занятие с пары X, ввести на пару F.
                 if (noteOldPair is { } movePair)
@@ -444,7 +441,7 @@ public class ScheduleCorrectionService(
                         pair,
                         subject,
                         addTeacherId,
-                        Normalize(addTeacher),
+                        addTeacher,
                         note,
                         errors,
                         ct
@@ -466,7 +463,7 @@ public class ScheduleCorrectionService(
                             NumberPair = pair,
                             Subject = subject,
                             TeacherId = addTeacherId,
-                            TeacherName = Normalize(addTeacher),
+                            TeacherName = addTeacher,
                             Note = note,
                         }
                     );
@@ -499,9 +496,13 @@ public class ScheduleCorrectionService(
                             DayOfWeek = (int)date.DayOfWeek,
                             Week = week,
                             NumberPair = pair,
-                            RemovedSubject = target.Subject,
+                            RemovedSubject =
+                                removeSubject.Length > 0 ? removeSubject : target.Subject,
                             RemovedTeacherId = target.TeacherId,
-                            RemovedTeacherName = target.Teacher?.User?.FullName,
+                            RemovedTeacherName =
+                                removeTeacher.Length > 0
+                                    ? removeTeacher
+                                    : target.Teacher?.User?.FullName,
                             RemovedNumberPair = target.NumberPair,
                             Note = note,
                         }
@@ -510,6 +511,7 @@ public class ScheduleCorrectionService(
             }
             else // Replace: на паре F снимается B/C и вводится D/E
             {
+                // Примечание «вм.X» → замена с переносом: D/E переносится со старой пары X на пару F.
                 var swap = await BuildReplaceAsync(
                     row,
                     group.Name,
@@ -522,37 +524,22 @@ public class ScheduleCorrectionService(
                     pair,
                     addSubject,
                     addTeacherId,
-                    Normalize(addTeacher),
+                    addTeacher,
                     note,
                     errors,
                     ct
                 );
 
-                if (noteOldPair is { } movePair)
+                if (swap is not null)
                 {
-                    // Примечание «вм.X» → дополнительно снять D/E со старой пары X.
-                    var removedOld = await BuildRemoveEntryAsync(
-                        row,
-                        group.Name,
-                        group.Id,
-                        date.DayOfWeek,
-                        week,
-                        movePair,
-                        addSubject,
-                        addTeacherId,
-                        Normalize(addTeacher),
-                        note,
-                        errors,
-                        ct
-                    );
-                    if (swap is not null && removedOld is not null)
-                    {
-                        rowEntries.Add(swap);
-                        rowEntries.Add(removedOld);
-                    }
-                }
-                else if (swap is not null)
-                {
+                    if (noteOldPair is { } movePair)
+                        swap.RemovedNumberPair = movePair;
+
+                    if (removeSubject.Length > 0)
+                        swap.RemovedSubject = removeSubject;
+                    if (removeTeacher.Length > 0)
+                        swap.RemovedTeacherName = removeTeacher;
+
                     rowEntries.Add(swap);
                 }
             }
@@ -625,10 +612,10 @@ public class ScheduleCorrectionService(
                         DayOfWeek = (int)date.DayOfWeek,
                         Week = week,
                         NumberPair = pair,
-                        Subject = ScheduleImportService.NormalizeSubject(addSubject),
-                        TeacherName = Normalize(addTeacher),
-                        RemovedSubject = ScheduleImportService.NormalizeSubject(addSubject),
-                        RemovedTeacherName = Normalize(addTeacher),
+                        Subject = addSubject,
+                        TeacherName = addTeacher,
+                        RemovedSubject = addSubject,
+                        RemovedTeacherName = addTeacher,
                         RemovedNumberPair = movePair,
                         Note = note,
                     }
@@ -647,48 +634,25 @@ public class ScheduleCorrectionService(
                     NumberPair = pair,
                     Subject =
                         changeType != ScheduleChangeType.Remove && addSubject.Length > 0
-                            ? ScheduleImportService.NormalizeSubject(addSubject)
+                            ? addSubject
                             : null,
                     TeacherName =
                         changeType != ScheduleChangeType.Remove && addTeacher.Length > 0
-                            ? Normalize(addTeacher)
+                            ? addTeacher
                             : null,
                     RemovedSubject =
                         changeType != ScheduleChangeType.Add && removeSubject.Length > 0
-                            ? ScheduleImportService.NormalizeSubject(removeSubject)
+                            ? removeSubject
                             : null,
                     RemovedTeacherName =
                         changeType != ScheduleChangeType.Add && removeTeacher.Length > 0
-                            ? Normalize(removeTeacher)
+                            ? removeTeacher
                             : null,
-                    RemovedNumberPair = changeType
-                        is ScheduleChangeType.Replace
-                            or ScheduleChangeType.Move
-                        ? pair
-                        : null,
+                    RemovedNumberPair =
+                        changeType == ScheduleChangeType.Replace ? oldPair ?? pair : null,
                     Note = note,
                 }
             );
-
-            if (changeType == ScheduleChangeType.Replace && oldPair is { } movedPair)
-            {
-                // Дополнительно снять D/E со старой пары X.
-                all.Add(
-                    new CorrectionPreviewEntry
-                    {
-                        Row = row,
-                        GroupName = groupName,
-                        ChangeType = ScheduleChangeType.Remove,
-                        DayOfWeek = (int)date.DayOfWeek,
-                        Week = week,
-                        NumberPair = movedPair,
-                        RemovedSubject = ScheduleImportService.NormalizeSubject(addSubject),
-                        RemovedTeacherName = Normalize(addTeacher),
-                        RemovedNumberPair = movedPair,
-                        Note = note,
-                    }
-                );
-            }
         }
 
         await ResolveReferencesAsync(all, ct);
@@ -899,76 +863,13 @@ public class ScheduleCorrectionService(
             DayOfWeek = (int)day,
             Week = week,
             NumberPair = addPair,
-            Subject = ScheduleImportService.NormalizeSubject(addSubject),
+            Subject = addSubject,
             TeacherId = addTeacherId,
             TeacherName = addTeacherName,
             RemovedSubject = removed.Subject,
             RemovedTeacherId = removed.TeacherId,
             RemovedTeacherName = removed.Teacher?.User?.FullName,
             RemovedNumberPair = removed.NumberPair,
-            Note = note,
-        };
-    }
-
-    private async Task<CorrectionPreviewEntry?> BuildRemoveEntryAsync(
-        int row,
-        string groupName,
-        Guid groupId,
-        DayOfWeek day,
-        int week,
-        int pair,
-        string subject,
-        Guid? teacherId,
-        string teacherName,
-        string note,
-        List<ScheduleValidationError> errors,
-        CancellationToken ct
-    )
-    {
-        var target = await db
-            .ScheduleEntries.AsNoTracking()
-            .Include(e => e.Teacher!)
-                .ThenInclude(t => t.User)
-            .FirstOrDefaultAsync(
-                e =>
-                    e.GroupId == groupId
-                    && e.DayOfWeek == day
-                    && e.NumberPair == pair
-                    && e.Weeks.Contains(week)
-                    && e.Subject == ScheduleImportService.NormalizeSubject(subject)
-                    && (teacherId.HasValue ? e.TeacherId == teacherId.Value : e.TeacherId == null),
-                ct
-            );
-
-        if (target is null)
-        {
-            errors.Add(
-                Error(
-                    row,
-                    4,
-                    "logic",
-                    $"Строка {row}: занятие на {DayName(day)} {week}-й неделе, пара {pair} не найдено."
-                )
-            );
-            return null;
-        }
-
-        return new CorrectionPreviewEntry
-        {
-            Row = row,
-            GroupId = groupId,
-            GroupName = groupName,
-            ChangeType = ScheduleChangeType.Remove,
-            DayOfWeek = (int)day,
-            Week = week,
-            NumberPair = pair,
-            Subject = ScheduleImportService.NormalizeSubject(subject),
-            TeacherId = teacherId,
-            TeacherName = teacherName,
-            RemovedSubject = target.Subject,
-            RemovedTeacherId = target.TeacherId,
-            RemovedTeacherName = target.Teacher?.User?.FullName,
-            RemovedNumberPair = target.NumberPair,
             Note = note,
         };
     }
@@ -1291,12 +1192,6 @@ public class ScheduleCorrectionService(
 
         foreach (var entry in entries)
         {
-            if (IsSelfStudyNote(entry.Note) && entry.ChangeType != ScheduleChangeType.Remove)
-            {
-                errors.Add("Примечание «сам.р.» допустимо только для снятия.");
-                continue;
-            }
-
             var groupExists = await db
                 .Groups.AsNoTracking()
                 .AnyAsync(g => g.Id == entry.GroupId, ct);

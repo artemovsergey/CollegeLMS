@@ -296,19 +296,15 @@ public class ScheduleExportService(
             var label = tag.ChangeType switch
             {
                 ScheduleChangeType.Add => "добавлено",
-                ScheduleChangeType.Remove => string.Equals(
-                    tag.Note?.Trim(),
-                    "сам.р.",
-                    StringComparison.OrdinalIgnoreCase
-                )
-                    ? "сам.р."
-                    : "снято",
+                ScheduleChangeType.Remove => "снято",
                 ScheduleChangeType.Replace => "замена",
                 ScheduleChangeType.Move => "перенос",
                 _ => null,
             };
             if (label is not null && !labels.Contains(label))
                 labels.Add(label);
+            if (ScheduleImportService.IsSelfStudyNote(tag.Note) && !labels.Contains("сам.р."))
+                labels.Add("сам.р.");
         }
         return string.Join(", ", labels);
     }
@@ -905,19 +901,15 @@ public class ScheduleExportService(
             var label = h.ChangeType switch
             {
                 Entities.Enums.ScheduleChangeType.Add => "добавлено",
-                Entities.Enums.ScheduleChangeType.Remove => string.Equals(
-                    h.Note?.Trim(),
-                    "сам.р.",
-                    StringComparison.OrdinalIgnoreCase
-                )
-                    ? "сам.р."
-                    : "снято",
+                Entities.Enums.ScheduleChangeType.Remove => "снято",
                 Entities.Enums.ScheduleChangeType.Replace => "замена",
                 Entities.Enums.ScheduleChangeType.Move => "перенос",
                 _ => null,
             };
             if (label is not null && !labels.Contains(label))
                 labels.Add(label);
+            if (ScheduleImportService.IsSelfStudyNote(h.Note) && !labels.Contains("сам.р."))
+                labels.Add("сам.р.");
         }
         return string.Join(", ", labels);
     }

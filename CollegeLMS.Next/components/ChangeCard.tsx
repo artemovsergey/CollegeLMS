@@ -60,8 +60,10 @@ const DAY_OFFSET: Record<string, number> = {
   Sunday: 6,
 }
 
+const SELF_STUDY_NOTE_RE = /сам[\s./-]*р/i
+
 function isSelfStudy(item: ScheduleHistoryItem): boolean {
-  return item.note?.trim().toLowerCase() === "сам.р."
+  return SELF_STUDY_NOTE_RE.test(item.note ?? "")
 }
 
 function formatDate(date: Date): string {

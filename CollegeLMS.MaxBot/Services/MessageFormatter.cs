@@ -299,14 +299,19 @@ public static class MessageFormatter
 
     /// <summary>Примечание «сам.р.» — признак самостоятельной работы.</summary>
     private static bool IsSelfStudyNote(string? note) =>
-        string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
+        !string.IsNullOrWhiteSpace(note)
+        && System.Text.RegularExpressions.Regex.IsMatch(
+            note,
+            @"сам[\s./\-]*р",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase
+        );
 
     /// <summary>Заголовок по типу изменения: добавлена / снята / замена.</summary>
     private static void AppendChangeMarkers(System.Text.StringBuilder sb, ScheduleResponse entry)
     {
         foreach (var tag in entry.ChangeTags)
         {
-            var isSelfStudy = tag.ChangeType == "Remove" && IsSelfStudyNote(tag.Note);
+            var isSelfStudy = IsSelfStudyNote(tag.Note);
 
             var marker = isSelfStudy
                 ? "🟣 сам.р. (самостоятельная работа)"

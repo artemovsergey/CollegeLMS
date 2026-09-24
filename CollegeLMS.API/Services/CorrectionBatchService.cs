@@ -19,7 +19,7 @@ public class CorrectionBatchService(
 ) : ICorrectionBatchService
 {
     private static bool IsSelfStudyNote(string? note) =>
-        string.Equals(note?.Trim(), "сам.р.", StringComparison.OrdinalIgnoreCase);
+        ScheduleImportService.IsSelfStudyNote(note);
 
     public async Task<Result<CorrectionBatchResponse>> CreateBatchAsync(
         CreateCorrectionBatchRequest request,
@@ -202,14 +202,12 @@ public class CorrectionBatchService(
             DayOfWeek = batch.DayOfWeek,
             Week = batch.Week,
             NumberPair = request.NumberPair,
-            Subject = request.Subject is null
-                ? null
-                : ScheduleImportService.NormalizeSubject(request.Subject),
+            Subject = request.Subject?.Trim(),
             TeacherId = request.TeacherId,
             TeacherName = request.TeacherName,
             RemovedSubject = string.IsNullOrWhiteSpace(request.RemovedSubject)
                 ? request.RemovedSubject
-                : ScheduleImportService.NormalizeSubject(request.RemovedSubject),
+                : request.RemovedSubject.Trim(),
             RemovedTeacherId = request.RemovedTeacherId,
             RemovedTeacherName = request.RemovedTeacherName,
             RemovedNumberPair = request.RemovedNumberPair,
@@ -254,14 +252,12 @@ public class CorrectionBatchService(
         position.GroupId = request.GroupId;
         position.GroupName = request.GroupName;
         position.NumberPair = request.NumberPair;
-        position.Subject = request.Subject is null
-            ? null
-            : ScheduleImportService.NormalizeSubject(request.Subject);
+        position.Subject = request.Subject?.Trim();
         position.TeacherId = request.TeacherId;
         position.TeacherName = request.TeacherName;
         position.RemovedSubject = string.IsNullOrWhiteSpace(request.RemovedSubject)
             ? request.RemovedSubject
-            : ScheduleImportService.NormalizeSubject(request.RemovedSubject);
+            : request.RemovedSubject.Trim();
         position.RemovedTeacherId = request.RemovedTeacherId;
         position.RemovedTeacherName = request.RemovedTeacherName;
         position.RemovedNumberPair = request.RemovedNumberPair;
@@ -552,9 +548,6 @@ public class CorrectionBatchService(
         var groupExists = await db.Groups.AsNoTracking().AnyAsync(g => g.Id == request.GroupId, ct);
         if (!groupExists)
             return $"Группа «{request.GroupName}» не найдена в системе.";
-
-        if (IsSelfStudyNote(request.Note) && request.ChangeType != ScheduleChangeType.Remove)
-            return "Примечание «сам.р.» допустимо только для снятия.";
 
         return null;
     }

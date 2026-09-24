@@ -11,10 +11,10 @@ const META: Record<CorrectionChangeType, { label: string; icon: LucideIcon }> = 
   Move: { label: "Перенос", icon: ArrowRightLeft },
 }
 
+const SELF_STUDY_NOTE_RE = /сам[\s./-]*р/i
+
 export default function ChangeBadge({ tag }: { tag: ChangeTag }) {
-  const selfStudy =
-    (tag.changeType === "Add" || tag.changeType === "Remove") &&
-    tag.note?.trim().toLowerCase() === "сам.р."
+  const selfStudy = SELF_STUDY_NOTE_RE.test(tag.note ?? "")
 
   const meta = META[tag.changeType]
   const Icon = meta.icon
