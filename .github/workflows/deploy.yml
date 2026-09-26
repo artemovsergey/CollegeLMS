@@ -83,7 +83,16 @@ jobs:
             PREVIOUS_COMMIT=$(git rev-parse HEAD)
 
             echo "=== git pull ==="
-            git fetch origin master
+            REPO_URL="https://github.com/artemovsergey/CollegeLMS.git"
+            if git remote get-url origin | grep -q '^git@github.com:'; then
+              echo "Switching origin from SSH to HTTPS (deploy key is optional for this repository)"
+              git remote set-url origin "${REPO_URL}"
+            fi
+            if ! git fetch origin master; then
+              echo "HTTPS fetch failed, retrying over SSH"
+              git remote set-url origin "git@github.com:artemovsergey/CollegeLMS.git"
+              git fetch origin master
+            fi
             git reset --hard origin/master
 
             echo "=== .env from secrets ==="
