@@ -68,14 +68,14 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
       <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-primary to-primary/40 p-12">
-        <div className="max-w-md">
+        <div className="w-full max-w-md">
           <Link href="/">
             <Image
               src="/logo.svg"
               alt="Ставропольский колледж связи"
               width={300}
               height={200}
-              className="w-full h-auto"
+              className="mx-auto h-auto w-64"
               unoptimized
             />
           </Link>

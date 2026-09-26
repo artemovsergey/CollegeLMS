@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:design-system": "node scripts/check-design-system.mjs && node scripts/check-token-contrast.mjs",
+    "check:token-contrast": "node scripts/check-token-contrast.mjs",
+    "check:design-system:report": "node scripts/check-token-contrast.mjs --report"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

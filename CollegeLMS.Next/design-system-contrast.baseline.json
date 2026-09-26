@@ -1,0 +1,36 @@
+{
+  "findings": [
+    {
+      "scope": "светлая тема (:root)",
+      "pair": "input / background",
+      "fg": "#c9ceda",
+      "bg": "#ffffff",
+      "ratio": 1.58,
+      "min": 3
+    },
+    {
+      "scope": "тёмная тема (.dark)",
+      "pair": "primary-foreground / primary",
+      "fg": "#ffffff",
+      "bg": "#568edd",
+      "ratio": 3.33,
+      "min": 4.5
+    },
+    {
+      "scope": "тёмная тема (.dark)",
+      "pair": "accent-foreground / accent",
+      "fg": "#ffffff",
+      "bg": "#568edd",
+      "ratio": 3.33,
+      "min": 4.5
+    },
+    {
+      "scope": "тёмная тема (.dark)",
+      "pair": "input / background",
+      "fg": "#374151",
+      "bg": "#111827",
+      "ratio": 1.72,
+      "min": 3
+    }
+  ]
+}

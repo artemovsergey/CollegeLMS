@@ -1,0 +1,220 @@
+{
+  "findings": [
+    {
+      "rule": "forbidden-file",
+      "file": "lib/design-provider.tsx",
+      "line": 1,
+      "hint": "устаревший файл должен быть удалён"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "app/(authenticated)/dispatcher/bells/page.tsx",
+      "line": 653,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "app/(authenticated)/dispatcher/correction/page.tsx",
+      "line": 245,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "app/(authenticated)/dispatcher/dashboard/page.tsx",
+      "line": 47,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "app/(authenticated)/dispatcher/dashboard/page.tsx",
+      "line": 48,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "app/(authenticated)/dispatcher/dashboard/page.tsx",
+      "line": 49,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "app/(authenticated)/dispatcher/dashboard/page.tsx",
+      "line": 50,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "app/(authenticated)/dispatcher/dashboard/page.tsx",
+      "line": 51,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "app/(authenticated)/dispatcher/dashboard/page.tsx",
+      "line": 185,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "app/(authenticated)/dispatcher/holidays/page.tsx",
+      "line": 340,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "app/(authenticated)/dispatcher/holidays/WorkingDaysTab.tsx",
+      "line": 319,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "app/(authenticated)/dispatcher/inserts/page.tsx",
+      "line": 292,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "app/(authenticated)/dispatcher/practices/page.tsx",
+      "line": 872,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "app/(authenticated)/dispatcher/practices/page.tsx",
+      "line": 1517,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "app/(public)/search/page.tsx",
+      "line": 236,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "app/admin/import/page.tsx",
+      "line": 149,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "app/admin/news/page.tsx",
+      "line": 525,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "app/my/courses/[id]/progress/page.tsx",
+      "line": 130,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "components/Carousel.tsx",
+      "line": 119,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "components/CorrectionBatchList.tsx",
+      "line": 389,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "components/CorrectionPositionEditor.tsx",
+      "line": 555,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "components/Footer.tsx",
+      "line": 63,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "components/GraduateStoriesSection.tsx",
+      "line": 39,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "components/Header.tsx",
+      "line": 162,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "components/Header.tsx",
+      "line": 229,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "components/ManualCorrectionForm.tsx",
+      "line": 151,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-raw-table",
+      "file": "components/ScheduleSemesterMatrix.tsx",
+      "line": 184,
+      "hint": "используйте UI-примитив Table вместо нативного table"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "components/SpecialtiesSection.tsx",
+      "line": 80,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "components/ui/button.tsx",
+      "line": 8,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-transition-all",
+      "file": "components/ui/progress.tsx",
+      "line": 21,
+      "hint": "transition-all анимирует все свойства — перечислите нужные"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "lib/max-lesson.ts",
+      "line": 69,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "lib/max-lesson.ts",
+      "line": 70,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "lib/max-lesson.ts",
+      "line": 71,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "lib/max-lesson.ts",
+      "line": 72,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "lib/max-lesson.ts",
+      "line": 73,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    },
+    {
+      "rule": "no-raw-hex",
+      "file": "lib/max-lesson.ts",
+      "line": 74,
+      "hint": "цвет задан литералом — используйте токен из app/globals.css"
+    }
+  ]
+}
