@@ -202,7 +202,11 @@ export default function DispatcherDashboardPage() {
                   {dashboard.slots.map((slot) => (
                     <TableRow
                       key={slot.numberPair}
-                      className="border-b border-border/50"
+                      // `!` обязателен: примитив снимает границу у последней
+                      // строки через `[&_tr:last-child]:border-0` с той же
+                      // специфичностью, что и `last:border-b`, поэтому без
+                      // `important` победил бы порядок правил в собранном CSS.
+                      className="border-b border-border/50 last:border-b!"
                     >
                       <TableCell className="px-0 py-2 align-top">
                         {slot.numberPair}

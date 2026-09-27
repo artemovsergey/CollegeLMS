@@ -206,6 +206,10 @@
   --color-bg: var(--bg);
   --color-background: var(--background);
   --color-fg: var(--fg);
+  /* Алиас для shadcn-примитивов: без него класс `text-foreground` не
+     генерировался вовсе. Значение совпадает с `text-fg`, который и так
+     применён к `body`, поэтому базовый цвет текста не меняется. */
+  --color-foreground: var(--fg);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -301,7 +305,7 @@ option:checked {
    Статус в этом режиме передаётся текстом, а не цветом. */
 .accessibility-mode {
   --background: #ffffff;
-  --foreground: #000000;
+  --fg: #000000;
   --card: #ffffff;
   --card-foreground: #000000;
   --popover: #ffffff;
