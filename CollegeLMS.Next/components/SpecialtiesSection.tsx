@@ -77,7 +77,7 @@ export default function SpecialtiesSection() {
         <div className="mt-12 text-center">
           <Link
             href="/specialties"
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-3.5 text-sm font-medium text-accent-foreground transition-all hover:bg-accent/90"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-8 py-3.5 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
           >
             Все специальности
             <ArrowRight size={16} />

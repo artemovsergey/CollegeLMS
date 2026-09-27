@@ -44,11 +44,11 @@ interface DispatcherDashboardResponse {
 }
 
 const LESSON_COLORS: Record<LessonType, string> = {
-  Lecture: "#3b82f6",
-  Practice: "#10b981",
-  Lab: "#f59e0b",
-  Exam: "#ef4444",
-  None: "#94a3b8",
+  Lecture: "var(--lesson-summary-lecture)",
+  Practice: "var(--lesson-summary-practice)",
+  Lab: "var(--lesson-summary-lab)",
+  Exam: "var(--lesson-summary-exam)",
+  None: "var(--lesson-summary-none)",
 }
 
 const SEMESTER_START = new Date(2026, 8, 1) // Sep 1 2026

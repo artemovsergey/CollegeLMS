@@ -150,6 +150,21 @@
   --warning-foreground: #ffffff;
   --ring: var(--accent);
   --radius: 0.5rem;
+
+  /* Цвета типов занятий. Объявлены только в :root и намеренно не переопределяются
+     в .dark: раньше они задавались литералами в инлайн-стилях, поэтому не зависели
+     от темы. Два набора значений различаются — см. DESIGN.md, раздел про долг. */
+  --lesson-lecture: #3478f6;
+  --lesson-practice: #28a745;
+  --lesson-lab: #e6a700;
+  --lesson-exam: #e04f5f;
+  --lesson-none: #8b929a;
+
+  --lesson-summary-lecture: #3b82f6;
+  --lesson-summary-practice: #10b981;
+  --lesson-summary-lab: #f59e0b;
+  --lesson-summary-exam: #ef4444;
+  --lesson-summary-none: #94a3b8;
 }
 .dark {
   --bg: #111827;
