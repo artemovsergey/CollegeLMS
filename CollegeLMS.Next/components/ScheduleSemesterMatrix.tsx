@@ -19,6 +19,14 @@ import ChangeTagBadge from "@/components/ChangeTagBadge"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
 import { Button } from "@/components/ui/button"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { isEntryNow, mergeDayRows } from "@/lib/schedule-merge"
 import { cn } from "@/lib/utils"
 
@@ -181,20 +189,20 @@ export default function ScheduleSemesterMatrix({
       ) : data ? (
         <div className="overflow-x-auto rounded-lg border bg-card">
           {error && <ErrorBanner message={error} className="m-2" />}
-          <table className="w-full min-w-[900px] border-collapse text-xs">
-            <thead>
-              <tr className="border-b">
-                <th
+          <Table className="w-full min-w-[900px] border-collapse text-xs">
+            <TableHeader>
+              <TableRow className="border-b hover:bg-transparent">
+                <TableHead
                   scope="col"
                   className="sticky left-0 z-10 min-w-[72px] border-r bg-card px-2 py-2 text-left font-medium"
                 >
                   Неделя
-                </th>
+                </TableHead>
                 {headerDays.map((day) => {
                   const iso = normalizeDateOnly(day.date)
                   const info = DAYS.find((d) => d.value === day.dayOfWeek)
                   return (
-                    <th
+                    <TableHead
                       key={iso}
                       scope="col"
                       className="min-w-[150px] border-r px-2 py-2 text-left font-medium last:border-r-0"
@@ -203,29 +211,29 @@ export default function ScheduleSemesterMatrix({
                       <span className="block text-[10px] font-normal text-muted-foreground">
                         {formatDate(iso)}
                       </span>
-                    </th>
+                    </TableHead>
                   )
                 })}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.weeks.map((week) => (
-                <tr
+                <TableRow
                   key={week.week}
-                  className="border-b last:border-b-0"
+                  className="border-b last:border-b-0 hover:bg-transparent"
                 >
-                  <th
+                  <TableHead
                     scope="row"
                     className="sticky left-0 z-10 border-r bg-card px-2 py-1.5 text-left font-medium"
                   >
                     {week.week}
-                  </th>
+                  </TableHead>
                   {week.days.map((day) => {
                     const iso = normalizeDateOnly(day.date)
                     return (
-                      <td
+                      <TableCell
                         key={iso}
-                        className="border-r p-0 align-top last:border-r-0"
+                        className="border-r p-0 align-top whitespace-normal last:border-r-0"
                       >
                         <button
                           type="button"
@@ -235,13 +243,13 @@ export default function ScheduleSemesterMatrix({
                         >
                           <CellContent day={day} week={week.week} />
                         </button>
-                      </td>
+                      </TableCell>
                     )
                   })}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       ) : null}
     </div>

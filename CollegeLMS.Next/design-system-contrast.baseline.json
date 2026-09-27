@@ -1,20 +1,3 @@
 {
-  "findings": [
-    {
-      "scope": "MAX (.max-app)",
-      "pair": "stroke-secondary / background-surface-card",
-      "fg": "#c9ceda",
-      "bg": "#ffffff",
-      "ratio": 1.58,
-      "min": 3
-    },
-    {
-      "scope": "MAX (.dark .max-app)",
-      "pair": "stroke-secondary / background-surface-card",
-      "fg": "#374151",
-      "bg": "#1f2937",
-      "ratio": 1.42,
-      "min": 3
-    }
-  ]
+  "findings": []
 }

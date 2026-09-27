@@ -10,6 +10,11 @@ import "@fontsource/inter/600.css"
 import "@fontsource/inter/700.css"
 import "@maxhub/max-ui/dist/styles.css"
 
+// Класс режима высокой контрастности применяется до первой отрисовки,
+// иначе при включённом режиме страница успевает отрисоваться в обычных
+// цветах и переключается уже после гидратации (мигание).
+const accessibilityModeScript = `(function(){try{if(localStorage.getItem("accessibility-mode")==="true"){document.documentElement.classList.add("accessibility-mode")}}catch(e){}})();`
+
 export const metadata: Metadata = {
   title: {
     default: "ГБПОУ СКС — Ставропольский колледж связи",
@@ -31,6 +36,7 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground antialiased">
+        <script dangerouslySetInnerHTML={{ __html: accessibilityModeScript }} />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

@@ -46,6 +46,14 @@ import {
   NativeSelect,
   NativeSelectItem,
 } from "@/components/ui/native-select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { NoteChips } from "@/components/NoteChips"
 import RemovePairPicker, {
   type RemovedPairSelection,
@@ -552,20 +560,24 @@ export default function CorrectionPositionEditor({
           <EmptyState message="Позиций пока нет — добавьте первую ниже." />
         ) : (
           <div className="overflow-x-auto rounded-md border">
-            <table className="w-full min-w-[900px] text-sm">
-              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left">№</th>
-                  <th className="px-3 py-2 text-left">Тип</th>
-                  <th className="px-3 py-2 text-left">Группа</th>
-                  <th className="px-3 py-2 text-left">Пара</th>
-                  <th className="px-3 py-2 text-left">Предмет</th>
-                  <th className="px-3 py-2 text-left">Преподаватель</th>
-                  <th className="px-3 py-2 text-left">Примечание</th>
-                  <th className="px-3 py-2" />
-                </tr>
-              </thead>
-              <tbody className="divide-y">
+            <Table className="min-w-[900px]">
+              <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground [&_th]:text-muted-foreground [&_th]:font-bold [&_th]:h-auto [&_tr]:border-b-0">
+                <TableRow>
+                  <TableHead className="px-3 py-2 text-left">№</TableHead>
+                  <TableHead className="px-3 py-2 text-left">Тип</TableHead>
+                  <TableHead className="px-3 py-2 text-left">Группа</TableHead>
+                  <TableHead className="px-3 py-2 text-left">Пара</TableHead>
+                  <TableHead className="px-3 py-2 text-left">Предмет</TableHead>
+                  <TableHead className="px-3 py-2 text-left">
+                    Преподаватель
+                  </TableHead>
+                  <TableHead className="px-3 py-2 text-left">
+                    Примечание
+                  </TableHead>
+                  <TableHead className="px-3 py-2" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {batch.positions.map((position) => {
                   const positionErrors = position.errors ?? []
                   return (
@@ -580,8 +592,8 @@ export default function CorrectionPositionEditor({
                     />
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
 
@@ -813,39 +825,43 @@ function PositionRow({
   const hasErrors = errors.length > 0
   return (
     <>
-      <tr
+      <TableRow
         className={
           hasErrors
-            ? "bg-destructive/5"
+            ? "bg-destructive/5 hover:bg-destructive/5"
             : position.status === "Applied"
-              ? "opacity-60"
-              : ""
+              ? "opacity-60 hover:bg-transparent"
+              : "hover:bg-transparent"
         }
       >
-        <td className="px-3 py-2 text-muted-foreground">{position.row}</td>
-        <td className="px-3 py-2">
+        <TableCell className="px-3 py-2 text-muted-foreground">
+          {position.row}
+        </TableCell>
+        <TableCell className="px-3 py-2">
           <PositionTypeBadge type={position.changeType} />
-        </td>
-        <td className="px-3 py-2 whitespace-nowrap">
+        </TableCell>
+        <TableCell className="px-3 py-2 whitespace-nowrap">
           {position.groupName || (
             <span className="text-destructive">Группа не указана</span>
           )}
-        </td>
-        <td className="px-3 py-2 whitespace-nowrap">
+        </TableCell>
+        <TableCell className="px-3 py-2 whitespace-nowrap">
           {position.removedNumberPair != null &&
           position.changeType !== "Remove" &&
           position.removedNumberPair !== position.numberPair
             ? `${position.removedNumberPair} → ${position.numberPair}`
             : position.numberPair || <span className="text-destructive">—</span>}
-        </td>
-        <td className="px-3 py-2">{renderTitle(position)}</td>
-        <td className="px-3 py-2 max-w-[220px] truncate">
+        </TableCell>
+        <TableCell className="px-3 py-2 whitespace-normal">
+          {renderTitle(position)}
+        </TableCell>
+        <TableCell className="px-3 py-2 max-w-[220px] truncate">
           {renderTeacher(position)}
-        </td>
-        <td className="px-3 py-2 max-w-[160px] truncate text-muted-foreground">
+        </TableCell>
+        <TableCell className="px-3 py-2 max-w-[160px] truncate text-muted-foreground">
           {position.note ?? "—"}
-        </td>
-        <td className="px-3 py-2">
+        </TableCell>
+        <TableCell className="px-3 py-2">
           {batchIsDraft && (
             <div className="flex justify-end gap-1">
               <Button
@@ -867,11 +883,11 @@ function PositionRow({
               </Button>
             </div>
           )}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {hasErrors && (
-        <tr className="bg-destructive/5">
-          <td colSpan={8} className="px-3 pb-2">
+        <TableRow className="bg-destructive/5 hover:bg-destructive/5">
+          <TableCell colSpan={8} className="px-3 pt-0 pb-2">
             <ul className="grid gap-1 text-xs text-destructive">
               {errors.map((error, index) => (
                 <li key={index} className="flex items-start gap-1.5">
@@ -880,8 +896,8 @@ function PositionRow({
                 </li>
               ))}
             </ul>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
     </>
   )

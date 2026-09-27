@@ -123,18 +123,27 @@ function resolveVar(name, scope = "root", depth = 0) {
   return value
 }
 
-// Режим высокой контрастности не переопределяет токены, а ломает оформление
-// принудительно (body/[class*=bg-] → #fff, [class*=text-] → #000). Поэтому
-// проверяем фактический результат этих правил, а не токены.
-scopes.a11y = new Map([
-  ["--bg", "#ffffff"],
-  ["--fg", "#000000"],
-  ["--muted", "#ffffff"],
-  ["--muted-fg", "#000000"],
-  ["--muted-foreground", "#000000"],
-  ["--primary", "#000000"],
-  ["--primary-foreground", "#ffffff"],
-])
+// Режим высокой контрастности переопределяет семантические токены, а не ломает
+// оформление селекторами по подстрокам классов. Поэтому проверяем результат
+// наложения блоков: `:root` плюс `.accessibility-mode`.
+scopes.a11y = new Map([...scopes.root, ...scopes.a11y])
+
+// Цвета типов занятий применяются и как мелкий текст 12px в miniapp MAX, и как
+// заливка полосы в сводке диспетчера. Держим для них порог текста 4.5:1 на
+// обеих поверхностях, иначе набор для одного применения не проходит для другого.
+const lessonPairs = (surface) =>
+  ["lecture", "practice", "lab", "exam", "none"].map((type) => [
+    `lesson-${type}`,
+    surface,
+    "text",
+  ])
+
+// Граница --border определяет края элементов, поэтому проверяется как
+// нетекстовый элемент (WCAG 1.4.11, 3:1) на обеих поверхностях.
+const borderPairs = [
+  ["border", "background", "nonText"],
+  ["border", "card", "nonText"],
+]
 
 const PAIRS = {
   root: [
@@ -153,6 +162,9 @@ const PAIRS = {
     ["warning-foreground", "warning", "text"],
     ["ring", "background", "nonText"],
     ["input", "background", "nonText"],
+    ...borderPairs,
+    ...lessonPairs("background"),
+    ...lessonPairs("card"),
   ],
   dark: [
     ["fg", "bg", "text"],
@@ -170,11 +182,15 @@ const PAIRS = {
     ["warning-foreground", "warning", "text"],
     ["ring", "background", "nonText"],
     ["input", "background", "nonText"],
+    ...borderPairs,
+    ...lessonPairs("background"),
+    ...lessonPairs("card"),
   ],
   a11y: [
     ["fg", "bg", "text"],
     ["muted-fg", "muted", "text"],
     ["primary-foreground", "primary", "text"],
+    ...lessonPairs("background"),
   ],
   maxLight: [
     ["text-primary", "background-surface-ground", "text"],

@@ -21,6 +21,14 @@ import {
   NativeSelect,
   NativeSelectItem,
 } from "@/components/ui/native-select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { NoteChips } from "@/components/NoteChips"
 import { CorrectionPreviewDialog } from "@/components/CorrectionPreviewDialog"
 
@@ -148,23 +156,26 @@ export default function ManualCorrectionForm() {
         </label>
 
         <div className="overflow-x-auto rounded-md border">
-          <table className="w-full min-w-[1100px] text-sm">
-            <thead className="bg-muted/50 text-xs text-muted-foreground">
-              <tr>
-                <th className="p-2 text-left">Группа</th>
-                <th className="p-2 text-left">Снимается</th>
-                <th className="p-2 text-left">Преподаватель</th>
-                <th className="p-2 text-left">Вводится</th>
-                <th className="p-2 text-left">Преподаватель</th>
-                <th className="p-2 text-left">№ пары</th>
-                <th className="p-2 text-left">Примечание</th>
-                <th className="p-2" />
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+          <Table className="w-full min-w-[1100px] text-sm">
+            <TableHeader className="bg-muted/50 text-xs text-muted-foreground [&_tr]:border-b-0 [&_th]:h-auto [&_th]:font-bold [&_th]:text-muted-foreground">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="p-2 text-left">Группа</TableHead>
+                <TableHead className="p-2 text-left">Снимается</TableHead>
+                <TableHead className="p-2 text-left">Преподаватель</TableHead>
+                <TableHead className="p-2 text-left">Вводится</TableHead>
+                <TableHead className="p-2 text-left">Преподаватель</TableHead>
+                <TableHead className="p-2 text-left">№ пары</TableHead>
+                <TableHead className="p-2 text-left">Примечание</TableHead>
+                <TableHead className="p-2" />
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y">
               {rows.map((row, index) => (
-                <tr key={index}>
-                  <td className="p-2">
+                <TableRow
+                  key={index}
+                  className="border-b-0 hover:bg-transparent"
+                >
+                  <TableCell className="p-2">
                     <NativeSelect
                       value={row.groupName}
                       onValueChange={(value) => updateRow(index, { groupName: value })}
@@ -176,8 +187,8 @@ export default function ManualCorrectionForm() {
                         </NativeSelectItem>
                       ))}
                     </NativeSelect>
-                  </td>
-                  <td className="p-2">
+                  </TableCell>
+                  <TableCell className="p-2">
                     <NativeSelect
                       value={row.removedSubject}
                       onValueChange={(value) => updateRow(index, { removedSubject: value })}
@@ -189,8 +200,8 @@ export default function ManualCorrectionForm() {
                         </NativeSelectItem>
                       ))}
                     </NativeSelect>
-                  </td>
-                  <td className="p-2">
+                  </TableCell>
+                  <TableCell className="p-2">
                     <NativeSelect
                       value={row.removedTeacherName}
                       onValueChange={(value) => updateRow(index, { removedTeacherName: value })}
@@ -203,8 +214,8 @@ export default function ManualCorrectionForm() {
                         </NativeSelectItem>
                       ))}
                     </NativeSelect>
-                  </td>
-                  <td className="p-2">
+                  </TableCell>
+                  <TableCell className="p-2">
                     <NativeSelect
                       value={row.addedSubject}
                       onValueChange={(value) => updateRow(index, { addedSubject: value })}
@@ -216,8 +227,8 @@ export default function ManualCorrectionForm() {
                         </NativeSelectItem>
                       ))}
                     </NativeSelect>
-                  </td>
-                  <td className="p-2">
+                  </TableCell>
+                  <TableCell className="p-2">
                     <NativeSelect
                       value={row.addedTeacherName}
                       onValueChange={(value) => updateRow(index, { addedTeacherName: value })}
@@ -230,8 +241,8 @@ export default function ManualCorrectionForm() {
                         </NativeSelectItem>
                       ))}
                     </NativeSelect>
-                  </td>
-                  <td className="w-20 p-2">
+                  </TableCell>
+                  <TableCell className="w-20 p-2">
                     <Input
                       type="number"
                       min={1}
@@ -239,8 +250,8 @@ export default function ManualCorrectionForm() {
                       value={row.numberPair}
                       onChange={(e) => updateRow(index, { numberPair: Number(e.target.value) })}
                     />
-                  </td>
-                  <td className="p-2">
+                  </TableCell>
+                  <TableCell className="p-2">
                     <div className="grid gap-1.5">
                       <NoteChips value={row.note} onChange={(value) => updateRow(index, { note: value })} />
                       <Input
@@ -249,8 +260,8 @@ export default function ManualCorrectionForm() {
                         onChange={(e) => updateRow(index, { note: e.target.value })}
                       />
                     </div>
-                  </td>
-                  <td className="p-2">
+                  </TableCell>
+                  <TableCell className="p-2">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -259,11 +270,11 @@ export default function ManualCorrectionForm() {
                     >
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         <div className="flex flex-wrap gap-2">

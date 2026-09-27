@@ -24,6 +24,14 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -289,38 +297,49 @@ export default function DispatcherInsertsPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-sm">
-                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-fg">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium">
+                <Table className="min-w-[760px]">
+                  <TableHeader className="bg-muted/50 text-xs uppercase tracking-wide text-muted-fg [&_th]:text-muted-fg [&_tr]:border-b-0">
+                    <TableRow>
+                      <TableHead className="px-4 py-3 text-left font-medium">
                         Название
-                      </th>
-                      <th className="px-4 py-3 text-left font-medium">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
                         День недели
-                      </th>
-                      <th className="px-4 py-3 text-left font-medium">Время</th>
-                      <th className="px-4 py-3 text-left font-medium">Курс</th>
-                      <th className="px-4 py-3 text-left font-medium">Статус</th>
-                      <th className="px-4 py-3 text-right font-medium">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
+                        Время
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
+                        Курс
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
+                        Статус
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-right font-medium">
                         Действия
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {items.map((item) => (
-                      <tr key={item.id} className="border-b last:border-0">
-                        <td className="px-4 py-3 font-medium">{item.title}</td>
-                        <td className="px-4 py-3">
+                      <TableRow
+                        key={item.id}
+                        className="border-b last:border-0 hover:bg-transparent"
+                      >
+                        <TableCell className="whitespace-normal px-4 py-3 font-medium">
+                          {item.title}
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           {DAY_OF_WEEK_LABELS[item.dayOfWeek] ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 font-mono text-xs tabular-nums whitespace-nowrap">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 font-mono text-xs tabular-nums whitespace-nowrap">
                           {toTimeInput(item.startTime)}–
                           {toTimeInput(item.endTime)}
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           {item.course ? `${item.course} курс` : "Все курсы"}
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           {item.isActive ? (
                             <Badge
                               variant="outline"
@@ -331,8 +350,8 @@ export default function DispatcherInsertsPage() {
                           ) : (
                             <Badge variant="secondary">Скрыто</Badge>
                           )}
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
@@ -353,11 +372,11 @@ export default function DispatcherInsertsPage() {
                               <Trash2 className="size-4" aria-hidden="true" />
                             </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>

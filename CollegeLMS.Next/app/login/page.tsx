@@ -77,7 +77,7 @@ export default function LoginPage() {
               height={200}
               className="mx-auto h-auto w-64"
               unoptimized
-            />
+             data-brand-mark="true"/>
           </Link>
           <h2 className="mt-8 text-center text-xl font-semibold text-white/90">
             Ставропольский колледж связи<br />
@@ -99,7 +99,7 @@ export default function LoginPage() {
                 className="mx-auto h-auto"
                 style={{ maxHeight: "6rem", width: 'auto', height: '100%' }}
                 unoptimized
-              />
+               data-brand-mark="true"/>
             </Link>
           </div>
 
