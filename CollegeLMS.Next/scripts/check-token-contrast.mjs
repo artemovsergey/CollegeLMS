@@ -30,7 +30,12 @@ const maxSource = existsSync(resolve(ROOT, "app/max/max.css"))
 function parseBlock(source, selector) {
   // Ищем именно объявление блока, а не любое упоминание селектора:
   // `@custom-variant dark (&:is(.dark *))` идёт раньше `.dark {` в globals.css.
-  const pattern = new RegExp(`^[^\\S\\n]*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{`, "m")
+  // Хвост `[^{]*` допускает список селекторов — в `app/max/max.css` блок
+  // объявлен как `.max-app, .max-app [class*="MaxUI_colorScheme"] { … }`.
+  const pattern = new RegExp(
+    `^[^\\S\\n]*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^{]*\\{`,
+    "m",
+  )
   const match = pattern.exec(source)
   if (!match) return new Map()
   const open = match.index + match[0].length - 1
@@ -103,7 +108,11 @@ const maxDarkAt = maxSource.indexOf(MAX_DARK_SELECTOR)
 const maxLight = parseBlock(maxSource, ".max-app")
 const maxDark = maxDarkAt === -1 ? new Map() : parseBlock(maxSource.slice(maxDarkAt), MAX_DARK_SELECTOR)
 scopes.maxLight = new Map([...scopes.root, ...maxLight])
-scopes.maxDark = new Map([...scopes.dark, ...maxDark])
+// Токены MAX оформления объявлены в `.max-app` без разделения по темам: все
+// значения — ссылки `var()` на токены `app/globals.css`, которые меняет класс
+// `.dark` на `<html>`. Поэтому, если отдельного блока `.dark .max-app` нет, тёмная
+// тема MAX описывается тем же набором MAX-токенов поверх тёмных globals-токенов.
+scopes.maxDark = new Map([...scopes.dark, ...(maxDark.size > 0 ? maxDark : maxLight)])
 
 function resolveVar(name, scope = "root", depth = 0) {
   if (depth > 8) return null
@@ -167,8 +176,22 @@ const PAIRS = {
     ["muted-fg", "muted", "text"],
     ["primary-foreground", "primary", "text"],
   ],
-  maxLight: [["text-primary", "background-surface-ground", "text"], ["text-secondary", "background-surface-ground", "text"]],
-  maxDark: [["text-primary", "background-surface-ground", "text"], ["text-secondary", "background-surface-ground", "text"]],
+  maxLight: [
+    ["text-primary", "background-surface-ground", "text"],
+    ["text-secondary", "background-surface-card", "text"],
+    ["text-themed", "background-surface-ground", "text"],
+    ["text-contrast", "background-accent-themed", "text"],
+    ["stroke-secondary", "background-surface-card", "nonText"],
+    ["icon-primary", "background-surface-ground", "text"],
+  ],
+  maxDark: [
+    ["text-primary", "background-surface-ground", "text"],
+    ["text-secondary", "background-surface-card", "text"],
+    ["text-themed", "background-surface-ground", "text"],
+    ["text-contrast", "background-accent-themed", "text"],
+    ["stroke-secondary", "background-surface-card", "nonText"],
+    ["icon-primary", "background-surface-ground", "text"],
+  ],
 }
 
 const LABELS = {

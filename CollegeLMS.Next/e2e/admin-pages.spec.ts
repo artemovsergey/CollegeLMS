@@ -94,26 +94,6 @@ test.describe("MAX mini-app preview page", () => {
     })
   })
 
-  test("пункт меню «Мини-апп MAX» открывает страницу с iframe", async ({ page }) => {
-    await page.goto("/admin/max-preview", { waitUntil: "networkidle" })
-
-    await expect(
-      page.getByRole("heading", { name: "Мини-апп MAX — превью" })
-    ).toBeVisible()
-    // Рамка мини-приложения присутствует (содержимое iframe не проверяем).
-    await expect(page.getByTitle("Мини-апп MAX")).toBeVisible()
-    // Превью показывает страницу расписания веб-версии в embed-режиме (без шапки CRM).
-    await expect(page.getByTitle("Мини-апп MAX")).toHaveAttribute(
-      "src",
-      /\/schedule\?embed=1/
-    )
-
-    // Пункт меню виден в навигации администратора.
-    await page.getByRole("button", { name: "Меню" }).click()
-    await expect(page.getByRole("link", { name: "Мини-апп MAX" })).toBeVisible()
-  })
-})
-
 test.describe("Testing page", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {

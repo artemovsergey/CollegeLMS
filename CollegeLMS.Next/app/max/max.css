@@ -1,22 +1,67 @@
-.max-app {
-  /* Светлая и тёмная схемы заданы вручную (палитра max-ui),
-     т.к. max-ui рендерится только на клиенте и его токены не
-     наследуются на этот корневой элемент. Схема определяется тем же
-     matchMedia('(prefers-color-scheme: dark)'), что и у max-ui. */
-  --background-surface-ground: #edeef2;
-  --background-surface-card: #ffffff;
-  --background-surface-secondary: #f0f0f0;
-  --background-surface-tertiary: #f6f6f6;
-  --stroke-secondary: rgba(12, 13, 14, 0.52);
-  --text-primary: #0c0d0e;
-  --text-secondary: rgba(12, 13, 14, 0.52);
-  --text-tertiary: rgba(12, 13, 14, 0.4);
-  --accent-themed: #007aff;
-  --text-themed: #007aff;
-  --text-positive: #1abe43;
-  --text-negative: #ff303c;
-  --background-accent-attention-primary: #ff9315;
-  --background-button-secondary: #e9ebf1;
+.max-app,
+.max-app [class*="MaxUI_colorScheme"] {
+  /* Оформление miniapp задаётся только через var() наших токенов из
+     app/globals.css: app/max — вложенный layout, поэтому :root доступен
+     внутри .max-app, а тёмная схема приходит классом .dark на <html>.
+     Прямых литералов цвета здесь быть не должно — это проверяет гейт. */
+  --background-surface-ground: var(--background);
+  --background-surface-card: var(--card);
+  --background-surface-secondary: var(--muted);
+  --background-surface-tertiary: var(--muted);
+  --background-surface-primary: var(--card);
+  --background-accent-themed: var(--accent);
+  --background-accent-contrast: var(--accent-foreground);
+  --background-accent-negative: var(--destructive);
+  --background-accent-positive: var(--success);
+  --background-accent-neutral: var(--fg);
+  --background-accent-attention-primary: var(--warning);
+  --background-button-secondary: var(--muted);
+
+  --text-primary: var(--fg);
+  --text-secondary: var(--muted-foreground);
+  --text-tertiary: color-mix(in srgb, var(--muted-foreground) 72%, transparent);
+  --text-subhead: var(--fg);
+  --text-themed: var(--accent);
+  --text-contrast: var(--accent-foreground);
+  --text-negative: var(--destructive);
+  --text-positive: var(--success);
+
+  --stroke-secondary: var(--border);
+  --stroke-themed: var(--accent);
+
+  --icon-primary: var(--fg);
+  --icon-secondary: var(--muted-foreground);
+  --icon-tertiary: color-mix(in srgb, var(--muted-foreground) 72%, transparent);
+  --icon-themed: var(--accent);
+
+  --accent-themed: var(--accent);
+
+  /* Нейтрально-тематические акценты MaxUI — вторая (дефолтная) шкала синего.
+     Без них кнопки и сегменты остаются цвета #007aff/#479fff/#0062cc. */
+  --background-accent-neutral-themed: var(--accent);
+  --text-neutral-themed: var(--accent);
+  --icon-neutral-themed: var(--accent);
+
+  --states-background-hovered-neutral-themed: var(--accent-hover);
+  --states-background-pressed-neutral-themed: var(--accent-hover);
+  --states-background-active-neutral-themed: var(--accent-hover);
+  --states-background-disabled-neutral-themed: color-mix(in srgb, var(--accent) 40%, transparent);
+
+  --states-text-hovered-neutral-themed: var(--accent-hover);
+  --states-text-pressed-neutral-themed: var(--accent-hover);
+  --states-text-active-neutral-themed: var(--accent-hover);
+  --states-text-disabled-neutral-themed: color-mix(in srgb, var(--accent) 55%, transparent);
+
+  --states-icon-hovered-neutral-themed: var(--accent-hover);
+  --states-icon-pressed-neutral-themed: var(--accent-hover);
+  --states-icon-disabled-neutral-themed: color-mix(in srgb, var(--accent) 55%, transparent);
+
+  /* Радиусы — по нашей шкале */
+  --size-border-radius-semantic-border-radius: var(--radius);
+  --size-border-radius-semantic-border-radius-card: var(--radius);
+  --size-border-radius-semantic-border-radius-floating: var(--radius);
+  --size-border-radius-action-small: var(--radius);
+  --size-border-radius-action-medium: var(--radius);
 
   --color-bg: var(--background-surface-ground);
   --color-card: var(--background-surface-card);
@@ -30,31 +75,15 @@
   --color-tint-positive: color-mix(in srgb, var(--text-positive) 15%, var(--background-surface-card));
   --color-tint-negative: color-mix(in srgb, var(--text-negative) 15%, var(--background-surface-card));
   --color-tint-attention: color-mix(in srgb, var(--background-accent-attention-primary) 18%, var(--background-surface-card));
-  --color-tint-violet: color-mix(in srgb, #8b5cf6 15%, var(--background-surface-card));
+  --color-tint-violet: color-mix(in srgb, var(--accent) 15%, var(--background-surface-card));
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-fg);
 }
 
-/* Тёмная схема включается переключателем темы приложения (next-themes ставит
-   класс .dark на <html>), а не настройкой ОС: иначе тема MAX расходилась с
-   темой сайта. Значения те же, что были под @media (prefers-color-scheme: dark). */
-.dark .max-app {
-  --background-surface-ground: #17181c;
-  --background-surface-card: #25262d;
-  --background-surface-secondary: #1e1f24;
-  --background-surface-tertiary: #25262d;
-  --stroke-secondary: hsla(0, 0%, 100%, 0.44);
-  --text-primary: hsla(0, 0%, 100%, 0.8);
-  --text-secondary: hsla(0, 0%, 100%, 0.44);
-  --text-tertiary: hsla(0, 0%, 100%, 0.28);
-  --accent-themed: #007aff;
-  --text-themed: #007aff;
-  --text-positive: #2bc644;
-  --text-negative: #ce4257;
-  --background-accent-attention-primary: #ff9f0a;
-  --background-button-secondary: #434455;
-}
+/* Отдельный блок тёмной схемы не нужен: все переменные выше ссылаются на
+   токены app/globals.css, а те переопределяются в .dark. Поэтому смена темы
+   в приложении автоматически переключает и miniapp. */
 
 .max-app__content {
   max-width: 560px;
@@ -108,7 +137,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #16a34a;
+  background: var(--success);
 }
 
 .max-app__tab-label {
@@ -184,7 +213,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--background-accent-contrast);
   transition: transform 0.15s ease;
 }
 
@@ -266,7 +295,7 @@
 }
 
 .max-app__badge--selfstudy {
-  color: #8b5cf6;
+  color: var(--accent);
   background: var(--color-tint-violet);
 }
 
@@ -359,7 +388,7 @@
 }
 
 .max-app__favorite--on {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 /* Пара в расписании */
@@ -532,7 +561,7 @@
 .max-schedule__view-tab--active {
   background: var(--color-card);
   color: var(--color-fg);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--fg) 8%, transparent);
 }
 
 /* Неделя (overview) */

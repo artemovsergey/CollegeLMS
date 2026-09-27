@@ -97,15 +97,61 @@
 
 ### 3.4. Утилиты MAX-приложения
 
-MAX — отдельное мини-приложение в Telegram со своей палитрой в
-`CollegeLMS.Next/app/max/max.css` (блоки `.max-app` и `.dark .max-app`).
-Токены: `--background-surface-*`, `--stroke-*`,
-`--text-{primary,secondary,tertiary,themed,positive,negative,selfstudy}`,
-`--accent-themed`.
+MAX — отдельное мини-приложение в мессенджере MAX, построенное на библиотеке
+`@maxhub/max-ui`. Эта библиотека оформляется через **398 CSS-переменных**
+(`--background-surface-*`, `--background-accent-*`, `--text-*`, `--stroke-*`,
+`--icon-*`, `--states-*`, `--size-border-radius-*`, `--shadow-elevation-*` и др.),
+поэтому единый стиль достигается **тем, а не форком**.
 
-Тёмная палитра MAX следует переключателю темы приложения (`next-themes`
-ставит класс `.dark` на `<html>`), а не системной теме ОС. Значения палитры
-при этом не менялись.
+Правило: **цвета MAX задаются только через `var()` наших токенов из
+`app/globals.css`.** Собственных цветовых литералов в `app/max/max.css` быть
+не должно — это проверяет гейт `max-theme-tokens-only` (§8.1). `app/max` —
+вложенный layout, поэтому токены из `:root` доступны внутри `.max-app`, а тема
+приходит классом `.dark` на `<html>`; отдельного блока `.dark .max-app` нет и
+не требуется.
+
+Ключевой маппинг (полный список — в начале блока `.max-app` в `max.css`):
+
+| Токен MaxUI | Наш токен |
+| --- | --- |
+| `--background-surface-ground` | `--background` |
+| `--background-surface-card`, `--background-surface-primary` | `--card` |
+| `--background-surface-secondary`, `-tertiary`, `--background-button-secondary` | `--muted` |
+| `--background-accent-themed`, `--text-themed`, `--stroke-themed`, `--icon-themed`, `--accent-themed` | `--accent` |
+| `--background-accent-contrast`, `--text-contrast` | `--accent-foreground` |
+| `--background-accent-negative`, `--text-negative` | `--destructive` |
+| `--background-accent-positive`, `--text-positive` | `--success` |
+| `--background-accent-attention-primary` | `--warning` |
+| `--background-accent-neutral`, `--text-primary`, `--icon-primary`, `--text-subhead` | `--fg` |
+| `--text-secondary`, `--icon-secondary` | `--muted-foreground` |
+| `--text-tertiary`, `--icon-tertiary` | `color-mix(in srgb, var(--muted-foreground) 72%, transparent)` |
+| `--stroke-secondary` | `--border` |
+| `--size-border-radius-*` (5 радиусов) | `--radius` |
+| `--background-accent-neutral-themed`, `--text-neutral-themed`, `--icon-neutral-themed` | `--accent` |
+| `--states-{background,text,icon}-{hovered,pressed,active}-neutral-themed` | `--accent-hover` |
+| `--states-{background,text,icon}-disabled-neutral-themed` | `color-mix(in srgb, var(--accent) 40–55%, transparent)` |
+
+**Обязательное правило: куда объявлять маппинг.** MaxUI надевает на
+корневой элемент компонента собственный класс-харнесс темы —
+`MaxUI_colorScheme_light__Woo` / `MaxUI_colorScheme_dark__jFq`, и **именно на
+нём** объявлены все переменные MaxUI (не на `:root`, без `!important`). Этот
+класс лежит **внутри** `.max-app`, поэтому объявления на самом `.max-app` не
+видны: у вложенного элемента собственное объявление всегда выигрывает у
+унаследованного, независимо от `!important` и специфичности предка.
+
+Поэтому селектор маппинга в `app/max/max.css` — список из двух селекторов:
+
+```css
+.max-app,
+.max-app [class*="MaxUI_colorScheme"] {
+  /* …переопределения… */
+}
+```
+
+Второй селектор даёт специфичность 0,2,0 против 0,1,0 у MaxUI и при этом не
+привязан к хэшам в имени класса, поэтому переживает обновление библиотеки.
+При добавлении новых переменных в маппинг менять ничего не нужно — правило уже
+в блоке.
 
 ### 3.5. Цвета типов занятий
 
@@ -233,10 +279,11 @@ MAX — отдельное мини-приложение в Telegram со сво
 ### 8.2. `scripts/check-token-contrast.mjs` — контраст
 
 Считает WCAG 2.1 по 15 парам в светлой теме, 15 в тёмной, 3 в режиме высокой
-контрастности и по 2 в каждой теме MAX. Пороги: 4.5:1 для текста, 3:1 для
+контрастности и по 6 в каждой теме MAX. Пороги: 4.5:1 для текста, 3:1 для
 границ и колец фокуса.
 
-Текущий baseline контраста пуст: все пары проходят.
+В baseline контраста 2 известных нарушения — оба про границу, см. §10.6.
+Остальные пары проходят.
 
 | Тема | Пара | Контраст | Комментарий |
 | --- | --- | --- | --- |
@@ -244,6 +291,8 @@ MAX — отдельное мини-приложение в Telegram со сво
 | тёмная | `primary-foreground / primary` | 5.36:1 | тёмный текст на светло-голубой заливке |
 | тёмная | `input / background` | 3.67:1 | граница поля светлее фона |
 | светлая | `input / background` | 3.76:1 | граница поля темнее фона |
+| MAX, светлая | `stroke-secondary / background-surface-card` | 1.58:1 | **в baseline**, долг границы |
+| MAX, тёмная | `stroke-secondary / background-surface-card` | 1.42:1 | **в baseline**, долг границы |
 
 Проверка падает **только на новых** нарушениях. Обновить baseline осознанно:
 `node scripts/check-token-contrast.mjs --update`.
@@ -338,3 +387,19 @@ MAX — отдельное мини-приложение в Telegram со сво
     цветные поверхности, включая статусные плашки: в этом режиме информация о
     статусе передаётся только текстом.
 13. `img, video { display: none }` скрывает в том числе логотип.
+
+### 10.6. Известный долг: граница `--border` ниже 3:1
+
+`--border` (`#c9ceda` в светлой теме, `#374151` в тёмной) не достигает порога
+3:1 — 1.58:1 на белом и 1.42:1 на тёмной карточке. Раньше это не проверялось,
+потому что контрастный гейт смотрел только на токены веб-темы. Теперь пара
+`stroke-secondary / background-surface-card` проверяется и в MAX, где
+`--stroke-secondary` получает `var(--border)`.
+
+Значения **не менялись**: тот же `--border` использует веб-сайт, и он одобрен.
+Затемнить границу только в MAX означало бы сделать miniapp контрастнее веба, то
+есть нарушить единство. Поэтому обе находки внесены в
+`design-system-contrast.baseline.json` как известный долг.
+
+Решение — за владельцем системы: либо оставить как есть, либо затемнить
+`--border` до 3:1 сразу во всей системе (это изменение облика веб-сайта).
