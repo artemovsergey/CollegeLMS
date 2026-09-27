@@ -139,18 +139,6 @@
       "hint": "transition-all анимирует все свойства — перечислите нужные"
     },
     {
-      "rule": "no-transition-all",
-      "file": "components/Header.tsx",
-      "line": 162,
-      "hint": "transition-all анимирует все свойства — перечислите нужные"
-    },
-    {
-      "rule": "no-transition-all",
-      "file": "components/Header.tsx",
-      "line": 229,
-      "hint": "transition-all анимирует все свойства — перечислите нужные"
-    },
-    {
       "rule": "no-raw-table",
       "file": "components/ManualCorrectionForm.tsx",
       "line": 151,

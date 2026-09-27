@@ -22,6 +22,7 @@ const reportMode = process.argv.includes("--report")
 const RATIO = { text: 4.5, nonText: 3 }
 
 const globals = readFileSync(resolve(ROOT, "app/globals.css"), "utf8")
+const MAX_DARK_SELECTOR = ".dark .max-app"
 const maxSource = existsSync(resolve(ROOT, "app/max/max.css"))
   ? readFileSync(resolve(ROOT, "app/max/max.css"), "utf8")
   : ""
@@ -95,12 +96,12 @@ const scopes = {
   dark: parseBlock(globals, ".dark"),
   a11y: parseBlock(globals, ".accessibility-mode"),
 }
-// MAX: светлая палитра в `.max-app`, тёмная — внутри
-// `@media (prefers-color-scheme: dark)`. Это значит, что MAX не следует
-// переключателю темы приложения (`.dark` на <html>) — учитываем это в отчёте.
-const maxMediaAt = maxSource.indexOf("@media (prefers-color-scheme: dark)")
+// MAX: светлая палитра в `.max-app`, тёмная — в `.dark .max-app`, то есть MAX
+// следует переключателю темы приложения (next-themes ставит класс `.dark` на
+// <html>), как и остальные поверхности.
+const maxDarkAt = maxSource.indexOf(MAX_DARK_SELECTOR)
 const maxLight = parseBlock(maxSource, ".max-app")
-const maxDark = maxMediaAt === -1 ? new Map() : parseBlock(maxSource.slice(maxMediaAt), ".max-app")
+const maxDark = maxDarkAt === -1 ? new Map() : parseBlock(maxSource.slice(maxDarkAt), MAX_DARK_SELECTOR)
 scopes.maxLight = new Map([...scopes.root, ...maxLight])
 scopes.maxDark = new Map([...scopes.dark, ...maxDark])
 

@@ -36,23 +36,24 @@
   color: var(--color-fg);
 }
 
-@media (prefers-color-scheme: dark) {
-  .max-app {
-    --background-surface-ground: #17181c;
-    --background-surface-card: #25262d;
-    --background-surface-secondary: #1e1f24;
-    --background-surface-tertiary: #25262d;
-    --stroke-secondary: hsla(0, 0%, 100%, 0.44);
-    --text-primary: hsla(0, 0%, 100%, 0.8);
-    --text-secondary: hsla(0, 0%, 100%, 0.44);
-    --text-tertiary: hsla(0, 0%, 100%, 0.28);
-    --accent-themed: #007aff;
-    --text-themed: #007aff;
-    --text-positive: #2bc644;
-    --text-negative: #ce4257;
-    --background-accent-attention-primary: #ff9f0a;
-    --background-button-secondary: #434455;
-  }
+/* Тёмная схема включается переключателем темы приложения (next-themes ставит
+   класс .dark на <html>), а не настройкой ОС: иначе тема MAX расходилась с
+   темой сайта. Значения те же, что были под @media (prefers-color-scheme: dark). */
+.dark .max-app {
+  --background-surface-ground: #17181c;
+  --background-surface-card: #25262d;
+  --background-surface-secondary: #1e1f24;
+  --background-surface-tertiary: #25262d;
+  --stroke-secondary: hsla(0, 0%, 100%, 0.44);
+  --text-primary: hsla(0, 0%, 100%, 0.8);
+  --text-secondary: hsla(0, 0%, 100%, 0.44);
+  --text-tertiary: hsla(0, 0%, 100%, 0.28);
+  --accent-themed: #007aff;
+  --text-themed: #007aff;
+  --text-positive: #2bc644;
+  --text-negative: #ce4257;
+  --background-accent-attention-primary: #ff9f0a;
+  --background-button-secondary: #434455;
 }
 
 .max-app__content {
