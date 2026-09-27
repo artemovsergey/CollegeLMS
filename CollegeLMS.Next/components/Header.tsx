@@ -79,8 +79,14 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-accent">
       <div className="flex flex-col">
-        {/* Row 1: Top bar — hides on scroll via transform (no layout shift) */}
-        <div className={`transition-transform duration-300 ease-in-out ${scrolled ? "-translate-y-full pointer-events-none h-0" : "translate-y-0"}`}>
+        {/* Row 1: Top bar — hides on scroll; height is animated together with the
+            transform, otherwise the instant h-0 collapse shifts page content by 48px */}
+        <div
+          aria-hidden={scrolled || undefined}
+          className={`overflow-hidden transition-[height,transform] duration-300 ease-in-out ${
+            scrolled ? "pointer-events-none h-0 -translate-y-full" : "h-12 translate-y-0"
+          }`}
+        >
           <div className="flex h-12 items-center justify-between px-4 lg:px-6">
             <div className="flex min-w-0 items-center gap-2">
               <div className="flex items-center gap-2 max-[400px]:hidden">
@@ -159,7 +165,7 @@ export default function Header() {
 
                   {hasSubs && (
                     <div
-                      className={`absolute left-1/2 top-full z-50 w-64 -translate-x-1/2 pt-2 transition-all duration-150 ease-out ${
+                      className={`absolute left-1/2 top-full z-50 w-64 -translate-x-1/2 pt-2 transition-[opacity,transform,visibility] duration-150 ease-out ${
                         isOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
                       }`}
                     >
@@ -195,8 +201,16 @@ export default function Header() {
         </div>
       </div>
 
-      {mobileOpen && (
-        <div className="lg:hidden border-b border-white/10 bg-accent px-4 pb-4 pt-2">
+      {/* Mobile drawer — animated via the grid-template-rows trick so the height
+          itself is transitioned; a plain conditional render appears with a jump. */}
+      <div
+        aria-hidden={!mobileOpen || undefined}
+        className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-in-out lg:hidden ${
+          mobileOpen ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+        <div className="border-b border-white/10 bg-accent px-4 pb-4 pt-2">
           <nav className="flex flex-col gap-1">
             {navSections.map((section) => {
               const hasSubs = section.subsections.length > 0
@@ -226,7 +240,7 @@ export default function Header() {
                     )}
                   </div>
                   {hasSubs && (
-                    <div className={`transition-all duration-200 ease-out ${isOpen ? "opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
+                    <div className={`transition-[max-height,opacity] duration-200 ease-out ${isOpen ? "opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
                       <div className="ml-4 border-l border-white/20 pl-3">
                         {section.subsections.map((sub) => (
                           <Link
@@ -249,7 +263,8 @@ export default function Header() {
             })}
           </nav>
         </div>
-      )}
+        </div>
+      </div>
     </header>
   )
 }
