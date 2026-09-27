@@ -114,6 +114,11 @@ services:
       - uploads_data:/var/www/uploads
       - letsencrypt_data:/etc/letsencrypt
       - certbot_webroot:/var/www/certbot
+      # Пароль для vhost bb.stvcc.tech. Файл лежит вне репозитория:
+      # printf 'bb:%s\n' "$(openssl passwd -6 "$BB_PASS")" > /home/user1/.htpasswd-bb && chmod 644 /home/user1/.htpasswd-bb
+      - ${BB_HTPASSWD_FILE:-/home/user1/.htpasswd-bb}:/etc/nginx/.htpasswd-bb:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - api
       - collegelms-next
