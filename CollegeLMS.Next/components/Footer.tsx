@@ -60,7 +60,7 @@ export default function Footer() {
                     {item.href ? (
                       <Link
                         href={item.href}
-                        className="text-sm text-muted-fg hover:text-primary hover:underline transition-all duration-200"
+                        className="text-sm text-muted-fg hover:text-primary hover:underline transition-colors duration-200"
                       >
                         {item.label}
                       </Link>

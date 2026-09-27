@@ -116,7 +116,7 @@ export default function Carousel() {
                               <button
                                 key={i}
                                 onClick={(e) => { e.preventDefault(); scrollTo(i) }}
-                                className={`h-2 rounded-full transition-all ${
+                                className={`h-2 rounded-full transition-[width,background-color] ${
                                   i === selectedIndex ? "w-6 bg-white" : "w-2 bg-white/50"
                                 }`}
                                 aria-label={`Слайд ${i + 1}`}

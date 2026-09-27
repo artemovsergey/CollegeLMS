@@ -233,7 +233,7 @@ function SearchResults() {
               <Link
                 key={`${item.type}-${item.url}-${i}`}
                 href={item.url}
-                className="rounded-lg border border-border bg-card p-5 transition-all hover:border-accent/30"
+                className="rounded-lg border border-border bg-card p-5 transition-colors hover:border-accent/30"
               >
                 <div className="mb-1 flex items-center gap-2">
                   <span

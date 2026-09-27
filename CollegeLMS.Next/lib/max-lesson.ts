@@ -66,12 +66,12 @@ export function lessonTypeLabel(type: LessonType): string {
 export function lessonTypeColor(type: LessonType): string {
   return (
     {
-      Lecture: "#3478f6",
-      Practice: "#28a745",
-      Lab: "#e6a700",
-      Exam: "#e04f5f",
-      None: "#8b929a",
-    }[type] ?? "#8b929a"
+      Lecture: "var(--lesson-lecture)",
+      Practice: "var(--lesson-practice)",
+      Lab: "var(--lesson-lab)",
+      Exam: "var(--lesson-exam)",
+      None: "var(--lesson-none)",
+    }[type] ?? "var(--lesson-none)"
   )
 }
 

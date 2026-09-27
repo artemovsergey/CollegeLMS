@@ -127,7 +127,7 @@ export default function CourseProgressPage() {
         <CardContent className="flex flex-col gap-2">
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-primary transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-[width] duration-300"
               style={{ width: `${Math.min(progress.completionPercent, 100)}%` }}
             />
           </div>
