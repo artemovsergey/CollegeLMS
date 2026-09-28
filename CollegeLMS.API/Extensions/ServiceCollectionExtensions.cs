@@ -220,6 +220,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CorrectionApplyEngine>();
         services.AddScoped<CorrectionImageService>();
         services.AddScoped<IDocumentsService, DocumentsService>();
+        services.AddScoped<IScheduleMatrixExportService, ScheduleMatrixExportService>();
         services.AddScoped<IFavoritesService, FavoritesService>();
         services.AddScoped<INotificationSettingsService, NotificationSettingsService>();
         services.AddScoped<IDispatcherAuthService, DispatcherAuthService>();
