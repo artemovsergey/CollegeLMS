@@ -56,14 +56,14 @@
     },
     {
       "rule": "no-raw-table",
-      "file": "app/(authenticated)/dispatcher/holidays/page.tsx",
-      "line": 340,
+      "file": "app/(authenticated)/dispatcher/holidays/WorkingDaysTab.tsx",
+      "line": 319,
       "hint": "используйте UI-примитив Table вместо нативного table"
     },
     {
       "rule": "no-raw-table",
-      "file": "app/(authenticated)/dispatcher/holidays/WorkingDaysTab.tsx",
-      "line": 319,
+      "file": "app/(authenticated)/dispatcher/holidays/page.tsx",
+      "line": 340,
       "hint": "используйте UI-примитив Table вместо нативного table"
     },
     {
@@ -113,18 +113,6 @@
       "file": "components/Carousel.tsx",
       "line": 119,
       "hint": "transition-all анимирует все свойства — перечислите нужные"
-    },
-    {
-      "rule": "no-raw-table",
-      "file": "components/CorrectionBatchList.tsx",
-      "line": 389,
-      "hint": "используйте UI-примитив Table вместо нативного table"
-    },
-    {
-      "rule": "no-raw-table",
-      "file": "components/CorrectionPositionEditor.tsx",
-      "line": 555,
-      "hint": "используйте UI-примитив Table вместо нативного table"
     },
     {
       "rule": "no-transition-all",

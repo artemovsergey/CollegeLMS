@@ -133,6 +133,27 @@ export interface CorrectionDayResponse {
   entries: CorrectionDayEntry[]
 }
 
+/** Преподаватель, ведущий занятия у группы, с его предметами в этой группе. */
+export interface CorrectionGroupTeacher {
+  id: string
+  fullName: string
+  subjects: string[]
+}
+
+/**
+ * Справочники для пошаговой формы корректировки: расписание группы на дату
+ * и преподаватели этой группы с их предметами.
+ */
+export interface CorrectionReferences {
+  date: string
+  week: number
+  dayOfWeek: number
+  groupId: string
+  groupName: string
+  entries: CorrectionDayEntry[]
+  teachers: CorrectionGroupTeacher[]
+}
+
 export interface CreateCorrectionPosition {
   changeType: CorrectionChangeType
   groupId: string

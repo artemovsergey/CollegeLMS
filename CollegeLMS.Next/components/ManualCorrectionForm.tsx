@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import api, { unwrap } from "@/lib/api"
 import { fetchSubjects } from "@/api/schedule"
 import {
+  buildCorrectionFileName,
   exportManualCorrection,
   previewCorrection,
 } from "@/api/correction"
@@ -85,8 +86,7 @@ export default function ManualCorrectionForm() {
 
   const generateFile = async () => {
     const blob = await exportManualCorrection(date, rows)
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-")
-    downloadBlob(blob, `Корректировка_${timestamp}.xlsx`)
+    downloadBlob(blob, buildCorrectionFileName())
     return blob
   }
 

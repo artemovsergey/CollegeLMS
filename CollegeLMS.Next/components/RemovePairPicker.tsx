@@ -1,13 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { LoaderCircle, RotateCw } from "lucide-react"
-import { getDaySchedule } from "@/api/correction"
+import { RotateCw } from "lucide-react"
 import type {
   CorrectionChangeType,
   CorrectionDayEntry,
 } from "@/types/correction"
-import { cn, extractErrorMessage } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
@@ -30,13 +28,11 @@ const PENDING_META: Record<
   },
   Remove: {
     label: "Снято",
-    className:
-      "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
   },
   Replace: {
     label: "Замена",
-    className:
-      "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+    className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
   },
   Move: {
     label: "Перенос",
@@ -46,79 +42,31 @@ const PENDING_META: Record<
 }
 
 interface RemovePairPickerProps {
-  groupId: string | null
-  /** Дата корректировки в формате yyyy-MM-dd. */
-  date: string
-  /** Пакет — чтобы показать неприменённые (pending) позиции. */
-  batchId?: string | null
+  /** Занятое занятие дня — снимаемое или заменяемое. */
   value: RemovedPairSelection | null
   onChange: (value: RemovedPairSelection | null) => void
+  entries: CorrectionDayEntry[]
+  loading?: boolean
+  error?: string | null
+  onRetry?: () => void
   disabled?: boolean
+  className?: string
 }
 
+/** Список занятий выбранного дня: один клик — выбор позиции для снятия/замены. */
 export default function RemovePairPicker({
-  groupId,
-  date,
-  batchId,
   value,
   onChange,
+  entries,
+  loading,
+  error,
+  onRetry,
   disabled,
+  className,
 }: RemovePairPickerProps) {
-  const [entries, setEntries] = useState<CorrectionDayEntry[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [reloadKey, setReloadKey] = useState(0)
-
-  const load = useCallback(() => {
-    if (!groupId || !date) {
-      setEntries([])
-      setError(null)
-      return () => {}
-    }
-    let cancelled = false
-    setLoading(true)
-    setError(null)
-    getDaySchedule({ groupId, date, batchId: batchId ?? undefined })
-      .then((res) => {
-        if (cancelled) return
-        setEntries(
-          [...res.entries].sort((a, b) => a.numberPair - b.numberPair),
-        )
-      })
-      .catch((err) => {
-        if (cancelled) return
-        setEntries([])
-        setError(
-          extractErrorMessage(err) ?? "Не удалось загрузить расписание дня",
-        )
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [groupId, date, batchId])
-
-  useEffect(() => {
-    const cleanup = load()
-    return cleanup
-  }, [load, reloadKey])
-
-  if (!groupId) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Сначала выберите группу
-      </p>
-    )
-  }
-
   if (loading) {
     return (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <LoaderCircle className="size-4 animate-spin" aria-hidden />
-        Загрузка расписания дня...
-      </p>
+      <p className="text-sm text-muted-foreground">Загрузка расписания дня…</p>
     )
   }
 
@@ -126,14 +74,12 @@ export default function RemovePairPicker({
     return (
       <div className="flex flex-wrap items-center gap-2 text-sm text-destructive">
         <span>{error}</span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setReloadKey((key) => key + 1)}
-        >
-          <RotateCw className="size-4" aria-hidden />
-          Повторить
-        </Button>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            <RotateCw className="size-4" aria-hidden />
+            Повторить
+          </Button>
+        )}
       </div>
     )
   }
@@ -141,14 +87,13 @@ export default function RemovePairPicker({
   if (entries.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Нет занятий в этот день. Добавьте позицию типа «Добавлено» или
-        проверьте дату.
+        В этот день у группы нет занятий. Добавьте позицию типа «Добавлено».
       </p>
     )
   }
 
   return (
-    <div className="grid gap-1.5" role="group" aria-label="Снимаемая пара">
+    <div className={cn("grid gap-1.5", className)} role="group" aria-label="Занятие дня">
       {entries.map((entry, index) => {
         const selected =
           value != null &&

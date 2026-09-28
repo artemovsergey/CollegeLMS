@@ -9,6 +9,7 @@ import type {
   CorrectionBatch,
   CorrectionBatchStatus,
   CorrectionDayResponse,
+  CorrectionReferences,
   CorrectionPosition,
   CreateCorrectionPosition,
   CorrectionImportResponse,
@@ -149,6 +150,25 @@ export async function getDaySchedule(params: {
   )
 }
 
+/**
+ * Расписание группы на дату вместе с преподавателями этой группы и их предметами —
+ * источник данных для пошаговой формы, чтобы нельзя было выбрать преподавателя
+ * или предмет, которых у группы нет.
+ */
+export async function getCorrectionReferences(params: {
+  groupId: string
+  date: string
+  batchId?: string
+}): Promise<CorrectionReferences> {
+  const qs = new URLSearchParams({ groupId: params.groupId, date: params.date })
+  if (params.batchId) qs.set("batchId", params.batchId)
+  return unwrap(
+    await api.get<Result<CorrectionReferences>>(
+      `/api/schedule/correction/references?${qs.toString()}`,
+    ),
+  )
+}
+
 export async function getBatch(id: string): Promise<CorrectionBatch> {
   return unwrap(await api.get<Result<CorrectionBatch>>(`${BATCH_BASE}/${id}`))
 }
@@ -225,7 +245,10 @@ function extractFileName(
 
 export function buildCorrectionFileName(date: Date = new Date()): string {
   const pad = (value: number) => String(value).padStart(2, "0")
-  return `Корректировка_${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}.xlsx`
+  const stamp = `${pad(date.getDate())}${pad(date.getMonth() + 1)}${String(
+    date.getFullYear(),
+  ).slice(-2)}_${pad(date.getHours())}${pad(date.getMinutes())}`
+  return `Корректировка_${stamp}.xlsx`
 }
 
 export async function exportBatch(

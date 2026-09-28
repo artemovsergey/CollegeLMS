@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
   ArrowLeft,
@@ -14,7 +14,7 @@ import {
   WandSparkles,
 } from "lucide-react"
 import api, { unwrap } from "@/lib/api"
-import { fetchSubjects, normalizeDateOnly } from "@/api/schedule"
+import { normalizeDateOnly } from "@/api/schedule"
 import {
   addPosition,
   applyBatch,
@@ -30,39 +30,59 @@ import type {
   CreateCorrectionPosition,
   ScheduleValidationError,
 } from "@/types/correction"
-import type { GroupResponse, Result, TeacherResponse } from "@/types"
+import type { GroupResponse, Result } from "@/types"
 import { DAYS } from "@/types/schedule"
 import { extractErrorMessage } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { SearchableSelect } from "@/components/SearchableSelect"
 import {
-  NativeSelect,
-  NativeSelectItem,
-} from "@/components/ui/native-select"
-import { NoteChips } from "@/components/NoteChips"
-import RemovePairPicker, {
-  type RemovedPairSelection,
-} from "@/components/RemovePairPicker"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import Pagination from "@/components/ui/pagination"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
+import { CorrectionPositionDialog } from "@/components/CorrectionPositionDialog"
 import EmptyState from "@/components/EmptyState"
+
+const POSITION_PAGE_SIZE = 20
 
 const CHANGE_TYPE_META: Record<
   CorrectionChangeType,
   { label: string; className: string }
 > = {
-  Add: { label: "Добавлено", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" },
-  Remove: { label: "Снято", className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300" },
-  Replace: { label: "Замена", className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" },
-  Move: { label: "Перенос", className: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300" },
+  Add: {
+    label: "Добавлено",
+    className:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+  },
+  Remove: {
+    label: "Снято",
+    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+  },
+  Replace: {
+    label: "Замена",
+    className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+  },
+  Move: {
+    label: "Перенос",
+    className:
+      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
+  },
 }
 
-const EMPTY_GUID = "00000000-0000-0000-0000-000000000000"
+const ALL_GROUPS = "__all__"
+const ALL_TYPES = "__all__"
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -89,78 +109,6 @@ function formatValidationError(error: ScheduleValidationError): string {
   if (/^Строка\s+\d+/i.test(message)) return message
   const row = error.row ? `Строка ${error.row}` : ""
   return row ? `${row}: ${message}` : message
-}
-
-interface PositionForm {
-  changeType: CorrectionChangeType
-  groupId: string
-  groupName: string
-  numberPair: string
-  subject: string
-  teacherId: string
-  teacherName: string
-  removedSubject: string
-  removedTeacherId: string
-  removedTeacherName: string
-  removedNumberPair: string
-  note: string
-}
-
-const emptyForm = (): PositionForm => ({
-  changeType: "Add",
-  groupId: "",
-  groupName: "",
-  numberPair: "1",
-  subject: "",
-  teacherId: "",
-  teacherName: "",
-  removedSubject: "",
-  removedTeacherId: "",
-  removedTeacherName: "",
-  removedNumberPair: "",
-  note: "",
-})
-
-function formFromPosition(position: CorrectionPosition): PositionForm {
-  return {
-    changeType: position.changeType,
-    groupId:
-      position.groupId && position.groupId !== EMPTY_GUID
-        ? position.groupId
-        : "",
-    groupName: position.groupName ?? "",
-    numberPair: String(position.numberPair),
-    subject: position.subject ?? "",
-    teacherId: position.teacherId ?? "",
-    teacherName: position.teacherName ?? "",
-    removedSubject: position.removedSubject ?? "",
-    removedTeacherId: position.removedTeacherId ?? "",
-    removedTeacherName: position.removedTeacherName ?? "",
-    removedNumberPair:
-      position.removedNumberPair != null
-        ? String(position.removedNumberPair)
-        : "",
-    note: position.note ?? "",
-  }
-}
-
-function toRequest(form: PositionForm): CreateCorrectionPosition {
-  return {
-    changeType: form.changeType,
-    groupId: form.groupId,
-    groupName: form.groupName,
-    numberPair: Number(form.numberPair) || 1,
-    subject: form.subject.trim() || null,
-    teacherId: form.teacherId || null,
-    teacherName: form.teacherName || null,
-    removedSubject: form.removedSubject.trim() || null,
-    removedTeacherId: form.removedTeacherId || null,
-    removedTeacherName: form.removedTeacherName || null,
-    removedNumberPair: form.removedNumberPair
-      ? Number(form.removedNumberPair)
-      : null,
-    note: form.note.trim() || null,
-  }
 }
 
 function renderTitle(position: CorrectionPosition) {
@@ -212,14 +160,23 @@ export default function CorrectionPositionEditor({
   const [batch, setBatch] = useState<CorrectionBatch | null>(null)
   const [loading, setLoading] = useState(true)
   const [groups, setGroups] = useState<GroupResponse[]>([])
-  const [teachers, setTeachers] = useState<TeacherResponse[]>([])
-  const [subjects, setSubjects] = useState<string[]>([])
-  const [form, setForm] = useState<PositionForm>(emptyForm())
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [applying, setApplying] = useState(false)
   const [applyErrors, setApplyErrors] = useState<string[]>([])
   const [busyRowId, setBusyRowId] = useState<string | null>(null)
+
+  // Постраничный просмотр позиций: после импорта их могут быть десятки.
+  const [page, setPage] = useState(1)
+  const [groupFilter, setGroupFilter] = useState(ALL_GROUPS)
+  const [typeFilter, setTypeFilter] = useState<
+    CorrectionChangeType | typeof ALL_TYPES
+  >(ALL_TYPES)
+
+  // Модальные окна: форма позиции и подтверждения.
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<CorrectionPosition | null>(null)
+  const [confirmApply, setConfirmApply] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<CorrectionPosition | null>(
+    null,
+  )
 
   const load = useCallback(async () => {
     try {
@@ -236,99 +193,67 @@ export default function CorrectionPositionEditor({
   }, [load])
 
   useEffect(() => {
-    Promise.all([
-      api.get<Result<GroupResponse[]>>("/api/groups").then(unwrap),
-      api.get<Result<TeacherResponse[]>>("/api/teachers").then(unwrap),
-    ])
-      .then(([g, t]) => {
-        setGroups(g)
-        setTeachers(t)
-      })
-      .catch(() => toast.error("Не удалось загрузить справочники"))
+    api
+      .get<Result<GroupResponse[]>>("/api/groups")
+      .then(unwrap)
+      .then(setGroups)
+      .catch(() => toast.error("Не удалось загрузить справочник групп"))
   }, [])
 
-  // Предметы зависят от выбранного преподавателя: бэкенд отдаёт только его предметы.
-  useEffect(() => {
-    let cancelled = false
-    fetchSubjects(undefined, form.teacherId || undefined)
-      .then((res) => {
-        const list = res.data?.subjects ?? []
-        if (cancelled) return
-        setSubjects(list)
-        setForm((current) =>
-          current.subject && !list.includes(current.subject)
-            ? { ...current, subject: "" }
-            : current,
-        )
-      })
-      .catch(() => {
-        if (!cancelled) setSubjects([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [form.teacherId])
+  const positions = useMemo(() => batch?.positions ?? [], [batch])
 
-  const patchForm = (patch: Partial<PositionForm>) => {
-    setForm((current) => ({ ...current, ...patch }))
+  const groupOptions = useMemo(() => {
+    const names = new Set(positions.map((item) => item.groupName).filter(Boolean))
+    return [...names].sort((a, b) => a.localeCompare(b, "ru"))
+  }, [positions])
+
+  const filtered = useMemo(
+    () =>
+      positions.filter(
+        (position) =>
+          (groupFilter === ALL_GROUPS ||
+            position.groupName === groupFilter) &&
+          (typeFilter === ALL_TYPES || position.changeType === typeFilter),
+      ),
+    [positions, groupFilter, typeFilter],
+  )
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / POSITION_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const visible = useMemo(
+    () =>
+      filtered.slice(
+        (currentPage - 1) * POSITION_PAGE_SIZE,
+        currentPage * POSITION_PAGE_SIZE,
+      ),
+    [filtered, currentPage],
+  )
+
+  const handleSubmit = async (payload: CreateCorrectionPosition) => {
+    if (editing) {
+      await updatePosition(batchId, editing.id, payload)
+      toast.success("Позиция обновлена")
+    } else {
+      await addPosition(batchId, payload)
+      toast.success("Позиция добавлена")
+    }
+    setEditing(null)
+    setPage(1)
+    await load()
   }
 
-  const resetForm = () => {
-    setForm(emptyForm())
-    setEditingId(null)
-  }
-
-  const handleSubmit = async () => {
-    if (!form.groupId || !form.groupName) {
-      toast.error("Выберите группу")
-      return
-    }
-    if (form.changeType !== "Remove") {
-      const pair = Number(form.numberPair)
-      if (!pair || pair < 1 || pair > 8) {
-        toast.error("Номер пары должен быть от 1 до 8")
-        return
-      }
-    }
-    if (form.changeType !== "Add" && !form.removedSubject) {
-      toast.error("Выберите снимаемую пару")
-      return
-    }
-    setSubmitting(true)
+  const handleDelete = async () => {
+    if (!pendingDelete) return false
+    setBusyRowId(pendingDelete.id)
     try {
-      const payload = toRequest(form)
-      if (editingId) {
-        await updatePosition(batchId, editingId, payload)
-        toast.success("Позиция обновлена")
-      } else {
-        await addPosition(batchId, payload)
-        toast.success("Позиция добавлена")
-      }
-      resetForm()
-      await load()
-    } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось сохранить позицию")
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleEdit = (position: CorrectionPosition) => {
-    setForm(formFromPosition(position))
-    setEditingId(position.id)
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
-  const handleDelete = async (position: CorrectionPosition) => {
-    if (!window.confirm(`Удалить позицию ${position.row} (${position.groupName})?`))
-      return
-    setBusyRowId(position.id)
-    try {
-      await deletePosition(batchId, position.id)
+      await deletePosition(batchId, pendingDelete.id)
       toast.success("Позиция удалена")
+      setPendingDelete(null)
       await load()
+      return true
     } catch (err) {
       toast.error(extractErrorMessage(err) ?? "Не удалось удалить позицию")
+      return false
     } finally {
       setBusyRowId(null)
     }
@@ -344,10 +269,8 @@ export default function CorrectionPositionEditor({
     }
   }
 
-  const handleApply = async () => {
-    if (!batch) return
-    if (!window.confirm("Применить все позиции пакета?")) return
-    setApplying(true)
+  const applyBatchNow = async () => {
+    if (!batch) return false
     setApplyErrors([])
     try {
       const result = await applyBatch(batch.id, crypto.randomUUID())
@@ -359,6 +282,8 @@ export default function CorrectionPositionEditor({
         toast.message("Пакет применён, но файл не удалось сформировать")
       }
       onApplied()
+      await load()
+      return true
     } catch (err) {
       const message = extractErrorMessage(err)
       const lines = message
@@ -376,33 +301,8 @@ export default function CorrectionPositionEditor({
       } else {
         toast.error("Не удалось применить пакет")
       }
-    } finally {
-      setApplying(false)
+      return false
     }
-  }
-
-  const handleRemovedPair = (selection: RemovedPairSelection | null) => {
-    if (!selection) return
-    if (form.changeType === "Remove") {
-      patchForm({
-        numberPair: String(selection.numberPair),
-        removedNumberPair: String(selection.numberPair),
-        removedSubject: selection.removedSubject,
-        removedTeacherId: selection.removedTeacherId ?? "",
-        removedTeacherName: selection.removedTeacherName ?? "",
-      })
-      return
-    }
-    const autoNote = /^вм\.\d+$/.test(form.note.trim())
-    patchForm({
-      removedNumberPair: String(selection.numberPair),
-      removedSubject: selection.removedSubject,
-      removedTeacherId: selection.removedTeacherId ?? "",
-      removedTeacherName: selection.removedTeacherName ?? "",
-      ...(form.changeType === "Move" && (!form.note.trim() || autoNote)
-        ? { note: `вм.${selection.numberPair}` }
-        : {}),
-    })
   }
 
   if (loading) {
@@ -432,10 +332,7 @@ export default function CorrectionPositionEditor({
   const batchErrors = batch.errors ?? []
   const dateOnly = normalizeDateOnly(batch.correctionDate)
   const applyDisabled =
-    !batchIsDraft ||
-    applying ||
-    batch.positionCount === 0 ||
-    batchErrors.length > 0
+    !batchIsDraft || batch.positionCount === 0 || batchErrors.length > 0
   const applyHint = !batchIsDraft
     ? "Пакет уже применён или отменён"
     : batchErrors.length > 0
@@ -443,16 +340,7 @@ export default function CorrectionPositionEditor({
       : batch.positionCount === 0
         ? "В пакете нет позиций"
         : "Проверьте позиции и примените пакет"
-  const needsTarget = form.changeType !== "Remove"
-  const removedSelection: RemovedPairSelection | null = form.removedSubject
-    ? {
-        numberPair:
-          Number(form.removedNumberPair) || Number(form.numberPair) || 1,
-        removedSubject: form.removedSubject,
-        removedTeacherId: form.removedTeacherId || null,
-        removedTeacherName: form.removedTeacherName || null,
-      }
-    : null
+  const hasFilters = groupFilter !== ALL_GROUPS || typeFilter !== ALL_TYPES
 
   return (
     <Card>
@@ -482,10 +370,9 @@ export default function CorrectionPositionEditor({
             <Button
               disabled={applyDisabled}
               title={applyDisabled ? applyHint : undefined}
-              onClick={() => void handleApply()}
+              onClick={() => setConfirmApply(true)}
             >
-              {applying ? "Применение..." : "Применить"}
-              {!applying && <Play className="size-4 ml-2" aria-hidden />}
+              <Play className="size-4 mr-2" aria-hidden /> Применить
             </Button>
           </div>
         </CardTitle>
@@ -548,230 +435,112 @@ export default function CorrectionPositionEditor({
           </div>
         )}
 
-        {batch.positions.length === 0 ? (
-          <EmptyState message="Позиций пока нет — добавьте первую ниже." />
+        {positions.length === 0 ? (
+          <EmptyState message="Позиций пока нет — добавьте первую." />
         ) : (
-          <div className="overflow-x-auto rounded-md border">
-            <table className="w-full min-w-[900px] text-sm">
-              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left">№</th>
-                  <th className="px-3 py-2 text-left">Тип</th>
-                  <th className="px-3 py-2 text-left">Группа</th>
-                  <th className="px-3 py-2 text-left">Пара</th>
-                  <th className="px-3 py-2 text-left">Предмет</th>
-                  <th className="px-3 py-2 text-left">Преподаватель</th>
-                  <th className="px-3 py-2 text-left">Примечание</th>
-                  <th className="px-3 py-2" />
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {batch.positions.map((position) => {
-                  const positionErrors = position.errors ?? []
-                  return (
-                    <PositionRow
-                      key={position.id}
-                      position={position}
-                      errors={positionErrors}
-                      batchIsDraft={batchIsDraft}
-                      busy={busyRowId === position.id}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <label className="grid gap-1 text-sm font-medium">
+                Группа
+                <SearchableSelect
+                  aria-label="Фильтр по группе"
+                  value={groupFilter}
+                  onValueChange={(value) => {
+                    setGroupFilter(value)
+                    setPage(1)
+                  }}
+                  options={[
+                    { value: ALL_GROUPS, label: "Все группы" },
+                    ...groupOptions.map((name) => ({ value: name, label: name })),
+                  ]}
+                  placeholder="Все группы"
+                  searchPlaceholder="Поиск группы"
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium">
+                Тип операции
+                <SearchableSelect
+                  aria-label="Фильтр по типу операции"
+                  value={typeFilter}
+                  onValueChange={(value) => {
+                    setTypeFilter(value as CorrectionChangeType | typeof ALL_TYPES)
+                    setPage(1)
+                  }}
+                  options={[
+                    { value: ALL_TYPES, label: "Все типы" },
+                    ...(Object.keys(CHANGE_TYPE_META) as CorrectionChangeType[]).map(
+                      (type) => ({
+                        value: type,
+                        label: CHANGE_TYPE_META[type].label,
+                      }),
+                    ),
+                  ]}
+                  placeholder="Все типы"
+                />
+              </label>
+              <p className="text-xs text-muted-foreground sm:pb-2">
+                Показано {visible.length} из {filtered.length}
+                {hasFilters ? " (с учётом фильтра)" : ""}
+              </p>
+            </div>
+
+            {visible.length === 0 ? (
+              <EmptyState message="По выбранным фильтрам позиций нет." />
+            ) : (
+              <div className="overflow-x-auto rounded-md border">
+                <Table className="min-w-[900px]">
+                  <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                    <TableRow>
+                      <TableHead className="px-3 py-2">№</TableHead>
+                      <TableHead className="px-3 py-2">Тип</TableHead>
+                      <TableHead className="px-3 py-2">Группа</TableHead>
+                      <TableHead className="px-3 py-2">Пара</TableHead>
+                      <TableHead className="px-3 py-2">Предмет</TableHead>
+                      <TableHead className="px-3 py-2">Преподаватель</TableHead>
+                      <TableHead className="px-3 py-2">Примечание</TableHead>
+                      <TableHead className="px-3" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visible.map((position) => (
+                      <PositionRow
+                        key={position.id}
+                        position={position}
+                        errors={position.errors ?? []}
+                        batchIsDraft={batchIsDraft}
+                        busy={busyRowId === position.id}
+                        onEdit={() => {
+                          setEditing(position)
+                          setFormOpen(true)
+                        }}
+                        onDelete={() => setPendingDelete(position)}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            )}
+          </>
         )}
 
         {batchIsDraft && (
-          <div className="rounded-md border p-4 grid gap-4">
-            <p className="flex items-center gap-2 text-sm font-medium">
-              <Plus className="size-4" aria-hidden />
-              {editingId ? "Редактирование позиции" : "Новая позиция"}
-            </p>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <label className="grid gap-1 text-sm font-medium">
-                Тип операции
-                <NativeSelect
-                  value={form.changeType}
-                  onValueChange={(value) => {
-                    const changeType = value as CorrectionChangeType
-                    patchForm({
-                      changeType,
-                      removedSubject: "",
-                      removedTeacherId: "",
-                      removedTeacherName: "",
-                      removedNumberPair: "",
-                    })
-                  }}
-                >
-                  {(Object.keys(CHANGE_TYPE_META) as CorrectionChangeType[]).map(
-                    (type) => (
-                      <NativeSelectItem key={type} value={type}>
-                        {CHANGE_TYPE_META[type].label}
-                      </NativeSelectItem>
-                    ),
-                  )}
-                </NativeSelect>
-              </label>
-
-              <label className="grid gap-1 text-sm font-medium">
-                Группа
-                <NativeSelect
-                  value={form.groupId}
-                  onValueChange={(groupId) => {
-                    const group = groups.find((item) => item.id === groupId)
-                    patchForm({
-                      groupId,
-                      groupName: group?.name ?? form.groupName,
-                      removedSubject: "",
-                      removedTeacherId: "",
-                      removedTeacherName: "",
-                      removedNumberPair: "",
-                    })
-                  }}
-                  placeholder="Выберите группу"
-                >
-                  {groups.map((group) => (
-                    <NativeSelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </NativeSelectItem>
-                  ))}
-                </NativeSelect>
-              </label>
-
-              {needsTarget && (
-                <label className="grid gap-1 text-sm font-medium">
-                  {form.changeType === "Move" ? "Новая № пары" : "№ пары"}
-                  <Input
-                    type="number"
-                    min={1}
-                    max={8}
-                    value={form.numberPair}
-                    onChange={(e) => patchForm({ numberPair: e.target.value })}
-                  />
-                </label>
-              )}
-
-              {needsTarget && (
-                <label className="grid gap-1 text-sm font-medium">
-                  Предмет (вводится)
-                  <NativeSelect
-                    value={form.subject}
-                    onValueChange={(value) => patchForm({ subject: value })}
-                    placeholder="Предмет"
-                  >
-                    {subjects.map((subject) => (
-                      <NativeSelectItem key={subject} value={subject}>
-                        {subject}
-                      </NativeSelectItem>
-                    ))}
-                  </NativeSelect>
-                </label>
-              )}
-
-              {needsTarget && (
-                <label className="grid gap-1 text-sm font-medium">
-                  Преподаватель (вводится)
-                  <NativeSelect
-                    value={form.teacherId}
-                    onValueChange={(teacherId) => {
-                      const teacher = teachers.find(
-                        (item) => item.id === teacherId,
-                      )
-                      patchForm({
-                        teacherId,
-                        teacherName: teacher?.fullName ?? "",
-                      })
-                    }}
-                    placeholder="Преподаватель"
-                  >
-                    <NativeSelectItem value="">Не указан</NativeSelectItem>
-                    {teachers.map((teacher) => (
-                      <NativeSelectItem key={teacher.id} value={teacher.id}>
-                        {teacher.fullName}
-                      </NativeSelectItem>
-                    ))}
-                  </NativeSelect>
-                </label>
-              )}
-
-              {form.changeType !== "Add" && (
-                <div className="grid gap-1 text-sm font-medium sm:col-span-2 lg:col-span-3">
-                  <span>
-                    {form.changeType === "Remove"
-                      ? "Снимаемая пара"
-                      : "Снимаемая пара (заменяется/переносится)"}
-                  </span>
-                  <RemovePairPicker
-                    groupId={form.groupId || null}
-                    date={dateOnly}
-                    batchId={batch.id}
-                    value={removedSelection}
-                    onChange={handleRemovedPair}
-                  />
-                </div>
-              )}
-
-              {(form.changeType === "Replace" ||
-                form.changeType === "Move") && (
-                <label className="grid gap-1 text-sm font-medium">
-                  Старый № пары
-                  <Input
-                    type="number"
-                    min={1}
-                    max={8}
-                    value={form.removedNumberPair}
-                    placeholder="Из выбранной пары"
-                    onChange={(e) =>
-                      patchForm({ removedNumberPair: e.target.value })
-                    }
-                  />
-                </label>
-              )}
-
-              <label className="grid gap-1 text-sm font-medium">
-                Примечание
-                <Input
-                  value={form.note}
-                  placeholder="Своё примечание"
-                  onChange={(e) => patchForm({ note: e.target.value })}
-                />
-              </label>
-            </div>
-
-            <NoteChips
-              value={form.note}
-              onChange={(note) => patchForm({ note })}
-              hints={
-                form.changeType === "Remove"
-                  ? ["сам.р."]
-                  : form.changeType === "Move"
-                    ? ["перенос"]
-                    : ["замена"]
-              }
-            />
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={() => void handleSubmit()}
-                disabled={submitting}
-              >
-                {submitting
-                  ? "Сохранение..."
-                  : editingId
-                    ? "Сохранить изменения"
-                    : "Добавить позицию"}
-              </Button>
-              {editingId && (
-                <Button variant="outline" onClick={resetForm}>
-                  Отменить
-                </Button>
-              )}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="size-4 mr-2" aria-hidden /> Добавить позицию
+            </Button>
           </div>
         )}
 
@@ -789,6 +558,57 @@ export default function CorrectionPositionEditor({
           </div>
         )}
       </CardContent>
+
+      <CorrectionPositionDialog
+        open={formOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open)
+          if (!open) setEditing(null)
+        }}
+        batchId={batchId}
+        batchDate={dateOnly}
+        groups={groups}
+        position={editing}
+        onSubmit={handleSubmit}
+      />
+
+      <ConfirmDialog
+        open={confirmApply}
+        onOpenChange={setConfirmApply}
+        title="Применить корректировку?"
+        description={
+          <>
+            <p>
+              Будет применено позиций:{" "}
+              <span className="font-medium">{batch.positionCount}</span>. Изменения
+              попадут в расписание и в журнал, а преподавателям уйдёт уведомление.
+            </p>
+            <p className="mt-2">
+              Дата:{" "}
+              {new Date(batch.correctionDate).toLocaleDateString("ru-RU")}, неделя{" "}
+              {batch.week}. Отменить применение нельзя.
+            </p>
+          </>
+        }
+        confirmLabel="Применить"
+        onConfirm={applyBatchNow}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null)
+        }}
+        title="Удалить позицию?"
+        description={
+          pendingDelete
+            ? `Позиция ${pendingDelete.row} (${pendingDelete.groupName ?? "—"}) будет удалена из пакета.`
+            : null
+        }
+        confirmLabel="Удалить"
+        confirmVariant="destructive"
+        onConfirm={handleDelete}
+      />
     </Card>
   )
 }
@@ -798,8 +618,8 @@ interface PositionRowProps {
   errors: ScheduleValidationError[]
   batchIsDraft: boolean
   busy: boolean
-  onEdit: (position: CorrectionPosition) => void
-  onDelete: (position: CorrectionPosition) => void
+  onEdit: () => void
+  onDelete: () => void
 }
 
 function PositionRow({
@@ -813,45 +633,51 @@ function PositionRow({
   const hasErrors = errors.length > 0
   return (
     <>
-      <tr
+      <TableRow
         className={
           hasErrors
-            ? "bg-destructive/5"
+            ? "bg-destructive/5 hover:bg-destructive/5"
             : position.status === "Applied"
               ? "opacity-60"
               : ""
         }
       >
-        <td className="px-3 py-2 text-muted-foreground">{position.row}</td>
-        <td className="px-3 py-2">
+        <TableCell className="px-3 py-2 text-muted-foreground">
+          {position.row}
+        </TableCell>
+        <TableCell className="px-3 py-2">
           <PositionTypeBadge type={position.changeType} />
-        </td>
-        <td className="px-3 py-2 whitespace-nowrap">
+        </TableCell>
+        <TableCell className="px-3 py-2 whitespace-nowrap">
           {position.groupName || (
             <span className="text-destructive">Группа не указана</span>
           )}
-        </td>
-        <td className="px-3 py-2 whitespace-nowrap">
+        </TableCell>
+        <TableCell className="px-3 py-2 whitespace-nowrap">
           {position.removedNumberPair != null &&
           position.changeType !== "Remove" &&
           position.removedNumberPair !== position.numberPair
             ? `${position.removedNumberPair} → ${position.numberPair}`
-            : position.numberPair || <span className="text-destructive">—</span>}
-        </td>
-        <td className="px-3 py-2">{renderTitle(position)}</td>
-        <td className="px-3 py-2 max-w-[220px] truncate">
+            : position.numberPair || (
+                <span className="text-destructive">—</span>
+              )}
+        </TableCell>
+        <TableCell className="px-3 py-2 whitespace-normal">
+          {renderTitle(position)}
+        </TableCell>
+        <TableCell className="px-3 py-2 max-w-[220px] truncate whitespace-normal">
           {renderTeacher(position)}
-        </td>
-        <td className="px-3 py-2 max-w-[160px] truncate text-muted-foreground">
+        </TableCell>
+        <TableCell className="px-3 py-2 max-w-[160px] truncate whitespace-normal text-muted-foreground">
           {position.note ?? "—"}
-        </td>
-        <td className="px-3 py-2">
+        </TableCell>
+        <TableCell className="px-3 py-2">
           {batchIsDraft && (
             <div className="flex justify-end gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onEdit(position)}
+                onClick={onEdit}
                 aria-label={`Редактировать позицию ${position.row}`}
               >
                 <Pencil className="size-4" />
@@ -860,18 +686,18 @@ function PositionRow({
                 variant="ghost"
                 size="icon"
                 disabled={busy}
-                onClick={() => onDelete(position)}
+                onClick={onDelete}
                 aria-label={`Удалить позицию ${position.row}`}
               >
                 <Trash2 className="size-4 text-destructive" />
               </Button>
             </div>
           )}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {hasErrors && (
-        <tr className="bg-destructive/5">
-          <td colSpan={8} className="px-3 pb-2">
+        <TableRow className="bg-destructive/5 hover:bg-destructive/5">
+          <TableCell colSpan={8} className="px-3 pb-2">
             <ul className="grid gap-1 text-xs text-destructive">
               {errors.map((error, index) => (
                 <li key={index} className="flex items-start gap-1.5">
@@ -880,8 +706,8 @@ function PositionRow({
                 </li>
               ))}
             </ul>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
     </>
   )

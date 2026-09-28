@@ -36,6 +36,15 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 import EmptyState from "@/components/EmptyState"
 
 const PAGE_SIZE = 20
@@ -129,6 +138,8 @@ export default function CorrectionBatchList({
   const [date, setDate] = useState(todayIso())
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [pendingApply, setPendingApply] = useState<CorrectionBatch | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<CorrectionBatch | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -192,16 +203,18 @@ export default function CorrectionBatchList({
     }
   }
 
-  const handleDelete = async (batch: CorrectionBatch) => {
-    if (!window.confirm(`Удалить пакет за ${formatDate(batch.correctionDate)}?`))
-      return
-    setBusyId(batch.id)
+  const handleDelete = async () => {
+    if (!pendingDelete) return false
+    setBusyId(pendingDelete.id)
     try {
-      await deleteBatch(batch.id)
+      await deleteBatch(pendingDelete.id)
       toast.success("Пакет удалён")
+      setPendingDelete(null)
       await load()
+      return true
     } catch (err) {
       toast.error(extractErrorMessage(err) ?? "Не удалось удалить пакет")
+      return false
     } finally {
       setBusyId(null)
     }
@@ -219,24 +232,22 @@ export default function CorrectionBatchList({
     }
   }
 
-  const handleApply = async (batch: CorrectionBatch) => {
-    if (
-      !window.confirm(
-        `Применить корректировки за ${formatDate(batch.correctionDate)}?`,
-      )
-    )
-      return
-    setBusyId(batch.id)
+  // Применение занимает заметное время: окно подтверждения держит лоадер в кнопке.
+  const applyBatchNow = async () => {
+    if (!pendingApply) return false
+    setBusyId(pendingApply.id)
     try {
-      const result = await applyBatch(batch.id, crypto.randomUUID())
+      const result = await applyBatch(pendingApply.id, crypto.randomUUID())
       toast.success(`Применено изменений: ${result.applied}`)
       try {
-        const { blob, fileName } = await exportBatch(batch.id)
+        const { blob, fileName } = await exportBatch(pendingApply.id)
         downloadBlob(blob, fileName)
       } catch {
         toast.message("Пакет применён, но файл не удалось сформировать")
       }
+      setPendingApply(null)
       await load()
+      return true
     } catch (err) {
       const message = extractErrorMessage(err)
       if (message) {
@@ -247,6 +258,7 @@ export default function CorrectionBatchList({
       } else {
         toast.error("Не удалось применить корректировки")
       }
+      return false
     } finally {
       setBusyId(null)
     }
@@ -386,25 +398,25 @@ export default function CorrectionBatchList({
         ) : (
           <>
             <div className="hidden overflow-x-auto rounded-md border md:block">
-              <table className="w-full min-w-[860px] text-sm">
-                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Дата</th>
-                    <th className="px-3 py-2 text-left">Неделя / день</th>
-                    <th className="px-3 py-2 text-left">Позиций</th>
-                    <th className="px-3 py-2 text-left">Ошибки</th>
-                    <th className="px-3 py-2 text-left">Статус</th>
-                    <th className="px-3 py-2 text-right">Действия</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
+              <Table className="min-w-[860px]">
+                <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <TableRow>
+                    <TableHead className="px-3 py-2">Дата</TableHead>
+                    <TableHead className="px-3 py-2">Неделя / день</TableHead>
+                    <TableHead className="px-3 py-2">Позиций</TableHead>
+                    <TableHead className="px-3 py-2">Ошибки</TableHead>
+                    <TableHead className="px-3 py-2">Статус</TableHead>
+                    <TableHead className="px-3 py-2 text-right">Действия</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {batches.map((batch) => {
                     const meta = STATUS_META[batch.status]
                     const busy = busyId === batch.id
                     const blocked = applyBlockReason(batch)
                     return (
-                      <tr key={batch.id}>
-                        <td className="px-3 py-2 whitespace-nowrap">
+                      <TableRow key={batch.id}>
+                        <TableCell className="px-3 py-2 whitespace-nowrap">
                           <span className="flex items-center gap-1.5">
                             <CalendarDays
                               className="size-4 text-muted-foreground"
@@ -412,14 +424,16 @@ export default function CorrectionBatchList({
                             />
                             {formatDate(batch.correctionDate)}
                           </span>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                           {batch.week} неделя ·{" "}
                           {DAYS.find((d) => d.value === batch.dayOfWeek)?.full ??
                             batch.dayOfWeek}
-                        </td>
-                        <td className="px-3 py-2">{batch.positionCount}</td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
+                          {batch.positionCount}
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
                           {batch.errors.length > 0 ? (
                             <span className="inline-flex items-center gap-1 text-destructive">
                               <CircleAlert className="size-3.5" aria-hidden />
@@ -428,13 +442,13 @@ export default function CorrectionBatchList({
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
-                        </td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
                           <Badge variant="outline" className={meta.className}>
                             {meta.label}
                           </Badge>
-                        </td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
                           <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
@@ -460,7 +474,7 @@ export default function CorrectionBatchList({
                                   size="icon"
                                   disabled={busy || !canApply(batch)}
                                   title={blocked}
-                                  onClick={() => void handleApply(batch)}
+                                  onClick={() => setPendingApply(batch)}
                                   aria-label={`Применить пакет за ${formatDate(batch.correctionDate)}`}
                                 >
                                   <Play className="size-4 text-emerald-600 dark:text-emerald-400" />
@@ -469,7 +483,7 @@ export default function CorrectionBatchList({
                                   variant="ghost"
                                   size="icon"
                                   disabled={busy}
-                                  onClick={() => void handleDelete(batch)}
+                                  onClick={() => setPendingDelete(batch)}
                                   aria-label={`Удалить пакет за ${formatDate(batch.correctionDate)}`}
                                 >
                                   <Trash2 className="size-4 text-destructive" />
@@ -477,12 +491,12 @@ export default function CorrectionBatchList({
                               </>
                             )}
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             <ul className="grid gap-3 md:hidden">
@@ -543,7 +557,7 @@ export default function CorrectionBatchList({
                             className="h-11 flex-1"
                             disabled={busy || !canApply(batch)}
                             title={blocked}
-                            onClick={() => void handleApply(batch)}
+                            onClick={() => setPendingApply(batch)}
                           >
                             <Play className="size-4" aria-hidden />
                             Применить
@@ -552,7 +566,7 @@ export default function CorrectionBatchList({
                             variant="outline"
                             className="h-11 text-destructive"
                             disabled={busy}
-                            onClick={() => void handleDelete(batch)}
+                            onClick={() => setPendingDelete(batch)}
                           >
                             <Trash2 className="size-4" aria-hidden />
                             Удалить
@@ -593,6 +607,52 @@ export default function CorrectionBatchList({
           </>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={pendingApply != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingApply(null)
+        }}
+        title="Применить корректировку?"
+        description={
+          pendingApply ? (
+            <>
+              <p>
+                Пакет за{" "}
+                <span className="font-medium">
+                  {formatDate(pendingApply.correctionDate)}
+                </span>{" "}
+                изменит расписание на {pendingApply.week} неделе,{" "}
+                {DAYS.find((d) => d.value === pendingApply.dayOfWeek)?.full ??
+                  pendingApply.dayOfWeek}
+                . Позиций: {pendingApply.positionCount}.
+              </p>
+              <p className="mt-2">
+                Изменения попадут в расписание и в журнал, а преподавателям уйдёт
+                уведомление. Отменить применение нельзя.
+              </p>
+            </>
+          ) : null
+        }
+        confirmLabel="Применить"
+        onConfirm={applyBatchNow}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null)
+        }}
+        title="Удалить пакет?"
+        description={
+          pendingDelete
+            ? `Пакет за ${formatDate(pendingDelete.correctionDate)} и все его позиции (${pendingDelete.positionCount}) будут удалены. Действие необратимо.`
+            : null
+        }
+        confirmLabel="Удалить"
+        confirmVariant="destructive"
+        onConfirm={handleDelete}
+      />
     </Card>
   )
 }

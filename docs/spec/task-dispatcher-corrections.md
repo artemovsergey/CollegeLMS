@@ -95,17 +95,19 @@ XLSX, редактирование, применение с обязательн
 | PUT | `/{id}/positions/{positionId}` | Изменить позицию |
 | DELETE | `/{id}/positions/{positionId}` | Удалить позицию |
 | POST | `/import` | Импорт XLSX (multipart, ≤10 МБ). Best-effort: при строчных ошибках пакет создаётся, возвращаются `batchId` и `errors`; без пакета — только структурные ошибки (нет даты/шапки) |
-| POST | `/{id}/export` | XLSX с именем `Корректировка_dd.MM.yyyy_HH-mm-ss.xlsx`; для `Move` примечание «вм.X» |
+| POST | `/{id}/export` | XLSX с именем `Корректировка_ddMMyy_HHmm.xlsx`; для `Move` примечание «вм.X». Оформление задаётся кодом для всех строк: Times New Roman 12, рамка по периметру таблицы (средняя) и тонкие линии внутри |
 | POST | `/{id}/apply` | Транзакционное применение; заголовок `Idempotency-Key`; пустой пакет → `400`; ошибки → `400` списком «Строка N: …»; повторный apply → `409` |
 
 Флоу веб-редактора:
 
 1. `POST /batches` либо `POST /batches/import`.
-2. `GET /api/schedule/correction/day?groupId=&date=&batchId=` — эффективное расписание группы на дату: база + применённые `changeTags` + pending-оверлей неприменённых позиций пакета. Снятые без «сам.р.» пары исключаются; «сам.р.» → `isSelfStudy=true`. Схема `entries[]`: `numberPair`, `subject`, `room`, `teacherId`, `teacherName`, `note`, `isSelfStudy`, `pendingChangeType` (`Add | Remove | Replace | Move | null`), `changeTags`.
-3. Редактирование позиций через `/positions`.
+2. `GET /api/schedule/correction/references?groupId=&date=&batchId=` — справочники пошаговой формы: эффективное расписание группы на дату (те же `entries[]`, что у `/correction/day`) **плюс** `teachers[]` — преподаватели этой группы с их предметами именно в ней (`subjects` из базового расписания группы, применённых изменений и снятых записей; дубли схлопываются по ключу предмета). Форма берёт списки только отсюда, поэтому выбрать преподавателя или предмет, которых у группы нет, невозможно.
+3. Позиции редактируются через `/positions`; список позиций постраничный на клиенте (20 на страницу) с фильтрами по группе и типу операции.
 4. `GET /batches/{id}` — проверка `errors` (сообщения «Строка N: …»).
 5. `POST /batches/{id}/apply` → `{ applied, batchId, history }`.
 6. `POST /batches/{id}/export` — XLSX (автоскачивание в UI).
+
+Подтверждение применения и удаления — модальное окно с лоадером внутри кнопки: операция долгая (транзакция, рассылка в Max, генерация PNG), повторный клик заблокирован.
 
 Журнал: `GET /api/schedule/history?week=&date=&from=&to=&changeType=&groupId=&teacherId=&page=&pageSize=` — `date` преобразуется в `week + день недели`, `from/to` — по `AppliedAt`, pageSize 1..100 (default 20), сортировка `AppliedAt DESC`; `teacherId` матчит текущего **или** снятого преподавателя.
 
