@@ -36,6 +36,14 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import EmptyState from "@/components/EmptyState"
 
 const PAGE_SIZE = 20
@@ -386,25 +394,37 @@ export default function CorrectionBatchList({
         ) : (
           <>
             <div className="hidden overflow-x-auto rounded-md border md:block">
-              <table className="w-full min-w-[860px] text-sm">
-                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Дата</th>
-                    <th className="px-3 py-2 text-left">Неделя / день</th>
-                    <th className="px-3 py-2 text-left">Позиций</th>
-                    <th className="px-3 py-2 text-left">Ошибки</th>
-                    <th className="px-3 py-2 text-left">Статус</th>
-                    <th className="px-3 py-2 text-right">Действия</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
+              <Table className="min-w-[860px]">
+                <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground [&_th]:text-muted-foreground [&_th]:font-bold [&_th]:h-auto [&_tr]:border-b-0">
+                  <TableRow>
+                    <TableHead className="px-3 py-2 text-left">
+                      Дата
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Неделя / день
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Позиций
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Ошибки
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Статус
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-right">
+                      Действия
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="[&_tr]:hover:bg-transparent">
                   {batches.map((batch) => {
                     const meta = STATUS_META[batch.status]
                     const busy = busyId === batch.id
                     const blocked = applyBlockReason(batch)
                     return (
-                      <tr key={batch.id}>
-                        <td className="px-3 py-2 whitespace-nowrap">
+                      <TableRow key={batch.id}>
+                        <TableCell className="px-3 py-2 whitespace-nowrap">
                           <span className="flex items-center gap-1.5">
                             <CalendarDays
                               className="size-4 text-muted-foreground"
@@ -412,14 +432,16 @@ export default function CorrectionBatchList({
                             />
                             {formatDate(batch.correctionDate)}
                           </span>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                           {batch.week} неделя ·{" "}
                           {DAYS.find((d) => d.value === batch.dayOfWeek)?.full ??
                             batch.dayOfWeek}
-                        </td>
-                        <td className="px-3 py-2">{batch.positionCount}</td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
+                          {batch.positionCount}
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
                           {batch.errors.length > 0 ? (
                             <span className="inline-flex items-center gap-1 text-destructive">
                               <CircleAlert className="size-3.5" aria-hidden />
@@ -428,13 +450,16 @@ export default function CorrectionBatchList({
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
-                        </td>
-                        <td className="px-3 py-2">
-                          <Badge variant="outline" className={meta.className}>
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
+                          <Badge
+                            variant="outline"
+                            className={meta.className}
+                          >
                             {meta.label}
                           </Badge>
-                        </td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell className="px-3 py-2">
                           <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
@@ -477,12 +502,12 @@ export default function CorrectionBatchList({
                               </>
                             )}
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             <ul className="grid gap-3 md:hidden">

@@ -13,6 +13,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -316,32 +324,39 @@ export default function WorkingDaysTab() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-sm">
-                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-fg">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium">Период</th>
-                      <th className="px-4 py-3 text-left font-medium">
+                <Table className="min-w-[640px]">
+                  <TableHeader className="bg-muted/50 text-xs uppercase tracking-wide text-muted-fg [&_th]:text-muted-fg [&_tr]:border-b-0">
+                    <TableRow>
+                      <TableHead className="px-4 py-3 text-left font-medium">
+                        Период
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
                         День недели
-                      </th>
-                      <th className="px-4 py-3 text-left font-medium">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
                         Название
-                      </th>
-                      <th className="px-4 py-3 text-right font-medium">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-right font-medium">
                         Действия
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {items.map((item) => (
-                      <tr key={item.id} className="border-b last:border-0">
-                        <td className="px-4 py-3 font-mono text-xs tabular-nums whitespace-nowrap">
+                      <TableRow
+                        key={item.id}
+                        className="border-b last:border-0"
+                      >
+                        <TableCell className="px-4 py-3 font-mono text-xs tabular-nums whitespace-nowrap">
                           {formatDateRange(item.dateFrom, item.dateTo)}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 whitespace-nowrap">
                           {substituteDayLabel(item.substituteDayOfWeek)}
-                        </td>
-                        <td className="px-4 py-3">{item.title}</td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 whitespace-normal">
+                          {item.title}
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
@@ -362,11 +377,11 @@ export default function WorkingDaysTab() {
                               <Trash2 className="size-4" aria-hidden="true" />
                             </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>

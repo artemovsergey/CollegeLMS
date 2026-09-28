@@ -30,7 +30,12 @@ const maxSource = existsSync(resolve(ROOT, "app/max/max.css"))
 function parseBlock(source, selector) {
   // Ищем именно объявление блока, а не любое упоминание селектора:
   // `@custom-variant dark (&:is(.dark *))` идёт раньше `.dark {` в globals.css.
-  const pattern = new RegExp(`^[^\\S\\n]*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{`, "m")
+  // Хвост `[^{]*` допускает список селекторов — в `app/max/max.css` блок
+  // объявлен как `.max-app, .max-app [class*="MaxUI_colorScheme"] { … }`.
+  const pattern = new RegExp(
+    `^[^\\S\\n]*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^{]*\\{`,
+    "m",
+  )
   const match = pattern.exec(source)
   if (!match) return new Map()
   const open = match.index + match[0].length - 1
@@ -103,7 +108,11 @@ const maxDarkAt = maxSource.indexOf(MAX_DARK_SELECTOR)
 const maxLight = parseBlock(maxSource, ".max-app")
 const maxDark = maxDarkAt === -1 ? new Map() : parseBlock(maxSource.slice(maxDarkAt), MAX_DARK_SELECTOR)
 scopes.maxLight = new Map([...scopes.root, ...maxLight])
-scopes.maxDark = new Map([...scopes.dark, ...maxDark])
+// Токены MAX оформления объявлены в `.max-app` без разделения по темам: все
+// значения — ссылки `var()` на токены `app/globals.css`, которые меняет класс
+// `.dark` на `<html>`. Поэтому, если отдельного блока `.dark .max-app` нет, тёмная
+// тема MAX описывается тем же набором MAX-токенов поверх тёмных globals-токенов.
+scopes.maxDark = new Map([...scopes.dark, ...(maxDark.size > 0 ? maxDark : maxLight)])
 
 function resolveVar(name, scope = "root", depth = 0) {
   if (depth > 8) return null
@@ -114,18 +123,27 @@ function resolveVar(name, scope = "root", depth = 0) {
   return value
 }
 
-// Режим высокой контрастности не переопределяет токены, а ломает оформление
-// принудительно (body/[class*=bg-] → #fff, [class*=text-] → #000). Поэтому
-// проверяем фактический результат этих правил, а не токены.
-scopes.a11y = new Map([
-  ["--bg", "#ffffff"],
-  ["--fg", "#000000"],
-  ["--muted", "#ffffff"],
-  ["--muted-fg", "#000000"],
-  ["--muted-foreground", "#000000"],
-  ["--primary", "#000000"],
-  ["--primary-foreground", "#ffffff"],
-])
+// Режим высокой контрастности переопределяет семантические токены, а не ломает
+// оформление селекторами по подстрокам классов. Поэтому проверяем результат
+// наложения блоков: `:root` плюс `.accessibility-mode`.
+scopes.a11y = new Map([...scopes.root, ...scopes.a11y])
+
+// Цвета типов занятий применяются и как мелкий текст 12px в miniapp MAX, и как
+// заливка полосы в сводке диспетчера. Держим для них порог текста 4.5:1 на
+// обеих поверхностях, иначе набор для одного применения не проходит для другого.
+const lessonPairs = (surface) =>
+  ["lecture", "practice", "lab", "exam", "none"].map((type) => [
+    `lesson-${type}`,
+    surface,
+    "text",
+  ])
+
+// Граница --border определяет края элементов, поэтому проверяется как
+// нетекстовый элемент (WCAG 1.4.11, 3:1) на обеих поверхностях.
+const borderPairs = [
+  ["border", "background", "nonText"],
+  ["border", "card", "nonText"],
+]
 
 const PAIRS = {
   root: [
@@ -144,6 +162,9 @@ const PAIRS = {
     ["warning-foreground", "warning", "text"],
     ["ring", "background", "nonText"],
     ["input", "background", "nonText"],
+    ...borderPairs,
+    ...lessonPairs("background"),
+    ...lessonPairs("card"),
   ],
   dark: [
     ["fg", "bg", "text"],
@@ -161,14 +182,32 @@ const PAIRS = {
     ["warning-foreground", "warning", "text"],
     ["ring", "background", "nonText"],
     ["input", "background", "nonText"],
+    ...borderPairs,
+    ...lessonPairs("background"),
+    ...lessonPairs("card"),
   ],
   a11y: [
     ["fg", "bg", "text"],
     ["muted-fg", "muted", "text"],
     ["primary-foreground", "primary", "text"],
+    ...lessonPairs("background"),
   ],
-  maxLight: [["text-primary", "background-surface-ground", "text"], ["text-secondary", "background-surface-ground", "text"]],
-  maxDark: [["text-primary", "background-surface-ground", "text"], ["text-secondary", "background-surface-ground", "text"]],
+  maxLight: [
+    ["text-primary", "background-surface-ground", "text"],
+    ["text-secondary", "background-surface-card", "text"],
+    ["text-themed", "background-surface-ground", "text"],
+    ["text-contrast", "background-accent-themed", "text"],
+    ["stroke-secondary", "background-surface-card", "nonText"],
+    ["icon-primary", "background-surface-ground", "text"],
+  ],
+  maxDark: [
+    ["text-primary", "background-surface-ground", "text"],
+    ["text-secondary", "background-surface-card", "text"],
+    ["text-themed", "background-surface-ground", "text"],
+    ["text-contrast", "background-accent-themed", "text"],
+    ["stroke-secondary", "background-surface-card", "nonText"],
+    ["icon-primary", "background-surface-ground", "text"],
+  ],
 }
 
 const LABELS = {
