@@ -385,6 +385,7 @@ public class ScheduleExportService(
         ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
 
         using var stream = new MemoryStream();
+        XlsxDefaults.ApplyFont(ws);
         workbook.SaveAs(stream);
         return OkFile(stream.ToArray(), XlsxContentType, filePrefix, "xlsx");
     }
@@ -552,6 +553,7 @@ public class ScheduleExportService(
         ws.PageSetup.Margins.Right = 0.7;
 
         using var stream = new MemoryStream();
+        XlsxDefaults.ApplyFont(ws);
         workbook.SaveAs(stream);
         return OkFile(stream.ToArray(), XlsxContentType, filePrefix, "xlsx");
     }
@@ -952,6 +954,7 @@ public class ScheduleExportService(
         ws.SheetView.FreezeRows(1);
 
         using var stream = new MemoryStream();
+        XlsxDefaults.ApplyFont(ws);
         workbook.SaveAs(stream);
         return OkFile(stream.ToArray(), XlsxContentType, SemesterFilePrefix, "xlsx");
     }
@@ -1449,6 +1452,7 @@ public class ScheduleExportService(
         ws.PageSetup.Margins.Right = 0.5;
 
         using var ms = new MemoryStream();
+        XlsxDefaults.ApplyFont(ws);
         workbook.SaveAs(ms);
         ms.Seek(0, SeekOrigin.Begin);
 
@@ -1539,6 +1543,7 @@ public class ScheduleExportService(
         ws.PageSetup.Margins.Right = 0.7;
 
         using var ms = new MemoryStream();
+        XlsxDefaults.ApplyFont(ws);
         workbook.SaveAs(ms);
         ms.Seek(0, SeekOrigin.Begin);
 
