@@ -319,6 +319,25 @@ public class ScheduleMatrixExportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportedFile_FreezesDayAndPairColumns()
+    {
+        var group = await SeedGroupAsync("РЭУ 252");
+        var teacher = await SeedTeacherAsync("Сапрыкина А.А.");
+        await SeedEntryAsync(group, teacher, DayOfWeek.Monday, 1, "Математика", "233", [1, 2]);
+
+        var result = await _sut.ExportAsync(CancellationToken.None);
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var view = workbook.Worksheet(1).SheetView;
+
+        // Столбцы A (день) и B (номер пары) должны оставаться видимыми при
+        // горизонтальной прокрутке, строки шапки — при вертикальной.
+        view.SplitColumn.Should().Be(2);
+        view.SplitRow.Should().Be(5);
+    }
+
+    [Fact]
     public async Task ExportedFile_OmitsDaysAndPairsWithoutLessons()
     {
         var group = await SeedGroupAsync("РЭУ 252");

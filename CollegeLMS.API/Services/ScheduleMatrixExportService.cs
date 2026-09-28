@@ -305,7 +305,9 @@ public class ScheduleMatrixExportService(AppDbContext db) : IScheduleMatrixExpor
         header.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
         sheet.Row(headerRow).Height = 26;
 
-        sheet.SheetView.FreezeRows(headerRow);
+        // Столбцы A (день) и B (номер пары) закреплены — при прокрутке вбок
+        // группа и её пара остаются на экране, как в исходном файле расписания.
+        sheet.SheetView.Freeze(headerRow, 2);
         sheet.PageSetup.PageOrientation = XLPageOrientation.Landscape;
         sheet.PageSetup.FitToPages(1, 0);
         sheet.PageSetup.PaperSize = XLPaperSize.A4Paper;
