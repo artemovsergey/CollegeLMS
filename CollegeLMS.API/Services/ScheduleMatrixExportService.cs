@@ -34,10 +34,11 @@ public class ScheduleMatrixExportService(AppDbContext db) : IScheduleMatrixExpor
     private const int MaxPair = 8;
 
     /// <summary>
-    /// Плейсхолдер аудитории: занятия, добавленные корректировкой, аудитории не
-    /// имеют, а формат файла импорта требует токен перед предметом.
+    /// Токен занятия без аудитории. Формат файла требует его перед предметом,
+    /// а парсер импорта трактует его как «аудитории нет», поэтому в базу он
+    /// не попадает и при обратном импорте выгрузки.
     /// </summary>
-    private const string RoomPlaceholder = "—";
+    private const string RoomPlaceholder = ScheduleImportService.NoRoomPlaceholder;
 
     private static readonly string[] DayNames =
     [

@@ -113,6 +113,8 @@ export default function ScheduleCards({
         const isCurrent = entry.id === currentId
         const isPractice = entry.lessonType === "Practice"
         const practicePair = practicePairName(entry)
+        // Подгруппы объединённой пары: у них свои аудитории и преподаватели.
+        const subEntries = entry.mergedEntries ?? [entry]
 
         return (
           <div
@@ -162,17 +164,20 @@ export default function ScheduleCards({
                   <Clock className="size-3 shrink-0" />
                   {formatTimeSlot(entry.startTime, entry.endTime)}
                 </span>
-                {entry.teacherName && (
-                  <span className="flex items-center gap-1">
-                    <GraduationCap className="size-3 shrink-0" />
-                    {entry.teacherName}
-                  </span>
-                )}
-                <span className="flex items-center gap-1">
-                  <MapPin className="size-3 shrink-0" />
-                  {entry.room}
-                </span>
-                <span className="flex items-center gap-1">
+                {subEntries.length <= 1 && (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="size-3 shrink-0" />
+                      {entry.room}
+                    </span>
+                    {entry.teacherName && (
+                      <span className="flex items-center gap-1">
+                        <GraduationCap className="size-3 shrink-0" />
+                        {entry.teacherName}
+                      </span>
+                    )}
+                  </>
+                )}                <span className="flex items-center gap-1">
                   <Users className="size-3 shrink-0" />
                   {entry.groupName}
                 </span>
@@ -190,9 +195,63 @@ export default function ScheduleCards({
                   ))}
                 </div>
               )}
+
+              {/* Пара с несколькими подгруппами (например ин.язык) показывается
+                  одной строкой, но редактируется по каждой подгруппе. */}
+              {subEntries.length > 1 && (
+                <ul className="mt-1.5 grid gap-1">
+                  {subEntries.map((sub) => (
+                    <li
+                      key={sub.id}
+                      className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground"
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="size-3 shrink-0" aria-hidden />
+                        {sub.room}
+                      </span>
+                      {sub.teacherName && (
+                        <span className="inline-flex items-center gap-1">
+                          <GraduationCap className="size-3 shrink-0" aria-hidden />
+                          {sub.teacherName}
+                        </span>
+                      )}
+                      {hasActions && (
+                        <span className="flex gap-0.5">
+                          {onEntryClick && (
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              aria-label={`Редактировать подгруппу: ${sub.room}${
+                                sub.teacherName ? `, ${sub.teacherName}` : ""
+                              }`}
+                              className="text-muted-foreground hover:text-primary"
+                              onClick={() => onEntryClick(sub)}
+                            >
+                              <Pencil className="size-3.5" aria-hidden />
+                            </Button>
+                          )}
+                          {onDeleteClick && (
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              aria-label={`Удалить подгруппу: ${sub.room}${
+                                sub.teacherName ? `, ${sub.teacherName}` : ""
+                              }`}
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => onDeleteClick(sub.id)}
+                            >
+                              <Trash2 className="size-3.5" aria-hidden />
+                            </Button>
+                          )}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
-            {hasActions && (
+            {hasActions && subEntries.length <= 1 && (
               <div className="flex shrink-0 items-start gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100">
                 {onEntryClick && (
                   <Button

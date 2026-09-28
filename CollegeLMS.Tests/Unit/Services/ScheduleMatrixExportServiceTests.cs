@@ -272,7 +272,8 @@ public class ScheduleMatrixExportServiceTests : IDisposable
         errors.Should().BeEmpty();
         entries.Should().ContainSingle();
         entries[0].Subject.Should().Be("Математика");
-        entries[0].Room.Should().Be("—");
+        // Прочерк в файле означает «аудитории нет» и не превращается в аудиторию «—».
+        entries[0].Room.Should().BeEmpty();
         entries[0].TeacherName.Should().BeNullOrEmpty();
     }
 

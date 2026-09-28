@@ -132,6 +132,12 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         [@"ОсновыЭлектрТех\."] = "ОсновыЭлектр.",
     };
 
+    /// <summary>
+    /// Помечает занятие без аудитории. Токен нужен формату файла (перед предметом
+    /// обязательно стоит токен), но в базу он попадать не должен.
+    /// </summary>
+    internal const string NoRoomPlaceholder = "—";
+
     internal static string NormalizeSubject(string subject)
     {
         var v = subject.Trim();
@@ -369,6 +375,23 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                             hasErrors = true;
                         }
 
+                        // Аудитория обязательна. Молча создавать пару без неё нельзя:
+                        // так в базу попадали «пары» из строк вида «Ин.язык» старого
+                        // формата, где предмет и недели стояли отдельными строками.
+                        if (parsed.RoomMissing)
+                        {
+                            errors.Add(
+                                Error(
+                                    sheet,
+                                    r,
+                                    col,
+                                    "data",
+                                    $"не удалось распознать аудиторию в \"{cellText}\""
+                                )
+                            );
+                            hasErrors = true;
+                        }
+
                         if (parsed.Weeks.Count == 0)
                         {
                             errors.Add(Error(sheet, r, col, "data", "не указаны недели"));
@@ -449,6 +472,9 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         public string Subject { get; init; } = string.Empty;
         public List<int> Weeks { get; init; } = [];
         public List<SubjectCellPart> Parts { get; init; } = [];
+
+        /// <summary>В ячейке нет токена аудитории — разбирать её как пару нельзя.</summary>
+        public bool RoomMissing { get; init; }
     }
 
     /// <summary>
@@ -469,15 +495,26 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
             return BuildSubjectCell(hall.Value.Replace(" ", string.Empty), text[hall.Length..]);
 
         var match = SubjectCellRegex.Match(text);
-        return match.Success
-            ? BuildSubjectCell(match.Groups["room"].Value, match.Groups["body"].Value)
-            // Без разделителя «ауд. …» считаем всё содержимое предметом.
-            : BuildSubjectCell(string.Empty, text);
+        if (match.Success)
+            return BuildSubjectCell(match.Groups["room"].Value, match.Groups["body"].Value);
+
+        // Ячейка без пробела: аудитории в ней нет. Такой разбор допустим только
+        // для явного прочерка — выгрузки помечают им занятия без аудитории,
+        // иначе прочерк не должен попадать в базу как настоящая аудитория.
+        if (text == NoRoomPlaceholder)
+            return BuildSubjectCell(string.Empty, text[NoRoomPlaceholder.Length..].Trim());
+
+        return new SubjectCellParse { Subject = text, RoomMissing = true };
     }
 
     /// <summary>Отделяет от тела ячейки недели и преподавателя(-ей).</summary>
     private static SubjectCellParse BuildSubjectCell(string room, string body)
     {
+        // Прочерк — явная пометка «аудитория не указана», а не номер аудитории.
+        var roomMissing = false;
+        if (room == NoRoomPlaceholder)
+            room = string.Empty;
+
         var weeks = new List<int>();
         var weeksMatch = Regex.Match(body, @"\(([^)]+)\)");
         if (weeksMatch.Success)
@@ -500,6 +537,7 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
             Subject = body.Trim(),
             Weeks = weeks,
             Parts = BuildParts(room, teacher),
+            RoomMissing = false,
         };
     }
 
@@ -651,8 +689,8 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                 errors.Add(ConfirmError(i, "не указана группа"));
             if (string.IsNullOrWhiteSpace(entry.Subject))
                 errors.Add(ConfirmError(i, "не указан предмет"));
-            if (string.IsNullOrWhiteSpace(entry.Room))
-                errors.Add(ConfirmError(i, "не указана аудитория"));
+            // Аудитория в паре необязательна: занятия, добавленные корректировкой,
+            // её не имеют, а формат файла допускает прочерк на их месте.
             var weeks = entry.Weeks ?? [];
             if (weeks.Count == 0 || weeks.Any(w => w < 1 || w > StudyWeek.TotalWeeks))
                 errors.Add(

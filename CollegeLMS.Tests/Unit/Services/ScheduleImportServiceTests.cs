@@ -117,6 +117,51 @@ public class ScheduleImportServiceTests : IDisposable
     }
 
     [Fact]
+    public void ParseScheduleMatrix_TreatsDashAsNoRoomInsteadOfRoomName()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "РЭУ 252";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        // Прочерк ставит выгрузка для занятия, у которого аудитории нет.
+        ws.Cell(6, 3).Value = "— Математика (1-16) Сапрыкина А.А.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries.Should().ContainSingle();
+        entries[0].Subject.Should().Be("Математика");
+        entries[0].Room.Should().BeEmpty("прочерк означает «аудитории нет», а не аудиторию");
+        entries[0].TeacherName.Should().Be("Сапрыкина А.А.");
+    }
+
+    [Fact]
+    public void ParseScheduleMatrix_ReportsErrorForCellWithoutRoom()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "РЭУ 252";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        // Старый формат: предмет и недели стояли отдельными строками без аудитории.
+        // Такие строки не должны молча превращаться в пары без аудитории.
+        ws.Cell(6, 3).Value = "Ин.язык";
+        ws.Cell(7, 3).Value = "(1-15,17)";
+        ws.Cell(8, 3).Value = "302 Ин.язык (1-15,17) Рахимова А.Л.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        entries.Should().ContainSingle(e => e.Room == "302" && e.Subject == "Ин.язык");
+        errors
+            .Where(e => e.Message.Contains("не удалось распознать аудиторию"))
+            .Should()
+            .HaveCount(2, "обе строки старого формата без аудитории должны быть отмечены");
+    }
+
+    [Fact]
     public void ParseScheduleMatrix_SplitsSharedCellIntoOneEntryPerTeacher()
     {
         using var workbook = new XLWorkbook();
