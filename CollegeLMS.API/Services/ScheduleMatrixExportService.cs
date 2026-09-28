@@ -181,24 +181,43 @@ public class ScheduleMatrixExportService(AppDbContext db) : IScheduleMatrixExpor
         return groups
             .Values.Select(bucket =>
             {
-                var rooms = new List<string>();
-                foreach (var entry in bucket)
-                {
-                    var room = string.IsNullOrWhiteSpace(entry.Room)
-                        ? RoomPlaceholder
-                        : entry.Room.Trim();
-                    if (!rooms.Contains(room))
-                        rooms.Add(room);
-                }
+                // Собираем пары «аудитория ↔ преподаватель» и сортируем их: парсер
+                // импорта соединяет списки аудиторий и преподавателей позиционно,
+                // а порядок строк в БД не гарантирован. Без сортировки выгрузка
+                // менялась от запуска к запуску, а список преподавателей мог
+                // разъехаться со списком аудиторий.
+                var parts = bucket
+                    .Select(entry =>
+                        (
+                            Room: string.IsNullOrWhiteSpace(entry.Room)
+                                ? RoomPlaceholder
+                                : entry.Room.Trim(),
+                            Teacher: entry.Teacher?.User.FullName?.Trim() ?? string.Empty
+                        )
+                    )
+                    .Distinct()
+                    .ToList();
 
-                var teachers = new List<string>();
-                foreach (var entry in bucket)
-                {
-                    var name = entry.Teacher?.User.FullName;
-                    if (string.IsNullOrWhiteSpace(name) || teachers.Contains(name))
-                        continue;
-                    teachers.Add(name);
-                }
+                // Преподаватель без ФИО в ячейку не пишется: парсер импорта опознаёт
+                // преподавателя только по шаблону «Фамилия И.О.», и подстановка попала бы
+                // в предмет. Если без ФИО часть пар, преподавателей не пишем вовсе —
+                // иначе список сместится и пары собьются.
+                var named = parts.Where(part => part.Teacher.Length > 0).ToList();
+                var withTeachers = named.Count == parts.Count;
+
+                // С преподавателями сортируем по имени преподавателя, чтобы пара
+                // «аудитория ↔ преподаватель» не переворачивалась; без них — по аудитории.
+                var ordered = withTeachers
+                    ? parts
+                        .OrderBy(part => part.Teacher, StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(part => part.Room, StringComparer.OrdinalIgnoreCase)
+                        .ToList()
+                    : parts.OrderBy(part => part.Room, StringComparer.OrdinalIgnoreCase).ToList();
+
+                var rooms = ordered.Select(part => part.Room).Distinct().ToList();
+                var teachers = withTeachers
+                    ? ordered.Select(part => part.Teacher).Distinct().ToList()
+                    : [];
 
                 var weeks = bucket[0].Weeks;
                 var text = new StringBuilder();
@@ -206,8 +225,6 @@ public class ScheduleMatrixExportService(AppDbContext db) : IScheduleMatrixExpor
                 text.Append(' ').Append(ScheduleImportService.NormalizeSubject(bucket[0].Subject));
                 if (weeks.Count > 0)
                     text.Append(" (").Append(FormatWeeks(weeks)).Append(')');
-                // Преподавателя без ФИО не пишем: парсер импорта опознаёт преподавателя
-                // только по шаблону «Фамилия И.О.», и подстановка попала бы в предмет.
                 if (teachers.Count > 0)
                     text.Append(' ').Append(string.Join('/', teachers));
                 return text.ToString();

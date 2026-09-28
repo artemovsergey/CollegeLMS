@@ -6,6 +6,10 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Тесты сверяют распечатанное расписание звонков с внутренним справочником пар. -->
+    <InternalsVisibleTo Include="CollegeLMS.Tests" />
+  </ItemGroup>
   <!-- EF Core & Database -->
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.4" />

@@ -58,4 +58,10 @@ public interface IScheduleCorrectionService
         int? pageSize,
         CancellationToken ct
     );
+
+    /// <summary>
+    /// Откатывает уже применённую корректировку из журнала и убирает её запись.
+    /// Возвращает краткое описание того, что было возвращено в расписание.
+    /// </summary>
+    Task<Result<CorrectionRevertResponse>> RevertHistoryAsync(Guid historyId, CancellationToken ct);
 }

@@ -1,5 +1,6 @@
 using ClosedXML.Excel;
 using CollegeLMS.API.Data;
+using CollegeLMS.API.Data.Configurations;
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
@@ -837,8 +838,8 @@ public class ScheduleImportServiceTests : IDisposable
 
         errors.Should().BeEmpty();
         entries.Should().HaveCount(1);
-        entries[0].StartTime.Should().Be(new TimeSpan(9, 10, 0));
-        entries[0].EndTime.Should().Be(new TimeSpan(10, 40, 0));
+        entries[0].StartTime.Should().Be(new TimeSpan(9, 25, 0));
+        entries[0].EndTime.Should().Be(new TimeSpan(10, 55, 0));
     }
 
     [Fact]
@@ -856,8 +857,8 @@ public class ScheduleImportServiceTests : IDisposable
 
         errors.Should().BeEmpty();
         entries.Should().HaveCount(1);
-        entries[0].StartTime.Should().Be(new TimeSpan(17, 50, 0));
-        entries[0].EndTime.Should().Be(new TimeSpan(19, 20, 0));
+        entries[0].StartTime.Should().Be(new TimeSpan(18, 5, 0));
+        entries[0].EndTime.Should().Be(new TimeSpan(19, 35, 0));
     }
 
     [Fact]
@@ -933,8 +934,8 @@ public class ScheduleImportServiceTests : IDisposable
         errors.Should().BeEmpty();
         entries.Should().HaveCount(1);
         entries[0].Pair.Should().Be(7);
-        entries[0].StartTime.Should().Be(new TimeSpan(17, 50, 0));
-        entries[0].EndTime.Should().Be(new TimeSpan(19, 20, 0));
+        entries[0].StartTime.Should().Be(new TimeSpan(18, 5, 0));
+        entries[0].EndTime.Should().Be(new TimeSpan(19, 35, 0));
     }
 
     [Fact]
@@ -1286,8 +1287,8 @@ public class ScheduleImportServiceTests : IDisposable
         );
 
         fallbackErrors.Should().BeEmpty();
-        fallbackEntries[0].StartTime.Should().Be(new TimeSpan(9, 10, 0));
-        fallbackEntries[0].EndTime.Should().Be(new TimeSpan(10, 40, 0));
+        fallbackEntries[0].StartTime.Should().Be(new TimeSpan(9, 25, 0));
+        fallbackEntries[0].EndTime.Should().Be(new TimeSpan(10, 55, 0));
     }
 
     [Fact]
@@ -1332,5 +1333,107 @@ public class ScheduleImportServiceTests : IDisposable
         result.Preview!.TotalEntries.Should().Be(1);
         result.Preview.Entries.Should().ContainSingle();
         result.Preview.Errors.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void PairTimeSlots_MatchPostedBellSchedule()
+    {
+        // Данные распечатанного «РАСПИСАНИЕ ЗВОНКОВ» на 2026/2027 учебный год.
+        // Понедельник отличается: после поднятия флага (8:15-8:25) и занятия курса
+        // внеучебной деятельности «Разговоры о важном» (8:30-9:15) первая пара
+        // начинается в 9:25, поэтому все пары сдвинуты на 15 минут позже.
+        static string Text(DayOfWeek day, int pair) =>
+            $"{ScheduleImportService.PairTimeSlots[day][pair - 1].Start:hh\\:mm}"
+            + $"-{ScheduleImportService.PairTimeSlots[day][pair - 1].End:hh\\:mm}";
+
+        Enumerable
+            .Range(1, 6)
+            .Select(p => Text(DayOfWeek.Monday, p))
+            .Should()
+            .Equal(
+                "09:25-10:55",
+                "11:05-12:35",
+                "13:05-14:35",
+                "14:45-16:15",
+                "16:25-17:55",
+                "18:05-19:35"
+            );
+
+        // Вторник, среда и пятница совпадают, по 7 пар, большая перемена 11:40-12:10.
+        var tueWedFri = new[]
+        {
+            "08:30-10:00",
+            "10:10-11:40",
+            "12:10-13:40",
+            "13:50-15:20",
+            "15:30-17:00",
+            "17:10-18:40",
+            "18:50-20:20",
+        };
+        foreach (var day in new[] { DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Friday })
+            Enumerable
+                .Range(1, 7)
+                .Select(p => Text(day, p))
+                .Should()
+                .Equal(tueWedFri, because: $"{day} совпадает с распечаткой");
+
+        // Четверг: между 2-й и 3-й парами организационный/классный час 12:10-12:55,
+        // поэтому большая перемена короче и третья пара начинается в 13:00.
+        Enumerable
+            .Range(1, 6)
+            .Select(p => Text(DayOfWeek.Thursday, p))
+            .Should()
+            .Equal(
+                "08:30-10:00",
+                "10:10-11:40",
+                "13:00-14:30",
+                "14:40-16:10",
+                "16:20-17:50",
+                "18:00-19:30"
+            );
+
+        // Суббота и воскресенье звонков не имеют — пар нет, импорт откатывается на понедельник.
+        ScheduleImportService.PairTimeSlots.ContainsKey(DayOfWeek.Saturday).Should().BeFalse();
+    }
+
+    [Fact]
+    public void SeededBellProfiles_UseTheSameTimesAsThePairSchedule()
+    {
+        // Сиды профилей звонков обязаны совпадать со справочником пар, иначе база
+        // и импорт разойдутся: сид берёт время из PairTimeSlots, а не дублирует числа.
+        var seeded = BellSeedIds.SeededSlots.ToList();
+
+        seeded.Should().HaveCount(19, "7 пар по умолчанию, 6 в понедельник, 6 в четверг");
+        foreach (var slot in seeded)
+        {
+            var day =
+                slot.ProfileId == BellSeedIds.MondayProfile ? DayOfWeek.Monday
+                : slot.ProfileId == BellSeedIds.ThursdayProfile ? DayOfWeek.Thursday
+                : DayOfWeek.Tuesday;
+
+            var expected = ScheduleImportService.PairTimeSlots[day][slot.NumberPair - 1];
+            $"{slot.StartTime:hh\\:mm}-{slot.EndTime:hh\\:mm}"
+                .Should()
+                .Be(
+                    $"{expected.Start:hh\\:mm}-{expected.End:hh\\:mm}",
+                    $"{day}, пара {slot.NumberPair}"
+                );
+        }
+    }
+
+    [Fact]
+    public void SeededBigBreaks_MatchPostedBellSchedule()
+    {
+        // Большая перемена после 2-й пары: 11:40-12:10 вт/ср/пт и 12:35-13:05 в понедельник.
+        // В четверг на этом месте организационный/классный час 12:10-12:55 — большой перемены нет.
+        var breaks = BellSeedIds.SeededBigBreaks.ToList();
+
+        breaks.Should().HaveCount(2);
+        $"{breaks[0].AfterPair} {breaks[0].StartTime:hh\\:mm}-{breaks[0].EndTime:hh\\:mm}"
+            .Should()
+            .Be("2 11:40-12:10", "дефолтный профиль — вторник, среда, пятница");
+        $"{breaks[1].AfterPair} {breaks[1].StartTime:hh\\:mm}-{breaks[1].EndTime:hh\\:mm}"
+            .Should()
+            .Be("2 12:35-13:05", "понедельник");
     }
 }

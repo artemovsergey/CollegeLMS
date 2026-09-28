@@ -61,6 +61,18 @@ export interface ScheduleHistoryItem {
   removedNumberPair: number | null
 }
 
+/** Ответ отката применённой корректировки из журнала. */
+export interface CorrectionRevertResult {
+  historyId: string
+  changeType: CorrectionChangeType
+  groupName: string
+  dayOfWeek: string
+  week: number
+  /** Вернулась ли пара в расписание; false — изменена только запись журнала. */
+  scheduleChanged: boolean
+  message: string
+}
+
 export interface ChangeTag {
   changeType: CorrectionChangeType
   week: number

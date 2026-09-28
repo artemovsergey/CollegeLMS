@@ -1386,7 +1386,7 @@ public class ScheduleCorrectionService(
             }
 
             var day = (DayOfWeek)entry.DayOfWeek;
-            var dayName = DayName(day);
+            var dayName = DayName(day).ToLowerInvariant();
 
             switch (entry.ChangeType)
             {
@@ -1706,5 +1706,254 @@ public class ScheduleCorrectionService(
         };
 
         return entity;
+    }
+
+    public async Task<Result<CorrectionRevertResponse>> RevertHistoryAsync(
+        Guid historyId,
+        CancellationToken ct
+    )
+    {
+        var history = await db.ScheduleHistory.FirstOrDefaultAsync(h => h.Id == historyId, ct);
+
+        if (history is null)
+            return Result<CorrectionRevertResponse>.Fail(
+                "Запись журнала не найдена — возможно, она уже удалена.",
+                404
+            );
+
+        var group = await db.Groups.FirstOrDefaultAsync(g => g.Id == history.GroupId, ct);
+        if (group is null)
+            return Result<CorrectionRevertResponse>.Fail("Группа не найдена.", 404);
+
+        // «Сам.р.» ничего не меняет в расписании: откатывать нечего, только чистим журнал.
+        if (IsSelfStudyNote(history.Note))
+        {
+            db.ScheduleHistory.Remove(history);
+            await db.SaveChangesAsync(ct);
+
+            return Result<CorrectionRevertResponse>.Ok(
+                new CorrectionRevertResponse
+                {
+                    HistoryId = history.Id,
+                    ChangeType = history.ChangeType,
+                    GroupName = group.Name,
+                    DayOfWeek = history.DayOfWeek,
+                    Week = history.Week,
+                    ScheduleChanged = false,
+                    Message = "Запись журнала удалена: сам.р. не меняет расписание.",
+                }
+            );
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var day = history.DayOfWeek;
+        var dayName = DayName(day).ToLowerInvariant();
+        var message = (string?)null;
+
+        switch (history.ChangeType)
+        {
+            // Добавление: убираем созданную пару. Если недели в паре больше нет —
+            // удаляем пару целиком, как это делает и применение корректировки.
+            case ScheduleChangeType.Add:
+            {
+                var removed = await FindEntryAsync(
+                    group.Id,
+                    day,
+                    history.NumberPair,
+                    history.Subject,
+                    history.TeacherId,
+                    history.Week,
+                    ct
+                );
+                if (removed is not null)
+                {
+                    removed.Weeks = removed.Weeks.Where(w => w != history.Week).ToList();
+                    if (removed.Weeks.Count == 0)
+                        db.ScheduleEntries.Remove(removed);
+                    else
+                        removed.UpdatedAt = utcNow;
+                    message =
+                        $"Занятие «{history.Subject}» на {dayName} {history.Week}-й неделе убрано.";
+                }
+                break;
+            }
+
+            // Снятие: возвращаем неделю в ту же пару, восстанавливая предмет,
+            // преподавателя и аудиторию из журнала.
+            case ScheduleChangeType.Remove:
+            {
+                var restored = await RestoreWeekAsync(
+                    group.Id,
+                    day,
+                    history.NumberPair,
+                    history.Subject,
+                    history.TeacherId,
+                    history.Room,
+                    history.Week,
+                    utcNow,
+                    ct
+                );
+                if (restored)
+                    message =
+                        $"Занятие «{history.Subject}» на {dayName} {history.Week}-й неделе возвращено в пару {history.NumberPair}.";
+                break;
+            }
+
+            // Замена и перенос: снимаем то, что добавили, и возвращаем то, что убрали.
+            case ScheduleChangeType.Replace:
+            case ScheduleChangeType.Move:
+            {
+                var added = await FindEntryAsync(
+                    group.Id,
+                    day,
+                    history.NumberPair,
+                    history.Subject,
+                    history.TeacherId,
+                    history.Week,
+                    ct
+                );
+                if (added is not null)
+                {
+                    added.Weeks = added.Weeks.Where(w => w != history.Week).ToList();
+                    if (added.Weeks.Count == 0)
+                        db.ScheduleEntries.Remove(added);
+                    else
+                        added.UpdatedAt = utcNow;
+                }
+
+                var oldPair = history.RemovedNumberPair ?? history.NumberPair;
+                var restored = await RestoreWeekAsync(
+                    group.Id,
+                    day,
+                    oldPair,
+                    history.RemovedSubject,
+                    history.RemovedTeacherId,
+                    history.RemovedRoom,
+                    history.Week,
+                    utcNow,
+                    ct
+                );
+                if (restored)
+                    message =
+                        $"Возвращено «{history.RemovedSubject}» на {dayName} {history.Week}-й неделе, пара {oldPair}.";
+                else if (added is not null)
+                    message =
+                        $"Убрано «{history.Subject}» на {day} {history.Week}-й неделе, пара {history.NumberPair}.";
+                break;
+            }
+
+            default:
+                return Result<CorrectionRevertResponse>.Fail(
+                    $"Неизвестный тип изменения расписания: {history.ChangeType}",
+                    400
+                );
+        }
+
+        db.ScheduleHistory.Remove(history);
+        await db.SaveChangesAsync(ct);
+
+        return Result<CorrectionRevertResponse>.Ok(
+            new CorrectionRevertResponse
+            {
+                HistoryId = history.Id,
+                ChangeType = history.ChangeType,
+                GroupName = group.Name,
+                DayOfWeek = history.DayOfWeek,
+                Week = history.Week,
+                ScheduleChanged = message is not null,
+                Message =
+                    message
+                    ?? "Пару уже изменили или перезагрузили расписание: запись журнала удалена, расписание не тронуто.",
+            }
+        );
+    }
+
+    /// <summary>Ищет пару (group, день, пара, предмет, преподаватель), содержащую неделю.</summary>
+    private Task<ScheduleEntry?> FindEntryAsync(
+        Guid groupId,
+        DayOfWeek day,
+        int numberPair,
+        string? subject,
+        Guid? teacherId,
+        int week,
+        CancellationToken ct
+    )
+    {
+        var normalized = ScheduleImportService.NormalizeSubject(subject ?? string.Empty);
+
+        return db.ScheduleEntries.FirstOrDefaultAsync(
+            e =>
+                e.GroupId == groupId
+                && e.DayOfWeek == day
+                && e.NumberPair == numberPair
+                && e.Weeks.Contains(week)
+                && (teacherId.HasValue ? e.TeacherId == teacherId.Value : e.TeacherId == null)
+                && e.Subject == normalized,
+            ct
+        );
+    }
+
+    /// <summary>
+    /// Возвращает неделю в пару. Если такой пары нет — создаёт её заново по данным
+    /// журнала: после перезагрузки расписания откат всё равно должен дать исходную пару.
+    /// </summary>
+    private async Task<bool> RestoreWeekAsync(
+        Guid groupId,
+        DayOfWeek day,
+        int numberPair,
+        string? subject,
+        Guid? teacherId,
+        string? room,
+        int week,
+        DateTime utcNow,
+        CancellationToken ct
+    )
+    {
+        var normalized = ScheduleImportService.NormalizeSubject(subject ?? string.Empty);
+        if (normalized.Length == 0)
+            return false;
+
+        var target = await db.ScheduleEntries.FirstOrDefaultAsync(
+            e =>
+                e.GroupId == groupId
+                && e.DayOfWeek == day
+                && e.NumberPair == numberPair
+                && (teacherId.HasValue ? e.TeacherId == teacherId.Value : e.TeacherId == null)
+                && e.Subject == normalized,
+            ct
+        );
+
+        if (target is not null)
+        {
+            if (target.Weeks.Contains(week))
+                return true;
+
+            target.Weeks = [.. target.Weeks, week];
+            target.Weeks.Sort();
+            target.UpdatedAt = utcNow;
+            return true;
+        }
+
+        var (start, end) = ScheduleImportService.GetPairTime(day, numberPair);
+        db.ScheduleEntries.Add(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = groupId,
+                TeacherId = teacherId,
+                Subject = normalized,
+                Room = room ?? string.Empty,
+                DayOfWeek = day,
+                NumberPair = numberPair,
+                StartTime = start,
+                EndTime = end,
+                Weeks = [week],
+                LessonType = LessonType.None,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+
+        return true;
     }
 }

@@ -22,3 +22,23 @@ public class ScheduleHistoryResponse
     public string? RemovedRoom { get; set; }
     public int? RemovedNumberPair { get; set; }
 }
+
+/// <summary>Результат отката применённой корректировки из журнала.</summary>
+public class CorrectionRevertResponse
+{
+    public Guid HistoryId { get; set; }
+    public ScheduleChangeType ChangeType { get; set; }
+    public string GroupName { get; set; } = string.Empty;
+    public DayOfWeek DayOfWeek { get; set; }
+    public int Week { get; set; }
+
+    /// <summary>Что именно вернулось в расписание — для сообщения в интерфейсе.</summary>
+    public string Message { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Сработало ли откат по расписанию. Бывает false, когда пару уже сняли
+    /// другим изменением или перезагрузили расписание: тогда удаляется только
+    /// запись журнала.
+    /// </summary>
+    public bool ScheduleChanged { get; set; }
+}

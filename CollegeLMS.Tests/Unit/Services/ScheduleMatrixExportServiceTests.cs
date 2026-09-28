@@ -226,6 +226,88 @@ public class ScheduleMatrixExportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportedFile_OrderOfRoomsAndTeachersDoesNotDependOnRowOrder()
+    {
+        // Порядок строк в БД не гарантирован: выгрузка обязана быть одинаковой
+        // при любом порядке, иначе аудитория разъезжается с преподавателем —
+        // парсер импорта соединяет списки позиционно.
+        var group = await SeedGroupAsync("РЭУ 252");
+        var first = await SeedTeacherAsync("Степаненко О.А.");
+        var second = await SeedTeacherAsync("Рахимова А.Л.");
+        await SeedEntryAsync(group, first, DayOfWeek.Monday, 1, "Ин.язык", "413", [1, 2, 5]);
+        await SeedEntryAsync(group, second, DayOfWeek.Monday, 1, "Ин.язык", "302", [1, 2, 5]);
+
+        var result = await _sut.ExportAsync(CancellationToken.None);
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var sheet = workbook.Worksheet(1);
+        var cell = sheet
+            .Row(6)
+            .CellsUsed()
+            .First(c => c.GetString().Contains("Ин.язык", StringComparison.Ordinal));
+
+        // Аудитории и преподаватели отсортированы по имени преподавателя,
+        // поэтому пара «413 — Степаненко» не переворачивается.
+        cell.GetString().Should().Be("302/413 Ин.язык (1-2,5) Рахимова А.Л./Степаненко О.А.");
+
+        // Повторный разбор даёт те же пары, что и в базе.
+        var (entries, errors) = _parser.ParseScheduleMatrix(workbook);
+        errors.Should().BeEmpty();
+        entries
+            .Select(e => (e.Room, e.TeacherName))
+            .Should()
+            .BeEquivalentTo([("302", "Рахимова А.Л."), ("413", "Степаненко О.А.")]);
+    }
+
+    [Fact]
+    public async Task ExportedFile_SameRoomWithTwoTeachersKeepsBothPairs()
+    {
+        // Одна аудитория, два преподавателя: парсер добивает более короткий
+        // список первым элементом, поэтому пара должна восстановиться верно.
+        var group = await SeedGroupAsync("РЭУ 252");
+        var first = await SeedTeacherAsync("Рахимова А.Л.");
+        var second = await SeedTeacherAsync("Степаненко О.А.");
+        await SeedEntryAsync(group, first, DayOfWeek.Monday, 1, "Ин.язык", "302", [1, 2, 5]);
+        await SeedEntryAsync(group, second, DayOfWeek.Monday, 1, "Ин.язык", "302", [1, 2, 5]);
+
+        var result = await _sut.ExportAsync(CancellationToken.None);
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var (entries, errors) = _parser.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries
+            .Select(e => (e.Room, e.TeacherName))
+            .Should()
+            .BeEquivalentTo([("302", "Рахимова А.Л."), ("302", "Степаненко О.А.")]);
+    }
+
+    [Fact]
+    public async Task ExportedFile_PartiallyNamedTeachersAreNotWrittenAtAll()
+    {
+        // Часть пар без ФИО: список преподавателей сместил бы остальные пары,
+        // поэтому в ячейке аудитории пишутся без преподавателей.
+        var group = await SeedGroupAsync("РЭУ 252");
+        var named = await SeedTeacherAsync("Рахимова А.Л.");
+        await SeedEntryAsync(group, named, DayOfWeek.Monday, 1, "Ин.язык", "302", [1, 2, 5]);
+        await SeedEntryAsync(group, null, DayOfWeek.Monday, 1, "Ин.язык", "413", [1, 2, 5]);
+
+        var result = await _sut.ExportAsync(CancellationToken.None);
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var sheet = workbook.Worksheet(1);
+        var cell = sheet
+            .Row(6)
+            .CellsUsed()
+            .First(c => c.GetString().Contains("Ин.язык", StringComparison.Ordinal));
+
+        cell.GetString().Should().Be("302/413 Ин.язык (1-2,5)");
+    }
+
+    [Fact]
     public async Task ExportedFile_CombinesSharedSubjectIntoOneCell()
     {
         var group = await SeedGroupAsync("РЭУ 252");

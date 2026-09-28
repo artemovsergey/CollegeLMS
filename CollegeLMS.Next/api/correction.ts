@@ -14,6 +14,7 @@ import type {
   CreateCorrectionPosition,
   CorrectionImportResponse,
   CorrectionApplyResult,
+  CorrectionRevertResult,
 } from "@/types/correction"
 
 export interface HistoryParams {
@@ -103,8 +104,16 @@ export async function getHistory(
   )
 }
 
-const BATCH_BASE = "/api/schedule/correction/batches"
+/** Откатить применённую корректировку: вернуть пару и убрать запись из журнала. */
+export async function revertHistory(
+  id: string,
+): Promise<CorrectionRevertResult> {
+  return unwrap(
+    await api.delete<Result<CorrectionRevertResult>>(`/api/schedule/history/${id}`),
+  )
+}
 
+const BATCH_BASE = "/api/schedule/correction/batches"
 export async function createBatch(correctionDate: string): Promise<CorrectionBatch> {
   return unwrap(
     await api.post<Result<CorrectionBatch>>(`${BATCH_BASE}`, { correctionDate }),

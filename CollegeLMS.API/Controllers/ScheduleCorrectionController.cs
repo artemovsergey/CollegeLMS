@@ -186,6 +186,34 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
     }
 
     /// <summary>
+    /// Откатить уже применённую корректировку: вернуть пару в расписание
+    /// и удалить запись из журнала.
+    /// </summary>
+    /// <remarks>
+    /// Откат идёт по данным журнала, поэтому работает и после перезагрузки расписания:
+    /// если пара успела измениться или исчезнуть, откатывается только журнал.
+    /// </remarks>
+    /// <response code="200">Корректировка откачена</response>
+    /// <response code="400">Неизвестный тип изменения</response>
+    /// <response code="404">Запись журнала или группа не найдена</response>
+    /// <response code="401">Не авторизован</response>
+    /// <response code="403">Доступ запрещён</response>
+    [HttpDelete("history/{historyId:guid}")]
+    [SwaggerOperation(Summary = "Откатить применённую корректировку")]
+    [SwaggerResponse(200, "Корректировка откачена", typeof(Result<CorrectionRevertResponse>))]
+    [SwaggerResponse(404, "Запись журнала не найдена", typeof(ErrorResponse))]
+    [ProducesResponseType(typeof(Result<CorrectionRevertResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RevertHistory(Guid historyId, CancellationToken ct)
+    {
+        var result = await service.RevertHistoryAsync(historyId, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Расписание группы на дату для флоу корректировки.
     /// </summary>
     /// <remarks>

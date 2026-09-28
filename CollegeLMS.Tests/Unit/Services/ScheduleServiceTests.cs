@@ -440,9 +440,10 @@ public class ScheduleServiceTests : IDisposable
         var result = await _sut.CreateAsync(request, default);
 
         result.IsSuccess.Should().BeTrue();
-        // Пустая карта звонков — дефолтный слот понедельника, пара 2 (ScheduleImportService.GetPairTime).
-        result.Data!.StartTime.Should().Be(new TimeSpan(10, 50, 0));
-        result.Data.EndTime.Should().Be(new TimeSpan(12, 20, 0));
+        // Пустая карта звонков — дефолтный слот понедельника, пара 2
+        // (ScheduleImportService.GetPairTime по распечатанному расписанию звонков).
+        result.Data!.StartTime.Should().Be(new TimeSpan(11, 5, 0));
+        result.Data.EndTime.Should().Be(new TimeSpan(12, 35, 0));
     }
 
     [Fact]

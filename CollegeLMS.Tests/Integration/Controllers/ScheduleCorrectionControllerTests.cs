@@ -9,6 +9,7 @@ using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Interfaces;
 using CollegeLMS.API.Response;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CollegeLMS.Tests.Integration.Controllers;
@@ -477,5 +478,96 @@ public class ScheduleCorrectionControllerTests : BaseIntegrationTest
         Assert.True(body!.IsSuccess);
         Assert.Equal(2, body.Data!.Items.Count);
         Assert.Equal(3, body.Data!.TotalCount);
+    }
+
+    [Fact]
+    public async Task RevertHistory_DispatcherRevertsAndRemovesRow()
+    {
+        Guid historyId;
+        Guid groupId;
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var utcNow = DateTime.UtcNow;
+            groupId = Guid.NewGuid();
+            db.Groups.Add(
+                new Group
+                {
+                    Id = groupId,
+                    Name = "ПО-262",
+                    Course = 2,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                }
+            );
+            var entry = new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = groupId,
+                Subject = "Математика",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 2,
+                StartTime = new TimeSpan(8, 0, 0),
+                EndTime = new TimeSpan(9, 30, 0),
+                Weeks = new List<int> { 3 },
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            };
+            db.ScheduleEntries.Add(entry);
+            historyId = Guid.NewGuid();
+            db.ScheduleHistory.Add(
+                new ScheduleHistory
+                {
+                    Id = historyId,
+                    ChangeType = ScheduleChangeType.Add,
+                    AppliedAt = utcNow,
+                    AppliedByUserId = Guid.NewGuid(),
+                    GroupId = groupId,
+                    Subject = "Математика",
+                    DayOfWeek = DayOfWeek.Tuesday,
+                    NumberPair = 2,
+                    Week = 3,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                }
+            );
+            await db.SaveChangesAsync();
+        }
+        SetAuthHeader(GetToken(UserRole.Dispatcher));
+
+        var response = await Client.DeleteAsync($"/api/schedule/history/{historyId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeWithEnumsAsync<Result<CorrectionRevertResponse>>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+        Assert.True(body.Data!.ScheduleChanged);
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Empty(await db.ScheduleHistory.Where(h => h.Id == historyId).ToListAsync());
+            Assert.Empty(await db.ScheduleEntries.Where(e => e.GroupId == groupId).ToListAsync());
+        }
+    }
+
+    [Fact]
+    public async Task RevertHistory_UnknownIdReturnsNotFound()
+    {
+        SetAuthHeader(GetToken(UserRole.Dispatcher));
+
+        var response = await Client.DeleteAsync($"/api/schedule/history/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RevertHistory_StudentIsForbidden()
+    {
+        SetAuthHeader(GetToken(UserRole.Student));
+
+        var response = await Client.DeleteAsync($"/api/schedule/history/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 }

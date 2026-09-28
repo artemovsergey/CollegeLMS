@@ -15,8 +15,9 @@ import {
   RefreshCw,
   ArrowLeft,
   Package,
+  Undo2,
 } from "lucide-react"
-import { importCorrection, getHistory } from "@/api/correction"
+import { importCorrection, getHistory, revertHistory } from "@/api/correction"
 import { extractErrorMessage } from "@/lib/utils"
 import { DAYS } from "@/types/schedule"
 import type {
@@ -39,6 +40,7 @@ import {
 } from "@/components/ui/table"
 import CorrectionBatchList from "@/components/CorrectionBatchList"
 import CorrectionPositionEditor from "@/components/CorrectionPositionEditor"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 
 const CHANGE_TYPE_META: Record<
   CorrectionChangeType,
@@ -126,6 +128,8 @@ export default function DispatcherCorrectionPage() {
   const [historyTotalPages, setHistoryTotalPages] = useState(1)
   const [weekFilter, setWeekFilter] = useState("")
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [revertingId, setRevertingId] = useState<string | null>(null)
+  const reverting = history.find((item) => item.id === revertingId) ?? null
 
   const loadHistory = useCallback(
     async (page: number) => {
@@ -152,6 +156,23 @@ export default function DispatcherCorrectionPage() {
   useEffect(() => {
     if (tab === "journal") loadHistory(1)
   }, [tab, loadHistory])
+
+  // Откат убирает запись из журнала: перезагружаем текущую страницу, а если
+  // она стала пустой — предыдущую, иначе пользователь увидит пустую таблицу.
+  const handleRevert = async (item: ScheduleHistoryItem) => {
+    try {
+      const res = await revertHistory(item.id)
+      toast.success(res.message)
+      if (history.length === 1 && historyPage > 1) {
+        await loadHistory(historyPage - 1)
+      } else {
+        await loadHistory(historyPage)
+      }
+    } catch (err) {
+      toast.error(extractErrorMessage(err) ?? "Не удалось откатить корректировку")
+      return false
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
@@ -263,6 +284,9 @@ export default function DispatcherCorrectionPage() {
                       Преподаватель
                     </TableHead>
                     <TableHead className="px-3 py-2 text-left">Примечание</TableHead>
+                    <TableHead className="px-3 py-2 text-right">
+                      <span className="sr-only">Действия</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y">
@@ -310,6 +334,17 @@ export default function DispatcherCorrectionPage() {
                       </TableCell>
                       <TableCell className="px-3 py-2 max-w-[200px] truncate text-muted-foreground">
                         {item.note ?? "—"}
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Откатить корректировку: ${item.groupName}, ${item.subject}`}
+                          onClick={() => setRevertingId(item.id)}
+                        >
+                          <Undo2 size={15} aria-hidden />
+                          Откатить
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -470,6 +505,42 @@ export default function DispatcherCorrectionPage() {
       )}
 
       {tab === "journal" && renderJournal()}
+
+      <ConfirmDialog
+        open={reverting !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevertingId(null)
+        }}
+        title="Откатить корректировку?"
+        description={
+          reverting ? (
+            <>
+              <p>
+                {CHANGE_TYPE_META[reverting.changeType].label}:{" "}
+                <span className="font-medium">{reverting.subject}</span>,{" "}
+                {reverting.groupName},{" "}
+                {dayLabelFromString(reverting.dayOfWeek)}, пара{" "}
+                {reverting.numberPair}
+                {reverting.removedNumberPair &&
+                reverting.removedNumberPair !== reverting.numberPair
+                  ? ` (была ${reverting.removedNumberPair})`
+                  : ""}
+                .
+              </p>
+              <p className="mt-2 text-muted-foreground">
+                Пара вернётся в расписание в исходном виде, запись исчезнет из
+                журнала. Отменить откат будет нельзя.
+              </p>
+            </>
+          ) : null
+        }
+        confirmLabel="Откатить"
+        confirmVariant="destructive"
+        onConfirm={async () => {
+          if (!reverting) return false
+          return await handleRevert(reverting)
+        }}
+      />
     </div>
   )
 }

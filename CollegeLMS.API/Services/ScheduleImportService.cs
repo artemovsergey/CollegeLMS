@@ -24,6 +24,15 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
         ["суббота"] = DayOfWeek.Saturday,
     };
 
+    /// <summary>
+    /// Время пар по справочнику звонков на 2026/2027 учебный год (распечатанное
+    /// «РАСПИСАНИЕ ЗВОНКОВ»). Используется, пока в базе нет профилей звонков.
+    /// Понедельник отличается: после поднятия флага (8:15–8:25) и занятия курса
+    /// внеучебной деятельности «Разговоры о важном» (8:30–9:15) первая пара
+    /// начинается в 9:25, поэтому все пары сдвинуты на 15 минут позже.
+    /// В четверг между второй и третьей парами — организационный/классный час
+    /// 12:10–12:55 вместо большой перемены.
+    /// </summary>
     internal static readonly Dictionary<
         DayOfWeek,
         List<(TimeSpan Start, TimeSpan End)>
@@ -31,12 +40,12 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
     {
         [DayOfWeek.Monday] =
         [
-            (new(9, 10, 0), new(10, 40, 0)),
-            (new(10, 50, 0), new(12, 20, 0)),
-            (new(12, 50, 0), new(14, 20, 0)),
-            (new(14, 30, 0), new(16, 0, 0)),
-            (new(16, 10, 0), new(17, 40, 0)),
-            (new(17, 50, 0), new(19, 20, 0)),
+            (new(9, 25, 0), new(10, 55, 0)),
+            (new(11, 5, 0), new(12, 35, 0)),
+            (new(13, 5, 0), new(14, 35, 0)),
+            (new(14, 45, 0), new(16, 15, 0)),
+            (new(16, 25, 0), new(17, 55, 0)),
+            (new(18, 5, 0), new(19, 35, 0)),
         ],
         [DayOfWeek.Tuesday] =
         [
