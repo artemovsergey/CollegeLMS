@@ -319,6 +319,36 @@ public class ScheduleMatrixExportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportedFile_UsesTimesNewRomanInsteadOfThemeCalibri()
+    {
+        var group = await SeedGroupAsync("РЭУ 252");
+        var teacher = await SeedTeacherAsync("Сапрыкина А.А.");
+        await SeedEntryAsync(group, teacher, DayOfWeek.Monday, 1, "Математика", "233", [1, 2]);
+
+        var result = await _sut.ExportAsync(CancellationToken.None);
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var sheet = workbook.Worksheet(1);
+
+        // Ни одна заполненная ячейка не должна остаться в Calibri из темы
+        // ClosedXML: шрифт задаётся явно на всю область, включая пустые ячейки
+        // строк и столбцов, которые иначе унаследовали бы шрифт по умолчанию.
+        var used = sheet.RangeUsed();
+        used.Should().NotBeNull();
+        used!
+            .Cells()
+            .Select(cell => cell.Style.Font.FontName)
+            .Distinct()
+            .Should()
+            .BeEquivalentTo(["Times New Roman"]);
+
+        // Заголовок и данные сохраняют собственные размеры.
+        sheet.Cell(1, 1).Style.Font.FontSize.Should().Be(14);
+        sheet.Cell(1, 1).Style.Font.Bold.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task ExportedFile_FreezesDayAndPairColumns()
     {
         var group = await SeedGroupAsync("РЭУ 252");

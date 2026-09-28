@@ -140,6 +140,9 @@ public class ScheduleMatrixExportService(AppDbContext db) : IScheduleMatrixExpor
 
         ApplyLayout(sheet, lastColumn, HeaderRow);
         StyleData(sheet, HeaderRow, row - 1, lastColumn);
+        // Шрифт по умолчанию из темы ClosedXML — Calibri; задаём свой на всю
+        // заполненную область, включая пустые ячейки строк и столбцов.
+        XlsxDefaults.ApplyFont(sheet);
 
         using var output = new MemoryStream();
         workbook.SaveAs(output);
