@@ -7,6 +7,7 @@ using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -573,5 +574,55 @@ public class CorrectionBatchServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(400);
         result.ErrorMessage.Should().Contain("Дата нерабочая: День города.");
+    }
+
+    [Fact]
+    public async Task ImportAsync_LaterRowUsesLessonAddedByEarlierRow_AndBatchApplies()
+    {
+        // Сквозной сценарий: файл вводит занятие и следом снимает его же. До правки
+        // вторая строка не находилась и пакет оставался с ошибкой валидации.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+
+        using var stream = BuildWorkbook(
+            "Корректировка на 08.09.2026 г.",
+            ws =>
+            {
+                ws.Cell(7, 1).Value = group.Name;
+                ws.Cell(7, 4).Value = "Математика";
+                ws.Cell(7, 5).Value = "Марченко И.А.";
+                ws.Cell(7, 6).Value = 4;
+                ws.Cell(8, 1).Value = group.Name;
+                ws.Cell(8, 2).Value = "Математика";
+                ws.Cell(8, 3).Value = "Марченко И.А.";
+                ws.Cell(8, 6).Value = 4;
+            }
+        );
+
+        var imported = await _sut.ImportAsync(stream, Guid.NewGuid(), CancellationToken.None);
+
+        imported.IsSuccess.Should().BeTrue();
+        imported.Data!.BatchId.Should().NotBeNull();
+        imported
+            .Data.Errors.Should()
+            .BeEmpty("позиция пакета ссылается на занятие из предыдущей строки того же файла");
+        imported.Data.Positions.Should().HaveCount(2);
+        imported
+            .Data.Positions.Select(p => p.ChangeType)
+            .Should()
+            .Equal(ScheduleChangeType.Add, ScheduleChangeType.Remove);
+        imported.Data.Positions.Should().OnlyContain(p => p.Errors.Count == 0);
+
+        // Пакет применяется: добавленное и снятое взаимно уничтожаются, в базе пусто.
+        var applied = await _sut.ApplyAsync(
+            imported.Data.BatchId!.Value,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        applied.IsSuccess.Should().BeTrue();
+        (await _db.ScheduleEntries.CountAsync()).Should().Be(0);
+        _db.ScheduleHistory.Should().HaveCount(2);
     }
 }

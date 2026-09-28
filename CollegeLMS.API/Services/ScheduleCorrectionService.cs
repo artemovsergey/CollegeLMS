@@ -328,6 +328,10 @@ public class ScheduleCorrectionService(
 
         var week = StudyWeek.ForDate(date);
         var allGroups = await db.Groups.AsNoTracking().ToListAsync(ct);
+        // Строки файла описывают изменения последовательно: введённое в одной строке
+        // занятие можно снять или заменить в следующей, хотя в базе его ещё нет.
+        var overlay = new CorrectionOverlay(db);
+        var day = date.DayOfWeek;
 
         for (int row = 7; row <= lastRow; row++)
         {
@@ -506,12 +510,14 @@ public class ScheduleCorrectionService(
                         movePair,
                         subject,
                         addTeacherId,
+                        addTeacher,
                         pair,
                         subject,
                         addTeacherId,
                         addTeacher,
                         note,
                         errors,
+                        overlay,
                         ct
                     );
                     if (moved is not null)
@@ -535,11 +541,22 @@ public class ScheduleCorrectionService(
                             Note = note,
                         }
                     );
+
+                    // Следующая строка файла может ссылаться на это занятие.
+                    var slots = await overlay.GetAsync(group.Id, day, week, ct);
+                    CorrectionOverlay.Add(slots, pair, subject, addTeacherId, addTeacher);
                 }
             }
             else if (changeType == ScheduleChangeType.Remove)
             {
-                var target = await FindEntryAtPairAsync(group.Id, date.DayOfWeek, week, pair, ct);
+                var slots = await overlay.GetAsync(group.Id, day, week, ct);
+                var target = CorrectionOverlay.Find(
+                    slots,
+                    pair,
+                    removeSubject,
+                    removeTeacherId,
+                    removeTeacher
+                );
 
                 if (target is null)
                 {
@@ -554,6 +571,8 @@ public class ScheduleCorrectionService(
                 }
                 else
                 {
+                    // Занятие снимается: следующие строки уже его не увидят.
+                    target.Removed = true;
                     rowEntries.Add(
                         new CorrectionPreviewEntry
                         {
@@ -568,9 +587,7 @@ public class ScheduleCorrectionService(
                                 removeSubject.Length > 0 ? removeSubject : target.Subject,
                             RemovedTeacherId = target.TeacherId,
                             RemovedTeacherName =
-                                removeTeacher.Length > 0
-                                    ? removeTeacher
-                                    : target.Teacher?.User?.FullName,
+                                removeTeacher.Length > 0 ? removeTeacher : target.TeacherName,
                             RemovedNumberPair = target.NumberPair,
                             Note = note,
                         }
@@ -589,12 +606,14 @@ public class ScheduleCorrectionService(
                     pair,
                     removeSubject,
                     removeTeacherId,
+                    removeTeacher,
                     pair,
                     addSubject,
                     addTeacherId,
                     addTeacher,
                     note,
                     errors,
+                    overlay,
                     ct
                 );
 
@@ -878,33 +897,27 @@ public class ScheduleCorrectionService(
         int removedPair,
         string removedSubject,
         Guid? removedTeacherId,
+        string removedTeacherName,
         int addPair,
         string addSubject,
         Guid? addTeacherId,
         string addTeacherName,
         string note,
         List<ScheduleValidationError> errors,
+        CorrectionOverlay overlay,
         CancellationToken ct
     )
     {
-        var removed = await db
-            .ScheduleEntries.AsNoTracking()
-            .Include(e => e.Teacher!)
-                .ThenInclude(t => t.User)
-            .FirstOrDefaultAsync(
-                e =>
-                    e.GroupId == groupId
-                    && e.DayOfWeek == day
-                    && e.NumberPair == removedPair
-                    && e.Weeks.Contains(week)
-                    && e.Subject == ScheduleImportService.NormalizeSubject(removedSubject)
-                    && (
-                        removedTeacherId.HasValue
-                            ? e.TeacherId == removedTeacherId.Value
-                            : e.TeacherId == null
-                    ),
-                ct
-            );
+        // Снять��я пара могла быть введена более ранней строкой этого же файла,
+        // поэтому ищем в наложении, а не только в базе.
+        var slots = await overlay.GetAsync(groupId, day, week, ct);
+        var removed = CorrectionOverlay.Find(
+            slots,
+            removedPair,
+            removedSubject,
+            removedTeacherId,
+            removedTeacherName
+        );
 
         if (removed is null)
         {
@@ -918,6 +931,11 @@ public class ScheduleCorrectionService(
             );
             return null;
         }
+
+        // Снятое занятие уходит из наложения, введённое приходит в него же —
+        // чтобы следующая строка файла видела результат этой.
+        removed.Removed = true;
+        CorrectionOverlay.Add(slots, addPair, addSubject, addTeacherId, addTeacherName);
 
         return new CorrectionPreviewEntry
         {
@@ -936,7 +954,8 @@ public class ScheduleCorrectionService(
             TeacherName = addTeacherName,
             RemovedSubject = removed.Subject,
             RemovedTeacherId = removed.TeacherId,
-            RemovedTeacherName = removed.Teacher?.User?.FullName,
+            RemovedTeacherName =
+                removedTeacherName.Length > 0 ? removedTeacherName : removed.TeacherName,
             RemovedNumberPair = removed.NumberPair,
             Note = note,
         };

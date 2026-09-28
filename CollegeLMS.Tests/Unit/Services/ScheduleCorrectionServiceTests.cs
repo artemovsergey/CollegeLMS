@@ -1914,4 +1914,190 @@ public class ScheduleCorrectionServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
     }
+
+    [Fact]
+    public async Task PreviewAsync_RowCanRemoveLessonAddedByPreviousRowOfSameFile()
+    {
+        // Строка 7 вводит занятие, строка 8 снимает именно его. Пока пакет не применён,
+        // в базе занятия нет — разбор обязан учитывать наложение, иначе строка 8
+        // получила бы ложную ошибку «занятие не найдено».
+        var group = await SeedGroupAsync();
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+            ws.Cell(8, 1).Value = group.Name;
+            ws.Cell(8, 2).Value = "Математика";
+            ws.Cell(8, 3).Value = "Марченко И.А.";
+            ws.Cell(8, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Where(e => e.Level == "logic").Should().BeEmpty();
+            result.Data.Entries.Should().HaveCount(2);
+            result.Data.Entries.Should().Contain(e => e.ChangeType == ScheduleChangeType.Add);
+            result
+                .Data.Entries.Should()
+                .Contain(e =>
+                    e.ChangeType == ScheduleChangeType.Remove
+                    && e.RemovedSubject == "Математика"
+                    && e.RemovedTeacherId != null
+                    && e.RemovedNumberPair == 4
+                );
+        }
+    }
+
+    [Fact]
+    public async Task PreviewAsync_RowCanReplaceLessonAddedByPreviousRowOfSameFile()
+    {
+        // Строка 7 вводит «Математику», строка 8 заменяет её на «Физику» на той же паре.
+        var group = await SeedGroupAsync();
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+            ws.Cell(8, 1).Value = group.Name;
+            ws.Cell(8, 2).Value = "Математика";
+            ws.Cell(8, 3).Value = "Марченко И.А.";
+            ws.Cell(8, 4).Value = "Физика";
+            ws.Cell(8, 5).Value = "Марченко И.А.";
+            ws.Cell(8, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Where(e => e.Level == "logic").Should().BeEmpty();
+            var replace = result
+                .Data.Entries.Should()
+                .ContainSingle(e => e.ChangeType == ScheduleChangeType.Replace)
+                .Subject;
+            replace.Should().NotBeNull();
+            replace!.RemovedSubject.Should().Be("Математика");
+            replace.Subject.Should().Be("Физика");
+        }
+    }
+
+    [Fact]
+    public async Task PreviewAsync_RowCanMoveLessonAddedByPreviousRowOfSameFile()
+    {
+        // Строка 7 вводит занятие на паре 4, строка 8 переносит его («вм.4») на пару 5.
+        var group = await SeedGroupAsync();
+        await SeedTeacherAsync();
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 4).Value = "Математика";
+            ws.Cell(7, 5).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+            ws.Cell(8, 1).Value = group.Name;
+            ws.Cell(8, 4).Value = "Математика";
+            ws.Cell(8, 5).Value = "Марченко И.А.";
+            ws.Cell(8, 6).Value = 5;
+            ws.Cell(8, 7).Value = "вм.4";
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result.Data!.Errors.Where(e => e.Level == "logic").Should().BeEmpty();
+            var move = result
+                .Data.Entries.Should()
+                .ContainSingle(e => e.ChangeType == ScheduleChangeType.Move)
+                .Subject;
+            move!.NumberPair.Should().Be(5);
+            move.RemovedNumberPair.Should().Be(4);
+            move.RemovedSubject.Should().Be("Математика");
+        }
+    }
+
+    [Fact]
+    public async Task PreviewAsync_RemovedLessonIsNotVisibleToLaterRows()
+    {
+        // Обратная сторона наложения: занятие, снятое строкой 7, строка 8 уже не видит.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 4, [2]);
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 2).Value = "Физика";
+            ws.Cell(7, 3).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+            ws.Cell(8, 1).Value = group.Name;
+            ws.Cell(8, 2).Value = "Физика";
+            ws.Cell(8, 3).Value = "Марченко И.А.";
+            ws.Cell(8, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            // Строка 7 снимает занятие, строка 8 пытается снять его же — это уже
+            // логическая ошибка: наложение не должно возвращать снятое обратно.
+            result
+                .Data!.Errors.Should()
+                .ContainSingle(e =>
+                    e.Level == "logic" && e.Message.Contains("Строка 8", StringComparison.Ordinal)
+                );
+        }
+    }
+
+    [Fact]
+    public async Task PreviewAsync_OverlayDoesNotLeakBetweenGroups()
+    {
+        // Наложение ведётся по группе: чужое занятие не должно находиться по имени группы.
+        var first = await SeedGroupAsync("ПО-262");
+        var second = await SeedGroupAsync("РЭУ 252");
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(first.Id, teacher.Id, "Физика", 4, [2]);
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = first.Name;
+            ws.Cell(7, 2).Value = "Физика";
+            ws.Cell(7, 3).Value = "Марченко И.А.";
+            ws.Cell(7, 6).Value = 4;
+            // Та же пара и предмет, но у другой группы такого занятия нет.
+            ws.Cell(8, 1).Value = second.Name;
+            ws.Cell(8, 2).Value = "Физика";
+            ws.Cell(8, 3).Value = "Марченко И.А.";
+            ws.Cell(8, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            // Строка 7 снимает занятие у первой группы — успешно.
+            // Строка 8 ищет то же самое у второй группы, где такого занятия нет.
+            result
+                .Data!.Errors.Should()
+                .ContainSingle(e =>
+                    e.Level == "logic" && e.Message.Contains("Строка 8", StringComparison.Ordinal)
+                );
+            result.Data.Entries.Should().ContainSingle(e => e.GroupId == first.Id);
+        }
+    }
 }
