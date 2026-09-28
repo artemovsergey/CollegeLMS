@@ -29,6 +29,14 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -869,25 +877,33 @@ export default function DispatcherPracticesPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px] text-sm">
-                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-fg">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium">Вид</th>
-                      <th className="px-4 py-3 text-left font-medium">Название</th>
-                      <th className="px-4 py-3 text-left font-medium">Группа</th>
-                      <th className="px-4 py-3 text-left font-medium">
+                <Table className="min-w-[980px]">
+                  <TableHeader className="bg-muted/50 text-xs uppercase tracking-wide text-muted-fg [&_th]:text-muted-fg [&_tr]:border-b-0">
+                    <TableRow>
+                      <TableHead className="px-4 py-3 text-left font-medium">
+                        Вид
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
+                        Название
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
+                        Группа
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
                         Преподаватели
-                      </th>
-                      <th className="px-4 py-3 text-left font-medium">Период</th>
-                      <th className="px-4 py-3 text-left font-medium">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
+                        Период
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-left font-medium">
                         Примечание
-                      </th>
-                      <th className="px-4 py-3 text-right font-medium">
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-right font-medium">
                         Действия
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {items.map((practice) => {
                       const days = practiceDays(practice)
                       const totalPairs = practiceTotalPairs(practice)
@@ -901,14 +917,17 @@ export default function DispatcherPracticesPage() {
                         .filter(Boolean)
                         .join(" · ")
                       return (
-                        <tr key={practice.id} className="border-b last:border-0">
-                          <td className="px-4 py-3">
+                        <TableRow
+                          key={practice.id}
+                          className="border-b last:border-0 hover:bg-transparent"
+                        >
+                          <TableCell className="px-4 py-3">
                             <Badge variant="outline">
                               {PRACTICE_KIND_SHORT[practice.kind] ??
                                 practice.kind}
                             </Badge>
-                          </td>
-                          <td className="px-4 py-3 font-medium">
+                          </TableCell>
+                          <TableCell className="whitespace-normal px-4 py-3 font-medium">
                             {practiceName(practice)}
                             {practice.kind === "Up" && days.length > 0 && (
                               <span className="block text-xs font-normal text-muted-fg">
@@ -921,9 +940,11 @@ export default function DispatcherPracticesPage() {
                                 {meta}
                               </span>
                             )}
-                          </td>
-                          <td className="px-4 py-3">{practice.groupName}</td>
-                          <td className="px-4 py-3">
+                          </TableCell>
+                          <TableCell className="whitespace-normal px-4 py-3">
+                            {practice.groupName}
+                          </TableCell>
+                          <TableCell className="px-4 py-3">
                             {teacherList.length > 0 ? (
                               <div className="flex max-w-[240px] flex-wrap gap-1">
                                 {teacherList.map((teacher, index) => (
@@ -938,14 +959,14 @@ export default function DispatcherPracticesPage() {
                             ) : (
                               <span className="text-muted-fg">—</span>
                             )}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-xs tabular-nums whitespace-nowrap">
+                          </TableCell>
+                          <TableCell className="px-4 py-3 font-mono text-xs tabular-nums whitespace-nowrap">
                             {formatDateRange(practice.dateFrom, practice.dateTo)}
-                          </td>
-                          <td className="max-w-[220px] truncate px-4 py-3 text-muted-fg">
+                          </TableCell>
+                          <TableCell className="max-w-[220px] truncate px-4 py-3 text-muted-fg">
                             {practice.note ?? "—"}
-                          </td>
-                          <td className="px-4 py-3">
+                          </TableCell>
+                          <TableCell className="px-4 py-3">
                             <div className="flex justify-end gap-1">
                               <Button
                                 variant="ghost"
@@ -966,12 +987,12 @@ export default function DispatcherPracticesPage() {
                                 <Trash2 className="size-4" aria-hidden="true" />
                               </Button>
                             </div>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       )
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
@@ -1513,42 +1534,53 @@ export default function DispatcherPracticesPage() {
                 )}
 
                 {preview.rows.length > 0 && (
-                  <div className="max-h-80 overflow-auto rounded-md border">
-                    <table className="w-full min-w-[900px] text-xs">
-                      <thead className="sticky top-0 bg-muted text-left">
-                        <tr>
-                          <th className="px-3 py-2 font-medium">№</th>
-                          <th className="px-3 py-2 font-medium">Подгруппа</th>
-                          <th className="px-3 py-2 font-medium">Тема</th>
-                          <th className="px-3 py-2 font-medium">Кабинет</th>
-                          <th className="px-3 py-2 font-medium">
+                  <div className="rounded-md border">
+                    <Table
+                      containerClassName="max-h-80 overflow-y-auto"
+                      className="min-w-[900px] text-xs"
+                    >
+                      <TableHeader className="sticky top-0 bg-muted text-left [&_tr]:border-b-0 [&_th]:h-auto">
+                        <TableRow>
+                          <TableHead className="px-3 py-2 font-medium">№</TableHead>
+                          <TableHead className="px-3 py-2 font-medium">
+                            Подгруппа
+                          </TableHead>
+                          <TableHead className="px-3 py-2 font-medium">
+                            Тема
+                          </TableHead>
+                          <TableHead className="px-3 py-2 font-medium">
+                            Кабинет
+                          </TableHead>
+                          <TableHead className="px-3 py-2 font-medium">
                             Дни (даты и пары)
-                          </th>
-                          <th className="px-3 py-2 font-medium">
+                          </TableHead>
+                          <TableHead className="px-3 py-2 font-medium">
                             Преподаватель
-                          </th>
-                          <th className="px-3 py-2 font-medium">Примечание</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                          </TableHead>
+                          <TableHead className="px-3 py-2 font-medium">
+                            Примечание
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {preview.rows.map((row, index) => (
-                          <tr
+                          <TableRow
                             key={`${row.row}-${index}`}
                             className="border-b align-top last:border-0"
                           >
-                            <td className="px-3 py-2 font-mono tabular-nums text-muted-fg">
+                            <TableCell className="px-3 py-2 font-mono tabular-nums text-muted-fg">
                               {row.row}
-                            </td>
-                            <td className="px-3 py-2 tabular-nums">
+                            </TableCell>
+                            <TableCell className="px-3 py-2 tabular-nums">
                               {row.subgroup ?? "—"}
-                            </td>
-                            <td className="min-w-[180px] px-3 py-2">
+                            </TableCell>
+                            <TableCell className="whitespace-normal min-w-[180px] px-3 py-2">
                               {row.name || "—"}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-2">
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap px-3 py-2">
                               {row.room || "—"}
-                            </td>
-                            <td className="min-w-[220px] px-3 py-2">
+                            </TableCell>
+                            <TableCell className="min-w-[220px] px-3 py-2">
                               {row.days.length === 0 ? (
                                 <span className="text-muted-fg">—</span>
                               ) : (
@@ -1572,17 +1604,17 @@ export default function DispatcherPracticesPage() {
                                   ))}
                                 </ul>
                               )}
-                            </td>
-                            <td className="min-w-[160px] px-3 py-2">
+                            </TableCell>
+                            <TableCell className="whitespace-normal min-w-[160px] px-3 py-2">
                               {row.teacherName || "—"}
-                            </td>
-                            <td className="min-w-[140px] px-3 py-2 text-muted-fg">
+                            </TableCell>
+                            <TableCell className="whitespace-normal min-w-[140px] px-3 py-2 text-muted-fg">
                               {row.note || "—"}
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
 

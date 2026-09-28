@@ -489,16 +489,20 @@ export default function CorrectionPositionEditor({
             ) : (
               <div className="overflow-x-auto rounded-md border">
                 <Table className="min-w-[900px]">
-                  <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground [&_th]:text-muted-foreground [&_th]:font-bold [&_th]:h-auto [&_tr]:border-b-0">
                     <TableRow>
-                      <TableHead className="px-3 py-2">№</TableHead>
-                      <TableHead className="px-3 py-2">Тип</TableHead>
-                      <TableHead className="px-3 py-2">Группа</TableHead>
-                      <TableHead className="px-3 py-2">Пара</TableHead>
-                      <TableHead className="px-3 py-2">Предмет</TableHead>
-                      <TableHead className="px-3 py-2">Преподаватель</TableHead>
-                      <TableHead className="px-3 py-2">Примечание</TableHead>
-                      <TableHead className="px-3" />
+                      <TableHead className="px-3 py-2 text-left">№</TableHead>
+                      <TableHead className="px-3 py-2 text-left">Тип</TableHead>
+                      <TableHead className="px-3 py-2 text-left">Группа</TableHead>
+                      <TableHead className="px-3 py-2 text-left">Пара</TableHead>
+                      <TableHead className="px-3 py-2 text-left">Предмет</TableHead>
+                      <TableHead className="px-3 py-2 text-left">
+                        Преподаватель
+                      </TableHead>
+                      <TableHead className="px-3 py-2 text-left">
+                        Примечание
+                      </TableHead>
+                      <TableHead className="px-3 py-2" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -638,8 +642,8 @@ function PositionRow({
           hasErrors
             ? "bg-destructive/5 hover:bg-destructive/5"
             : position.status === "Applied"
-              ? "opacity-60"
-              : ""
+              ? "opacity-60 hover:bg-transparent"
+              : "hover:bg-transparent"
         }
       >
         <TableCell className="px-3 py-2 text-muted-foreground">
@@ -658,17 +662,15 @@ function PositionRow({
           position.changeType !== "Remove" &&
           position.removedNumberPair !== position.numberPair
             ? `${position.removedNumberPair} → ${position.numberPair}`
-            : position.numberPair || (
-                <span className="text-destructive">—</span>
-              )}
+            : position.numberPair || <span className="text-destructive">—</span>}
         </TableCell>
         <TableCell className="px-3 py-2 whitespace-normal">
           {renderTitle(position)}
         </TableCell>
-        <TableCell className="px-3 py-2 max-w-[220px] truncate whitespace-normal">
+        <TableCell className="px-3 py-2 max-w-[220px] truncate">
           {renderTeacher(position)}
         </TableCell>
-        <TableCell className="px-3 py-2 max-w-[160px] truncate whitespace-normal text-muted-foreground">
+        <TableCell className="px-3 py-2 max-w-[160px] truncate text-muted-foreground">
           {position.note ?? "—"}
         </TableCell>
         <TableCell className="px-3 py-2">
@@ -697,7 +699,7 @@ function PositionRow({
       </TableRow>
       {hasErrors && (
         <TableRow className="bg-destructive/5 hover:bg-destructive/5">
-          <TableCell colSpan={8} className="px-3 pb-2">
+          <TableCell colSpan={8} className="px-3 pt-0 pb-2">
             <ul className="grid gap-1 text-xs text-destructive">
               {errors.map((error, index) => (
                 <li key={index} className="flex items-start gap-1.5">

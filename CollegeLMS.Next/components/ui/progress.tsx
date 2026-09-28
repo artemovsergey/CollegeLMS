@@ -18,7 +18,7 @@ function Progress({
     >
       <div
         data-slot="progress-bar"
-        className="h-full w-full flex-1 bg-primary transition-all"
+        className="h-full w-full flex-1 bg-primary transition-transform"
         style={{ transform: `translateX(-${100 - (value ?? 0)}%)` }}
       />
     </div>

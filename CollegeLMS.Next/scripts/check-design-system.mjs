@@ -47,6 +47,21 @@ const FORBIDDEN = [
     exts: [".tsx"],
     test: (line) => /<table[\s>]/.test(line),
   },
+  {
+    // Палитра miniapp MAX живёт в CSS, поэтому правило no-raw-hex её не видит.
+    // Здесь любая задача цвета должна идти через var() наших токенов — тогда
+    // оформление miniapp не разъедется с остальными поверхностями.
+    id: "max-theme-tokens-only",
+    hint: "цвет MAX задаётся через var(--токен) или color-mix от наших токенов",
+    files: ["app/max/max.css"],
+    test: (line) => {
+      if (/^\s*(\/\*|\*)/.test(line)) return false
+      if (!/:\s*[^;]*;/.test(line)) return false
+      const value = line.split(":").slice(1).join(":")
+      if (!/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/.test(value)) return false
+      return true
+    },
+  },
 ]
 
 const REQUIRED_FILES = [
@@ -95,6 +110,7 @@ for (const file of files) {
   const lines = readFileSync(file, "utf8").split(/\r?\n/)
   for (const rule of FORBIDDEN) {
     if (isTablePrimitive && rule.id === "no-raw-table") continue
+    if (rule.files && !rule.files.includes(rel)) continue
     if (rule.exts && !rule.exts.some((ext) => file.endsWith(ext))) continue
     lines.forEach((line, i) => {
       if (rule.test(line)) {

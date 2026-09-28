@@ -399,17 +399,29 @@ export default function CorrectionBatchList({
           <>
             <div className="hidden overflow-x-auto rounded-md border md:block">
               <Table className="min-w-[860px]">
-                <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground [&_th]:text-muted-foreground [&_th]:font-bold [&_th]:h-auto [&_tr]:border-b-0">
                   <TableRow>
-                    <TableHead className="px-3 py-2">Дата</TableHead>
-                    <TableHead className="px-3 py-2">Неделя / день</TableHead>
-                    <TableHead className="px-3 py-2">Позиций</TableHead>
-                    <TableHead className="px-3 py-2">Ошибки</TableHead>
-                    <TableHead className="px-3 py-2">Статус</TableHead>
-                    <TableHead className="px-3 py-2 text-right">Действия</TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Дата
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Неделя / день
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Позиций
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Ошибки
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Статус
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-right">
+                      Действия
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody className="[&_tr]:hover:bg-transparent">
                   {batches.map((batch) => {
                     const meta = STATUS_META[batch.status]
                     const busy = busyId === batch.id
@@ -444,7 +456,10 @@ export default function CorrectionBatchList({
                           )}
                         </TableCell>
                         <TableCell className="px-3 py-2">
-                          <Badge variant="outline" className={meta.className}>
+                          <Badge
+                            variant="outline"
+                            className={meta.className}
+                          >
                             {meta.label}
                           </Badge>
                         </TableCell>

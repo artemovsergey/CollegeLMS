@@ -6,6 +6,14 @@ import type { PagedResponse, Result } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
 import api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import DispatcherLiveSection from "@/components/DispatcherLiveSection"
 import { LESSON_TYPE_LABELS, type LessonType } from "@/types/schedule"
@@ -44,11 +52,11 @@ interface DispatcherDashboardResponse {
 }
 
 const LESSON_COLORS: Record<LessonType, string> = {
-  Lecture: "#3b82f6",
-  Practice: "#10b981",
-  Lab: "#f59e0b",
-  Exam: "#ef4444",
-  None: "#94a3b8",
+  Lecture: "var(--lesson-lecture)",
+  Practice: "var(--lesson-practice)",
+  Lab: "var(--lesson-lab)",
+  Exam: "var(--lesson-exam)",
+  None: "var(--lesson-none)",
 }
 
 const SEMESTER_START = new Date(2026, 8, 1) // Sep 1 2026
@@ -182,22 +190,31 @@ export default function DispatcherDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-xs text-muted-foreground">
-                    <th className="text-left py-2">Пара</th>
-                    <th className="text-left py-2">Время</th>
-                    <th className="text-left py-2">Занятия</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b text-xs text-muted-foreground [&_th]:font-bold [&_th]:h-auto [&_th]:text-muted-foreground">
+                    <TableHead className="px-0 py-2 text-left">Пара</TableHead>
+                    <TableHead className="px-0 py-2 text-left">Время</TableHead>
+                    <TableHead className="px-0 py-2 text-left">Занятия</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {dashboard.slots.map((slot) => (
-                    <tr key={slot.numberPair} className="border-b border-border/50">
-                      <td className="py-2 align-top">{slot.numberPair}</td>
-                      <td className="py-2 align-top whitespace-nowrap">
+                    <TableRow
+                      key={slot.numberPair}
+                      // `!` обязателен: примитив снимает границу у последней
+                      // строки через `[&_tr:last-child]:border-0` с той же
+                      // специфичностью, что и `last:border-b`, поэтому без
+                      // `important` победил бы порядок правил в собранном CSS.
+                      className="border-b border-border/50 last:border-b!"
+                    >
+                      <TableCell className="px-0 py-2 align-top">
+                        {slot.numberPair}
+                      </TableCell>
+                      <TableCell className="px-0 py-2 align-top whitespace-nowrap">
                         {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
-                      </td>
-                      <td className="py-2">
+                      </TableCell>
+                      <TableCell className="whitespace-normal px-0 py-2">
                         {slot.entries.length === 0 ? (
                           <span className="text-xs text-muted-foreground">—</span>
                         ) : (
@@ -212,11 +229,11 @@ export default function DispatcherDashboardPage() {
                             ))}
                           </ul>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>

@@ -29,6 +29,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import CorrectionBatchList from "@/components/CorrectionBatchList"
 import CorrectionPositionEditor from "@/components/CorrectionPositionEditor"
 
@@ -242,43 +250,45 @@ export default function DispatcherCorrectionPage() {
         ) : (
           <>
             <div className="overflow-x-auto rounded-md border">
-              <table className="w-full min-w-[820px] text-sm">
-                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Дата</th>
-                    <th className="px-3 py-2 text-left">Тип</th>
-                    <th className="px-3 py-2 text-left">Группа</th>
-                    <th className="px-3 py-2 text-left">День</th>
-                    <th className="px-3 py-2 text-left">Пара</th>
-                    <th className="px-3 py-2 text-left">Предмет</th>
-                    <th className="px-3 py-2 text-left">Преподаватель</th>
-                    <th className="px-3 py-2 text-left">Примечание</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
+              <Table className="min-w-[820px]">
+                <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground [&_th]:font-bold [&_th]:h-auto [&_th]:text-muted-foreground [&_tr]:border-b-0">
+                  <TableRow>
+                    <TableHead className="px-3 py-2 text-left">Дата</TableHead>
+                    <TableHead className="px-3 py-2 text-left">Тип</TableHead>
+                    <TableHead className="px-3 py-2 text-left">Группа</TableHead>
+                    <TableHead className="px-3 py-2 text-left">День</TableHead>
+                    <TableHead className="px-3 py-2 text-left">Пара</TableHead>
+                    <TableHead className="px-3 py-2 text-left">Предмет</TableHead>
+                    <TableHead className="px-3 py-2 text-left">
+                      Преподаватель
+                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">Примечание</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y">
                   {history.map((item) => (
-                    <tr key={item.id}>
-                      <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                    <TableRow key={item.id}>
+                      <TableCell className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                         {new Date(item.appliedAt).toLocaleString("ru-RU")}
-                      </td>
-                      <td className="px-3 py-2">
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
                         <ChangeTypeBadge type={item.changeType} />
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-3 py-2 whitespace-nowrap">
                         {item.groupName}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-3 py-2 whitespace-nowrap">
                         {dayLabelFromString(item.dayOfWeek)}
-                      </td>
-                      <td className="px-3 py-2">
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
                         {item.removedNumberPair != null &&
                           (item.changeType === "Replace" ||
                             item.changeType === "Move") &&
                           item.removedNumberPair !== item.numberPair
                           ? `${item.removedNumberPair} → ${item.numberPair}`
                           : item.numberPair}
-                      </td>
-                      <td className="px-3 py-2">
+                      </TableCell>
+                      <TableCell className="whitespace-normal px-3 py-2">
                         {(item.changeType === "Replace" ||
                           item.changeType === "Move") &&
                           item.removedSubject ? (
@@ -294,17 +304,17 @@ export default function DispatcherCorrectionPage() {
                         ) : (
                           item.subject
                         )}
-                      </td>
-                      <td className="px-3 py-2 max-w-[220px] truncate">
+                      </TableCell>
+                      <TableCell className="px-3 py-2 max-w-[220px] truncate">
                         {item.teacherName ?? "—"}
-                      </td>
-                      <td className="px-3 py-2 max-w-[200px] truncate text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="px-3 py-2 max-w-[200px] truncate text-muted-foreground">
                         {item.note ?? "—"}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             <div className="flex items-center justify-between">

@@ -21,6 +21,15 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
 import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import {
@@ -650,39 +659,48 @@ export default function DispatcherBellsPage() {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[520px] text-sm">
-                    <caption className="sr-only">
+                  <Table className="min-w-[520px]">
+                    <TableCaption className="sr-only">
                       Время начала и окончания для восьми пар
-                    </caption>
-                    <thead>
-                      <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-fg">
-                        <th scope="col" className="w-16 py-3 pr-3 font-medium">
+                    </TableCaption>
+                    <TableHeader className="[&_th]:text-muted-fg">
+                      <TableRow className="border-b text-left text-xs uppercase tracking-wide text-muted-fg">
+                        <TableHead
+                          scope="col"
+                          className="w-16 py-3 pr-3 pl-0 font-medium"
+                        >
                           Пара
-                        </th>
-                        <th scope="col" className="py-3 pr-3 font-medium">
+                        </TableHead>
+                        <TableHead
+                          scope="col"
+                          className="py-3 pr-3 pl-0 font-medium"
+                        >
                           Начало
-                        </th>
-                        <th scope="col" className="py-3 pr-3 font-medium">
+                        </TableHead>
+                        <TableHead
+                          scope="col"
+                          className="py-3 pr-3 pl-0 font-medium"
+                        >
                           Окончание
-                        </th>
-                        <th scope="col" className="py-3 font-medium">
+                        </TableHead>
+                        <TableHead scope="col" className="py-3 px-0 font-medium">
                           Длительность
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {rows.map((row) => (
-                        <tr
+                        <TableRow
                           key={row.numberPair}
                           className="border-b last:border-0"
                         >
-                          <th
+                          <TableHead
                             scope="row"
-                            className="py-2 pr-3 text-left font-mono text-base tabular-nums"
+                            className="py-2 pr-3 pl-0 text-left font-mono text-base tabular-nums"
                           >
                             {row.numberPair}
-                          </th>
-                          <td className="py-2 pr-3">
+                          </TableHead>
+                          <TableCell className="py-2 pr-3 pl-0">
                             <Input
                               type="time"
                               value={row.startTime}
@@ -696,8 +714,8 @@ export default function DispatcherBellsPage() {
                               aria-label={`Начало ${row.numberPair} пары`}
                               className="h-11 w-32 bg-card sm:h-9"
                             />
-                          </td>
-                          <td className="py-2 pr-3">
+                          </TableCell>
+                          <TableCell className="py-2 pr-3 pl-0">
                             <Input
                               type="time"
                               value={row.endTime}
@@ -711,14 +729,14 @@ export default function DispatcherBellsPage() {
                               aria-label={`Окончание ${row.numberPair} пары`}
                               className="h-11 w-32 bg-card sm:h-9"
                             />
-                          </td>
-                          <td className="py-2 font-mono text-xs tabular-nums text-muted-fg">
+                          </TableCell>
+                          <TableCell className="py-2 px-0 font-mono text-xs tabular-nums text-muted-fg">
                             {durationLabel(row.startTime, row.endTime)}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>

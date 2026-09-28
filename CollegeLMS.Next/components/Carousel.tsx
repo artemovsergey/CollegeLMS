@@ -90,7 +90,7 @@ export default function Carousel() {
                         sizes="(min-width: 1024px) 33vw, 0px"
                         className="max-h-72 w-auto max-w-full object-contain"
                         unoptimized
-                      />
+                       data-brand-mark="true"/>
                     </div>
                     <div className="flex shrink-0 flex-col gap-2 lg:gap-3">
                       <h2 className="line-clamp-2 text-xl font-bold leading-tight sm:text-2xl md:text-3xl">
@@ -116,7 +116,7 @@ export default function Carousel() {
                               <button
                                 key={i}
                                 onClick={(e) => { e.preventDefault(); scrollTo(i) }}
-                                className={`h-2 rounded-full transition-all ${
+                                className={`h-2 rounded-full transition-[width,background-color] ${
                                   i === selectedIndex ? "w-6 bg-white" : "w-2 bg-white/50"
                                 }`}
                                 aria-label={`Слайд ${i + 1}`}

@@ -132,8 +132,8 @@
   --muted: #eef0f4;
   --muted-fg: #4a5a7a;
   --muted-foreground: #4a5a7a;
-  --border: #c9ceda;
-  --input: #c9ceda;
+  --border: #8a93a5;
+  --input: #7b8496;
   --card: #ffffff;
   --card-foreground: #111827;
   --popover: #ffffff;
@@ -150,6 +150,18 @@
   --warning-foreground: #ffffff;
   --ring: var(--accent);
   --radius: 0.5rem;
+
+  /* Цвета типов занятий — единственный набор на все поверхности (miniapp MAX и
+     сводка диспетчера). Раньше их было два, и одно и то же занятие выглядело
+     по-разному в боте и в кабинете. Значения заданы потемно: в MAX цвет типа
+     используется как текст 12px (`.max-schedule__type`), поэтому порог 4.5:1,
+     а в сводке — как заливка полосы, где хватило бы 3:1. Держим 4.5:1 в обеих
+     темах, чтобы один и тот же токен годился для обоих применений. */
+  --lesson-lecture: #2563eb;
+  --lesson-practice: #047857;
+  --lesson-lab: #a16207;
+  --lesson-exam: #be123c;
+  --lesson-none: #475569;
 }
 .dark {
   --bg: #111827;
@@ -158,19 +170,19 @@
   --muted: #1f2937;
   --muted-fg: #929cb5;
   --muted-foreground: #929cb5;
-  --border: #374151;
-  --input: #374151;
+  --border: #6b7488;
+  --input: #6b7280;
   --card: #1f2937;
   --card-foreground: #f3f4f6;
   --popover: #1f2937;
   --popover-foreground: #f3f4f6;
   --accent: #568edd;
   --accent-hover: #6b9de0;
-  --accent-foreground: #ffffff;
+  --accent-foreground: #0f172a;
   --accent-light: #5b6a90;
   --accent-lighter: #374151;
   --primary: var(--accent);
-  --primary-foreground: #ffffff;
+  --primary-foreground: #0f172a;
   --secondary: #5b6a90;
   --secondary-foreground: #ffffff;
   --destructive: #dc2626;
@@ -180,12 +192,24 @@
   --warning: #fbbf24;
   --warning-foreground: #451a03;
   --ring: var(--accent);
+
+  /* Те же типы занятий в тёмной теме: на тёмной карточке `#1f2937` светлые
+     оттенки, иначе текст 12px в MAX не набирает 4.5:1. */
+  --lesson-lecture: #60a5fa;
+  --lesson-practice: #34d399;
+  --lesson-lab: #fbbf24;
+  --lesson-exam: #fb7185;
+  --lesson-none: #94a3b8;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-background: var(--background);
   --color-fg: var(--fg);
+  /* Алиас для shadcn-примитивов: без него класс `text-foreground` не
+     генерировался вовсе. Значение совпадает с `text-fg`, который и так
+     применён к `body`, поэтому базовый цвет текста не меняется. */
+  --color-foreground: var(--fg);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -274,13 +298,57 @@ option:checked {
   }
 }
 
+/* Режим высокой контрастности.
+   Оформление задаётся переопределением семантических токенов, а не селекторами
+   по подстрокам классов: подстрочные селекторы сносили любую цветную
+   поверхность, включая статусные плашки, и ломали семантику компонентов.
+   Статус в этом режиме передаётся текстом, а не цветом. */
 .accessibility-mode {
+  --background: #ffffff;
+  --fg: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --muted: #ffffff;
+  --muted-fg: #000000;
+  --muted-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --primary-text: #000000;
+  --secondary: #000000;
+  --secondary-foreground: #ffffff;
+  --accent: #000000;
+  --accent-foreground: #ffffff;
+  --accent-hover: #000000;
+  --accent-light: #ffffff;
+  --accent-lighter: #000000;
+  --destructive: #000000;
+  --destructive-foreground: #ffffff;
+  --success: #000000;
+  --success-foreground: #ffffff;
+  --warning: #000000;
+  --warning-foreground: #ffffff;
+  --info: #000000;
+  --info-foreground: #ffffff;
+  --border: #000000;
+  --input: #000000;
+  --ring: #000000;
+  /* Цвета типов занятий берём из светлой темы: режим всегда переводит фон в
+     белый, а тёмные оттенки на белом не набирают контраста. */
+  --lesson-lecture: #2563eb;
+  --lesson-practice: #047857;
+  --lesson-lab: #a16207;
+  --lesson-exam: #be123c;
+  --lesson-none: #475569;
   font-size: 18px;
   line-height: 1.6;
 }
 
-.accessibility-mode img,
-.accessibility-mode video {
+/* Декоративная графика скрывается, но знак колледжа — часть идентификации
+   (DESIGN.md §1), поэтому он исключён: элемент помечается data-brand-mark. */
+.accessibility-mode img:not([data-brand-mark]),
+.accessibility-mode video:not([data-brand-mark]) {
   display: none;
 }
 
@@ -307,25 +375,8 @@ option:checked {
   border-width: 2px;
 }
 
-.accessibility-mode body,
-.accessibility-mode .bg-white,
-.accessibility-mode [class*="bg-"] {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-}
-
-.accessibility-mode [class*="text-"] {
-  color: #000000 !important;
-}
-
 .accessibility-mode button:has([class*="lucide"]) {
-  background-color: rgba(0,0,0,0.08) !important;
-  color: #000000 !important;
-}
-
-.accessibility-mode .text-white,
-.accessibility-mode .text-\[#ffffff\] {
-  color: #000000 !important;
+  background-color: rgba(0, 0, 0, 0.08) !important;
 }
 
 @media print {
