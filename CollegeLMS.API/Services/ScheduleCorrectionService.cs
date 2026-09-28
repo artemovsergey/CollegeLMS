@@ -20,6 +20,12 @@ public class ScheduleCorrectionService(
 {
     private readonly string templatesPath = Path.Combine("..", "import", "schedule");
 
+    /// <summary>Первая строка данных корректировки (шапка занимает строки 1–6).</summary>
+    private const int FirstDataRow = 7;
+
+    /// <summary>Последний столбец таблицы корректировки: A..G.</summary>
+    private const int LastColumn = 7;
+
     private static bool IsSelfStudyNote(string? note) =>
         ScheduleImportService.IsSelfStudyNote(note);
 
@@ -62,16 +68,15 @@ public class ScheduleCorrectionService(
         sheet.Cell(3, 1).Value =
             $"на {request.CorrectionDate:dd.MM.yyyy} г. ({DayName(request.CorrectionDate.DayOfWeek).ToLowerInvariant()})";
 
-        var lastRow = Math.Max(sheet.LastRowUsed()?.RowNumber() ?? 7, 7);
-        if (lastRow >= 7)
-            sheet.Range(7, 1, lastRow, 7).Clear(XLClearOptions.Contents);
+        // Шаблон содержит образцы строк — вычищаем их целиком (содержимое и оформление),
+        // чтобы в файле остались ровно запрошенные позиции.
+        var templateLastRow = sheet.LastRowUsed()?.RowNumber() ?? FirstDataRow;
+        if (templateLastRow >= FirstDataRow)
+            sheet.Range(FirstDataRow, 1, templateLastRow, LastColumn).Clear(XLClearOptions.All);
 
         for (var index = 0; index < request.Rows.Count; index++)
         {
-            var row = 7 + index;
-            if (row > lastRow)
-                sheet.Row(row).Style = sheet.Row(7).Style;
-
+            var row = FirstDataRow + index;
             var item = request.Rows[index];
             sheet.Cell(row, 1).Value = item.GroupName.Trim();
             sheet.Cell(row, 2).Value = item.RemovedSubject?.Trim() ?? string.Empty;
@@ -82,9 +87,12 @@ public class ScheduleCorrectionService(
             sheet.Cell(row, 7).Value = item.Note?.Trim() ?? string.Empty;
         }
 
+        ApplyDocumentStyle(sheet, FirstDataRow + request.Rows.Count - 1);
+
         using var output = new MemoryStream();
         workbook.SaveAs(output);
-        var timestamp = DateTime.UtcNow.ToString("dd.MM.yyyy_HH-mm-ss");
+        // FILE-3: «Корректировка_240926_1203.xlsx» — сначала дата, потом время.
+        var timestamp = DateTime.Now.ToString("ddMMyy_HHmm");
         return Result<DocumentDownloadResult>.Ok(
             new DocumentDownloadResult
             {
@@ -92,6 +100,66 @@ public class ScheduleCorrectionService(
                 FileName = $"Корректировка_{timestamp}.xlsx",
             }
         );
+    }
+
+    /// <summary>
+    /// Оформляет документ целиком: заголовок, шапку таблицы и каждую строку позиций.
+    /// Раньше стили приходили из шаблона и «размножались» копией седьмой строки,
+    /// из-за чего всё после шаблона теряло рамку — теперь стили задаются явно.
+    /// </summary>
+    private static void ApplyDocumentStyle(IXLWorksheet sheet, int lastDataRow)
+    {
+        var lastRow = Math.Max(lastDataRow, 6);
+
+        var title = sheet.Range(1, 1, 3, LastColumn);
+        title.Style.Font.FontName = "Times New Roman";
+        title.Style.Font.FontSize = 16;
+        title.Style.Font.Bold = true;
+        title.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        title.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        for (var row = 1; row <= 3; row++)
+            sheet.Row(row).Height = 20.25;
+        sheet.Range(3, 1, 3, LastColumn).Style.Font.Italic = true;
+
+        var header = sheet.Range(5, 1, 6, LastColumn);
+        header.Style.Font.FontName = "Times New Roman";
+        header.Style.Font.FontSize = 12;
+        header.Style.Font.Bold = true;
+        header.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        header.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        header.Style.Alignment.WrapText = true;
+        sheet.Row(5).Height = 15.75;
+        sheet.Row(6).Height = 16.5;
+
+        var body = sheet.Range(FirstDataRow, 1, lastRow, LastColumn);
+        body.Style.Font.FontName = "Times New Roman";
+        body.Style.Font.FontSize = 12;
+        body.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        body.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        body.Style.Alignment.WrapText = true;
+        for (var row = FirstDataRow; row <= lastRow; row++)
+            sheet.Row(row).Height = 15.75;
+
+        var table = sheet.Range(5, 1, lastRow, LastColumn);
+        table.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        table.Style.Border.InsideBorderColor = XLColor.Black;
+        table.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+        table.Style.Border.OutsideBorderColor = XLColor.Black;
+
+        if (sheet.Column(1).Width < 6)
+            sheet.Column(1).Width = 10;
+        if (sheet.Column(2).Width < 10)
+            sheet.Column(2).Width = 14.14;
+        if (sheet.Column(3).Width < 10)
+            sheet.Column(3).Width = 21.71;
+        if (sheet.Column(4).Width < 10)
+            sheet.Column(4).Width = 13.86;
+        if (sheet.Column(5).Width < 10)
+            sheet.Column(5).Width = 19.57;
+        if (sheet.Column(6).Width < 6)
+            sheet.Column(6).Width = 6;
+        if (sheet.Column(7).Width < 10)
+            sheet.Column(7).Width = 14.14;
     }
 
     private static readonly Regex DatePattern = new(
@@ -1109,6 +1177,122 @@ public class ScheduleCorrectionService(
 
     private static ScheduleChangeType? ParseChangeType(string? value) =>
         Enum.TryParse<ScheduleChangeType>(value, ignoreCase: true, out var parsed) ? parsed : null;
+
+    public async Task<Result<CorrectionReferencesResponse>> GetReferencesAsync(
+        Guid groupId,
+        DateTime date,
+        Guid? batchId,
+        CancellationToken ct
+    )
+    {
+        var day = await GetDayAsync(groupId, date, batchId, ct);
+        if (!day.IsSuccess)
+            return Result<CorrectionReferencesResponse>.Fail(day.ErrorMessage!, day.StatusCode);
+
+        var teachers = await GetGroupTeachersAsync(groupId, ct);
+
+        return Result<CorrectionReferencesResponse>.Ok(
+            new CorrectionReferencesResponse
+            {
+                Date = day.Data!.Date,
+                Week = day.Data.Week,
+                DayOfWeek = day.Data.DayOfWeek,
+                GroupId = day.Data.GroupId,
+                GroupName = day.Data.GroupName,
+                Entries = day.Data.Entries,
+                Teachers = teachers,
+            }
+        );
+    }
+
+    /// <summary>
+    /// Преподаватели, которые ведут занятия у группы, и предметы каждого из них
+    /// в этой группе (расписание + применённые изменения).
+    /// </summary>
+    private async Task<List<CorrectionGroupTeacherDto>> GetGroupTeachersAsync(
+        Guid groupId,
+        CancellationToken ct
+    )
+    {
+        var entryRows = await db
+            .ScheduleEntries.AsNoTracking()
+            .Where(e => e.GroupId == groupId && e.TeacherId != null)
+            .Select(e => new
+            {
+                TeacherId = e.TeacherId!.Value,
+                Subject = e.Subject,
+                Removed = false,
+            })
+            .ToListAsync(ct);
+
+        var historyRows = await db
+            .ScheduleHistory.AsNoTracking()
+            .Where(h => h.GroupId == groupId && h.TeacherId != null)
+            .Select(h => new
+            {
+                TeacherId = h.TeacherId!.Value,
+                Subject = h.Subject,
+                Removed = false,
+            })
+            .ToListAsync(ct);
+
+        var removedRows = await db
+            .ScheduleHistory.AsNoTracking()
+            .Where(h =>
+                h.GroupId == groupId && h.RemovedTeacherId != null && h.RemovedSubject != null
+            )
+            .Select(h => new
+            {
+                TeacherId = h.RemovedTeacherId!.Value,
+                Subject = h.RemovedSubject!,
+                Removed = true,
+            })
+            .ToListAsync(ct);
+
+        var pairs = entryRows
+            .Concat(historyRows)
+            .Concat(removedRows)
+            .Where(r => !string.IsNullOrWhiteSpace(r.Subject))
+            .ToList();
+
+        if (pairs.Count == 0)
+            return [];
+
+        var teacherIds = pairs.Select(p => p.TeacherId).Distinct().ToList();
+        var names = await db
+            .Teachers.AsNoTracking()
+            .Include(t => t.User)
+            .Where(t => teacherIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, t => t.User.FullName, ct);
+
+        var byTeacher = new Dictionary<Guid, Dictionary<string, string>>();
+        foreach (var pair in pairs)
+        {
+            if (!byTeacher.TryGetValue(pair.TeacherId, out var subjects))
+            {
+                subjects = new Dictionary<string, string>(StringComparer.Ordinal);
+                byTeacher[pair.TeacherId] = subjects;
+            }
+
+            subjects.TryAdd(
+                ScheduleImportService.SubjectLookupKey(pair.Subject),
+                pair.Subject.Trim()
+            );
+        }
+
+        return byTeacher
+            .Where(pair => names.ContainsKey(pair.Key))
+            .Select(pair => new CorrectionGroupTeacherDto
+            {
+                Id = pair.Key,
+                FullName = names[pair.Key],
+                Subjects = pair
+                    .Value.Values.OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+            })
+            .OrderBy(t => t.FullName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
 
     public async Task<Result<PagedResponse<ScheduleHistoryResponse>>> GetHistoryAsync(
         Guid? groupId,

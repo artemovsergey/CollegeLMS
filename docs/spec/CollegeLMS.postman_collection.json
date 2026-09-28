@@ -1177,7 +1177,7 @@
               ]
             }
           },
-          "description": "Скачать XLSX с текущими позициями пакета. Имя файла — «Корректировка_dd.MM.yyyy_HH-mm-ss.xlsx» (передаётся в заголовке Content-Disposition). Для changeType=Move примечание выводится как «вм.X»."
+          "description": "Скачать XLSX с текущими позициями пакета. Имя файла — «Корректировка_ddMMyy_HHmm.xlsx», например «Корректировка_240926_1203.xlsx»: сначала дата, потом время (передаётся в заголовке Content-Disposition). Оформление задаётся кодом и применяется ко всем строкам: Times New Roman 12, рамка по периметру таблицы (средняя) и тонкие линии внутри. Для changeType=Move примечание выводится как «вм.X»."
         },
         {
           "name": "Apply correction batch",
@@ -1247,6 +1247,40 @@
             }
           },
           "description": "Эффективное расписание группы на дату для флоу корректировки: базовое расписание + применённые изменения + неприменённые позиции пакета (если передан batchId).\nСнятые без «сам.р.» пары исключаются; для «сам.р.» isSelfStudy=true. Сортировка по номеру пары.\nНовая схема ответа: entries[].pendingChangeType (Add | Remove | Replace | Move | null), entries[].isSelfStudy, entries[].changeTags (история применённых изменений пары).\nПример: {\n  \"date\": \"2026-09-10T00:00:00Z\",\n  \"week\": 2,\n  \"dayOfWeek\": 4,\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"entries\": [\n    {\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"room\": \"204\",\n      \"teacherId\": \"{{teacherId}}\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"note\": \"замена\",\n      \"isSelfStudy\": false,\n      \"pendingChangeType\": \"Replace\",\n      \"changeTags\": [ { \"changeType\": \"Replace\", \"week\": 2, \"removedNumberPair\": 2, \"removedSubject\": \"Физика\", \"note\": \"замена\" } ]\n    }\n  ]\n}"
+        },
+        {
+          "name": "Correction references",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/references?groupId={{groupId}}&date=2026-09-10&batchId={{batchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "references"
+              ],
+              "query": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-09-10"
+                },
+                {
+                  "key": "batchId",
+                  "value": "{{batchId}}"
+                }
+              ]
+            }
+          },
+          "description": "Справочники для пошаговой формы корректировки: расписание группы на дату (то же, что у Correction day) плюс преподаватели этой группы с их предметами именно в ней.\nФорма берёт списки только отсюда, поэтому выбрать преподавателя или предмет, которых у группы нет, невозможно.\nПредметы преподавателя собираются из базового расписания группы, применённых изменений и снятых записей; дубли схлопываются по ключу предмета.\nПример: {\n  \"date\": \"2026-09-10T00:00:00Z\",\n  \"week\": 2,\n  \"dayOfWeek\": 4,\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"entries\": [\n    {\n      \"numberPair\": 2,\n      \"subject\": \"Физика\",\n      \"room\": \"204\",\n      \"teacherId\": \"{{teacherId}}\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"note\": null,\n      \"isSelfStudy\": false,\n      \"pendingChangeType\": null,\n      \"changeTags\": []\n    }\n  ],\n  \"teachers\": [\n    {\n      \"id\": \"{{teacherId}}\",\n      \"fullName\": \"Марченко И.А.\",\n      \"subjects\": [\n        \"Математика\",\n        \"Информатика\"\n      ]\n    }\n  ]\n}"
         },
         {
           "name": "Schedule subjects (for correction)",

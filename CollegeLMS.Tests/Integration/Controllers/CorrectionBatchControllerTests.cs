@@ -304,4 +304,41 @@ public class CorrectionBatchControllerTests : BaseIntegrationTest
         Assert.Equal("ПО-262", body.Data!.GroupName);
         Assert.Contains(body.Data.Entries, e => e.NumberPair == 2 && e.Subject == "Физика");
     }
+
+    [Fact]
+    public async Task GetCorrectionReferences_ReturnsGroupTeachersWithSubjects()
+    {
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id);
+
+        SetAuthHeader(GetToken(UserRole.Admin));
+
+        var response = await Client.GetAsync(
+            $"/api/schedule/correction/references?groupId={group.Id}&date=2026-09-08"
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await DeserializeBodyAsync<Result<CorrectionReferencesResponse>>(response);
+        Assert.NotNull(body);
+        Assert.True(body!.IsSuccess);
+        Assert.Equal("ПО-262", body.Data!.GroupName);
+        Assert.NotEmpty(body.Data.Entries);
+        var reference = Assert.Single(body.Data.Teachers);
+        Assert.Equal(teacher.Id, reference.Id);
+        Assert.Contains("Физика", reference.Subjects);
+    }
+
+    [Fact]
+    public async Task GetCorrectionReferences_RequiresDispatcherRole()
+    {
+        var (group, _) = await SeedGroupAndTeacherAsync();
+
+        SetAuthHeader(GetToken(UserRole.Student));
+
+        var response = await Client.GetAsync(
+            $"/api/schedule/correction/references?groupId={group.Id}&date=2026-09-08"
+        );
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }

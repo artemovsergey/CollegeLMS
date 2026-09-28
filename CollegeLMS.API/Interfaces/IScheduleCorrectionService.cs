@@ -35,6 +35,17 @@ public interface IScheduleCorrectionService
         CancellationToken ct
     );
 
+    /// <summary>
+    /// Расписание группы на дату вместе с преподавателями этой группы и их предметами —
+    /// источник данных для пошаговой формы корректировки.
+    /// </summary>
+    Task<Result<CorrectionReferencesResponse>> GetReferencesAsync(
+        Guid groupId,
+        DateTime date,
+        Guid? batchId,
+        CancellationToken ct
+    );
+
     Task<Result<PagedResponse<ScheduleHistoryResponse>>> GetHistoryAsync(
         Guid? groupId,
         Guid? teacherId,

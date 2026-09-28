@@ -1206,9 +1206,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
         );
 
         result.IsSuccess.Should().BeTrue();
-        result
-            .Data!.FileName.Should()
-            .MatchRegex(@"^Корректировка_\d{2}\.\d{2}\.\d{4}_\d{2}-\d{2}-\d{2}\.xlsx$");
+        result.Data!.FileName.Should().MatchRegex(@"^Корректировка_\d{6}_\d{4}\.xlsx$");
         result.Data.Content.Should().NotBeEmpty();
     }
 
@@ -1420,5 +1418,212 @@ public class ScheduleCorrectionServiceTests : IDisposable
 
         combined.Data!.Items.Should().ContainSingle();
         combined.Data.Items[0].Subject.Should().Be("Физика");
+    }
+
+    // --- Экспорт FILE-3: оформление всех строк ---
+
+    [Fact]
+    public async Task ExportManualAsync_StylesEveryDataRowNotJustTemplateOnes()
+    {
+        EnsureCorrectionTemplate();
+
+        var result = await _sut.ExportManualAsync(
+            new ManualCorrectionExportRequest
+            {
+                CorrectionDate = new DateTime(2026, 9, 10),
+                Rows = Enumerable
+                    .Range(1, 9)
+                    .Select(pair => new ManualCorrectionRow
+                    {
+                        GroupName = "ПО-262",
+                        AddedSubject = "Математика",
+                        AddedTeacherName = "Марченко И.А.",
+                        NumberPair = pair,
+                    })
+                    .ToList(),
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var sheet = workbook.Worksheet(1);
+
+        // Девять строк данных — на три больше, чем есть в шаблоне.
+        for (var row = 7; row <= 15; row++)
+        {
+            var cell = sheet.Cell(row, 1);
+            cell.GetString().Should().Be("ПО-262", "строка {0}", row);
+            cell.Style.Font.FontName.Should().Be("Times New Roman", "строка {0}", row);
+            cell.Style.Font.Bold.Should().BeFalse("строка {0} — это данные, не шапка", row);
+            cell.Style.Alignment.Horizontal.Should().Be(XLAlignmentHorizontalValues.Center);
+            cell.Style.Alignment.Vertical.Should().Be(XLAlignmentVerticalValues.Center);
+            cell.Style.Border.TopBorder.Should().Be(XLBorderStyleValues.Thin, "строка {0}", row);
+        }
+
+        // Рамка по периметру всей таблицы, а не только шаблона.
+        sheet.Cell(7, 1).Style.Border.LeftBorder.Should().Be(XLBorderStyleValues.Medium);
+        sheet.Cell(15, 7).Style.Border.RightBorder.Should().Be(XLBorderStyleValues.Medium);
+        sheet.Cell(15, 7).Style.Border.BottomBorder.Should().Be(XLBorderStyleValues.Medium);
+
+        // Шапка документа остаётся оформленной.
+        sheet.Cell(1, 1).Style.Font.Bold.Should().BeTrue();
+        sheet.Cell(1, 1).Style.Font.FontSize.Should().Be(16);
+        sheet.Cell(3, 1).Style.Font.Italic.Should().BeTrue();
+        sheet.Cell(5, 1).Style.Font.Bold.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExportManualAsync_DropsTemplateSampleRows()
+    {
+        EnsureCorrectionTemplate();
+
+        var result = await _sut.ExportManualAsync(
+            new ManualCorrectionExportRequest
+            {
+                CorrectionDate = new DateTime(2026, 9, 10),
+                Rows =
+                [
+                    new ManualCorrectionRow
+                    {
+                        GroupName = "ПО-262",
+                        AddedSubject = "Математика",
+                        AddedTeacherName = "Марченко И.А.",
+                        NumberPair = 1,
+                    },
+                ],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var sheet = workbook.Worksheet(1);
+
+        sheet.Cell(7, 1).GetString().Should().Be("ПО-262");
+        // Образцы шаблона («Иванов И.И.», « вм.4 п») не должны попасть в файл.
+        sheet
+            .Range(8, 1, 12, 7)
+            .Cells()
+            .Select(cell => cell.GetString())
+            .Should()
+            .OnlyContain(value => string.IsNullOrWhiteSpace(value));
+        sheet.LastRowUsed()!.RowNumber().Should().Be(7);
+    }
+
+    // --- Справочники для пошаговой формы ---
+
+    [Fact]
+    public async Task GetReferencesAsync_ReturnsGroupTeachersWithTheirSubjects()
+    {
+        var group = await SeedGroupAsync("РЭУ 252");
+        var math = await SeedTeacherAsync("Сапрыкина А.А.");
+        var physics = await SeedTeacherAsync("Минаева Т.В.");
+        var foreignTeacher = await SeedTeacherAsync("Рахимова А.Л.");
+        var stranger = await SeedTeacherAsync("Чужой И.И.");
+        var otherGroup = await SeedGroupAsync("ПО-262");
+
+        var utcNow = DateTime.UtcNow;
+        _db.ScheduleEntries.AddRange(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = math.Id,
+                Subject = "Математика",
+                Room = "233",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 1,
+                Weeks = [1, 2],
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            },
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = physics.Id,
+                Subject = "Физика",
+                Room = "404",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 2,
+                Weeks = [1, 2],
+                StartTime = new TimeSpan(10, 10, 0),
+                EndTime = new TimeSpan(11, 40, 0),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            },
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = foreignTeacher.Id,
+                Subject = "Ин.язык",
+                Room = "302",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 3,
+                Weeks = [1, 2],
+                StartTime = new TimeSpan(12, 10, 0),
+                EndTime = new TimeSpan(13, 40, 0),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            },
+            // Преподаватель другой группы не должен попасть в справочник.
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = otherGroup.Id,
+                TeacherId = stranger.Id,
+                Subject = "История",
+                Room = "232",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 1,
+                Weeks = [1, 2],
+                StartTime = new TimeSpan(8, 30, 0),
+                EndTime = new TimeSpan(10, 0, 0),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetReferencesAsync(
+            group.Id,
+            new DateTime(2026, 9, 8),
+            null,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var data = result.Data!;
+        data.GroupName.Should().Be("РЭУ 252");
+        data.Entries.Should().HaveCount(3);
+        data.Teachers.Should().HaveCount(3);
+        data.Teachers.Should().NotContain(t => t.FullName == "Чужой И.И.");
+
+        var mathRef = data.Teachers.Single(t => t.FullName == "Сапрыкина А.А.");
+        mathRef.Subjects.Should().BeEquivalentTo(["Математика"]);
+
+        // Предметы преподавателя в других группах не подмешиваются.
+        var foreignRef = data.Teachers.Single(t => t.FullName == "Рахимова А.Л.");
+        foreignRef.Subjects.Should().BeEquivalentTo(["Ин.язык"]);
+    }
+
+    [Fact]
+    public async Task GetReferencesAsync_UnknownGroupFails()
+    {
+        var result = await _sut.GetReferencesAsync(
+            Guid.NewGuid(),
+            new DateTime(2026, 9, 8),
+            null,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(404);
     }
 }

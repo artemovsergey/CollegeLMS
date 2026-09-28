@@ -71,6 +71,30 @@ public class CreateCorrectionBatchRequest
     public DateTime CorrectionDate { get; set; }
 }
 
+/// <summary>Преподаватель, ведущий занятия у группы, с его предметами в этой группе.</summary>
+public class CorrectionGroupTeacherDto
+{
+    public Guid Id { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public List<string> Subjects { get; set; } = [];
+}
+
+/// <summary>
+/// Справочники для пошагового создания позиции корректировки: расписание группы
+/// на дату и преподаватели этой группы с их предметами — чтобы нельзя было выбрать
+/// преподавателя или предмет, которых у группы нет.
+/// </summary>
+public class CorrectionReferencesResponse
+{
+    public DateTime Date { get; set; }
+    public int Week { get; set; }
+    public int DayOfWeek { get; set; }
+    public Guid GroupId { get; set; }
+    public string GroupName { get; set; } = string.Empty;
+    public List<CorrectionDayEntry> Entries { get; set; } = [];
+    public List<CorrectionGroupTeacherDto> Teachers { get; set; } = [];
+}
+
 public class CreateCorrectionPositionRequest
 {
     public ScheduleChangeType ChangeType { get; set; }

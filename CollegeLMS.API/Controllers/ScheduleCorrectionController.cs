@@ -213,4 +213,30 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Справочники для пошаговой формы корректировки: расписание группы на дату
+    /// и преподаватели этой группы с их предметами в ней.
+    /// </summary>
+    /// <response code="200">Справочники получены</response>
+    /// <response code="404">Группа не найдена</response>
+    [HttpGet("correction/references")]
+    [SwaggerOperation(Summary = "Справочники для формы корректировки")]
+    [SwaggerResponse(200, "Справочники получены", typeof(Result<CorrectionReferencesResponse>))]
+    [SwaggerResponse(404, "Группа не найдена", typeof(ErrorResponse))]
+    [ProducesResponseType(typeof(Result<CorrectionReferencesResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCorrectionReferences(
+        [FromQuery] Guid groupId,
+        [FromQuery] DateTime date,
+        [FromQuery] Guid? batchId,
+        CancellationToken ct
+    )
+    {
+        var result = await service.GetReferencesAsync(groupId, date, batchId, ct);
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result);
+
+        return Ok(result);
+    }
 }

@@ -396,24 +396,27 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                             continue;
 
                         var dayTimes = bellTimes.GetValueOrDefault(day);
-                        var (start, end) =
-                            dayTimes is not null && dayTimes.TryGetValue(pairNum, out var t)
-                                ? t
-                                : GetPairTime(day, pairNum);
-                        entries.Add(
-                            new SchedulePreviewEntry
-                            {
-                                GroupName = groupName,
-                                Day = day.ToString(),
-                                Pair = pairNum,
-                                Subject = NormalizeSubject(parsed.Subject),
-                                Room = parsed.Room,
-                                TeacherName = parsed.Teacher,
-                                Weeks = parsed.Weeks,
-                                StartTime = start,
-                                EndTime = end,
-                            }
-                        );
+                        foreach (var part in parsed.Parts)
+                        {
+                            var (start, end) =
+                                dayTimes is not null && dayTimes.TryGetValue(pairNum, out var t)
+                                    ? t
+                                    : GetPairTime(day, pairNum);
+                            entries.Add(
+                                new SchedulePreviewEntry
+                                {
+                                    GroupName = groupName,
+                                    Day = day.ToString(),
+                                    Pair = pairNum,
+                                    Subject = NormalizeSubject(parsed.Subject),
+                                    Room = part.Room,
+                                    TeacherName = part.Teacher,
+                                    Weeks = parsed.Weeks,
+                                    StartTime = start,
+                                    EndTime = end,
+                                }
+                            );
+                        }
                     }
                 }
             }
@@ -423,60 +426,121 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
     }
 
     private static readonly Regex SubjectCellRegex = new(
-        @"^(?<room>[^\s]+)\s+(?<subject>[^(]+?)(?:\s*\((?<weeks>[^)]+)\))?\s*(?<teacher>[А-Яа-яёЁ][А-Яа-яёЁ.\s]*)?$",
+        @"^(?<room>[^\s]+)\s+(?<body>.+)$",
         RegexOptions.Compiled
     );
 
-    private static (string Room, string Subject, List<int> Weeks, string Teacher) ParseSubjectCell(
-        string cell
-    )
+    private static readonly Regex HallRoomRegex = new(
+        @"^(ч\.\s*з|с\.\s*з)\.?",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase
+    );
+
+    private static readonly Regex TeacherTailRegex = new(
+        @"[А-Яа-яёЁ][А-Яа-яёЁ]+\s+[А-Яа-яёЁ]\.?\s*[А-Яа-яёЁ]\.?(?:\s*/\s*[А-Яа-яёЁ][А-Яа-яёЁ]+\s+[А-Яа-яёЁ]\.?\s*[А-Яа-яёЁ]\.?)*$",
+        RegexOptions.Compiled
+    );
+
+    /// <summary>Аудитория + преподаватель одного варианта объединённой ячейки.</summary>
+    private readonly record struct SubjectCellPart(string Room, string Teacher);
+
+    /// <summary>Результат разбора ячейки предмета.</summary>
+    private sealed class SubjectCellParse
+    {
+        public string Subject { get; init; } = string.Empty;
+        public List<int> Weeks { get; init; } = [];
+        public List<SubjectCellPart> Parts { get; init; } = [];
+    }
+
+    /// <summary>
+    /// Разбор ячейки предмета. Кроме обычного «ауд. Предмет (недели) Преподаватель»
+    /// поддерживается объединённый компонент на несколько преподавателей:
+    /// «302/413 Ин.язык (1-6,8,10) Рахимова А.Л./Степаненко О.А.» — это один предмет
+    /// с одними неделями, но своя аудитория и преподаватель у каждой подгруппы.
+    /// </summary>
+    private static SubjectCellParse ParseSubjectCell(string cell)
     {
         var text = cell.Trim();
         if (string.IsNullOrEmpty(text) || text == ".")
-            return (string.Empty, string.Empty, [], string.Empty);
+            return new SubjectCellParse();
 
-        if (
-            text.StartsWith("ч.з", StringComparison.OrdinalIgnoreCase)
-            || text.StartsWith("с.з", StringComparison.OrdinalIgnoreCase)
-        )
-        {
-            var roomPart = text.Split(' ', 2)[0].Trim();
-            var rest = text[roomPart.Length..].Trim();
-            var weeksMatch = Regex.Match(rest, @"\(([^)]+)\)");
-            var weeks = weeksMatch.Success
-                ? ParseWeeks(weeksMatch.Groups[1].Value)
-                : new List<int>();
-            var subject = Regex.Replace(rest, @"\([^)]*\)", "").Trim();
-            var teacher = ExtractTrailingTeacher(subject);
-            if (!string.IsNullOrEmpty(teacher))
-                subject = subject[..^teacher.Length].TrimEnd();
-            return (roomPart, subject, weeks, teacher);
-        }
+        // «ч.з.»/«с.з.» — аудитория задаётся словом, а не номером.
+        var hall = HallRoomRegex.Match(text);
+        if (hall.Success)
+            return BuildSubjectCell(hall.Value.Replace(" ", string.Empty), text[hall.Length..]);
 
         var match = SubjectCellRegex.Match(text);
-        if (match.Success)
+        return match.Success
+            ? BuildSubjectCell(match.Groups["room"].Value, match.Groups["body"].Value)
+            // Без разделителя «ауд. …» считаем всё содержимое предметом.
+            : BuildSubjectCell(string.Empty, text);
+    }
+
+    /// <summary>Отделяет от тела ячейки недели и преподавателя(-ей).</summary>
+    private static SubjectCellParse BuildSubjectCell(string room, string body)
+    {
+        var weeks = new List<int>();
+        var weeksMatch = Regex.Match(body, @"\(([^)]+)\)");
+        if (weeksMatch.Success)
         {
-            var room = match.Groups["room"].Value;
-            var subject = match.Groups["subject"].Value.Trim();
-            var weeks = match.Groups["weeks"].Success
-                ? ParseWeeks(match.Groups["weeks"].Value)
-                : new List<int>();
-            var teacher = NormalizeTeacherName(match.Groups["teacher"].Value);
-            if (string.IsNullOrEmpty(teacher))
-                teacher = ExtractTrailingTeacher(subject);
-            if (!string.IsNullOrEmpty(teacher) && subject.EndsWith(teacher))
-                subject = subject[..^teacher.Length].TrimEnd();
-            return (room, subject, weeks, teacher);
+            weeks = ParseWeeks(weeksMatch.Groups[1].Value);
+            body = Regex.Replace(body, @"\([^)]*\)", "").Trim();
         }
 
-        return (string.Empty, text, [], string.Empty);
+        // Отрезаем по длине совпадения, а не по длине нормализованного имени:
+        // нормализация может убрать пробелы («А. Л.» → «А.Л.»).
+        var teacherMatch = TeacherTailRegex.Match(body);
+        var teacher = teacherMatch.Success
+            ? NormalizeTeacherName(teacherMatch.Value)
+            : string.Empty;
+        if (teacherMatch.Success)
+            body = body[..^teacherMatch.Length].TrimEnd();
+
+        return new SubjectCellParse
+        {
+            Subject = body.Trim(),
+            Weeks = weeks,
+            Parts = BuildParts(room, teacher),
+        };
     }
 
-    private static string ExtractTrailingTeacher(string text)
+    /// <summary>
+    /// Сопоставляет список аудиторий со списком преподавателей. Если один из списков
+    /// одноэлементный, он применяется ко всем вариантам; иначе берётся меньший список.
+    /// </summary>
+    private static List<SubjectCellPart> BuildParts(string roomRaw, string teacherRaw)
     {
-        var match = Regex.Match(text, @"([А-Яа-яёЁ][А-Яа-яёЁ]+\s+[А-Яа-яёЁ]\.[А-Яа-яёЁ]\.?)$");
-        return match.Success ? NormalizeTeacherName(match.Groups[1].Value) : string.Empty;
+        var rooms = SplitVariants(roomRaw, NormalizeRoomName);
+        var teachers = SplitVariants(teacherRaw, NormalizeTeacherName);
+        if (rooms.Count == 0)
+            rooms.Add(string.Empty);
+        if (teachers.Count == 0)
+            teachers.Add(string.Empty);
+
+        while (rooms.Count < teachers.Count)
+            rooms.Add(rooms[0]);
+        while (teachers.Count < rooms.Count)
+            teachers.Add(teachers[0]);
+
+        return rooms.Zip(teachers, (room, teacher) => new SubjectCellPart(room, teacher)).ToList();
     }
+
+    /// <summary>Аудитория: без лишних пробелов, «ч.з» приводим к «ч.з.».</summary>
+    private static string NormalizeRoomName(string name)
+    {
+        var value = Regex.Replace(name.Trim(), @"\s+", string.Empty);
+        if (value.Equals("ч.з", StringComparison.OrdinalIgnoreCase))
+            return "ч.з.";
+        if (value.Equals("с.з", StringComparison.OrdinalIgnoreCase))
+            return "с.з.";
+        return value;
+    }
+
+    /// <summary>Делит «302/413» или «Рахимова А.Л./Степаненко О.А.» на варианты.</summary>
+    private static List<string> SplitVariants(string raw, Func<string, string> normalize) =>
+        raw.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(normalize)
+            .Where(v => v.Length > 0)
+            .ToList();
 
     private static readonly Regex WeekPartRegex = new(
         @"^(?<from>\d{1,2})(?:\s*[-–—]\s*(?<to>\d{1,2}))?$",
@@ -697,10 +761,12 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                 createdGroups++;
             }
 
+            // «А.Л. Рахимова/О.А. Степаненко» — ячейка может нести нескольких преподавателей,
+            // каждый из них должен попасть в справочник отдельной записью.
             var uniqueTeachers = entries
                 .Where(e => !string.IsNullOrWhiteSpace(e.TeacherName))
-                .Select(e => NormalizeTeacherName(e.TeacherName))
-                .Distinct()
+                .SelectMany(e => TeacherNameVariants(e.TeacherName))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
             var createdTeachers = 0;
@@ -808,9 +874,14 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
                 Guid? teacherId = null;
                 if (!string.IsNullOrWhiteSpace(entry.TeacherName))
                 {
-                    var teacherKey = TeacherLookupKey(entry.TeacherName);
-                    if (teacherMap.TryGetValue(teacherKey, out var tid))
-                        teacherId = tid;
+                    foreach (var variant in TeacherNameVariants(entry.TeacherName))
+                    {
+                        if (teacherMap.TryGetValue(TeacherLookupKey(variant), out var tid))
+                        {
+                            teacherId = tid;
+                            break;
+                        }
+                    }
                 }
 
                 Enum.TryParse<DayOfWeek>(entry.Day, true, out var dayOfWeek);

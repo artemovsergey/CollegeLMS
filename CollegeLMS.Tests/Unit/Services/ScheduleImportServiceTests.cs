@@ -6,6 +6,7 @@ using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Services;
 using CollegeLMS.Tests.Fixtures;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 
 namespace CollegeLMS.Tests.Unit.Services;
 
@@ -113,6 +114,176 @@ public class ScheduleImportServiceTests : IDisposable
         var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
 
         entries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ParseScheduleMatrix_SplitsSharedCellIntoOneEntryPerTeacher()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "РЭУ 252";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        ws.Cell(6, 3).Value = "302/413 Ин.язык (1-6,8,10) Рахимова А.Л./Степаненко О.А.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries.Should().HaveCount(2);
+
+        entries
+            .Should()
+            .AllSatisfy(entry =>
+            {
+                entry.GroupName.Should().Be("РЭУ 252");
+                entry.Day.Should().Be("Monday");
+                entry.Pair.Should().Be(1);
+                entry.Subject.Should().Be("Ин.язык");
+                entry.Weeks.Should().BeEquivalentTo([1, 2, 3, 4, 5, 6, 8, 10]);
+            });
+
+        entries[0].Room.Should().Be("302");
+        entries[0].TeacherName.Should().Be("Рахимова А.Л.");
+        entries[1].Room.Should().Be("413");
+        entries[1].TeacherName.Should().Be("Степаненко О.А.");
+    }
+
+    [Fact]
+    public void ParseScheduleMatrix_SharedCellWithSingleRoomRepeatsIt()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "РЭУ 252";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        ws.Cell(6, 3).Value = "302 Ин.язык (1-17) Рахимова А.Л./Степаненко О.А.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries.Should().HaveCount(2);
+        entries.Should().AllSatisfy(entry => entry.Room.Should().Be("302"));
+        entries
+            .Select(entry => entry.TeacherName)
+            .Should()
+            .BeEquivalentTo(["Рахимова А.Л.", "Степаненко О.А."]);
+    }
+
+    [Fact]
+    public void ParseScheduleMatrix_SharedCellWithThreeTeachers()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "ИП 242";
+        ws.Cell(6, 1).Value = "ВТОРНИК";
+        ws.Cell(6, 2).Value = 2;
+        ws.Cell(6, 3).Value =
+            "302/413/409 Ин.язык (1-17) Рахимова А.Л./Сорокина Н.Б./Кривцова С.Н.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries.Should().HaveCount(3);
+        entries.Select(entry => entry.Room).Should().BeEquivalentTo(["302", "413", "409"]);
+        entries
+            .Select(entry => entry.TeacherName)
+            .Should()
+            .BeEquivalentTo(["Рахимова А.Л.", "Сорокина Н.Б.", "Кривцова С.Н."]);
+    }
+
+    [Fact]
+    public void ParseScheduleMatrix_ReportsWeekErrorOnceForSharedCell()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "РЭУ 252";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        ws.Cell(6, 3).Value = "302/413 Ин.язык (18-20) Рахимова А.Л./Степаненко О.А.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        entries.Should().BeEmpty();
+        errors.Should().ContainSingle(e => e.Message.Contains("неделя 18 вне семестра"));
+    }
+
+    [Fact]
+    public void ParseScheduleMatrix_KeepsSportHallRoomOfSharedCell()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Расписание");
+
+        ws.Cell(5, 3).Value = "ПО 264";
+        ws.Cell(6, 1).Value = "ПОНЕДЕЛЬНИК";
+        ws.Cell(6, 2).Value = 1;
+        ws.Cell(6, 3).Value = "с.з. Физкультура (1-10) Кобзев М.В.";
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+        entries.Should().ContainSingle();
+        entries[0].Room.Should().Be("с.з.");
+        entries[0].Subject.Should().Be("Физкультура");
+        entries[0].TeacherName.Should().Be("Кобзев М.В.");
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_CreatesTeacherForEachNameOfSharedCell()
+    {
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "РЭУ 252",
+            Course = 2,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        _db.Groups.Add(group);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.ConfirmAsync(
+            new ConfirmImportRequest
+            {
+                Entries =
+                [
+                    new SchedulePreviewEntry
+                    {
+                        GroupName = "РЭУ 252",
+                        Day = "Monday",
+                        Pair = 1,
+                        Subject = "Ин.язык",
+                        Room = "302",
+                        TeacherName = "Рахимова А.Л.",
+                        Weeks = [1, 2],
+                    },
+                    new SchedulePreviewEntry
+                    {
+                        GroupName = "РЭУ 252",
+                        Day = "Monday",
+                        Pair = 1,
+                        Subject = "Ин.язык",
+                        Room = "413",
+                        TeacherName = "Степаненко О.А.",
+                        Weeks = [1, 2],
+                    },
+                ],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Imported.Should().Be(2);
+        result.Teachers.Should().Be(2);
+
+        var teachers = await _db.Teachers.AsNoTracking().Include(t => t.User).ToListAsync();
+        teachers
+            .Select(t => t.User.FullName)
+            .Should()
+            .BeEquivalentTo(["Рахимова А.Л.", "Степаненко О.А."]);
     }
 
     [Fact]
