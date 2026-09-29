@@ -416,12 +416,12 @@ public static class MessageFormatter
         return sb.ToString();
     }
 
-    /// <summary>Пара: «пара N» или «пара X → Y» при переносе/замене.</summary>
+    /// <summary>Пара: «пара N» или «пара X => Y» при переносе/замене.</summary>
     private static string FormatPairLabel(ScheduleRevision r)
     {
         var isMoveOrReplace = r.ChangeType is "Replace" or "Move";
         if (isMoveOrReplace && r.RemovedNumberPair is { } from && from != r.NumberPair)
-            return $"пара {from} → {r.NumberPair}";
+            return $"пара {from} {ReplaceArrow} {r.NumberPair}";
 
         return $"пара {r.NumberPair}";
     }
@@ -443,11 +443,18 @@ public static class MessageFormatter
 
         if (r.ChangeType is "Replace" or "Move" && !string.IsNullOrWhiteSpace(r.RemovedSubject))
         {
-            return $"~~{r.RemovedSubject}~~ → **{LessonLine(r.Subject, r.TeacherName)}**";
+            // Зачёркнутый старый предмет в MAX выглядит плохо, поэтому тот же
+            // формат, что в вебе: «старое => новое» одной строкой.
+            var from = LessonLine(r.RemovedSubject, r.RemovedTeacherName ?? r.TeacherName);
+            var to = LessonLine(r.Subject, r.TeacherName);
+            return $"{from} {ReplaceArrow} **{to}**";
         }
 
         return $"**{LessonLine(r.Subject, r.TeacherName)}**";
     }
+
+    /// <summary>Стрелка замены: тонкая, чтобы не перетягивать внимание.</summary>
+    private const string ReplaceArrow = "=>";
 
     /// <summary>«Предмет Преподаватель» одной строкой — как в веб-приложении.</summary>
     private static string LessonLine(string? subject, string? teacher)

@@ -614,19 +614,22 @@ public class MessageFormatterTests
     }
 
     [Fact]
-    public void FormatCorrectionDigest_ReplaceWithRemovedSubject_ShowsStrikethrough()
+    public void FormatCorrectionDigest_Move_ShowsArrowWithoutStrikethrough()
     {
         var revision = Revision();
         revision.ChangeType = "Move";
         revision.RemovedSubject = "Математика";
+        revision.RemovedTeacherName = "Сидоров С.С.";
         revision.RemovedNumberPair = 2;
         revision.NumberPair = 3;
 
         var text = MessageFormatter.FormatCorrectionDigest([revision]);
 
         text.Should().Contain("**Перенос**");
-        text.Should().Contain("🕐 пара 2 → 3");
-        text.Should().Contain("📖 ~~Математика~~ → **История Петренко В.Б.**");
+        text.Should().Contain("🕐 пара 2 => 3");
+        text.Should().Contain("📖 Математика Сидоров С.С. => **История Петренко В.Б.**");
+        // Зачёркнутый старый предмет в MAX выглядит плохо.
+        text.Should().NotContain("~~");
     }
 
     [Fact]

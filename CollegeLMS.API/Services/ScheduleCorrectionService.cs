@@ -91,13 +91,13 @@ public class ScheduleCorrectionService(
 
         using var output = new MemoryStream();
         workbook.SaveAs(output);
-        // FILE-3: «Корректировка_290926.xlsx» — дата корректировки из шапки файла,
-        // а не дата скачивания: так скачанный файл сразу понятен по имени.
+        // «Корректировка_2909.xlsx» — день и месяц даты корректировки, без года:
+        // так скачанный файл сразу понятен по имени, а год виден в шапке файла.
         return Result<DocumentDownloadResult>.Ok(
             new DocumentDownloadResult
             {
                 Content = output.ToArray(),
-                FileName = $"Корректировка_{request.CorrectionDate:ddMMyy}.xlsx",
+                FileName = $"Корректировка_{request.CorrectionDate:ddMM}.xlsx",
             }
         );
     }

@@ -1207,9 +1207,9 @@ public class ScheduleCorrectionServiceTests : IDisposable
         );
 
         result.IsSuccess.Should().BeTrue();
-        // Постфикс — дата корректировки, а не дата скачивания: скачанный файл
-        // сразу понятен по имени.
-        result.Data!.FileName.Should().Be("Корректировка_100926.xlsx");
+        // Постфикс — день и месяц даты корректировки, без года: скачанный файл
+        // сразу понятен по имени, а год виден в шапке файла.
+        result.Data!.FileName.Should().Be("Корректировка_1009.xlsx");
         result.Data.Content.Should().NotBeEmpty();
     }
 

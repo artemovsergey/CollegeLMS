@@ -216,6 +216,53 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ApplyAsync_AddIntoOccupiedPair_KeepsBothLessons()
+    {
+        // Пара — это время: в неё можно положить второе занятие.
+        // Добавление не должно молча превращаться в замену.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [2]);
+        var batch = await CreateBatchAsync();
+
+        var added = await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Add,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                Subject = "Математика",
+                TeacherId = teacher.Id,
+                TeacherName = teacher.User.FullName,
+            },
+            CancellationToken.None
+        );
+        added.IsSuccess.Should().BeTrue();
+        added.Data!.ChangeType.Should().Be(ScheduleChangeType.Add);
+        added.Data.RemovedSubject.Should().BeNull();
+        added.Data.RemovedNumberPair.Should().BeNull();
+
+        var result = await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        // Обе пары на месте: исходная не тронута, новая добавлена рядом.
+        _db.ScheduleEntries.Should().HaveCount(2);
+        _db.ScheduleEntries.Select(e => e.Subject)
+            .Should()
+            .BeEquivalentTo(["Физика", "Математика"]);
+        var change = result.Data!.History.Should().ContainSingle().Subject;
+        change.ChangeType.Should().Be(ScheduleChangeType.Add);
+        change.Subject.Should().Be("Математика");
+    }
+
+    [Fact]
     public async Task ApplyAsync_RemoveSelfStudy_NotifiesTeacherWithNote()
     {
         var group = await SeedGroupAsync();
