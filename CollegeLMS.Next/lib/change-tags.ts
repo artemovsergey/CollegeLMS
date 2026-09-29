@@ -50,16 +50,27 @@ export function primaryChangeTag(tags: ChangeTag[]): ChangeTag | null {
   return [...tags].sort((a, b) => rank(a) - rank(b))[0]
 }
 
-/** Подпись одного бейджа: «Снято» либо «Сам.р.» для самостоятельной работы. */
+/**
+ * Подпись главного бейджа пары.
+ *
+ * «Сам.р.» подменяет подпись только при снятии: там пара остаётся в
+ * расписании, поэтому «Снято» было бы неправдой. В остальных случаях пара
+ * действительно меняется, и «Сам.р.» добавляется вторым бейджем, а не вместо
+ * первого.
+ */
 export function changeTagLabel(tag: ChangeTag): string {
-  return isSelfStudyNote(tag.note) ? "Сам.р." : changeTypeLabel(tag.changeType)
+  if (isSelfStudyNote(tag.note) && tag.changeType === "Remove") return "Сам.р."
+  return changeTypeLabel(tag.changeType)
+}
+
+/** Нужен ли рядом с подписью операции отдельный бейдж «Сам.р.». */
+export function showsSelfStudyTag(tag: ChangeTag): boolean {
+  return isSelfStudyNote(tag.note) && tag.changeType !== "Remove"
 }
 
 function tagDetail(tag: ChangeTag): string[] {
-  const label = isSelfStudyNote(tag.note)
-    ? "Самостоятельная работа"
-    : changeTypeLabel(tag.changeType)
-  const parts = [label, `неделя ${tag.week}`]
+  const parts = [changeTagLabel(tag), `неделя ${tag.week}`]
+  if (isSelfStudyNote(tag.note)) parts.push("самостоятельная работа")
   if (tag.changeType === "Move" && tag.removedNumberPair != null) {
     parts.push(`перенос с пары ${tag.removedNumberPair}`)
   }

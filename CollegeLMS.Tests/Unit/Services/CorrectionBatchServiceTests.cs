@@ -216,6 +216,193 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ApplyAsync_AddWithFromPairNote_MovesLessonAndVacatesSource()
+    {
+        // «Добавить» + «вм.4 п.» при вводе в пару 2 — это перенос: занятие
+        // переезжает из пары 4 в пару 2, в паре 4 остаётся пусто. Без этой
+        // отметки оно считалось бы в обеих парах.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 4, [2]);
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Move,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                Subject = "Физика",
+                TeacherId = teacher.Id,
+                TeacherName = teacher.User.FullName,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+                RemovedNumberPair = 4,
+                Note = "вм.4 п.",
+            },
+            CancellationToken.None
+        );
+
+        var result = await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(2);
+        entry.Weeks.Should().BeEquivalentTo([2]);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_ReplaceWithFromPairNote_ReplacesInTargetAndFreesSource()
+    {
+        // «Заменить» + «вм.4 п.» при вводе в пару 2: в паре 2 вместо
+        // прежнего встанет новое, а само новое освободит пару 4.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var newTeacher = await SeedTeacherAsync("Сидоров С.С.");
+        await SeedEntryAsync(group.Id, teacher.Id, "ОБП и ЗР", 2, [2]);
+        await SeedEntryAsync(group.Id, newTeacher.Id, "Обществ.", 4, [2]);
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Replace,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                Subject = "Обществ.",
+                TeacherId = newTeacher.Id,
+                TeacherName = newTeacher.User.FullName,
+                RemovedSubject = "ОБП и ЗР",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+                RemovedNumberPair = 4,
+                Note = "вм.4 п.",
+            },
+            CancellationToken.None
+        );
+
+        var result = await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        // Пара 4 освободилась, в паре 2 осталось новое занятие.
+        var entries = _db.ScheduleEntries.OrderBy(e => e.NumberPair).ToList();
+        entries.Should().ContainSingle();
+        entries[0].NumberPair.Should().Be(2);
+        entries[0].Subject.Should().Be("Обществ.");
+
+        // В журнале две записи: замена в паре 2 и снятие из пары 4.
+        result.Data!.Applied.Should().Be(2);
+        result
+            .Data!.History.Select(h => h.ChangeType)
+            .Should()
+            .BeEquivalentTo([ScheduleChangeType.Replace, ScheduleChangeType.Remove]);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_ReplaceInSamePair_SwapsLessonInOneTransaction()
+    {
+        // Обычная замена без «вм.X»: прежнее занятие исчезает, новое встаёт
+        // на его место, пара не меняется.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var newTeacher = await SeedTeacherAsync("Сидоров С.С.");
+        await SeedEntryAsync(group.Id, teacher.Id, "ОБП и ЗР", 2, [2]);
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Replace,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                Subject = "Обществ.",
+                TeacherId = newTeacher.Id,
+                TeacherName = newTeacher.User.FullName,
+                RemovedSubject = "ОБП и ЗР",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+                RemovedNumberPair = 2,
+            },
+            CancellationToken.None
+        );
+
+        var result = await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(2);
+        entry.Subject.Should().Be("Обществ.");
+        // Одна запись журнала: замена целиком, а не снятие плюс добавление.
+        result
+            .Data!.History.Should()
+            .ContainSingle()
+            .Which.ChangeType.Should()
+            .Be(ScheduleChangeType.Replace);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_AddWithSelfStudyNote_AddsLessonAndKeepsBadge()
+    {
+        // «Добавить» с «сам.р.»: занятие добавляется в пару и дополнительно
+        // помечается для студентов — в отличие от снятия, пара не остаётся
+        // на месте, а появляется.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Add,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 3,
+                Subject = "Математика",
+                TeacherId = teacher.Id,
+                TeacherName = teacher.User.FullName,
+                Note = "сам.р.",
+            },
+            CancellationToken.None
+        );
+
+        var result = await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(3);
+        entry.Subject.Should().Be("Математика");
+        result.Data!.History.Should().ContainSingle().Which.Note.Should().Be("сам.р.");
+    }
+
+    [Fact]
     public async Task ApplyAsync_AddIntoOccupiedPair_KeepsBothLessons()
     {
         // Пара — это время: в неё можно положить второе занятие.
