@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
+  BookOpen,
   CalendarDays,
   CircleAlert,
   GraduationCap,
@@ -12,7 +13,6 @@ import {
 } from "lucide-react"
 import { getCorrectionReferences } from "@/api/correction"
 import type {
-  CorrectionChangeType,
   CorrectionGroupTeacher,
   CorrectionPosition,
   CorrectionReferences,
@@ -31,14 +31,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { NoteChips, NOTE_CHIPS } from "@/components/NoteChips"
+import { Label } from "@/components/ui/label"
+import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import RemovePairPicker, {
   type RemovedPairSelection,
 } from "@/components/RemovePairPicker"
-import GroupDayCard, {
-  isPairOccupied,
-  type MovedLesson,
-} from "@/components/GroupDayCard"
+import GroupDayCard, { occupiedEntryFor } from "@/components/GroupDayCard"
+import { isSelfStudyNote } from "@/lib/change-tags"
 import {
   SearchableMultiSelect,
   SearchableSelect,
@@ -46,49 +45,60 @@ import {
 
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000"
 
+/**
+ * Три операции. Переноса среди них нет: он получается сам — «вм.X» в
+ * примечании к добавлению или замене. X выбирается руками, потому что в
+ * файлах корректировок он означает конкретную пару, «откуда» берётся занятие.
+ */
 const CHANGE_TYPE_CARDS: {
-  value: CorrectionChangeType
+  value: CorrectionOperation
   label: string
   hint: string
   className: string
 }[] = [
   {
-    value: "Add",
-    label: "Добавлено",
-    hint: "Новое занятие в свободную пару",
+    value: "add",
+    label: "Добавить",
+    hint: "Новое занятие в выбранную пару",
     className:
       "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
   },
   {
-    value: "Remove",
-    label: "Снято",
-    hint: "Занятие убирается из пары",
-    className:
-      "border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
-  },
-  {
-    value: "Replace",
-    label: "Замена",
-    hint: "Вместо одного занятия — другое",
+    value: "replace",
+    label: "Заменить",
+    hint: "Вместо одного занятия в паре — другое",
     className:
       "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200",
   },
   {
-    value: "Move",
-    label: "Перенос",
-    hint: "Занятие переносится в другую пару",
+    value: "remove",
+    label: "Снять",
+    hint: "Занятие убирается из пары",
     className:
-      "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
+      "border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
   },
 ]
 
+/** Операция, которую выбирает диспетчер. */
+type CorrectionOperation = "add" | "replace" | "remove"
+
+const MAX_PAIR = 8
+
 interface Draft {
-  changeType: CorrectionChangeType
+  /** Операция: добавить, заменить или снять. */
+  operation: CorrectionOperation
   groupId: string
-  /** Пара назначения: свободная — для добавления и переноса. */
+  /** Пара, в которую вводится занятие (добавление и замена). */
   targetPair: number | null
-  /** Снимаемое/заменяемое/переносимое занятие. */
+  /** Занятие, которое снимают (снятие и замена). */
   source: RemovedPairSelection | null
+  /**
+   * «вм.X» — пара, откуда берётся вводимое занятие. С ней добавление или
+   * замена превращается в перенос: пара X освобождается. null — переноса нет.
+   */
+  fromPair: number | null
+  /** Служебное слово «сам.р.»: пара помечается, но не удаляется. */
+  selfStudy: boolean
   teacherIds: string[]
   /**
    * Имена преподавателей позиции как есть (через слеш). Нужны, чтобы при
@@ -102,10 +112,12 @@ interface Draft {
 
 function emptyDraft(): Draft {
   return {
-    changeType: "Add",
+    operation: "add",
     groupId: "",
     targetPair: null,
     source: null,
+    fromPair: null,
+    selfStudy: false,
     teacherIds: [],
     teacherNameHint: "",
     subject: "",
@@ -120,16 +132,37 @@ function sameTeacherName(a: string, b: string): boolean {
   return normalize(a) === normalize(b)
 }
 
+/** «вм.4 п.» в примечании позиции — какая пара в ней названа. */
+const NOTE_PAIR_RE = /вм\.?\s*(\d{1,2})/i
+
+/**
+ * Восстанавливает форму из сохранённой позиции.
+ * «вм.X» читается из примечания — так форма показывает то же, что лежит в
+ * базе, независимо от того, каким кодом позиция была создана.
+ */
 function draftFromPosition(position: CorrectionPosition): Draft {
   const groupId =
     position.groupId && position.groupId !== EMPTY_GUID ? position.groupId : ""
+  const isRemove = position.changeType === "Remove"
+  const isMove = position.changeType === "Move"
+  const isReplace = position.changeType === "Replace"
+
+  const noteMatch = NOTE_PAIR_RE.exec(position.note ?? "")
+  const notePair = noteMatch ? Number(noteMatch[1]) : null
+
+  // Откуда берётся вводимое занятие. У переноса это и есть RemovedNumberPair;
+  // у замены с «вм.X» — тоже, а вот снимаемое занятие лежит в паре Y.
+  const fromPair = isMove
+    ? (position.removedNumberPair ?? notePair)
+    : isReplace && notePair != null
+      ? notePair
+      : null
+
   const source: RemovedPairSelection | null = position.removedSubject
     ? {
-        // Для замены пара одна и та же, для переноса — берём исходную.
-        numberPair:
-          position.changeType === "Move"
-            ? (position.removedNumberPair ?? position.numberPair)
-            : position.numberPair,
+        numberPair: isMove
+          ? (position.removedNumberPair ?? position.numberPair)
+          : position.numberPair,
         removedSubject: position.removedSubject,
         removedTeacherId: position.removedTeacherId ?? null,
         removedTeacherName: position.removedTeacherName ?? null,
@@ -137,17 +170,16 @@ function draftFromPosition(position: CorrectionPosition): Draft {
     : null
 
   return {
-    changeType: position.changeType,
+    operation: isRemove ? "remove" : isReplace ? "replace" : "add",
     groupId,
-    targetPair:
-      position.changeType === "Add" || position.changeType === "Move"
-        ? position.numberPair
-        : null,
-    source,
+    targetPair: isRemove ? null : position.numberPair,
+    source: isRemove || isReplace ? source : null,
+    fromPair,
+    selfStudy: isSelfStudyNote(position.note),
     teacherIds: position.teacherId ? [position.teacherId] : [],
     teacherNameHint: position.teacherName ?? "",
     subject: position.subject ?? "",
-    note: position.note ?? "",
+    note: (position.note ?? "").replace(NOTE_PAIR_RE, "").trim(),
   }
 }
 
@@ -276,17 +308,18 @@ export function CorrectionPositionDialog({
     [teachers, draft.teacherIds],
   )
 
-  const needsSource = draft.changeType !== "Add"
-  // «Преподаватели» и «Предмет» есть не у всех операций. Номера шагов считаем
-  // явно, иначе у «Снято» после третьего шага сразу шёл шестой — выглядит
-  // как пропавшие поля.
-  const showLessonSteps = draft.changeType !== "Remove"
-  const subjectStep = showLessonSteps ? 5 : 4
+  const isRemove = draft.operation === "remove"
+  const isReplace = draft.operation === "replace"
+  // «Преподаватели» и «Предмет» нужны, когда вводится занятие. Номера шагов
+  // считаем явно, иначе у «Снять» после третьего шага сразу шёл шестой —
+  // выглядит как пропавшие поля.
+  const showLessonSteps = !isRemove
   const noteStep = showLessonSteps ? 6 : 4
-  // «Замена» меняет занятие в той же паре, поэтому отдельный выбор пары не нужен.
-  const needsFreeTarget =
-    draft.changeType === "Add" || draft.changeType === "Move"
-  const sourcePair = draft.source?.numberPair ?? null
+
+  // Занятие, «откуда» берётся вводимое при «вм.X».
+  const fromEntry =
+    draft.fromPair != null ? occupiedEntryFor(entries, draft.fromPair) : null
+
   const sourceBusy = useMemo(
     () =>
       draft.source
@@ -301,82 +334,54 @@ export function CorrectionPositionDialog({
 
   const blockedReason = useMemo(() => {
     if (!draft.groupId) return "Выберите группу"
-    if (needsSource) {
-      if (!draft.source) {
-        return draft.changeType === "Remove"
-          ? "Выберите занятие, которое нужно снять"
-          : "Выберите занятие, которое заменяете или переносите"
-      }
+
+    if (isRemove) {
+      if (!draft.source) return "Выберите занятие, которое нужно снять"
       if (sourceBusy) return "На это занятие уже есть позиция в пакете"
+      return null
     }
-    if (needsFreeTarget && draft.targetPair == null)
-      return "Выберите пару для занятия"
-    if (draft.changeType !== "Remove") {
-      if (draft.teacherIds.length === 0) return "Выберите преподавателя"
-      if (!draft.subject) return "Выберите предмет"
+
+    if (draft.targetPair == null) return "Выберите пару для занятия"
+    if (draft.teacherIds.length === 0) return "Выберите преподавателя"
+    if (!draft.subject) return "Выберите предмет"
+
+    if (isReplace && !draft.source)
+      return "Выберите занятие, которое снимаете"
+    if (isReplace && draft.source?.numberPair !== draft.targetPair)
+      return "Снимаемое занятие должно быть из пары, в которую вводите"
+
+    // «вм.X» без занятия в паре X превратился бы в пустую пару.
+    if (draft.fromPair != null) {
+      if (draft.fromPair === draft.targetPair)
+        return "Пара «откуда» должна отличаться от пары, в которую вводите"
+      if (!fromEntry) return `В паре ${draft.fromPair} нет занятия`
     }
+
     return null
   }, [
     draft.groupId,
-    draft.changeType,
+    isRemove,
+    isReplace,
     draft.source,
     draft.targetPair,
+    draft.fromPair,
     draft.subject,
     draft.teacherIds.length,
-    needsSource,
-    needsFreeTarget,
+    fromEntry,
     sourceBusy,
   ])
 
-  // Занятота слота назначения: пара не блокируется, а просто будет второй
-  // в этом слоте. Предупреждаем, чтобы это не было сюрпризом.
-  const targetOccupied =
-    draft.targetPair != null && isPairOccupied(entries, draft.targetPair)
-
-  // Занятие, выбранное для переноса. Отдельного списка нет: перенос делается
-  // прямо в карточке дня.
-  const movedLesson = useMemo<MovedLesson | null>(() => {
-    if (draft.changeType !== "Move" || !draft.source) return null
-    const pair = draft.source.numberPair
-    const entry = entries.find(
-      (item) =>
-        item.numberPair === pair && item.subject === draft.source?.removedSubject,
-    )
-    if (!entry) return null
-    return { entry, numberPair: pair }
-  }, [draft.changeType, draft.source, entries])
-
-  const selectLesson = useCallback(
-    (lesson: MovedLesson | null) => {
-      if (!lesson) {
-        patch({ source: null, targetPair: null })
-        return
-      }
-      patch({
-        source: {
-          numberPair: lesson.numberPair,
-          removedSubject: lesson.entry.subject,
-          removedTeacherId: lesson.entry.teacherId,
-          removedTeacherName: lesson.entry.teacherName,
-        },
-        targetPair: null,
-      })
-    },
-    [],
-  )
-
-  const patchSource = useCallback(
-    (source: RemovedPairSelection | null) =>
-      patch({
-        source,
-        // Пара назначения не должна совпадать с исходной.
-        targetPair:
-          needsFreeTarget && source && draft.targetPair === source.numberPair
-            ? null
-            : draft.targetPair,
-      }),
-    [needsFreeTarget, draft.targetPair],
-  )
+  /**
+   * Примечание в том виде, в каком его понимает система: «вм.X» из
+   * отдельного поля и «сам.р.» из переключателя, плюс свободный текст.
+   */
+  const buildNote = useCallback(() => {
+    const parts: string[] = []
+    if (draft.note.trim()) parts.push(draft.note.trim())
+    if (draft.selfStudy) parts.push("сам.р.")
+    if (draft.fromPair != null) parts.push(`вм.${draft.fromPair} п.`)
+    return parts.length > 0 ? parts.join(" ") : null
+  }, [draft.note, draft.selfStudy, draft.fromPair])
 
   const handleSubmit = async () => {
     if (blockedReason) {
@@ -387,31 +392,65 @@ export function CorrectionPositionDialog({
       .map((id) => teachers.find((teacher) => teacher.id === id)?.fullName)
       .filter((name): name is string => Boolean(name))
 
-    const isRemove = draft.changeType === "Remove"
+    // Две операции превращаются в тип позиции:
+    //   добавить в свободный слот           → Add
+    // Тип позиции выводится из операции и примечания «вм.X».
+    //   Снять                → Remove
+    //   Добавить             → Add   (в паре Y просто второе занятие)
+    //   Добавить + вм.X      → Move  (пара X освобождается — это перенос)
+    //   Заменить             → Replace (снимаем выбранное из пары Y)
+    //   Заменить + вм.X      → Replace с RemovedNumberPair = X:
+    //                           движок дополнительно снимает вводимое занятие
+    //                           из пары X — это замена с переносом.
+    const moved = draft.fromPair != null && fromEntry != null
+    const note = buildNote()
 
-    // Тип позиции сохраняется ровно тот, что выбрал диспетчер. Раньше
-    // «Добавлено» в занятую пару молча превращалось в «Замену» и сносило
-    // существующее занятие — но по правилам в слоте может быть несколько пар.
     const payload: CreateCorrectionPosition = {
-      changeType: draft.changeType,
+      changeType: isRemove
+        ? "Remove"
+        : isReplace
+          ? "Replace"
+          : moved
+            ? "Move"
+            : "Add",
       groupId: draft.groupId,
       groupName: group?.name ?? "",
-      numberPair: needsFreeTarget
-        ? (draft.targetPair ?? 1)
-        : (draft.source?.numberPair ?? 1),
+      numberPair: isRemove ? (draft.source?.numberPair ?? 1) : (draft.targetPair ?? 1),
       subject: isRemove ? null : draft.subject,
-      teacherId: draft.teacherIds[0] ?? null,
+      teacherId: isRemove ? null : (draft.teacherIds[0] ?? null),
       teacherName:
         isRemove || teacherNames.length === 0 ? null : teacherNames.join("/"),
-      removedSubject: needsSource ? (draft.source?.removedSubject ?? null) : null,
-      removedTeacherId: needsSource
+      // Снятие — выбранное занятие. Перенос — занятие из пары «вм.X».
+      // Замена — выбранное занятие из пары Y.
+      removedSubject: isRemove
+        ? (draft.source?.removedSubject ?? null)
+        : moved
+          ? fromEntry?.subject
+          : isReplace
+            ? (draft.source?.removedSubject ?? null)
+            : null,
+      removedTeacherId: isRemove
         ? (draft.source?.removedTeacherId ?? null)
-        : null,
-      removedTeacherName: needsSource
+        : moved
+          ? fromEntry?.teacherId
+          : isReplace
+            ? (draft.source?.removedTeacherId ?? null)
+            : null,
+      removedTeacherName: isRemove
         ? (draft.source?.removedTeacherName ?? null)
-        : null,
-      removedNumberPair: needsSource ? (draft.source?.numberPair ?? null) : null,
-      note: draft.note.trim() || null,
+        : moved
+          ? fromEntry?.teacherName
+          : isReplace
+            ? (draft.source?.removedTeacherName ?? null)
+            : null,
+      removedNumberPair: isRemove
+        ? (draft.source?.numberPair ?? null)
+        : moved
+          ? draft.fromPair
+          : isReplace
+            ? (draft.targetPair ?? null)
+            : null,
+      note,
     }
 
     setSaving(true)
@@ -438,43 +477,42 @@ export function CorrectionPositionDialog({
             {editing ? "Редактирование позиции" : "Новая позиция корректировки"}
           </DialogTitle>
           <DialogDescription>
-            Позиция добавляется в пакет за {formatDate(batchDate)}. Шаги идут
-            сверху вниз: каждый следующий список ограничен реальными данными
-            группы, поэтому ошибиться выбором нельзя.
+            Позиция добавляется в пакет за {formatDate(batchDate)}. Перенос
+            отдельной операцией не нужен: он получается сам, если в примечании
+            указать «вм.X» — пару, откуда берётся занятие.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-5">
-          <Step index={1} title="Тип операции">
+          <Step index={1} title="Операция">
             <div
               className="grid gap-2 sm:grid-cols-2"
               role="radiogroup"
-              aria-label="Тип операции"
+              aria-label="Операция"
             >
               {CHANGE_TYPE_CARDS.map((card) => (
                 <button
                   key={card.value}
                   type="button"
                   role="radio"
-                  aria-checked={draft.changeType === card.value}
+                  aria-checked={draft.operation === card.value}
                   onClick={() =>
                     patch({
-                      changeType: card.value,
-                      // Тип операции меняет смысл выбранной позиции — сбрасываем выбор.
+                      operation: card.value,
+                      // Операция меняет смысл выбранного — часть полей сбрасываем.
                       targetPair:
-                        card.value === "Add" || card.value === "Move"
-                          ? draft.targetPair
-                          : null,
-                      source: card.value === "Add" ? null : draft.source,
-                      note: /^вм\.\d+$/.test(draft.note.trim())
-                        ? ""
-                        : draft.note,
+                        card.value === "remove" ? null : draft.targetPair,
+                      // Снятое занятие нужно снятию и замене, но не добавлению.
+                      source: card.value === "add" ? null : draft.source,
+                      // «вм.X» переносит занятие, поэтому теряет смысл, если
+                      // операция больше не вводит занятие.
+                      fromPair: card.value === "remove" ? null : draft.fromPair,
                     })
                   }
                   className={cn(
                     "rounded-md border px-3 py-2 text-left transition-colors",
                     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                    draft.changeType === card.value
+                    draft.operation === card.value
                       ? card.className
                       : "border-input bg-background hover:bg-muted",
                   )}
@@ -539,64 +577,50 @@ export function CorrectionPositionDialog({
 
               {!loading && !loadError && (
                 <div className="grid gap-4">
-                  {draft.changeType === "Remove" ? (
+                  {isReplace && (
                     <div className="grid gap-1.5">
                       <span className="text-sm font-medium">
                         Снимаемое занятие
                       </span>
                       <RemovePairPicker
                         value={draft.source}
-                        onChange={patchSource}
+                        onChange={(source) =>
+                          patch({
+                            source,
+                            // У снимаемого занятия своя пара — она и есть
+                            // пара назначения, выбирать её заново не нужно.
+                            targetPair: source?.numberPair ?? draft.targetPair,
+                          })
+                        }
                         entries={entries}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Без примечания «сам.р.» пара снимается с расписания;
-                        с ним — остаётся и помечается для студентов.
-                      </p>
                     </div>
-                  ) : draft.changeType === "Replace" ? (
-                    // У замены слот не меняется, поэтому карточка дня с
-                    // некликабельными рядами была лишней: выбираем только
-                    // заменяемое занятие из списка дня.
-                    <div className="grid gap-1.5">
-                      <span className="text-sm font-medium">
-                        Заменяемое занятие
-                      </span>
-                      <RemovePairPicker
-                        value={draft.source}
-                        onChange={patchSource}
-                        entries={entries}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Новое занятие встанет в ту же пару {draft.source?.numberPair ?? "—"}.
-                      </p>
-                    </div>
-                  ) : (
-                    // Добавление и перенос: карточка дня — единственный
-                    // выбор. Для переноса занятие перетаскивается на строку.
+                  )}
+
+                  {!isRemove && (
                     <GroupDayCard
                       groupName={group?.name ?? ""}
                       dateLabel={formatDate(batchDate)}
                       entries={entries}
                       selectedPair={draft.targetPair}
-                      onSelectPair={(numberPair) => patch({ targetPair: numberPair })}
-                      movedLesson={
-                        draft.changeType === "Move" ? movedLesson : null
+                      onSelectPair={(numberPair) =>
+                        patch({ targetPair: numberPair })
                       }
-                      onSelectLesson={
-                        draft.changeType === "Move"
-                          ? selectLesson
-                          : undefined
-                      }
-                      selectable
                     />
                   )}
 
-                  {targetOccupied && (
-                    <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                      В паре {draft.targetPair} уже есть занятие — новое встанет
-                      в неё вторым. Если нужно заменить, снимите старое или
-                      выберите тип «Замена».
+                  {isReplace && draft.source && draft.targetPair != null && (
+                    <p className="text-xs text-muted-foreground">
+                      {draft.source.numberPair === draft.targetPair
+                        ? `В паре ${draft.targetPair} вместо «${draft.source.removedSubject}» встанет новое занятие.`
+                        : `Снимаемое занятие из пары ${draft.source.numberPair}, новое встанет в пару ${draft.targetPair}.`}
+                    </p>
+                  )}
+
+                  {isRemove && (
+                    <p className="text-xs text-muted-foreground">
+                      Без примечания «сам.р.» пара снимается с расписания; с ним
+                      — остаётся и помечается для студентов.
                     </p>
                   )}
                 </div>
@@ -604,7 +628,7 @@ export function CorrectionPositionDialog({
             </Step>
           )}
 
-          {draft.groupId && draft.changeType !== "Remove" && (
+          {draft.groupId && !isRemove && (
             <Step
               index={4}
               title="Преподаватели"
@@ -651,9 +675,9 @@ export function CorrectionPositionDialog({
             </Step>
           )}
 
-          {draft.groupId && draft.changeType !== "Remove" && (
+          {draft.groupId && !isRemove && (
             <Step
-              index={subjectStep}
+              index={5}
               title="Предмет"
               icon={<GraduationCap className="size-4" aria-hidden />}
             >
@@ -685,31 +709,79 @@ export function CorrectionPositionDialog({
           )}
 
           <Step index={noteStep} title="Примечание">
-            <Input
-              value={draft.note}
-              onChange={(event) => patch({ note: event.target.value })}
-              placeholder="Необязательно"
-              aria-label="Примечание"
-            />
-            <NoteChips
-              value={draft.note}
-              onChange={(note) => patch({ note })}
-              className="mt-2"
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              «{NOTE_CHIPS.join(", ")}» — служебное слово: пара остаётся в
-              расписании и помечается для студентов. Остальной текст — свободное
-              примечание.
-            </p>
-            {draft.changeType === "Move" && sourcePair != null && (
-              <Badge
-                variant="outline"
-                className="mt-2 w-fit gap-1 bg-muted text-muted-foreground"
-              >
-                <Lock className="size-3" aria-hidden />
-                вм.{sourcePair} — подставится автоматически
-              </Badge>
-            )}
+            <div className="grid gap-3">
+              <div className="grid gap-1.5">
+                <span className="text-sm font-medium">Служебные отметки</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    aria-pressed={draft.selfStudy}
+                    onClick={() => patch({ selfStudy: !draft.selfStudy })}
+                    className={cn(
+                      "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
+                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                      draft.selfStudy
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input bg-background text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    <BookOpen className="size-3.5" aria-hidden />
+                    сам.р.
+                  </button>
+                  <span className="text-xs text-muted-foreground">
+                    Пара остаётся в расписании и помечается для студентов
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="position-from-pair">вм.X — пара «откуда»</Label>
+                <NativeSelect
+                  value={draft.fromPair == null ? "none" : String(draft.fromPair)}
+                  onValueChange={(value) =>
+                    patch({ fromPair: value === "none" ? null : Number(value) })
+                  }
+                  disabled={isRemove}
+                  aria-label="Пара, откуда берётся занятие"
+                >
+                  <NativeSelectItem value="none">Без переноса</NativeSelectItem>
+                  {Array.from({ length: MAX_PAIR }, (_, i) => i + 1).map((n) => (
+                    <NativeSelectItem key={n} value={String(n)}>
+                      вм.{n}
+                      {occupiedEntryFor(entries, n)
+                        ? ` — ${occupiedEntryFor(entries, n)?.subject}`
+                        : " — пара свободна"}
+                    </NativeSelectItem>
+                  ))}
+                </NativeSelect>
+                <p className="text-xs text-muted-foreground">
+                  {isRemove
+                    ? "Для снятия перенос не нужен."
+                    : "Занятие переносится из указанной пары в ту, что выбрана выше: без этого отметка занятие осталось бы в обеих парах."}
+                </p>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="position-note">Свободный текст</Label>
+                <Input
+                  id="position-note"
+                  value={draft.note}
+                  onChange={(event) => patch({ note: event.target.value })}
+                  placeholder="Необязательно"
+                  disabled={saving}
+                />
+              </div>
+
+              {buildNote() && (
+                <Badge
+                  variant="outline"
+                  className="w-fit gap-1 bg-muted text-muted-foreground"
+                >
+                  <Lock className="size-3" aria-hidden />
+                  {buildNote()}
+                </Badge>
+              )}
+            </div>
           </Step>
         </div>
 

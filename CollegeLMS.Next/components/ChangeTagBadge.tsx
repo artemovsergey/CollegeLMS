@@ -14,6 +14,7 @@ import {
   changeTagTooltip,
   isSelfStudyNote,
   primaryChangeTag,
+  showsSelfStudyTag,
 } from "@/lib/change-tags"
 import { cn } from "@/lib/utils"
 
@@ -41,6 +42,7 @@ const CHANGE_META: Record<
 
 const SELF_STUDY_META = {
   icon: BookOpen,
+  iconClass: "text-violet-600 dark:text-violet-400",
   className:
     "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
 }
@@ -51,17 +53,26 @@ interface ChangeTagBadgeProps {
 }
 
 /**
- * Бейдж изменений в паре расписания. Показывается ровно один бейдж на пару:
- * остальные изменения (неделя, предмет «вместо», примечание) уходят в подсказку,
- * иначе несколько операций над одной парой дают наложенные друг на друга бейджи.
+ * Бейдж изменений в паре расписания.
+ *
+ * Показывается один бейдж на пару: остальные изменения (неделя, предмет
+ * «вместо», примечание) уходят в подсказку, иначе несколько операций над одной
+ * парой дают наложенные друг на друга бейджи. Исключение — «Сам.р.»: он
+ * приходит вторым бейджом рядом, потому что это дополнительная пометка, а не
+ * отдельная корректировка пары.
  */
 export default function ChangeTagBadge({ tags, className }: ChangeTagBadgeProps) {
   const tag = primaryChangeTag(tags)
   if (!tag) return null
 
-  const meta = isSelfStudyNote(tag.note) ? SELF_STUDY_META : CHANGE_META[tag.changeType]
+  // Подпись «Сам.р.» вместо «Снято» — значит пара осталась, и красный цвет
+  // снятия сбивал бы с толку: красим бейдж в цвет самостоятельной работы.
+  const selfStudyReplacesLabel =
+    isSelfStudyNote(tag.note) && tag.changeType === "Remove"
+  const meta = selfStudyReplacesLabel ? SELF_STUDY_META : CHANGE_META[tag.changeType]
   const Icon = meta.icon
   const label = changeTagLabel(tag)
+  const SelfStudyIcon = SELF_STUDY_META.icon
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -76,6 +87,15 @@ export default function ChangeTagBadge({ tags, className }: ChangeTagBadgeProps)
           >
             <Icon className="size-3" aria-hidden />
             {label}
+            {showsSelfStudyTag(tag) && (
+              <>
+                <SelfStudyIcon
+                  className={cn("size-3", SELF_STUDY_META.iconClass)}
+                  aria-hidden
+                />
+                <span className="sr-only">самостоятельная работа</span>
+              </>
+            )}
           </span>
         </TooltipTrigger>
         <TooltipContent>
