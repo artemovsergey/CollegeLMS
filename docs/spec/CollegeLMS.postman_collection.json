@@ -1200,6 +1200,100 @@
           "description": "Скачать XLSX с текущими позициями пакета. Имя файла — «Корректировка_ddMMyy_HHmm.xlsx», например «Корректировка_240926_1203.xlsx»: сначала дата, потом время (передаётся в заголовке Content-Disposition). Оформление задаётся кодом и применяется ко всем строкам: Times New Roman 12, рамка по периметру таблицы (средняя) и тонкие линии внутри. Для changeType=Move примечание выводится как «вм.X»."
         },
         {
+          "name": "Update correction batch date",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correctionDate\": \"2026-09-10\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "{{batchId}}"
+              ]
+            }
+          },
+          "description": "Смена даты подготовленного пакета: неделя и день пересчитываются для всех позиций. Для применённого пакета — 409."
+        },
+        {
+          "name": "Clear applied correction batches",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/applied",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "applied"
+              ]
+            }
+          },
+          "description": "Удаляет все применённые пакеты разом: расписание откатывается к состоянию до корректировок, записи журнала удаляются. Черновые пакеты не трогаются."
+        },
+        {
+          "name": "Get correction references",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/references?groupId={{groupId}}&date=2026-09-10&batchId={{batchId}}&excludePositionId={{positionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "references"
+              ],
+              "query": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-09-10"
+                },
+                {
+                  "key": "batchId",
+                  "value": "{{batchId}}"
+                },
+                {
+                  "key": "excludePositionId",
+                  "value": "{{positionId}}"
+                }
+              ]
+            }
+          },
+          "description": "Справочники пошаговой формы позиции. excludePositionId исключает редактируемую позицию из наложения — иначе её собственный слот выглядит занятым и перенести пару на другой уже нельзя."
+        },
+        {
           "name": "Apply correction batch",
           "request": {
             "method": "POST",

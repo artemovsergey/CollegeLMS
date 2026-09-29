@@ -66,6 +66,7 @@ export default function ScheduleView() {
     viewContext,
     currentSelection,
     makeCurrentSelection,
+    setViewContext,
     loading: contextLoading,
     deepLink,
   } = useMaxContext()
@@ -92,6 +93,16 @@ export default function ScheduleView() {
         parseMaxDeepLink(
           typeof window !== "undefined" ? window.location.search : "",
         )
+      // Ссылка «Открыть день» из ленты изменений несёт контекст изменения:
+      // без него расписание открывается пустым.
+      if (link.groupId || link.teacherId) {
+        setViewContext(
+          link.groupId
+            ? { groupId: link.groupId }
+            : { teacherId: link.teacherId },
+        )
+      }
+
       let initialWeek = res.data.currentWeek
       let initialDate =
         normalizeDateOnly(res.data.currentDate) || toIsoDate(new Date())
@@ -125,7 +136,7 @@ export default function ScheduleView() {
     return () => {
       cancelled = true
     }
-  }, [deepLink])
+  }, [deepLink, setViewContext])
 
   const load = useCallback(async () => {
     const requestId = ++requestIdRef.current

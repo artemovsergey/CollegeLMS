@@ -19,6 +19,13 @@ import {
   type ScheduleMeta,
 } from "@/api/schedule"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import {
   AlertDialog,
@@ -50,6 +57,41 @@ import LoadingSpinner from "@/components/LoadingSpinner"
 import { CalendarDays, Download, Filter, SearchX, Upload } from "lucide-react"
 import { toast } from "sonner"
 
+/** Последний выбор группы/преподавателя на странице расписания. */
+const SCHEDULE_SELECTION_KEY = "schedule-selection"
+
+function readStoredSelection(): { groupId: string; teacherId: string } {
+  if (typeof window === "undefined") return { groupId: "", teacherId: "" }
+  try {
+    const raw = localStorage.getItem(SCHEDULE_SELECTION_KEY)
+    if (!raw) return { groupId: "", teacherId: "" }
+    const parsed = JSON.parse(raw) as {
+      groupId?: unknown
+      teacherId?: unknown
+    }
+    return {
+      groupId: typeof parsed.groupId === "string" ? parsed.groupId : "",
+      teacherId: typeof parsed.teacherId === "string" ? parsed.teacherId : "",
+    }
+  } catch {
+    return { groupId: "", teacherId: "" }
+  }
+}
+
+function storeSelection(groupId: string, teacherId: string): void {
+  if (typeof window === "undefined") return
+  try {
+    if (!groupId && !teacherId) localStorage.removeItem(SCHEDULE_SELECTION_KEY)
+    else
+      localStorage.setItem(
+        SCHEDULE_SELECTION_KEY,
+        JSON.stringify({ groupId, teacherId }),
+      )
+  } catch {
+    /* приватный режим — выбор просто не запомнится */
+  }
+}
+
 function mondayOf(date: Date): Date {
   const d = new Date(date)
   const offset = (d.getDay() + 6) % 7
@@ -73,8 +115,14 @@ export default function SchedulePage() {
   const [groups, setGroups] = useState<GroupResponse[]>([])
   const [teachers, setTeachers] = useState<TeacherResponse[]>([])
 
-  const [selectedGroupId, setSelectedGroupId] = useState("")
-  const [selectedTeacherId, setSelectedTeacherId] = useState("")
+  // Последний выбор запоминается: возвращаясь на страницу, диспетчер видит
+  // ту же группу или преподавателя, а не пустое расписание.
+  const [selectedGroupId, setSelectedGroupId] = useState(
+    () => readStoredSelection().groupId,
+  )
+  const [selectedTeacherId, setSelectedTeacherId] = useState(
+    () => readStoredSelection().teacherId,
+  )
   const [defaultGroupId, setDefaultGroupId] = useState("")
   const [defaultTeacherId, setDefaultTeacherId] = useState("")
 
@@ -87,7 +135,12 @@ export default function SchedulePage() {
     null,
   )
   const [importDialogOpen, setImportDialogOpen] = useState(false)
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [deleteConfirmIds, setDeleteConfirmIds] = useState<string[]>([])
+  // Слот с несколькими подгруппами: показываем список записей для выбора.
+  const [slotParts, setSlotParts] = useState<{
+    entry: ScheduleResponse
+    subEntries: ScheduleResponse[]
+  } | null>(null)
 
   const legacyRef = useRef<{ week: number; dayOffset: number } | null>(null)
   const hasUrlDateRef = useRef(false)
@@ -234,16 +287,17 @@ export default function SchedulePage() {
         const teacherId = body.data.teacherId ?? ""
         setDefaultGroupId(groupId)
         setDefaultTeacherId(teacherId)
-        setSelectedGroupId(groupId)
-        setSelectedTeacherId(teacherId)
-        // Значения из query (превью) важнее дефолта роли.
-        if (urlGroupRef.current) {
-          setSelectedGroupId(urlGroupRef.current)
-          setSelectedTeacherId("")
-        } else if (urlTeacherRef.current) {
-          setSelectedTeacherId(urlTeacherRef.current)
-          setSelectedGroupId("")
-        }
+
+        // Приоритет контекста: ссылка из «Изменений» → запомненный выбор →
+        // группа/преподаватель по роли. Иначе возврат на страницу каждый раз
+        // сбрасывал бы расписание на пустое.
+        const stored = readStoredSelection()
+        setSelectedGroupId(urlGroupRef.current ?? stored.groupId ?? groupId)
+        setSelectedTeacherId(
+          urlTeacherRef.current ?? stored.teacherId ?? teacherId,
+        )
+        if (urlGroupRef.current) setSelectedTeacherId("")
+        if (urlTeacherRef.current) setSelectedGroupId("")
       })
       .catch(() => undefined)
       .finally(() => {
@@ -253,6 +307,11 @@ export default function SchedulePage() {
       cancelled = true
     }
   }, [token])
+
+  useEffect(() => {
+    if (!contextReady) return
+    storeSelection(selectedGroupId, selectedTeacherId)
+  }, [contextReady, selectedGroupId, selectedTeacherId])
 
   const loadGroups = useCallback(async () => {
     try {
@@ -288,12 +347,23 @@ export default function SchedulePage() {
     if (view === "day") params.set("date", selectedDate)
     if (view === "week") params.set("week", String(selectedWeek))
     if (view === "calendar") params.set("month", selectedMonth)
+    if (selectedGroupId) params.set("groupId", selectedGroupId)
+    if (selectedTeacherId) params.set("teacherId", selectedTeacherId)
     window.history.replaceState(
       null,
       "",
       `${window.location.pathname}?${params.toString()}`,
     )
-  }, [urlReady, embed, view, selectedDate, selectedWeek, selectedMonth])
+  }, [
+    urlReady,
+    embed,
+    view,
+    selectedDate,
+    selectedWeek,
+    selectedMonth,
+    selectedGroupId,
+    selectedTeacherId,
+  ])
 
   const handleViewChange = (mode: ScheduleViewMode) => {
     setView(mode)
@@ -310,6 +380,7 @@ export default function SchedulePage() {
     setView("day")
   }
 
+  // Сброс меняет состояние, а запомненный выбор обновляет эффект ниже.
   const handleClear = () => {
     setSelectedGroupId(defaultGroupId)
     setSelectedTeacherId(defaultTeacherId)
@@ -346,19 +417,45 @@ export default function SchedulePage() {
     setEntryDialogOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
+  /**
+   * Пара с подгруппами (ин.язык и т.п.) — одна строка с несколькими
+   * записями. Карандаш и корзина у слота одни, но внутри слота нужно выбрать
+   * запись: сначала список подгрупп, затем обычное окно редактирования.
+   */
+  const handleSlotEdit = (
+    entry: ScheduleResponse,
+    subEntries: ScheduleResponse[],
+  ) => {
+    if (subEntries.length <= 1) {
+      handleEdit(subEntries[0] ?? entry)
+      return
+    }
+    setSlotParts({ entry, subEntries })
+  }
+
+  const handleSlotDelete = (
+    entry: ScheduleResponse,
+    subEntries: ScheduleResponse[],
+  ) => {
+    setDeleteConfirmIds(subEntries.map((sub) => sub.id).filter(Boolean))
+  }
+
+  const handleDelete = async (ids: string[]) => {
     try {
-      const result = await deleteSchedule(id)
-      if (result.isSuccess) {
-        toast.success("Запись удалена")
-        setRefreshKey((k) => k + 1)
+      const results = await Promise.all(ids.map((id) => deleteSchedule(id)))
+      const failed = results.find((result) => !result.isSuccess)
+      if (failed) {
+        toast.error(failed.errorMessage ?? "Ошибка удаления")
       } else {
-        toast.error(result.errorMessage ?? "Ошибка удаления")
+        toast.success(
+          ids.length > 1 ? `Записи удалены: ${ids.length}` : "Запись удалена",
+        )
+        setRefreshKey((k) => k + 1)
       }
     } catch {
       toast.error("Ошибка удаления")
     } finally {
-      setDeleteConfirmId(null)
+      setDeleteConfirmIds([])
     }
   }
 
@@ -508,9 +605,8 @@ export default function SchedulePage() {
               refreshKey={refreshKey}
               onDateChange={handleDateChange}
               onEntryClick={canManage ? handleEdit : undefined}
-              onDeleteClick={
-                canManage ? (id) => setDeleteConfirmId(id) : undefined
-              }
+              onSlotEditClick={canManage ? handleSlotEdit : undefined}
+              onSlotDeleteClick={canManage ? handleSlotDelete : undefined}
             />
           )}
 
@@ -562,24 +658,67 @@ export default function SchedulePage() {
         onImported={() => setRefreshKey((k) => k + 1)}
       />
 
-      <AlertDialog
-        open={deleteConfirmId !== null}
+      {/* Слот из нескольких записей: одна пара, но редактируется конкретная
+          подгруппа (аудитория + преподаватель). */}
+      <Dialog
+        open={slotParts != null}
         onOpenChange={(open) => {
-          if (!open) setDeleteConfirmId(null)
+          if (!open) setSlotParts(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Выберите запись</DialogTitle>
+            <DialogDescription>
+              {slotParts?.entry.subject} — в этой паре{" "}
+              {slotParts?.subEntries.length} записи. Выберите ту, которую нужно
+              изменить.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-1.5">
+            {slotParts?.subEntries.map((sub) => (
+              <button
+                key={sub.id}
+                type="button"
+                onClick={() => {
+                  setSlotParts(null)
+                  handleEdit(sub)
+                }}
+                className="rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="block font-medium">
+                  {sub.room || "без аудитории"}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {sub.teacherName ?? "Преподаватель не указан"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={deleteConfirmIds.length > 0}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmIds([])
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить пару?</AlertDialogTitle>
             <AlertDialogDescription>
-              Запись будет удалена из расписания. Это действие нельзя отменить.
+              {deleteConfirmIds.length > 1
+                ? `В паре ${deleteConfirmIds.length} записи (подгруппы) — будут удалены все. Действие нельзя отменить.`
+                : "Запись будет удалена из расписания. Это действие нельзя отменить."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deleteConfirmId) void handleDelete(deleteConfirmId)
+                if (deleteConfirmIds.length > 0)
+                  void handleDelete(deleteConfirmIds)
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

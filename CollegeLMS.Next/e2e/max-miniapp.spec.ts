@@ -321,20 +321,22 @@ test.describe("MAX mini-app", () => {
 
     await expect(page.getByText("Изменения")).toBeVisible()
 
-    // Фильтр по неделям удалён — вместо него компактная кнопка-календарь
-    // с aria-label «Выбрать дату».
+    // Фильтр по неделям удалён — вместо него календарь с выбором даты.
     await expect(page.locator("#max-week-filter")).toHaveCount(0)
-    await expect(page.getByRole("button", { name: "Выбрать дату" })).toBeVisible()
+    await expect(
+      page.getByLabel("Дата проведения занятия"),
+    ).toBeVisible()
 
     const card = page.locator(".max-app__change-card")
     await expect(card).toHaveCount(1)
-    // Тип, предмет (старый зачёркнут, новый показан) и пара «2 → 3».
+    // Тип, занятие «старое => новое» и пара «2 → 3».
     await expect(card.getByText("Замена")).toBeVisible()
     await expect(card.locator(".max-app__badge--replace")).toHaveText(/Замена/)
     // Компактные бейджи без суффикса «· нед. N».
     await expect(page.getByText(/нед\./)).toHaveCount(0)
-    await expect(card.getByText("Математика")).toBeVisible()
-    await expect(card.getByText("Физика")).toBeVisible()
+    await expect(card.locator(".max-app__change-card-subject")).toContainText("=>")
+    await expect(card.getByText(/Математика/)).toBeVisible()
+    await expect(card.getByText(/Физика/)).toBeVisible()
     await expect(card.getByText("пара 2 → 3")).toBeVisible()
     // Группа, аудитория, дата занятия и неделя.
     await expect(card.getByText("ПО262")).toBeVisible()
@@ -353,9 +355,11 @@ test.describe("MAX mini-app", () => {
   }) => {
     await page.goto("/max/changes", { waitUntil: "networkidle" })
 
-    await expect(page.getByRole("button", { name: "Выбрать дату" })).toBeVisible()
-    // Нативный input визуально скрыт, но дата применяется через него.
-    await page.locator(".max-app__date-input").fill("2026-09-07")
+    // Календарь — настоящее поле даты: в вебвью MAX showPicker() не работает,
+    // поэтому скрывать input было нельзя.
+    const dateInput = page.getByLabel("Дата проведения занятия")
+    await expect(dateInput).toBeVisible()
+    await dateInput.fill("2026-09-07")
 
     await expect(page.locator(".max-app__chip--on")).toContainText("07.09")
     const reset = page.getByRole("button", { name: "Сбросить дату" })

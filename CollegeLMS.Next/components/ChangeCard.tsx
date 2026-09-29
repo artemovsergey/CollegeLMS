@@ -7,7 +7,6 @@ import {
   Minus,
   Repeat,
   ArrowRightLeft,
-  ArrowLeft,
   BookOpen,
   CalendarDays,
   Clock,
@@ -19,6 +18,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { dateForLesson } from "@/lib/semester"
+import { toIsoDate } from "@/api/schedule"
 import { dayLabelFromString } from "@/lib/max-lesson"
 
 const CHANGE_TYPE_META: Record<
@@ -66,12 +66,41 @@ function isSelfStudy(item: ScheduleHistoryItem): boolean {
   return SELF_STUDY_NOTE_RE.test(item.note ?? "")
 }
 
+/** «Предмет Преподаватель» одной строкой — так же, как в файле корректировки. */
+function lessonLine(
+  subject: string | null | undefined,
+  teacher: string | null | undefined,
+): string {
+  return [subject, teacher].filter(Boolean).join(" ") || "—"
+}
+
 function formatDate(date: Date): string {
   return date.toLocaleDateString("ru-RU", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   })
+}
+
+/**
+ * Ссылка на день расписания: дата занятия + контекст (преподаватель, если
+ * изменение его, иначе группа). Страница расписания читает их из query.
+ */
+function buildDayHref(
+  item: ScheduleHistoryItem,
+  date: Date,
+  dayIndex: number,
+): string {
+  const params = new URLSearchParams({ view: "day" })
+  const dateValue = toIsoDate(date)
+  if (dateValue) params.set("date", dateValue)
+  else {
+    params.set("week", String(item.week))
+    params.set("day", String(dayIndex))
+  }
+  if (item.teacherId) params.set("teacherId", item.teacherId)
+  else if (item.groupId) params.set("groupId", item.groupId)
+  return `/schedule?${params.toString()}`
 }
 
 function formatAppliedAt(value: string): string {
@@ -105,6 +134,9 @@ export default function ChangeCard({
   const appliedAt = formatAppliedAt(item.appliedAt)
 
   const dayLabel = dayLabelFromString(item.dayOfWeek)
+  // Ссылка «Открыть день» ведёт сразу на нужный день с нужной группой
+  // или преподавателем: иначе расписание открывается пустым.
+  const dayHref = buildDayHref(item, date, dayIndex)
   const pairLabel =
     item.removedNumberPair != null &&
     item.removedNumberPair !== item.numberPair &&
@@ -114,10 +146,14 @@ export default function ChangeCard({
 
   const isMoveOrReplace =
     item.changeType === "Replace" || item.changeType === "Move"
-  const primarySubject =
-    item.changeType === "Remove"
-      ? item.removedSubject ?? item.subject
-      : item.subject
+  const removedLesson = lessonLine(
+    item.removedSubject ?? item.subject,
+    item.teacherName,
+  )
+  const newLesson = lessonLine(
+    item.changeType === "Remove" ? null : item.subject,
+    item.changeType === "Remove" ? null : item.teacherName,
+  )
 
   return (
     <Card
@@ -162,22 +198,26 @@ export default function ChangeCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-base">
-          {isMoveOrReplace && item.removedSubject && (
-            <>
-              <span className="text-muted-foreground line-through">
-                {item.removedSubject}
+          {isMoveOrReplace && item.removedSubject ? (
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="text-muted-foreground">{removedLesson}</span>
+              <span className="text-muted-foreground" aria-hidden>
+                {"=>"}
               </span>
-              <ArrowLeft className="size-4 rotate-180 text-muted-foreground" aria-hidden />
-            </>
+              <span className="font-medium">{newLesson}</span>
+            </span>
+          ) : (
+            <span className="font-medium">{newLesson}</span>
           )}
-          <span className="font-medium">{primarySubject}</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <User className="size-3.5" aria-hidden />
-            {item.teacherName ?? "Преподаватель не указан"}
-          </span>
+          {!item.teacherName && (
+            <span className="inline-flex items-center gap-1">
+              <User className="size-3.5" aria-hidden />
+              Преподаватель не указан
+            </span>
+          )}
           {item.note && <span>Примечание: {item.note}</span>}
         </div>
 
@@ -186,7 +226,7 @@ export default function ChangeCard({
             Применено: {appliedAt || "—"}
           </span>
           <Link
-            href={`/schedule?week=${item.week}&day=${dayIndex}`}
+            href={dayHref}
             className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded"
           >
             Открыть день расписания

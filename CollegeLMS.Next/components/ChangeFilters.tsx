@@ -137,7 +137,9 @@ export default function ChangeFilters({
         Фильтры
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      {/* Единая сетка: подписи и контролы одинаковой высоты, иначе блоки
+          фильтров стоят неровно друг относительно друга. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <FilterSelect
           id="changes-week"
           label="Неделя"
@@ -157,7 +159,7 @@ export default function ChangeFilters({
         </FilterSelect>
 
         <div className="flex flex-col">
-          <Label htmlFor="changes-date" className="mb-1.5">
+          <Label htmlFor="changes-date" className="mb-1.5 block text-sm font-medium text-foreground">
             Дата проведения
           </Label>
           <Input
@@ -169,7 +171,7 @@ export default function ChangeFilters({
         </div>
 
         <div className="flex flex-col">
-          <Label htmlFor="changes-from" className="mb-1.5">
+          <Label htmlFor="changes-from" className="mb-1.5 block text-sm font-medium text-foreground">
             Период: с
           </Label>
           <Input
@@ -181,7 +183,7 @@ export default function ChangeFilters({
         </div>
 
         <div className="flex flex-col">
-          <Label htmlFor="changes-to" className="mb-1.5">
+          <Label htmlFor="changes-to" className="mb-1.5 block text-sm font-medium text-foreground">
             Период: по
           </Label>
           <Input
@@ -230,83 +232,86 @@ export default function ChangeFilters({
             </option>
           ))}
         </FilterSelect>
-      </div>
 
-      <div className="flex flex-col sm:max-w-md">
-        <Label htmlFor="changes-group" className="mb-1.5">
-          Группа
-        </Label>
-        {value.groupId ? (
-          <div className="flex h-9 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 text-sm dark:bg-input/30">
-            <span className="truncate">
-              {value.groupName ?? "Выбранная группа"}
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                onChange({ groupId: undefined, groupName: undefined })
-              }
-              className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="Сбросить группу"
-            >
-              <X className="size-4" aria-hidden />
-            </button>
-          </div>
-        ) : (
-          <div className="relative" ref={groupBoxRef}>
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              id="changes-group"
-              type="search"
-              placeholder="Начните вводить название группы"
-              value={groupQuery}
-              onChange={(e) => {
-                setGroupQuery(e.target.value)
-                setGroupOpen(true)
-              }}
-              onFocus={() => setGroupOpen(true)}
-              className="pl-9"
-              autoComplete="off"
-              aria-controls="changes-group-results"
-              aria-expanded={groupOpen && groupQuery.trim().length >= 2}
-            />
-            {groupOpen && groupQuery.trim().length >= 2 && (
-              <ul
-                id="changes-group-results"
-                role="listbox"
-                aria-label="Найденные группы"
-                className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md"
+        <div className="flex flex-col">
+          <Label
+            htmlFor="changes-group"
+            className="mb-1.5 block text-sm font-medium text-foreground"
+          >
+            Группа
+          </Label>
+          {value.groupId ? (
+            <div className="flex h-9 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 text-sm dark:bg-input/30">
+              <span className="truncate">
+                {value.groupName ?? "Выбранная группа"}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({ groupId: undefined, groupName: undefined })
+                }
+                className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Сбросить группу"
               >
-                {groupLoading ? (
-                  <li className="px-3 py-2 text-sm text-muted-foreground">
-                    Поиск…
-                  </li>
-                ) : groupResults.length === 0 ? (
-                  <li className="px-3 py-2 text-sm text-muted-foreground">
-                    Ничего не найдено
-                  </li>
-                ) : (
-                  groupResults.map((group) => (
-                    <li key={group.id}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={false}
-                        onClick={() => pickGroup(group)}
-                        className="w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        {group.name}
-                      </button>
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+          ) : (
+            <div className="relative" ref={groupBoxRef}>
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                id="changes-group"
+                type="search"
+                placeholder="Начните вводить название"
+                value={groupQuery}
+                onChange={(e) => {
+                  setGroupQuery(e.target.value)
+                  setGroupOpen(true)
+                }}
+                onFocus={() => setGroupOpen(true)}
+                className="pl-9"
+                autoComplete="off"
+                aria-controls="changes-group-results"
+                aria-expanded={groupOpen && groupQuery.trim().length >= 2}
+              />
+              {groupOpen && groupQuery.trim().length >= 2 && (
+                <ul
+                  id="changes-group-results"
+                  role="listbox"
+                  aria-label="Найденные группы"
+                  className="scroll-stable absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md"
+                >
+                  {groupLoading ? (
+                    <li className="px-3 py-2 text-sm text-muted-foreground">
+                      Поиск…
                     </li>
-                  ))
-                )}
-              </ul>
-            )}
-          </div>
-        )}
+                  ) : groupResults.length === 0 ? (
+                    <li className="px-3 py-2 text-sm text-muted-foreground">
+                      Ничего не найдено
+                    </li>
+                  ) : (
+                    groupResults.map((group) => (
+                      <li key={group.id}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={false}
+                          onClick={() => pickGroup(group)}
+                          className="w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {group.name}
+                        </button>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div>

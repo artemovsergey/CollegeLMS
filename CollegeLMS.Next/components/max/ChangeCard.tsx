@@ -7,7 +7,6 @@ import {
   Minus,
   Repeat,
   ArrowRightLeft,
-  ArrowLeft,
   BookOpen,
   CalendarDays,
   Clock,
@@ -43,6 +42,22 @@ const SELF_STUDY_NOTE_RE = /сам[\s./-]*р/i
 
 function isSelfStudy(item: ScheduleHistoryItem): boolean {
   return SELF_STUDY_NOTE_RE.test(item.note ?? "")
+}
+
+/** Ссылка на день расписания с контекстом изменения. */
+function buildDayHref(item: ScheduleHistoryItem, date: Date): string {
+  const params = new URLSearchParams({ route: "day", date: toIsoDate(date) })
+  if (item.teacherId) params.set("teacherId", item.teacherId)
+  else if (item.groupId) params.set("groupId", item.groupId)
+  return `/max/schedule?${params.toString()}`
+}
+
+/** «Предмет Преподаватель» одной строкой. */
+function lessonLine(
+  subject: string | null | undefined,
+  teacher: string | null | undefined,
+): string {
+  return [subject, teacher].filter(Boolean).join(" ") || "—"
 }
 
 function formatDate(date: Date): string {
@@ -98,10 +113,18 @@ export default function ChangeCard({
 
   const isMoveOrReplace =
     item.changeType === "Replace" || item.changeType === "Move"
-  const primarySubject =
-    item.changeType === "Remove"
-      ? item.removedSubject ?? item.subject
-      : item.subject
+  // «Предмет Преподаватель => Предмет Преподаватель» — так же, как в вебе и в боте.
+  // Ссылка «Открыть день» ведёт сразу на нужный день с нужной группой
+  // или преподавателем: иначе расписание открывается пустым.
+  const dayHref = buildDayHref(item, date)
+  const removedLesson = lessonLine(
+    item.removedSubject ?? item.subject,
+    item.teacherName,
+  )
+  const newLesson = lessonLine(
+    item.changeType === "Remove" ? null : item.subject,
+    item.changeType === "Remove" ? null : item.teacherName,
+  )
 
   return (
     <article
@@ -143,21 +166,25 @@ export default function ChangeCard({
       </div>
 
       <div className="max-app__change-card-subject">
-        {isMoveOrReplace && item.removedSubject && (
+        {isMoveOrReplace && item.removedSubject ? (
           <>
-            <span className="max-app__change-card-removed">
-              {item.removedSubject}
+            <span className="max-app__change-card-removed">{removedLesson}</span>
+            <span className="max-app__change-card-arrow" aria-hidden>
+              {"=>"}
             </span>
-            <ArrowLeft size={16} className="max-app__change-card-arrow" aria-hidden />
+            <span className="max-app__change-card-new">{newLesson}</span>
           </>
+        ) : (
+          <span className="max-app__change-card-new">{newLesson}</span>
         )}
-        <span className="max-app__change-card-new">{primarySubject}</span>
       </div>
 
       <div className="max-app__change-card-row">
-        <span className="max-app__change-card-muted max-app__change-card-icon">
-          <User size={14} aria-hidden /> {item.teacherName ?? "Преподаватель не указан"}
-        </span>
+        {!item.teacherName && (
+          <span className="max-app__change-card-muted max-app__change-card-icon">
+            <User size={14} aria-hidden /> Преподаватель не указан
+          </span>
+        )}
         {item.note && (
           <span className="max-app__change-card-muted max-app__change-card-note">
             Примечание: {item.note}
@@ -170,7 +197,7 @@ export default function ChangeCard({
           Применено: {appliedAt || "—"}
         </span>
         <Link
-          href={`/max/schedule?route=day&date=${toIsoDate(date)}`}
+          href={dayHref}
           className="max-app__change-card-link"
           aria-label={`Открыть расписание на ${toIsoDate(date)}`}
         >

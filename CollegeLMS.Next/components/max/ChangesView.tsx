@@ -157,29 +157,16 @@ export default function ChangesView() {
 
         <div className="max-app__filter-row">
           <div className="max-app__date-field">
-            <Button
-              size="small"
-              variant="secondary"
-              aria-label="Выбрать дату"
-              iconBefore={<CalendarDays size={16} aria-hidden />}
-              onClick={() => {
-                const input = dateInputRef.current
-                if (!input) return
-                try {
-                  input.showPicker()
-                } catch {
-                  input.focus()
-                }
-              }}
-            />
+            {/* Настоящее поле даты: showPicker() в вебвью MAX не поддерживается,
+                поэтому клик по скрытому input ничего не делал. */}
+            <CalendarDays size={16} aria-hidden />
             <input
               ref={dateInputRef}
               type="date"
               className="max-app__date-input"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              aria-label="Выбрать дату"
-              tabIndex={-1}
+              aria-label="Дата проведения занятия"
             />
             {dateFilter ? (
               <>
