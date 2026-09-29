@@ -23,6 +23,7 @@ public class ScheduleHistoryConfiguration : IEntityTypeConfiguration<ScheduleHis
         builder.HasIndex(x => x.GroupId).HasDatabaseName("ix_schedule_history_group_id");
         builder.HasIndex(x => x.DayOfWeek).HasDatabaseName("ix_schedule_history_day_of_week");
         builder.HasIndex(x => x.AppliedAt).HasDatabaseName("ix_schedule_history_applied_at");
+        builder.HasIndex(x => x.BatchId).HasDatabaseName("ix_schedule_history_batch_id");
 
         builder
             .HasOne(x => x.Group)

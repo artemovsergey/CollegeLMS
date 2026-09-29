@@ -1,4 +1,5 @@
 using CollegeLMS.API.Dtos;
+using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
 using CollegeLMS.API.Response;
 
@@ -37,12 +38,14 @@ public interface IScheduleCorrectionService
 
     /// <summary>
     /// Расписание группы на дату вместе с преподавателями этой группы и их предметами —
-    /// источник данных для пошаговой формы корректировки.
+    /// источник данных для пошаговой формы корректировки. Позиция, которую сейчас
+    /// редактируют, исключается из наложения, иначе её собственный слот выглядит занятым.
     /// </summary>
     Task<Result<CorrectionReferencesResponse>> GetReferencesAsync(
         Guid groupId,
         DateTime date,
         Guid? batchId,
+        Guid? excludePositionId,
         CancellationToken ct
     );
 
@@ -64,4 +67,10 @@ public interface IScheduleCorrectionService
     /// Возвращает краткое описание того, что было возвращено в расписание.
     /// </summary>
     Task<Result<CorrectionRevertResponse>> RevertHistoryAsync(Guid historyId, CancellationToken ct);
+
+    /// <summary>
+    /// Откатывает записи журнала пакета в обратном порядке применения и удаляет их.
+    /// Транзакцией управляет вызывающий. Возвращает количество откатанных записей.
+    /// </summary>
+    Task<int> RevertBatchAsync(IReadOnlyList<ScheduleHistory> history, CancellationToken ct);
 }

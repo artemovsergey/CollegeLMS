@@ -21,6 +21,12 @@ public class ScheduleHistory : Entity
     public string? RemovedRoom { get; set; }
     public int? RemovedNumberPair { get; set; }
 
+    /// <summary>
+    /// Пакет корректировки, которым создана запись. Нужен, чтобы удалить
+    /// применённый пакет вместе со всеми его записями журнала.
+    /// </summary>
+    public Guid? BatchId { get; set; }
+
     [JsonIgnore]
     public Group? Group { get; set; }
 

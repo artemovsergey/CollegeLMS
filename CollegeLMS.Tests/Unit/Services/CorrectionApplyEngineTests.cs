@@ -322,6 +322,41 @@ public class CorrectionApplyEngineTests : IDisposable
     }
 
     [Fact]
+    public async Task ExecuteBatchAsync_RemoveWithSelfStudy_NotifiesAndKeepsPair()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, 2);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Remove,
+                2,
+                removedSubject: "Физика",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
+                note: "сам.р."
+            )
+        );
+
+        var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        outcome.Changes.Should().ContainSingle();
+        var change = outcome.Changes[0];
+        change.ChangeType.Should().Be("Remove");
+        change.Subject.Should().Be("Физика");
+        change.Note.Should().Be("сам.р.");
+        change.TeacherId.Should().Be(teacher.Id);
+        change.TeacherName.Should().Be(teacher.User.FullName);
+
+        // Пара остаётся в расписании — сам.р. только информирует студентов.
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.Weeks.Should().BeEquivalentTo([2]);
+    }
+
+    [Fact]
     public async Task ValidateBatchAsync_AddWithSelfStudyNote_IsAllowed()
     {
         var group = await SeedGroupAsync();

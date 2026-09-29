@@ -128,3 +128,16 @@ public class CorrectionApplyResult
     public Guid BatchId { get; set; }
     public List<ScheduleHistoryResponse> History { get; set; } = [];
 }
+
+/// <summary>Итог удаления пакета: сколько пакетов и записей журнала убрано.</summary>
+public class CorrectionBatchDeleteResult
+{
+    /// <summary>Сколько пакетов удалено.</summary>
+    public int Batches { get; set; }
+
+    /// <summary>Сколько записей журнала откачено и удалено.</summary>
+    public int Reverted { get; set; }
+
+    /// <summary>Человекочитаемое сообщение для тоста.</summary>
+    public string Message { get; set; } = string.Empty;
+}

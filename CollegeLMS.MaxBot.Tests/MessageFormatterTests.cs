@@ -608,8 +608,7 @@ public class MessageFormatterTests
         text.Should().Contain("🏫 **ПО262**");
         text.Should().Contain("🕐 пара 2");
         text.Should().Contain("📍 ауд. 301");
-        text.Should().Contain("📖 **История**");
-        text.Should().Contain("👤 Петренко В.Б.");
+        text.Should().Contain("📖 **История Петренко В.Б.**");
         text.Should().Contain("📝 Примечание: вм.4 п");
         text.Should().NotContain("http");
     }
@@ -627,7 +626,7 @@ public class MessageFormatterTests
 
         text.Should().Contain("**Перенос**");
         text.Should().Contain("🕐 пара 2 → 3");
-        text.Should().Contain("📖 ~~Математика~~ → **История**");
+        text.Should().Contain("📖 ~~Математика~~ → **История Петренко В.Б.**");
     }
 
     [Fact]
@@ -647,7 +646,21 @@ public class MessageFormatterTests
         var text = MessageFormatter.FormatCorrectionDigest([revision]);
 
         text.Should().Contain("🟣 Сам.р.");
-        text.Should().Contain("📖 **История**");
+        text.Should().Contain("📖 **История Петренко В.Б.**");
+        text.Should().Contain("📝 Примечание: сам.р.");
+    }
+
+    [Fact]
+    public void FormatCorrectionDigest_RemoveWithoutTeacher_KeepsSubjectLine()
+    {
+        var revision = Revision(changeType: "Remove");
+        revision.TeacherName = null;
+        revision.Subject = "Физика";
+
+        var text = MessageFormatter.FormatCorrectionDigest([revision]);
+
+        text.Should().Contain("**Снято**");
+        text.Should().Contain("📖 **Физика**");
     }
 
     [Fact]

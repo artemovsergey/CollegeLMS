@@ -403,12 +403,12 @@ public static class MessageFormatter
             details.Add($"📍 ауд. {r.Room}");
         sb.AppendLine(string.Join(" · ", details));
 
+        // Преподаватель идёт вместе с предметом — отдельной строкой не нужен.
         sb.AppendLine($"📖 {FormatSubjectLine(r)}");
 
         var teacher = r.TeacherName ?? r.RemovedTeacherName;
-        sb.AppendLine(
-            $"👤 {(string.IsNullOrWhiteSpace(teacher) ? "Преподаватель не указан" : teacher)}"
-        );
+        if (string.IsNullOrWhiteSpace(teacher) && r.ChangeType != "Remove")
+            sb.AppendLine("👤 Преподаватель не указан");
 
         if (!string.IsNullOrWhiteSpace(r.Note))
             sb.AppendLine($"📝 Примечание: {r.Note}");
@@ -426,17 +426,38 @@ public static class MessageFormatter
         return $"пара {r.NumberPair}";
     }
 
-    /// <summary>Строка предмета: снятие, замена/перенос со зачёркиванием или новый предмет.</summary>
+    /// <summary>
+    /// Строка занятия: «Предмет Преподаватель», при замене и переносе —
+    /// «старое =&gt; новое». Зачёркивания в MAX выглядят плохо, поэтому формат
+    /// тот же, что в веб-приложении: стрелка без перечёркивания.
+    /// </summary>
     private static string FormatSubjectLine(ScheduleRevision r)
     {
-        var removed = r.RemovedSubject;
         if (r.ChangeType == "Remove")
-            return $"**{(string.IsNullOrWhiteSpace(removed) ? r.Subject : removed)}**";
+        {
+            var removed = string.IsNullOrWhiteSpace(r.RemovedSubject)
+                ? r.Subject
+                : r.RemovedSubject;
+            return $"**{LessonLine(removed, r.TeacherName ?? r.RemovedTeacherName)}**";
+        }
 
-        if (r.ChangeType is "Replace" or "Move" && !string.IsNullOrWhiteSpace(removed))
-            return $"~~{removed}~~ → **{r.Subject}**";
+        if (r.ChangeType is "Replace" or "Move" && !string.IsNullOrWhiteSpace(r.RemovedSubject))
+        {
+            return $"~~{r.RemovedSubject}~~ → **{LessonLine(r.Subject, r.TeacherName)}**";
+        }
 
-        return $"**{r.Subject}**";
+        return $"**{LessonLine(r.Subject, r.TeacherName)}**";
+    }
+
+    /// <summary>«Предмет Преподаватель» одной строкой — как в веб-приложении.</summary>
+    private static string LessonLine(string? subject, string? teacher)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(subject))
+            parts.Add(subject.Trim());
+        if (!string.IsNullOrWhiteSpace(teacher))
+            parts.Add(teacher.Trim());
+        return parts.Count == 0 ? "—" : string.Join(" ", parts);
     }
 
     private static string FormatChangeCardLabel(string changeType)

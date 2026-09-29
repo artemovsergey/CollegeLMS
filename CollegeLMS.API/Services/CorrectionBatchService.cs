@@ -68,6 +68,65 @@ public class CorrectionBatchService(
         return Result<CorrectionBatchResponse>.Ok(batch.ToDto());
     }
 
+    public async Task<Result<CorrectionBatchResponse>> UpdateBatchAsync(
+        Guid id,
+        CreateCorrectionBatchRequest request,
+        CancellationToken ct
+    )
+    {
+        var batch = await db.CorrectionBatches.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (batch is null)
+            return Result<CorrectionBatchResponse>.Fail("Пакет корректировки не найден.", 404);
+
+        if (batch.Status != CorrectionBatchStatus.Draft)
+            return Result<CorrectionBatchResponse>.Fail(
+                "Дату применённого пакета менять нельзя.",
+                409
+            );
+
+        if (request.CorrectionDate == default)
+            return Result<CorrectionBatchResponse>.Fail("Укажите дату корректировки.", 400);
+
+        if (
+            request.CorrectionDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+            && !await HasWorkingOverrideAsync(request.CorrectionDate, ct)
+        )
+            return Result<CorrectionBatchResponse>.Fail(
+                "Корректировка не может быть на выходной день.",
+                400
+            );
+
+        if (!StudyWeek.IsInSemester(request.CorrectionDate))
+            return Result<CorrectionBatchResponse>.Fail("Дата вне учебного семестра.", 400);
+
+        var nonWorking = await FindNonWorkingAsync(request.CorrectionDate, ct);
+        if (nonWorking is not null)
+            return Result<CorrectionBatchResponse>.Fail(
+                $"Дата нерабочая: {nonWorking.Title}.",
+                400
+            );
+
+        batch.CorrectionDate = request.CorrectionDate.Date;
+        batch.Week = StudyWeek.ForDate(request.CorrectionDate);
+        batch.DayOfWeek = (int)request.CorrectionDate.DayOfWeek;
+        batch.UpdatedAt = DateTime.UtcNow;
+
+        // Позиции наследуют неделю и день пакета — синхронизируем, иначе они
+        // останутся на старой дате и применятся не туда.
+        var positions = await db.CorrectionPositions.Where(p => p.BatchId == id).ToListAsync(ct);
+        foreach (var position in positions)
+        {
+            position.Week = batch.Week;
+            position.DayOfWeek = batch.DayOfWeek;
+            position.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        batch.Positions = positions;
+        return Result<CorrectionBatchResponse>.Ok(batch.ToDto());
+    }
+
     public async Task<Result<PagedResponse<CorrectionBatchResponse>>> GetBatchesAsync(
         CorrectionBatchStatus? status,
         DateTime? from,
@@ -154,18 +213,87 @@ public class CorrectionBatchService(
         return Result<CorrectionBatchResponse>.Ok(dto);
     }
 
-    public async Task<Result> DeleteBatchAsync(Guid id, CancellationToken ct)
+    public async Task<Result<CorrectionBatchDeleteResult>> DeleteBatchAsync(
+        Guid id,
+        CancellationToken ct
+    )
     {
         var batch = await db.CorrectionBatches.FirstOrDefaultAsync(b => b.Id == id, ct);
         if (batch is null)
-            return Result.Fail("Пакет корректировки не найден.", 404);
+            return Result<CorrectionBatchDeleteResult>.Fail("Пакет корректировки не найден.", 404);
 
-        if (batch.Status != CorrectionBatchStatus.Draft)
-            return Result.Fail("Можно удалить только черновой пакет.", 409);
+        var reverted = await RemoveBatchAsync([batch], ct);
+        return Result<CorrectionBatchDeleteResult>.Ok(
+            new CorrectionBatchDeleteResult
+            {
+                Batches = 1,
+                Reverted = reverted,
+                Message =
+                    reverted > 0
+                        ? $"Пакет удалён, расписание возвращено по {reverted} изменениям."
+                        : "Пакет удалён.",
+            }
+        );
+    }
 
-        db.CorrectionBatches.Remove(batch);
-        await db.SaveChangesAsync(ct);
-        return Result.Ok();
+    public async Task<Result<CorrectionBatchDeleteResult>> ClearAppliedBatchesAsync(
+        CancellationToken ct
+    )
+    {
+        var batches = await db
+            .CorrectionBatches.Where(b => b.Status == CorrectionBatchStatus.Applied)
+            .ToListAsync(ct);
+
+        if (batches.Count == 0)
+            return Result<CorrectionBatchDeleteResult>.Ok(
+                new CorrectionBatchDeleteResult
+                {
+                    Message = "Применённых пакетов нет — очищать нечего.",
+                }
+            );
+
+        var reverted = await RemoveBatchAsync(batches, ct);
+        return Result<CorrectionBatchDeleteResult>.Ok(
+            new CorrectionBatchDeleteResult
+            {
+                Batches = batches.Count,
+                Reverted = reverted,
+                Message = $"Удалено пакетов: {batches.Count}, изменений возвращено: {reverted}.",
+            }
+        );
+    }
+
+    /// <summary>
+    /// Откатывает записи журнала пакетов и удаляет сами пакеты. Черновые пакеты
+    /// удаляются без отката — они ещё не меняли расписание.
+    /// </summary>
+    private async Task<int> RemoveBatchAsync(
+        IReadOnlyList<CorrectionBatch> batches,
+        CancellationToken ct
+    )
+    {
+        var batchIds = batches.Select(b => b.Id).ToList();
+        var history = await db
+            .ScheduleHistory.Where(h => h.BatchId != null && batchIds.Contains(h.BatchId.Value))
+            .ToListAsync(ct);
+
+        var reverted = 0;
+        if (history.Count > 0)
+        {
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            reverted = await correctionService.RevertBatchAsync(history, ct);
+            foreach (var batch in batches)
+                db.CorrectionBatches.Remove(batch);
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        else
+        {
+            db.CorrectionBatches.RemoveRange(batches);
+            await db.SaveChangesAsync(ct);
+        }
+
+        return reverted;
     }
 
     public async Task<Result<CorrectionPositionResponse>> AddPositionAsync(
@@ -179,7 +307,7 @@ public class CorrectionBatchService(
             return Result<CorrectionPositionResponse>.Fail("Пакет корректировки не найден.", 404);
 
         if (batch.Status != CorrectionBatchStatus.Draft)
-            return Result<CorrectionPositionResponse>.Fail("Пакет уже применён или отменён.", 409);
+            return Result<CorrectionPositionResponse>.Fail("Пакет уже применён.", 409);
 
         var error = await ValidatePositionAsync(request, ct);
         if (error is not null)
@@ -235,7 +363,7 @@ public class CorrectionBatchService(
             return Result<CorrectionPositionResponse>.Fail("Пакет корректировки не найден.", 404);
 
         if (batch.Status != CorrectionBatchStatus.Draft)
-            return Result<CorrectionPositionResponse>.Fail("Пакет уже применён или отменён.", 409);
+            return Result<CorrectionPositionResponse>.Fail("Пакет уже применён.", 409);
 
         var position = await db.CorrectionPositions.FirstOrDefaultAsync(
             p => p.Id == positionId && p.BatchId == batchId,
@@ -280,7 +408,7 @@ public class CorrectionBatchService(
             return Result.Fail("Пакет корректировки не найден.", 404);
 
         if (batch.Status != CorrectionBatchStatus.Draft)
-            return Result.Fail("Пакет уже применён или отменён.", 409);
+            return Result.Fail("Пакет уже применён.", 409);
 
         var position = await db.CorrectionPositions.FirstOrDefaultAsync(
             p => p.Id == positionId && p.BatchId == batchId,
@@ -432,7 +560,7 @@ public class CorrectionBatchService(
             return Result<CorrectionApplyResult>.Fail("Пакет корректировки не найден.", 404);
 
         if (batch.Status != CorrectionBatchStatus.Draft)
-            return Result<CorrectionApplyResult>.Fail("Пакет уже применён или отменён.", 409);
+            return Result<CorrectionApplyResult>.Fail("Пакет уже применён.", 409);
 
         var positions = batch
             .Positions.Where(p => p.Status == CorrectionPositionStatus.Draft)

@@ -258,10 +258,17 @@ public class ScheduleCorrectionController(IScheduleCorrectionService service) : 
         [FromQuery] Guid groupId,
         [FromQuery] DateTime date,
         [FromQuery] Guid? batchId,
+        [FromQuery] Guid? excludePositionId,
         CancellationToken ct
     )
     {
-        var result = await service.GetReferencesAsync(groupId, date, batchId, ct);
+        var result = await service.GetReferencesAsync(
+            groupId,
+            date,
+            batchId,
+            excludePositionId,
+            ct
+        );
         if (!result.IsSuccess)
             return StatusCode(result.StatusCode, result);
 

@@ -94,11 +94,25 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
     }
 
     /// <summary>Эффективное расписание группы на дату с pending-позициями пакета.</summary>
+    public Task<List<SimulatedEntry>> BuildEffectiveEntriesAsync(
+        Guid groupId,
+        DayOfWeek day,
+        int week,
+        Guid? batchId,
+        CancellationToken ct
+    ) => BuildEffectiveEntriesAsync(groupId, day, week, batchId, null, ct);
+
+    /// <summary>
+    /// Эффективное расписание группы на дату с pending-позициями пакета.
+    /// <paramref name="excludePositionId"/> исключает редактируемую позицию: иначе её
+    /// собственный слот возвращается занятым и выбрать другой уже нельзя.
+    /// </summary>
     public async Task<List<SimulatedEntry>> BuildEffectiveEntriesAsync(
         Guid groupId,
         DayOfWeek day,
         int week,
         Guid? batchId,
+        Guid? excludePositionId,
         CancellationToken ct
     )
     {
@@ -116,6 +130,9 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                 )
                 .OrderBy(p => p.Row)
                 .ToListAsync(ct);
+
+            if (excludePositionId.HasValue)
+                positions.RemoveAll(p => p.Id == excludePositionId.Value);
         }
 
         var simulation = await SimulateAsync(
@@ -718,6 +735,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             RemovedTeacherId = removedTeacherId,
             RemovedRoom = removedRoom,
             RemovedNumberPair = removedNumberPair,
+            BatchId = position.BatchId,
             CreatedAt = utcNow,
             UpdatedAt = utcNow,
         };

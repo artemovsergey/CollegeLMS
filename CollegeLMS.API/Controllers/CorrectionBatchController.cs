@@ -40,6 +40,27 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
+    /// <summary>Сменить дату пакета (неделя и день пересчитываются для позиций).</summary>
+    [HttpPut("{id:guid}")]
+    [SwaggerOperation(Summary = "Изменить дату пакета корректировки")]
+    [SwaggerResponse(200, "Дата пакета обновлена", typeof(Result<CorrectionBatchResponse>))]
+    [SwaggerResponse(400, "Некорректная дата", typeof(ErrorResponse))]
+    [SwaggerResponse(404, "Пакет не найден", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Пакет уже применён", typeof(ErrorResponse))]
+    [ProducesResponseType(typeof(Result<CorrectionBatchResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateBatch(
+        Guid id,
+        CreateCorrectionBatchRequest request,
+        CancellationToken ct
+    )
+    {
+        var result = await service.UpdateBatchAsync(id, request, ct);
+        return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
+    }
+
     /// <summary>Список пакетов корректировок с фильтрами и пагинацией.</summary>
     [HttpGet]
     [SwaggerOperation(Summary = "Список пакетов корректировок")]
@@ -78,18 +99,34 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
-    /// <summary>Удалить черновой пакет.</summary>
+    /// <summary>
+    /// Удалить пакет. Применённый пакет откатывается: расписание возвращается
+    /// к состоянию до корректировки, записи журнала удаляются.
+    /// </summary>
     [HttpDelete("{id:guid}")]
     [SwaggerOperation(Summary = "Удалить пакет корректировки")]
-    [SwaggerResponse(200, "Пакет удалён")]
+    [SwaggerResponse(200, "Пакет удалён", typeof(Result<CorrectionBatchDeleteResult>))]
     [SwaggerResponse(404, "Пакет не найден", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "Пакет не в статусе «Подготовлен»", typeof(ErrorResponse))]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<CorrectionBatchDeleteResult>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteBatch(Guid id, CancellationToken ct)
     {
         var result = await service.DeleteBatchAsync(id, ct);
+        return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>Удалить все применённые пакеты разом (например, в начале нового семестра).</summary>
+    [HttpDelete("applied")]
+    [SwaggerOperation(Summary = "Очистить все применённые пакеты")]
+    [SwaggerResponse(
+        200,
+        "Применённые пакеты удалены",
+        typeof(Result<CorrectionBatchDeleteResult>)
+    )]
+    [ProducesResponseType(typeof(Result<CorrectionBatchDeleteResult>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ClearApplied(CancellationToken ct)
+    {
+        var result = await service.ClearAppliedBatchesAsync(ct);
         return result.IsSuccess ? Ok(result) : StatusCode(result.StatusCode, result);
     }
 
@@ -99,7 +136,7 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     [SwaggerResponse(200, "Позиция добавлена", typeof(Result<CorrectionPositionResponse>))]
     [SwaggerResponse(400, "Некорректные данные", typeof(ErrorResponse))]
     [SwaggerResponse(404, "Пакет не найден", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "Пакет не в статусе «Подготовлен»", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Пакет уже применён", typeof(ErrorResponse))]
     [ProducesResponseType(typeof(Result<CorrectionPositionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -120,7 +157,7 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     [SwaggerResponse(200, "Позиция обновлена", typeof(Result<CorrectionPositionResponse>))]
     [SwaggerResponse(400, "Некорректные данные", typeof(ErrorResponse))]
     [SwaggerResponse(404, "Пакет или позиция не найдены", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "Пакет не в статусе «Подготовлен»", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Пакет уже применён", typeof(ErrorResponse))]
     [ProducesResponseType(typeof(Result<CorrectionPositionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -141,7 +178,7 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     [SwaggerOperation(Summary = "Удалить позицию корректировки")]
     [SwaggerResponse(200, "Позиция удалена")]
     [SwaggerResponse(404, "Пакет или позиция не найдены", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "Пакет не в статусе «Подготовлен»", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Пакет уже применён", typeof(ErrorResponse))]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
@@ -211,7 +248,7 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     [SwaggerResponse(200, "Корректировки применены", typeof(Result<CorrectionApplyResult>))]
     [SwaggerResponse(400, "Ошибка валидации", typeof(ErrorResponse))]
     [SwaggerResponse(404, "Пакет не найден", typeof(ErrorResponse))]
-    [SwaggerResponse(409, "Пакет уже применён или отменён", typeof(ErrorResponse))]
+    [SwaggerResponse(409, "Пакет уже применён", typeof(ErrorResponse))]
     [ProducesResponseType(typeof(Result<CorrectionApplyResult>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]

@@ -13,6 +13,13 @@ public interface ICorrectionBatchService
         CancellationToken ct
     );
 
+    /// <summary>Смена даты пакета: пересчитывает неделю и день недели для всех позиций.</summary>
+    Task<Result<CorrectionBatchResponse>> UpdateBatchAsync(
+        Guid id,
+        CreateCorrectionBatchRequest request,
+        CancellationToken ct
+    );
+
     Task<Result<PagedResponse<CorrectionBatchResponse>>> GetBatchesAsync(
         CorrectionBatchStatus? status,
         DateTime? from,
@@ -24,7 +31,14 @@ public interface ICorrectionBatchService
 
     Task<Result<CorrectionBatchResponse>> GetBatchAsync(Guid id, CancellationToken ct);
 
-    Task<Result> DeleteBatchAsync(Guid id, CancellationToken ct);
+    /// <summary>
+    /// Удаляет пакет. Применённый пакет перед удалением откатывается: расписание
+    /// возвращается к состоянию до корректировки, записи журнала исчезают.
+    /// </summary>
+    Task<Result<CorrectionBatchDeleteResult>> DeleteBatchAsync(Guid id, CancellationToken ct);
+
+    /// <summary>Удаляет все применённые пакеты разом (например, в начале нового семестра).</summary>
+    Task<Result<CorrectionBatchDeleteResult>> ClearAppliedBatchesAsync(CancellationToken ct);
 
     Task<Result<CorrectionPositionResponse>> AddPositionAsync(
         Guid batchId,

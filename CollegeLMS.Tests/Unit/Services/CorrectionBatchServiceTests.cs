@@ -216,6 +216,221 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ApplyAsync_RemoveSelfStudy_NotifiesTeacherWithNote()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [1, 2]);
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Remove,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+                Note = "сам.р.",
+            },
+            CancellationToken.None
+        );
+
+        var result = await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        // Уведомление уходит так же, как при обычном снятии: процессы одинаковые,
+        // отличаются только примечание «сам.р.» и отсутствие удаления из базы.
+        var change = result.Data!.History.Should().ContainSingle().Subject;
+        change.ChangeType.Should().Be(ScheduleChangeType.Remove);
+        change.Note.Should().Be("сам.р.");
+        change.TeacherId.Should().Be(teacher.Id);
+        change.Subject.Should().Be("Физика");
+        change.GroupName.Should().Be(group.Name);
+    }
+
+    [Fact]
+    public async Task DeleteBatchAsync_AppliedBatch_RevertsScheduleAndHistory()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [1, 2]);
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Remove,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+            },
+            CancellationToken.None
+        );
+
+        var applied = await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+        applied.IsSuccess.Should().BeTrue();
+        _db.ScheduleEntries.Single().Weeks.Should().BeEquivalentTo([1]);
+
+        var deleted = await _sut.DeleteBatchAsync(batch, CancellationToken.None);
+
+        deleted.IsSuccess.Should().BeTrue();
+        deleted.Data!.Batches.Should().Be(1);
+        deleted.Data.Reverted.Should().Be(1);
+        _db.CorrectionBatches.Should().BeEmpty();
+        _db.ScheduleHistory.Should().BeEmpty();
+        // Пара вернулась в исходное состояние — обе недели на месте.
+        _db.ScheduleEntries.Single().Weeks.Should().BeEquivalentTo([1, 2]);
+    }
+
+    [Fact]
+    public async Task ClearAppliedBatchesAsync_RevertsEveryAppliedBatch()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [1, 2]);
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Remove,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+            },
+            CancellationToken.None
+        );
+        await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        // Черновой пакет должен уцелеть.
+        var draftBatch = await CreateBatchAsync();
+
+        var cleared = await _sut.ClearAppliedBatchesAsync(CancellationToken.None);
+
+        cleared.IsSuccess.Should().BeTrue();
+        cleared.Data!.Batches.Should().Be(1);
+        cleared.Data.Reverted.Should().Be(1);
+        _db.CorrectionBatches.Select(b => b.Id)
+            .Should()
+            .ContainSingle()
+            .Which.Should()
+            .Be(draftBatch);
+        _db.ScheduleHistory.Should().BeEmpty();
+        _db.ScheduleEntries.Single().Weeks.Should().BeEquivalentTo([1, 2]);
+    }
+
+    [Fact]
+    public async Task UpdateBatchAsync_ChangesDateAndPositionsWeek()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [3]);
+        var batch = await CreateBatchAsync();
+
+        var added = await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Remove,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+            },
+            CancellationToken.None
+        );
+
+        var newDate = new DateTime(2026, 9, 17, 0, 0, 0, DateTimeKind.Utc);
+        var updated = await _sut.UpdateBatchAsync(
+            batch,
+            new CreateCorrectionBatchRequest { CorrectionDate = newDate },
+            CancellationToken.None
+        );
+
+        updated.IsSuccess.Should().BeTrue();
+        updated.Data!.Week.Should().Be(3);
+        updated.Data.DayOfWeek.Should().Be((int)DayOfWeek.Thursday);
+        // Позиция унаследовала новую неделю — иначе применилась бы не туда.
+        _db.CorrectionPositions.Single(p => p.Id == added.Data!.Id).Week.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task UpdateBatchAsync_AppliedBatch_ReturnsConflict()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [2]);
+        var batch = await CreateBatchAsync();
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Remove,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+            },
+            CancellationToken.None
+        );
+        await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        var updated = await _sut.UpdateBatchAsync(
+            batch,
+            new CreateCorrectionBatchRequest { CorrectionDate = TestDate.AddDays(7) },
+            CancellationToken.None
+        );
+
+        updated.IsSuccess.Should().BeFalse();
+        updated.StatusCode.Should().Be(409);
+    }
+
+    [Fact]
+    public async Task DeleteBatchAsync_MissingBatch_ReturnsNotFound()
+    {
+        var missing = await _sut.DeleteBatchAsync(Guid.NewGuid(), CancellationToken.None);
+
+        missing.IsSuccess.Should().BeFalse();
+        missing.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
     public async Task ApplyAsync_Twice_ReturnsConflict()
     {
         var group = await SeedGroupAsync();

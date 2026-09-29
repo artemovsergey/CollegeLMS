@@ -80,9 +80,9 @@ public class ScheduleCorrectionService(
             var item = request.Rows[index];
             sheet.Cell(row, 1).Value = item.GroupName.Trim();
             sheet.Cell(row, 2).Value = item.RemovedSubject?.Trim() ?? string.Empty;
-            sheet.Cell(row, 3).Value = item.RemovedTeacherName?.Trim() ?? string.Empty;
+            sheet.Cell(row, 3).Value = FormatTeacherCell(item.RemovedTeacherName);
             sheet.Cell(row, 4).Value = item.AddedSubject?.Trim() ?? string.Empty;
-            sheet.Cell(row, 5).Value = item.AddedTeacherName?.Trim() ?? string.Empty;
+            sheet.Cell(row, 5).Value = FormatTeacherCell(item.AddedTeacherName);
             sheet.Cell(row, 6).Value = item.NumberPair;
             sheet.Cell(row, 7).Value = item.Note?.Trim() ?? string.Empty;
         }
@@ -91,16 +91,50 @@ public class ScheduleCorrectionService(
 
         using var output = new MemoryStream();
         workbook.SaveAs(output);
-        // FILE-3: «Корректировка_240926_1203.xlsx» — сначала дата, потом время.
-        var timestamp = DateTime.Now.ToString("ddMMyy_HHmm");
+        // FILE-3: «Корректировка_290926.xlsx» — дата корректировки из шапки файла,
+        // а не дата скачивания: так скачанный файл сразу понятен по имени.
         return Result<DocumentDownloadResult>.Ok(
             new DocumentDownloadResult
             {
                 Content = output.ToArray(),
-                FileName = $"Корректировка_{timestamp}.xlsx",
+                FileName = $"Корректировка_{request.CorrectionDate:ddMMyy}.xlsx",
             }
         );
     }
+
+    /// <summary>
+    /// ФИО преподавателя в ячейке файла: «Иванов И.И.». Если ФИО нет, остаётся
+    /// фамилия, а несколько преподавателей через слеш пишутся каждый со своими инициалами.
+    /// </summary>
+    private static string FormatTeacherCell(string? teacherName)
+    {
+        if (string.IsNullOrWhiteSpace(teacherName))
+            return string.Empty;
+
+        return string.Join(
+            "/",
+            ScheduleImportService.TeacherNameVariants(teacherName).Select(ShortenTeacherName)
+        );
+    }
+
+    /// <summary>
+    /// «Иванов Иван Иванович» → «Иванов И.И.». Уже сокращённое «Абатуров С.А.»
+    /// остаётся как есть: инициалы узнаём по одиночной букве и точке.
+    /// </summary>
+    private static string ShortenTeacherName(string fullName)
+    {
+        var parts = fullName.Split(
+            ' ',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+        );
+        if (parts.Length < 2)
+            return fullName;
+
+        return $"{parts[0]} {string.Concat(parts.Skip(1).Select(PartToInitial))}";
+    }
+
+    private static string PartToInitial(string part) =>
+        part.Length == 1 || part.EndsWith('.') ? part : $"{char.ToUpperInvariant(part[0])}.";
 
     /// <summary>
     /// Оформляет документ целиком: заголовок, шапку таблицы и каждую строку позиций.
@@ -1134,6 +1168,14 @@ public class ScheduleCorrectionService(
         DateTime date,
         Guid? batchId,
         CancellationToken ct
+    ) => await GetDayAsync(groupId, date, batchId, null, ct);
+
+    public async Task<Result<CorrectionDayResponse>> GetDayAsync(
+        Guid groupId,
+        DateTime date,
+        Guid? batchId,
+        Guid? excludePositionId,
+        CancellationToken ct
     )
     {
         var group = await db.Groups.AsNoTracking().FirstOrDefaultAsync(g => g.Id == groupId, ct);
@@ -1143,7 +1185,14 @@ public class ScheduleCorrectionService(
         var day = date.Date.DayOfWeek;
         var week = StudyWeek.WeekOf(date);
 
-        var entries = await engine.BuildEffectiveEntriesAsync(groupId, day, week, batchId, ct);
+        var entries = await engine.BuildEffectiveEntriesAsync(
+            groupId,
+            day,
+            week,
+            batchId,
+            excludePositionId,
+            ct
+        );
 
         var history = await db
             .ScheduleHistory.AsNoTracking()
@@ -1201,10 +1250,11 @@ public class ScheduleCorrectionService(
         Guid groupId,
         DateTime date,
         Guid? batchId,
+        Guid? excludePositionId,
         CancellationToken ct
     )
     {
-        var day = await GetDayAsync(groupId, date, batchId, ct);
+        var day = await GetDayAsync(groupId, date, batchId, excludePositionId, ct);
         if (!day.IsSuccess)
             return Result<CorrectionReferencesResponse>.Fail(day.ErrorMessage!, day.StatusCode);
 
@@ -1744,30 +1794,47 @@ public class ScheduleCorrectionService(
         if (group is null)
             return Result<CorrectionRevertResponse>.Fail("Группа не найдена.", 404);
 
+        var (message, scheduleChanged) = await RevertCoreAsync(history, group, ct);
+        await db.SaveChangesAsync(ct);
+
+        return Result<CorrectionRevertResponse>.Ok(
+            new CorrectionRevertResponse
+            {
+                HistoryId = history.Id,
+                ChangeType = history.ChangeType,
+                GroupName = group.Name,
+                DayOfWeek = history.DayOfWeek,
+                Week = history.Week,
+                ScheduleChanged = scheduleChanged,
+                Message =
+                    message
+                    ?? "Пару уже изменили или перезагрузили расписание: запись журнала удалена, расписание не тронуто.",
+            }
+        );
+    }
+
+    /// <summary>
+    /// Откатывает одну запись журнала и удаляет её. Возвращает описание того,
+    /// что вернулось в расписание, и было ли расписание вообще тронуто.
+    /// Запись в журнале удаляется в любом случае. Транзакцией управляет вызывающий.
+    /// </summary>
+    private async Task<(string? Message, bool ScheduleChanged)> RevertCoreAsync(
+        ScheduleHistory history,
+        Group group,
+        CancellationToken ct
+    )
+    {
         // «Сам.р.» ничего не меняет в расписании: откатывать нечего, только чистим журнал.
         if (IsSelfStudyNote(history.Note))
         {
             db.ScheduleHistory.Remove(history);
-            await db.SaveChangesAsync(ct);
-
-            return Result<CorrectionRevertResponse>.Ok(
-                new CorrectionRevertResponse
-                {
-                    HistoryId = history.Id,
-                    ChangeType = history.ChangeType,
-                    GroupName = group.Name,
-                    DayOfWeek = history.DayOfWeek,
-                    Week = history.Week,
-                    ScheduleChanged = false,
-                    Message = "Запись журнала удалена: сам.р. не меняет расписание.",
-                }
-            );
+            return ("Запись журнала удалена: сам.р. не меняет расписание.", false);
         }
 
         var utcNow = DateTime.UtcNow;
         var day = history.DayOfWeek;
         var dayName = DayName(day).ToLowerInvariant();
-        var message = (string?)null;
+        string? message = null;
 
         switch (history.ChangeType)
         {
@@ -1857,34 +1924,56 @@ public class ScheduleCorrectionService(
                         $"Возвращено «{history.RemovedSubject}» на {dayName} {history.Week}-й неделе, пара {oldPair}.";
                 else if (added is not null)
                     message =
-                        $"Убрано «{history.Subject}» на {day} {history.Week}-й неделе, пара {history.NumberPair}.";
+                        $"Убрано «{history.Subject}» на {dayName} {history.Week}-й неделе, пара {history.NumberPair}.";
                 break;
             }
 
             default:
-                return Result<CorrectionRevertResponse>.Fail(
-                    $"Неизвестный тип изменения расписания: {history.ChangeType}",
-                    400
+                throw new InvalidOperationException(
+                    $"Неизвестный тип изменения расписания: {history.ChangeType}"
                 );
         }
 
         db.ScheduleHistory.Remove(history);
-        await db.SaveChangesAsync(ct);
+        return (message, message is not null);
+    }
 
-        return Result<CorrectionRevertResponse>.Ok(
-            new CorrectionRevertResponse
-            {
-                HistoryId = history.Id,
-                ChangeType = history.ChangeType,
-                GroupName = group.Name,
-                DayOfWeek = history.DayOfWeek,
-                Week = history.Week,
-                ScheduleChanged = message is not null,
-                Message =
-                    message
-                    ?? "Пару уже изменили или перезагрузили расписание: запись журнала удалена, расписание не тронуто.",
-            }
-        );
+    /// <summary>
+    /// Откатывает записи журнала пакета в обратном порядке применения. Используется
+    /// при удалении применённого пакета: расписание возвращается к состоянию
+    /// до корректировки, а сами записи журнала исчезают.
+    /// </summary>
+    public async Task<int> RevertBatchAsync(
+        IReadOnlyList<ScheduleHistory> history,
+        CancellationToken ct
+    )
+    {
+        if (history.Count == 0)
+            return 0;
+
+        var groups = await db
+            .Groups.Where(g => history.Select(h => h.GroupId).Contains(g.Id))
+            .ToDictionaryAsync(g => g.Id, ct);
+
+        var groupIdsMissing = history
+            .Where(h => !groups.ContainsKey(h.GroupId))
+            .Select(h => h.Id)
+            .ToList();
+        if (groupIdsMissing.Count > 0)
+            await db
+                .ScheduleHistory.Where(h => groupIdsMissing.Contains(h.Id))
+                .ExecuteDeleteAsync(ct);
+
+        // Обратный порядок: сначала отменяем последнее изменение, затем предпоследнее.
+        var ordered = history
+            .Where(h => groups.ContainsKey(h.GroupId))
+            .OrderByDescending(h => h.AppliedAt)
+            .ToList();
+
+        foreach (var record in ordered)
+            await RevertCoreAsync(record, groups[record.GroupId], ct);
+
+        return ordered.Count;
     }
 
     /// <summary>Ищет пару (group, день, пара, предмет, преподаватель), содержащую неделю.</summary>

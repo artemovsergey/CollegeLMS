@@ -1184,7 +1184,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ExportManualAsync_UsesFile3FileName()
+    public async Task ExportManualAsync_UsesCorrectionDateInFileName()
     {
         EnsureCorrectionTemplate();
 
@@ -1207,8 +1207,49 @@ public class ScheduleCorrectionServiceTests : IDisposable
         );
 
         result.IsSuccess.Should().BeTrue();
-        result.Data!.FileName.Should().MatchRegex(@"^Корректировка_\d{6}_\d{4}\.xlsx$");
+        // Постфикс — дата корректировки, а не дата скачивания: скачанный файл
+        // сразу понятен по имени.
+        result.Data!.FileName.Should().Be("Корректировка_100926.xlsx");
         result.Data.Content.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task ExportManualAsync_ShortensTeacherNameToInitials()
+    {
+        EnsureCorrectionTemplate();
+
+        var result = await _sut.ExportManualAsync(
+            new ManualCorrectionExportRequest
+            {
+                CorrectionDate = new DateTime(2026, 9, 10),
+                Rows =
+                [
+                    new ManualCorrectionRow
+                    {
+                        GroupName = "ПО-262",
+                        AddedSubject = "Математика",
+                        AddedTeacherName = "Иванов Иван Иванович",
+                        NumberPair = 3,
+                    },
+                    new ManualCorrectionRow
+                    {
+                        GroupName = "ПО-262",
+                        AddedSubject = "Ин.язык",
+                        // Уже сокращённое имя и двое преподавателей через слеш.
+                        AddedTeacherName = "Кривцова С.Н./Степаненко А.В.",
+                        NumberPair = 4,
+                    },
+                ],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        using var stream = new MemoryStream(result.Data!.Content);
+        using var workbook = new XLWorkbook(stream);
+        var sheet = workbook.Worksheet(1);
+        sheet.Cell(7, 5).GetString().Should().Be("Иванов И.И.");
+        sheet.Cell(8, 5).GetString().Should().Be("Кривцова С.Н./Степаненко А.В.");
     }
 
     // --- UC-SCH-27: расписание дня с pending-позициями ---
@@ -1596,6 +1637,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
             group.Id,
             new DateTime(2026, 9, 8),
             null,
+            null,
             CancellationToken.None
         );
 
@@ -1620,6 +1662,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
         var result = await _sut.GetReferencesAsync(
             Guid.NewGuid(),
             new DateTime(2026, 9, 8),
+            null,
             null,
             CancellationToken.None
         );
