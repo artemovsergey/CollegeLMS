@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import type { Result, GroupResponse, TeacherResponse } from "@/types"
 import type { ScheduleResponse, ScheduleViewMode } from "@/types/schedule"
@@ -125,6 +125,16 @@ export default function SchedulePage() {
   )
   const [defaultGroupId, setDefaultGroupId] = useState("")
   const [defaultTeacherId, setDefaultTeacherId] = useState("")
+
+  // Названия выбранных фильтров: карточки пар не повторяют их текстом.
+  const selectedGroupName = useMemo(
+    () => groups.find((g) => g.id === selectedGroupId)?.name,
+    [groups, selectedGroupId],
+  )
+  const selectedTeacherName = useMemo(
+    () => teachers.find((t) => t.id === selectedTeacherId)?.fullName,
+    [teachers, selectedTeacherId],
+  )
 
   const [refreshKey, setRefreshKey] = useState(0)
   const [urlReady, setUrlReady] = useState(false)
@@ -602,6 +612,8 @@ export default function SchedulePage() {
               date={selectedDate}
               groupId={selectedGroupId || undefined}
               teacherId={selectedTeacherId || undefined}
+              groupName={selectedGroupName}
+              teacherName={selectedTeacherName}
               refreshKey={refreshKey}
               onDateChange={handleDateChange}
               onEntryClick={canManage ? handleEdit : undefined}

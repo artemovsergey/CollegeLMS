@@ -35,7 +35,10 @@ import { NoteChips, NOTE_CHIPS } from "@/components/NoteChips"
 import RemovePairPicker, {
   type RemovedPairSelection,
 } from "@/components/RemovePairPicker"
-import GroupDayCard, { occupiedEntryFor } from "@/components/GroupDayCard"
+import GroupDayCard, {
+  isPairOccupied,
+  type MovedLesson,
+} from "@/components/GroupDayCard"
 import {
   SearchableMultiSelect,
   SearchableSelect,
@@ -274,6 +277,12 @@ export function CorrectionPositionDialog({
   )
 
   const needsSource = draft.changeType !== "Add"
+  // «Преподаватели» и «Предмет» есть не у всех операций. Номера шагов считаем
+  // явно, иначе у «Снято» после третьего шага сразу шёл шестой — выглядит
+  // как пропавшие поля.
+  const showLessonSteps = draft.changeType !== "Remove"
+  const subjectStep = showLessonSteps ? 5 : 4
+  const noteStep = showLessonSteps ? 6 : 4
   // «Замена» меняет занятие в той же паре, поэтому отдельный выбор пары не нужен.
   const needsFreeTarget =
     draft.changeType === "Add" || draft.changeType === "Move"
@@ -319,11 +328,55 @@ export function CorrectionPositionDialog({
     sourceBusy,
   ])
 
-  // Занятая пара при добавлении — это «вм.N»: занятие встаёт вместо текущего.
-  const replacedEntry =
-    draft.changeType === "Add" && draft.targetPair != null
-      ? occupiedEntryFor(entries, draft.targetPair)
-      : null
+  // Занятота слота назначения: пара не блокируется, а просто будет второй
+  // в этом слоте. Предупреждаем, чтобы это не было сюрпризом.
+  const targetOccupied =
+    draft.targetPair != null && isPairOccupied(entries, draft.targetPair)
+
+  // Занятие, выбранное для переноса. Отдельного списка нет: перенос делается
+  // прямо в карточке дня.
+  const movedLesson = useMemo<MovedLesson | null>(() => {
+    if (draft.changeType !== "Move" || !draft.source) return null
+    const pair = draft.source.numberPair
+    const entry = entries.find(
+      (item) =>
+        item.numberPair === pair && item.subject === draft.source?.removedSubject,
+    )
+    if (!entry) return null
+    return { entry, numberPair: pair }
+  }, [draft.changeType, draft.source, entries])
+
+  const selectLesson = useCallback(
+    (lesson: MovedLesson | null) => {
+      if (!lesson) {
+        patch({ source: null, targetPair: null })
+        return
+      }
+      patch({
+        source: {
+          numberPair: lesson.numberPair,
+          removedSubject: lesson.entry.subject,
+          removedTeacherId: lesson.entry.teacherId,
+          removedTeacherName: lesson.entry.teacherName,
+        },
+        targetPair: null,
+      })
+    },
+    [],
+  )
+
+  const patchSource = useCallback(
+    (source: RemovedPairSelection | null) =>
+      patch({
+        source,
+        // Пара назначения не должна совпадать с исходной.
+        targetPair:
+          needsFreeTarget && source && draft.targetPair === source.numberPair
+            ? null
+            : draft.targetPair,
+      }),
+    [needsFreeTarget, draft.targetPair],
+  )
 
   const handleSubmit = async () => {
     if (blockedReason) {
@@ -334,13 +387,13 @@ export function CorrectionPositionDialog({
       .map((id) => teachers.find((teacher) => teacher.id === id)?.fullName)
       .filter((name): name is string => Boolean(name))
 
-    // Добавление в занятую пару — это «вм.N»: занятие встаёт вместо текущего,
-    // поэтому позиция сохраняется как замена с примечанием «вм.N».
     const isRemove = draft.changeType === "Remove"
-    const note = draft.note.trim()
 
+    // Тип позиции сохраняется ровно тот, что выбрал диспетчер. Раньше
+    // «Добавлено» в занятую пару молча превращалось в «Замену» и сносило
+    // существующее занятие — но по правилам в слоте может быть несколько пар.
     const payload: CreateCorrectionPosition = {
-      changeType: replacedEntry ? "Replace" : draft.changeType,
+      changeType: draft.changeType,
       groupId: draft.groupId,
       groupName: group?.name ?? "",
       numberPair: needsFreeTarget
@@ -348,32 +401,17 @@ export function CorrectionPositionDialog({
         : (draft.source?.numberPair ?? 1),
       subject: isRemove ? null : draft.subject,
       teacherId: draft.teacherIds[0] ?? null,
-      teacherName: isRemove || teacherNames.length === 0 ? null : teacherNames.join("/"),
-      removedSubject: replacedEntry
-        ? replacedEntry.subject
-        : needsSource
-          ? (draft.source?.removedSubject ?? null)
-          : null,
-      removedTeacherId: replacedEntry
-        ? replacedEntry.teacherId
-        : needsSource
-          ? (draft.source?.removedTeacherId ?? null)
-          : null,
-      removedTeacherName: replacedEntry
-        ? replacedEntry.teacherName
-        : needsSource
-          ? (draft.source?.removedTeacherName ?? null)
-          : null,
-      removedNumberPair: replacedEntry
-        ? replacedEntry.numberPair
-        : needsSource
-          ? (draft.source?.numberPair ?? null)
-          : null,
-      note: note
-        ? note
-        : replacedEntry
-          ? `вм.${replacedEntry.numberPair}`
-          : null,
+      teacherName:
+        isRemove || teacherNames.length === 0 ? null : teacherNames.join("/"),
+      removedSubject: needsSource ? (draft.source?.removedSubject ?? null) : null,
+      removedTeacherId: needsSource
+        ? (draft.source?.removedTeacherId ?? null)
+        : null,
+      removedTeacherName: needsSource
+        ? (draft.source?.removedTeacherName ?? null)
+        : null,
+      removedNumberPair: needsSource ? (draft.source?.numberPair ?? null) : null,
+      note: draft.note.trim() || null,
     }
 
     setSaving(true)
@@ -501,70 +539,64 @@ export function CorrectionPositionDialog({
 
               {!loading && !loadError && (
                 <div className="grid gap-4">
-                  {needsSource && (
+                  {draft.changeType === "Remove" ? (
                     <div className="grid gap-1.5">
                       <span className="text-sm font-medium">
-                        {draft.changeType === "Remove"
-                          ? "Снимаемое занятие"
-                          : draft.changeType === "Replace"
-                            ? "Заменяемое занятие (пара сохраняется)"
-                            : "Переносимое занятие"}
+                        Снимаемое занятие
                       </span>
                       <RemovePairPicker
                         value={draft.source}
-                        onChange={(source) =>
-                          patch({
-                            source,
-                            // Пара назначения не должна совпадать с исходной.
-                            targetPair:
-                              needsFreeTarget &&
-                              source &&
-                              draft.targetPair === source.numberPair
-                                ? null
-                                : draft.targetPair,
-                          })
-                        }
+                        onChange={patchSource}
                         entries={entries}
-                        draggable={draft.changeType === "Move"}
-                        className="scroll-stable max-h-56 overflow-y-auto pr-1"
                       />
-                      {draft.changeType === "Move" && (
-                        <p className="text-xs text-muted-foreground">
-                          Пару назначения можно выбрать кликом по строке в карточке
-                          дня или перетащить занятие на нужную строку.
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Без примечания «сам.р.» пара снимается с расписания;
+                        с ним — остаётся и помечается для студентов.
+                      </p>
                     </div>
-                  )}
-
-                  {draft.changeType === "Remove" ? (
-                    <p className="text-sm text-muted-foreground">
-                      Выберите снимаемое занятие в списке выше. Без примечания
-                      «сам.р.» пара снимается с расписания; с ним — остаётся и
-                      помечается для студентов.
-                    </p>
+                  ) : draft.changeType === "Replace" ? (
+                    // У замены слот не меняется, поэтому карточка дня с
+                    // некликабельными рядами была лишней: выбираем только
+                    // заменяемое занятие из списка дня.
+                    <div className="grid gap-1.5">
+                      <span className="text-sm font-medium">
+                        Заменяемое занятие
+                      </span>
+                      <RemovePairPicker
+                        value={draft.source}
+                        onChange={patchSource}
+                        entries={entries}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Новое занятие встанет в ту же пару {draft.source?.numberPair ?? "—"}.
+                      </p>
+                    </div>
                   ) : (
+                    // Добавление и перенос: карточка дня — единственный
+                    // выбор. Для переноса занятие перетаскивается на строку.
                     <GroupDayCard
                       groupName={group?.name ?? ""}
                       dateLabel={formatDate(batchDate)}
                       entries={entries}
                       selectedPair={draft.targetPair}
                       onSelectPair={(numberPair) => patch({ targetPair: numberPair })}
-                      selectable={needsFreeTarget}
-                      dragSource={draft.changeType === "Move"}
-                      onDropPair={
+                      movedLesson={
+                        draft.changeType === "Move" ? movedLesson : null
+                      }
+                      onSelectLesson={
                         draft.changeType === "Move"
-                          ? (numberPair) => patch({ targetPair: numberPair })
+                          ? selectLesson
                           : undefined
                       }
+                      selectable
                     />
                   )}
 
-                  {replacedEntry && (
+                  {targetOccupied && (
                     <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                      Пара {replacedEntry.numberPair} занята: новое занятие встанет
-                      вместо «{replacedEntry.subject}», в примечании сохранится
-                      «вм.{replacedEntry.numberPair}».
+                      В паре {draft.targetPair} уже есть занятие — новое встанет
+                      в неё вторым. Если нужно заменить, снимите старое или
+                      выберите тип «Замена».
                     </p>
                   )}
                 </div>
@@ -621,7 +653,7 @@ export function CorrectionPositionDialog({
 
           {draft.groupId && draft.changeType !== "Remove" && (
             <Step
-              index={5}
+              index={subjectStep}
               title="Предмет"
               icon={<GraduationCap className="size-4" aria-hidden />}
             >
@@ -652,7 +684,7 @@ export function CorrectionPositionDialog({
             </Step>
           )}
 
-          <Step index={6} title="Примечание">
+          <Step index={noteStep} title="Примечание">
             <Input
               value={draft.note}
               onChange={(event) => patch({ note: event.target.value })}
@@ -669,15 +701,6 @@ export function CorrectionPositionDialog({
               расписании и помечается для студентов. Остальной текст — свободное
               примечание.
             </p>
-            {replacedEntry && (
-              <Badge
-                variant="outline"
-                className="mt-2 w-fit gap-1 bg-muted text-muted-foreground"
-              >
-                <Lock className="size-3" aria-hidden />
-                вм.{replacedEntry.numberPair} — подставится автоматически
-              </Badge>
-            )}
             {draft.changeType === "Move" && sourcePair != null && (
               <Badge
                 variant="outline"

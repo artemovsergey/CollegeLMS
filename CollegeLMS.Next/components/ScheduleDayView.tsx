@@ -24,6 +24,9 @@ interface ScheduleDayViewProps {
   date: string
   groupId?: string
   teacherId?: string
+  /** Названия выбранных фильтров — чтобы не дублировать их в карточках. */
+  groupName?: string
+  teacherName?: string
   refreshKey?: number
   onDateChange: (date: string) => void
   onEntryClick?: (entry: ScheduleResponse) => void
@@ -50,6 +53,8 @@ export default function ScheduleDayView({
   date,
   groupId,
   teacherId,
+  groupName,
+  teacherName,
   refreshKey,
   onDateChange,
   onEntryClick,
@@ -139,6 +144,8 @@ export default function ScheduleDayView({
               inserts={data.inserts}
               selectedDay={null}
               currentWeek={isToday ? data.week : undefined}
+              filterGroupName={groupName}
+              filterTeacherName={teacherName}
               onEntryClick={onEntryClick}
               onSlotEditClick={onSlotEditClick}
               onSlotDeleteClick={onSlotDeleteClick}

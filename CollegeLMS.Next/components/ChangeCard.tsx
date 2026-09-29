@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { dateForLesson } from "@/lib/semester"
 import { toIsoDate } from "@/api/schedule"
+import { REPLACE_ARROW_CLASS } from "@/lib/change-tags"
 import { dayLabelFromString } from "@/lib/max-lesson"
 
 const CHANGE_TYPE_META: Record<
@@ -201,7 +202,7 @@ export default function ChangeCard({
           {isMoveOrReplace && item.removedSubject ? (
             <span className="flex flex-wrap items-center gap-1.5">
               <span className="text-muted-foreground">{removedLesson}</span>
-              <span className="text-muted-foreground" aria-hidden>
+              <span className={REPLACE_ARROW_CLASS} aria-hidden>
                 {"=>"}
               </span>
               <span className="font-medium">{newLesson}</span>

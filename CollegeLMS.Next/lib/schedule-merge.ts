@@ -6,11 +6,12 @@ export type DayRow =
   | { kind: "insert"; insert: ScheduleInsert }
 
 /**
- * Пара после слияния подгрупп. У иностранного языка одна пара делится между
- * несколькими преподавателями, и в базе это отдельные записи со своими
- * аудиториями — в расписании такая пара показывается одной строкой.
- * `mergedEntries` хранит исходные записи, чтобы по каждой подгруппе можно было
- * открыть редактирование.
+ * Пара после слияния. Пара — это время, а не предмет: в одном слоте законно
+ * может быть несколько занятий (иностранный язык двумя преподавателями,
+ * добавленная пара рядом с существующей). Такая пара показывается одной
+ * карточкой со списком занятий, поэтому и бейдж изменений на неё один — иначе
+ * «Добавлено» и «Снято» стояли бы рядом. `mergedEntries` хранит исходные
+ * записи, чтобы по каждой можно было открыть редактирование.
  */
 export interface MergedEntry extends ScheduleResponse {
   mergedEntries?: ScheduleResponse[]
@@ -29,20 +30,19 @@ function toMinutes(time: string): number | null {
   return hours * 60 + minutes
 }
 
-function joinDistinct(values: (string | null)[]): string {
+function joinDistinct(values: (string | null | undefined)[]): string {
   const seen: string[] = []
   for (const value of values) {
     const text = (value ?? "").trim()
     if (text.length > 0 && !seen.includes(text)) seen.push(text)
   }
-  return seen.join("/")
+  return seen.join(" / ")
 }
 
 /**
- * Сливает записи одной пары, отличающиеся только аудиторией и преподавателем:
- * «302 Ин.язык / Рахимова» и «413 Ин.язык / Сорокина» — одна пара с двумя
- * подгруппами, ровно как в файле расписания. Записи с разными неделями или
- * разными предметами остаются отдельными.
+ * Сливает записи одного слота: день, номер пары, группа и набор недель.
+ * Предмет в ключ не входит намеренно — разные предметы в одном слоте это
+ * одна пара, просто с несколькими занятиями.
  */
 export function mergeSharedEntries(entries: ScheduleResponse[]): MergedEntry[] {
   const order: string[] = []
@@ -53,7 +53,6 @@ export function mergeSharedEntries(entries: ScheduleResponse[]): MergedEntry[] {
       entry.dayOfWeek,
       entry.numberPair,
       entry.groupName.trim().toLowerCase(),
-      entry.subject.trim().toLowerCase(),
       [...entry.weeks].sort((a, b) => a - b).join(","),
     ].join("|")
     if (!buckets.has(key)) {
@@ -73,12 +72,19 @@ export function mergeSharedEntries(entries: ScheduleResponse[]): MergedEntry[] {
       .filter(
         (tag, index, all) =>
           all.findIndex(
-            (other) => other.changeType === tag.changeType && other.week === tag.week,
+            (other) =>
+              other.changeType === tag.changeType &&
+              other.week === tag.week &&
+              other.removedSubject === tag.removedSubject &&
+              other.note === tag.note,
           ) === index,
       )
 
     return {
       ...first,
+      // В слоте может быть несколько предметов: в заголовке перечисляем их,
+      // ниже каждое занятие показано своей строкой.
+      subject: joinDistinct(bucket.map((entry) => entry.subject)),
       room: joinDistinct(bucket.map((entry) => entry.room)),
       teacherName: joinDistinct(bucket.map((entry) => entry.teacherName)) || null,
       changeTags: tags,

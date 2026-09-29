@@ -1,6 +1,13 @@
 import type { ChangeTag, CorrectionChangeType } from "@/types/correction"
 
 const SELF_STUDY_NOTE_RE = /сам[\s./-]*р/i
+/**
+ * Разделитель замены и переноса. Тонкий и приглушённый: раньше стрелка была
+ * заметнее самих названий предметов и перетягивала на себя внимание.
+ */
+export const REPLACE_ARROW_CLASS =
+  "text-xs font-normal text-muted-foreground/70"
+
 export function isSelfStudyNote(note: string | null | undefined): boolean {
   return SELF_STUDY_NOTE_RE.test(note ?? "")
 }

@@ -952,9 +952,15 @@
   text-decoration: line-through;
 }
 
+/* Разделитель замены и переноса: тоньше названий предметов, чтобы взгляд
+   шёл по занятию, а не по стрелке. */
 .max-app__change-card-arrow {
   color: var(--color-text-muted);
-  transform: rotate(180deg);
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.75;
+  margin: 0 2px;
+  align-self: center;
 }
 
 .max-app__change-card-new {

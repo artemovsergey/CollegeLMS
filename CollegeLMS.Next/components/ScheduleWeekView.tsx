@@ -49,10 +49,13 @@ function formatTime(time: string): string {
 function DayColumn({
   day,
   week,
+  teacherView,
   onOpen,
 }: {
   day: ScheduleDayData
   week: number
+  /** Преподаватель выбран фильтром — значит, группу в карточке не повторяем. */
+  teacherView: boolean
   onOpen: (date: string) => void
 }) {
   const iso = normalizeDateOnly(day.date)
@@ -155,10 +158,13 @@ function DayColumn({
                   </div>
                 )}
                 {/* Группа нужна преподавателю: у него в неделе несколько групп,
-                    иначе непонятно, чья это пара. */}
-                <p className="mt-0.5 truncate font-medium text-foreground">
-                  {entry.groupName}
-                </p>
+                    иначе непонятно, чья это пара. В виде по группе она уже
+                    выбрана фильтром — повторять её текстом незачем. */}
+                {teacherView && (
+                  <p className="mt-0.5 truncate font-medium text-foreground">
+                    {entry.groupName}
+                  </p>
+                )}
                 <p className="mt-0.5 truncate text-muted-foreground">
                   {entry.room}
                   {entry.teacherName ? ` · ${entry.teacherName}` : ""}
@@ -277,6 +283,7 @@ export default function ScheduleWeekView({
               key={normalizeDateOnly(day.date)}
               day={day}
               week={data.week}
+              teacherView={Boolean(teacherId)}
               onOpen={onDayClick}
             />
           ))}

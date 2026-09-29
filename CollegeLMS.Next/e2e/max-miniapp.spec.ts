@@ -329,7 +329,7 @@ test.describe("MAX mini-app", () => {
 
     const card = page.locator(".max-app__change-card")
     await expect(card).toHaveCount(1)
-    // Тип, занятие «старое => новое» и пара «2 → 3».
+    // Тип, занятие «старое => новое» и пара «2 => 3».
     await expect(card.getByText("Замена")).toBeVisible()
     await expect(card.locator(".max-app__badge--replace")).toHaveText(/Замена/)
     // Компактные бейджи без суффикса «· нед. N».
@@ -337,7 +337,9 @@ test.describe("MAX mini-app", () => {
     await expect(card.locator(".max-app__change-card-subject")).toContainText("=>")
     await expect(card.getByText(/Математика/)).toBeVisible()
     await expect(card.getByText(/Физика/)).toBeVisible()
-    await expect(card.getByText("пара 2 → 3")).toBeVisible()
+    await expect(card.getByText("пара 2 => 3")).toBeVisible()
+    // Зачёркнутого старого предмета в MAX нет.
+    await expect(card.locator(".max-app__change-card-removed")).toHaveCount(0)
     // Группа, аудитория, дата занятия и неделя.
     await expect(card.getByText("ПО262")).toBeVisible()
     await expect(card.getByText("ауд. 204")).toBeVisible()
@@ -403,11 +405,13 @@ test.describe("MAX mini-app", () => {
       waitUntil: "networkidle",
     })
 
-    // Компактные подписи: тип + отдельный бейдж «Сам.р.».
-    await expect(page.getByText("Добавлено")).toBeVisible()
+    // На паре ровно один бейдж: «Сам.р.» важнее добавления и переноса,
+    // остальные операции перечислены в подсказке. Раньше бейджи стояли рядом.
     await expect(page.getByText("Сам.р.")).toBeVisible()
-    await expect(page.getByText("Перенос")).toBeVisible()
+    await expect(page.getByText("Добавлено")).toHaveCount(0)
+    await expect(page.getByText("Перенос")).toHaveCount(0)
     await expect(page.getByText(/нед\./)).toHaveCount(0)
+    await expect(page.locator(".max-app__badge")).toHaveCount(1)
   })
 
   test("Поиск: «Выбрать» сохраняет группу в боте и делает её контекстом", async ({

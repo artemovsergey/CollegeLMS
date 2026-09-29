@@ -28,6 +28,12 @@ interface ScheduleCardsProps {
   selectedDay: number | null
   /** Текущая учебная неделя — нужна для подсветки «Сейчас идёт». */
   currentWeek?: number
+  /**
+   * Группа/преподаватель, выбранные фильтром. Если в карточке показано то же
+   * самое, повторять текстом не нужно — это дублирование.
+   */
+  filterGroupName?: string
+  filterTeacherName?: string
   onEntryClick?: (entry: ScheduleResponse) => void
   /**
    * Редактирование слота целиком. Для пары с подгруппами (ин.язык и т.п.) в слоте
@@ -69,6 +75,19 @@ function formatWeeks(weeks: number[]): string {
   return ranges.join(", ")
 }
 
+function normalize(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase()
+}
+
+/** Совпадает ли значение с тем, что уже показано в выбранном фильтре. */
+function alreadyInFilter(
+  value: string | null | undefined,
+  filterValue: string | null | undefined,
+): boolean {
+  const current = normalize(value)
+  return current.length > 0 && current === normalize(filterValue)
+}
+
 function isCurrentlyHappening(
   entry: ScheduleResponse,
   currentWeek?: number,
@@ -82,6 +101,8 @@ export default function ScheduleCards({
   inserts,
   selectedDay,
   currentWeek,
+  filterGroupName,
+  filterTeacherName,
   onEntryClick,
   onSlotEditClick,
   onSlotDeleteClick,
@@ -125,8 +146,16 @@ export default function ScheduleCards({
         const isCurrent = entry.id === currentId
         const isPractice = entry.lessonType === "Practice"
         const practicePair = practicePairName(entry)
-        // Подгруппы объединённой пары: у них свои аудитории и преподаватели.
+        // Занятия слота: у каждого свои аудитория и преподаватель.
         const subEntries = entry.mergedEntries ?? [entry]
+        // Одинаковые предметы (подгруппы ин.языка) в заголовке не перечисляем —
+        // они и так видны в списке занятий.
+        const sameSubject = new Set(
+          subEntries.map((sub) => sub.subject.trim().toLowerCase()),
+        ).size === 1
+        const title = sameSubject
+          ? subEntries[0].subject
+          : `${subEntries.length} занятия`
 
         return (
           <div
@@ -155,7 +184,7 @@ export default function ScheduleCards({
 
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm leading-tight truncate">
-                {entry.subject}
+                {title}
               </p>
               {practicePair && (
                 <div className="mt-1">
@@ -178,10 +207,12 @@ export default function ScheduleCards({
                 </span>
                 {subEntries.length <= 1 && (
                   <>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="size-3 shrink-0" />
-                      {entry.room}
-                    </span>
+                    {entry.room && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="size-3 shrink-0" />
+                        {entry.room}
+                      </span>
+                    )}
                     {entry.teacherName && (
                       <span className="flex items-center gap-1">
                         <GraduationCap className="size-3 shrink-0" />
@@ -189,10 +220,16 @@ export default function ScheduleCards({
                       </span>
                     )}
                   </>
-                )}                <span className="flex items-center gap-1">
-                  <Users className="size-3 shrink-0" />
-                  {entry.groupName}
-                </span>
+                )}
+                {/* Группу и преподавателя не повторяем, если они уже стоят
+                    в выбранном фильтре — иначе каждая пара начинается
+                    с одного и того же текста. */}
+                {alreadyInFilter(entry.groupName, filterGroupName) && (
+                  <span className="flex items-center gap-1">
+                    <Users className="size-3 shrink-0" />
+                    {entry.groupName}
+                  </span>
+                )}
               </div>
               {entry.weeks && entry.weeks.length > 0 && (
                 <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -206,8 +243,9 @@ export default function ScheduleCards({
                 </div>
               )}
 
-              {/* Пара с несколькими подгруппами (например ин.язык) показывается
-                  одной строкой; редактируется и удаляется как один слот. */}
+              {/* В слоте может быть несколько занятий (подгруппы ин.языка,
+                  добавленная пара рядом с существующей). Каждое — своей
+                  строкой, но карточка и бейдж у слота одни. */}
               {subEntries.length > 1 && (
                 <ul className="mt-1.5 grid gap-1">
                   {subEntries.map((sub) => (
@@ -215,16 +253,24 @@ export default function ScheduleCards({
                       key={sub.id}
                       className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground"
                     >
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="size-3 shrink-0" aria-hidden />
-                        {sub.room}
-                      </span>
-                      {sub.teacherName && (
-                        <span className="inline-flex items-center gap-1">
-                          <GraduationCap className="size-3 shrink-0" aria-hidden />
-                          {sub.teacherName}
+                      {!sameSubject && (
+                        <span className="font-medium text-foreground/80">
+                          {sub.subject}
                         </span>
                       )}
+                      {sub.room && (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="size-3 shrink-0" aria-hidden />
+                          {sub.room}
+                        </span>
+                      )}
+                      {sub.teacherName &&
+                        !alreadyInFilter(sub.teacherName, filterTeacherName) && (
+                          <span className="inline-flex items-center gap-1">
+                            <GraduationCap className="size-3 shrink-0" aria-hidden />
+                            {sub.teacherName}
+                          </span>
+                        )}
                     </li>
                   ))}
                 </ul>

@@ -104,11 +104,12 @@ export default function ChangeCard({
   const appliedAt = formatAppliedAt(item.appliedAt)
 
   const dayLabel = dayLabelFromString(item.dayOfWeek)
+  // Разделитель тот же, что в вебе и в боте: тонкий «=>».
   const pairLabel =
     item.removedNumberPair != null &&
     item.removedNumberPair !== item.numberPair &&
     (item.changeType === "Replace" || item.changeType === "Move")
-      ? `пара ${item.removedNumberPair} → ${item.numberPair}`
+      ? `пара ${item.removedNumberPair} => ${item.numberPair}`
       : `пара ${item.numberPair}`
 
   const isMoveOrReplace =

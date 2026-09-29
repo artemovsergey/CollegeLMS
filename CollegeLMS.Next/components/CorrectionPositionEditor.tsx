@@ -35,6 +35,7 @@ import type {
 } from "@/types/correction"
 import type { GroupResponse, Result } from "@/types"
 import { DAYS } from "@/types/schedule"
+import { REPLACE_ARROW_CLASS } from "@/lib/change-tags"
 import { extractErrorMessage } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -136,7 +137,7 @@ function renderTitle(position: CorrectionPosition) {
       return (
         <span className="flex flex-wrap items-center gap-1">
           <span className="text-muted-foreground">{from}</span>
-          <span aria-hidden className="text-muted-foreground">
+          <span aria-hidden className={REPLACE_ARROW_CLASS}>
             {"=>"}
           </span>
           <span className="font-medium">{to}</span>

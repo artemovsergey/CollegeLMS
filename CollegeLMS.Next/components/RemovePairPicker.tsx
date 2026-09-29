@@ -1,6 +1,6 @@
 "use client"
 
-import { GripVertical, RotateCw } from "lucide-react"
+import { RotateCw } from "lucide-react"
 import type {
   CorrectionChangeType,
   CorrectionDayEntry,
@@ -50,8 +50,6 @@ interface RemovePairPickerProps {
   error?: string | null
   onRetry?: () => void
   disabled?: boolean
-  /** Разрешить перетаскивание занятия в другой слот (операция «Перенос»). */
-  draggable?: boolean
   className?: string
 }
 
@@ -64,7 +62,6 @@ export default function RemovePairPicker({
   error,
   onRetry,
   disabled,
-  draggable,
   className,
 }: RemovePairPickerProps) {
   if (loading) {
@@ -111,12 +108,6 @@ export default function RemovePairPicker({
             type="button"
             disabled={disabled}
             aria-pressed={selected}
-            draggable={draggable && !disabled}
-            onDragStart={(event) => {
-              if (!draggable) return
-              event.dataTransfer.effectAllowed = "move"
-              event.dataTransfer.setData("text/plain", String(entry.numberPair))
-            }}
             onClick={() => {
               if (disabled) return
               if (selected) {
@@ -139,12 +130,6 @@ export default function RemovePairPicker({
               disabled && "cursor-not-allowed opacity-60",
             )}
           >
-            {draggable && (
-              <GripVertical
-                className="mt-0.5 size-4 shrink-0 cursor-grab text-muted-foreground"
-                aria-hidden
-              />
-            )}
             <span className="min-w-0">
               <span className="flex flex-wrap items-center gap-1.5 font-medium">
                 {entry.numberPair} пара

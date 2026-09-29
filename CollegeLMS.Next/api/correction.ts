@@ -275,11 +275,12 @@ function extractFileName(
   return value ? value.trim() : null
 }
 
+/** Запасное имя, если сервер не прислал Content-Disposition: день и месяц. */
 export function buildCorrectionFileName(correctionDate: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0")
   const stamp = `${pad(correctionDate.getDate())}${pad(
     correctionDate.getMonth() + 1,
-  )}${String(correctionDate.getFullYear()).slice(-2)}`
+  )}`
   return `Корректировка_${stamp}.xlsx`
 }
 
