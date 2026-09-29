@@ -2,7 +2,8 @@
 
 import { cn } from "@/lib/utils"
 
-export const NOTE_CHIPS = ["сам.р.", "замена", "перенос"]
+/** Единственное зарезервированное слово: остальное — обычный текст примечания. */
+export const NOTE_CHIPS = ["сам.р."]
 
 interface NoteChipsProps {
   value: string

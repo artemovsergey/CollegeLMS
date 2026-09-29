@@ -35,13 +35,13 @@ import { NoteChips, NOTE_CHIPS } from "@/components/NoteChips"
 import RemovePairPicker, {
   type RemovedPairSelection,
 } from "@/components/RemovePairPicker"
+import GroupDayCard, { occupiedEntryFor } from "@/components/GroupDayCard"
 import {
   SearchableMultiSelect,
   SearchableSelect,
 } from "@/components/SearchableSelect"
 
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000"
-const MAX_PAIR = 8
 
 const CHANGE_TYPE_CARDS: {
   value: CorrectionChangeType
@@ -206,6 +206,9 @@ export function CorrectionPositionDialog({
       groupId: draft.groupId,
       date: batchDate,
       batchId,
+      // Редактируемая позиция исключается: иначе её собственный слот
+      // возвращается занятым и перенести пару на другой слот уже нельзя.
+      excludePositionId: position?.id,
     })
       .then((data) => {
         if (cancelled) return
@@ -251,7 +254,7 @@ export function CorrectionPositionDialog({
     return () => {
       cancelled = true
     }
-  }, [batchDate, batchId, draft.groupId])
+  }, [batchDate, batchId, draft.groupId, position?.id])
 
   useEffect(() => {
     if (!open) return
@@ -268,11 +271,6 @@ export function CorrectionPositionDialog({
   const subjectList = useMemo(
     () => subjectOptions(teachers, draft.teacherIds),
     [teachers, draft.teacherIds],
-  )
-
-  const occupiedPairs = useMemo(
-    () => new Set(entries.map((entry) => entry.numberPair)),
-    [entries],
   )
 
   const needsSource = draft.changeType !== "Add"
@@ -302,11 +300,8 @@ export function CorrectionPositionDialog({
       }
       if (sourceBusy) return "На это занятие уже есть позиция в пакете"
     }
-    if (needsFreeTarget) {
-      if (draft.targetPair == null) return "Выберите пару для занятия"
-      if (occupiedPairs.has(draft.targetPair))
-        return `Пара ${draft.targetPair} уже занята`
-    }
+    if (needsFreeTarget && draft.targetPair == null)
+      return "Выберите пару для занятия"
     if (draft.changeType !== "Remove") {
       if (draft.teacherIds.length === 0) return "Выберите преподавателя"
       if (!draft.subject) return "Выберите предмет"
@@ -321,9 +316,14 @@ export function CorrectionPositionDialog({
     draft.teacherIds.length,
     needsSource,
     needsFreeTarget,
-    occupiedPairs,
     sourceBusy,
   ])
+
+  // Занятая пара при добавлении — это «вм.N»: занятие встаёт вместо текущего.
+  const replacedEntry =
+    draft.changeType === "Add" && draft.targetPair != null
+      ? occupiedEntryFor(entries, draft.targetPair)
+      : null
 
   const handleSubmit = async () => {
     if (blockedReason) {
@@ -334,28 +334,46 @@ export function CorrectionPositionDialog({
       .map((id) => teachers.find((teacher) => teacher.id === id)?.fullName)
       .filter((name): name is string => Boolean(name))
 
+    // Добавление в занятую пару — это «вм.N»: занятие встаёт вместо текущего,
+    // поэтому позиция сохраняется как замена с примечанием «вм.N».
+    const isRemove = draft.changeType === "Remove"
+    const note = draft.note.trim()
+
     const payload: CreateCorrectionPosition = {
-      changeType: draft.changeType,
+      changeType: replacedEntry ? "Replace" : draft.changeType,
       groupId: draft.groupId,
       groupName: group?.name ?? "",
       numberPair: needsFreeTarget
         ? (draft.targetPair ?? 1)
         : (draft.source?.numberPair ?? 1),
-      subject: draft.changeType === "Remove" ? null : draft.subject,
+      subject: isRemove ? null : draft.subject,
       teacherId: draft.teacherIds[0] ?? null,
-      teacherName:
-        draft.changeType === "Remove" || teacherNames.length === 0
-          ? null
-          : teacherNames.join("/"),
-      removedSubject: needsSource ? (draft.source?.removedSubject ?? null) : null,
-      removedTeacherId: needsSource
-        ? (draft.source?.removedTeacherId ?? null)
-        : null,
-      removedTeacherName: needsSource
-        ? (draft.source?.removedTeacherName ?? null)
-        : null,
-      removedNumberPair: needsSource ? (draft.source?.numberPair ?? null) : null,
-      note: draft.note.trim() || null,
+      teacherName: isRemove || teacherNames.length === 0 ? null : teacherNames.join("/"),
+      removedSubject: replacedEntry
+        ? replacedEntry.subject
+        : needsSource
+          ? (draft.source?.removedSubject ?? null)
+          : null,
+      removedTeacherId: replacedEntry
+        ? replacedEntry.teacherId
+        : needsSource
+          ? (draft.source?.removedTeacherId ?? null)
+          : null,
+      removedTeacherName: replacedEntry
+        ? replacedEntry.teacherName
+        : needsSource
+          ? (draft.source?.removedTeacherName ?? null)
+          : null,
+      removedNumberPair: replacedEntry
+        ? replacedEntry.numberPair
+        : needsSource
+          ? (draft.source?.numberPair ?? null)
+          : null,
+      note: note
+        ? note
+        : replacedEntry
+          ? `вм.${replacedEntry.numberPair}`
+          : null,
     }
 
     setSaving(true)
@@ -382,8 +400,9 @@ export function CorrectionPositionDialog({
             {editing ? "Редактирование позиции" : "Новая позиция корректировки"}
           </DialogTitle>
           <DialogDescription>
-            Шаги идут сверху вниз: каждый следующий список ограничен реальными
-            данными группы, поэтому ошибиться выбором нельзя.
+            Позиция добавляется в пакет за {formatDate(batchDate)}. Шаги идут
+            сверху вниз: каждый следующий список ограничен реальными данными
+            группы, поэтому ошибиться выбором нельзя.
           </DialogDescription>
         </DialogHeader>
 
@@ -506,61 +525,47 @@ export function CorrectionPositionDialog({
                           })
                         }
                         entries={entries}
-                        className="max-h-56 overflow-y-auto pr-1"
+                        draggable={draft.changeType === "Move"}
+                        className="scroll-stable max-h-56 overflow-y-auto pr-1"
                       />
+                      {draft.changeType === "Move" && (
+                        <p className="text-xs text-muted-foreground">
+                          Пару назначения можно выбрать кликом по строке в карточке
+                          дня или перетащить занятие на нужную строку.
+                        </p>
+                      )}
                     </div>
                   )}
 
-                  {needsFreeTarget && (
-                    <div className="grid gap-1.5">
-                      <span className="text-sm font-medium">
-                        {draft.changeType === "Move"
-                          ? "Пара назначения (свободная)"
-                          : "Пара назначения (свободная)"}
-                      </span>
-                      <div
-                        className="grid grid-cols-4 gap-2 sm:grid-cols-8"
-                        role="radiogroup"
-                        aria-label="Пара назначения"
-                      >
-                        {Array.from({ length: MAX_PAIR }, (_, index) => index + 1).map(
-                          (pair) => {
-                            const occupied = occupiedPairs.has(pair)
-                            const blocked = occupied
-                            const selected = draft.targetPair === pair
-                            return (
-                              <button
-                                key={pair}
-                                type="button"
-                                role="radio"
-                                aria-checked={selected}
-                                disabled={blocked}
-                                title={occupied ? "Пара уже занята" : `Пара ${pair}`}
-                                onClick={() => patch({ targetPair: pair })}
-                                className={cn(
-                                  "rounded-md border px-2 py-2 text-center text-sm transition-colors",
-                                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                                  selected
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-input bg-background hover:bg-muted",
-                                  blocked &&
-                                    "cursor-not-allowed border-dashed opacity-45 hover:bg-transparent",
-                                )}
-                              >
-                                <span className="block font-medium">{pair}</span>
-                                <span className="block text-[10px] uppercase opacity-80">
-                                  {occupied ? "занята" : "свободна"}
-                                </span>
-                              </button>
-                            )
-                          },
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Занятые пары недоступны: добавить или перенести в них
-                        нельзя, иначе в паре окажется два занятия.
-                      </p>
-                    </div>
+                  {draft.changeType === "Remove" ? (
+                    <p className="text-sm text-muted-foreground">
+                      Выберите снимаемое занятие в списке выше. Без примечания
+                      «сам.р.» пара снимается с расписания; с ним — остаётся и
+                      помечается для студентов.
+                    </p>
+                  ) : (
+                    <GroupDayCard
+                      groupName={group?.name ?? ""}
+                      dateLabel={formatDate(batchDate)}
+                      entries={entries}
+                      selectedPair={draft.targetPair}
+                      onSelectPair={(numberPair) => patch({ targetPair: numberPair })}
+                      selectable={needsFreeTarget}
+                      dragSource={draft.changeType === "Move"}
+                      onDropPair={
+                        draft.changeType === "Move"
+                          ? (numberPair) => patch({ targetPair: numberPair })
+                          : undefined
+                      }
+                    />
+                  )}
+
+                  {replacedEntry && (
+                    <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                      Пара {replacedEntry.numberPair} занята: новое занятие встанет
+                      вместо «{replacedEntry.subject}», в примечании сохранится
+                      «вм.{replacedEntry.numberPair}».
+                    </p>
                   )}
                 </div>
               )}
@@ -660,8 +665,19 @@ export function CorrectionPositionDialog({
               className="mt-2"
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              Зарезервированные слова: {NOTE_CHIPS.join(", ")}.
+              «{NOTE_CHIPS.join(", ")}» — служебное слово: пара остаётся в
+              расписании и помечается для студентов. Остальной текст — свободное
+              примечание.
             </p>
+            {replacedEntry && (
+              <Badge
+                variant="outline"
+                className="mt-2 w-fit gap-1 bg-muted text-muted-foreground"
+              >
+                <Lock className="size-3" aria-hidden />
+                вм.{replacedEntry.numberPair} — подставится автоматически
+              </Badge>
+            )}
             {draft.changeType === "Move" && sourcePair != null && (
               <Badge
                 variant="outline"

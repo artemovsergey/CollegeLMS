@@ -1,46 +1,32 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 import type { LucideIcon } from "lucide-react"
 import {
   Upload,
   FileSpreadsheet,
   AlertCircle,
-  History,
   Plus,
   Minus,
   Repeat,
   ArrowRightLeft,
-  RefreshCw,
-  ArrowLeft,
+  BookMarked,
   Package,
-  Undo2,
 } from "lucide-react"
-import { importCorrection, getHistory, revertHistory } from "@/api/correction"
+import { importCorrection } from "@/api/correction"
 import { extractErrorMessage } from "@/lib/utils"
-import { DAYS } from "@/types/schedule"
 import type {
   CorrectionChangeType,
   CorrectionImportResponse,
-  ScheduleHistoryItem,
   ScheduleValidationError,
 } from "@/types/correction"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import CorrectionBatchList from "@/components/CorrectionBatchList"
 import CorrectionPositionEditor from "@/components/CorrectionPositionEditor"
-import { ConfirmDialog } from "@/components/ConfirmDialog"
+import { CorrectionRules } from "@/components/CorrectionRules"
 
 const CHANGE_TYPE_META: Record<
   CorrectionChangeType,
@@ -72,30 +58,6 @@ const CHANGE_TYPE_META: Record<
   },
 }
 
-const DAY_RU: Record<string, string> = {
-  Monday: "Понедельник",
-  Tuesday: "Вторник",
-  Wednesday: "Среда",
-  Thursday: "Четверг",
-  Friday: "Пятница",
-  Saturday: "Суббота",
-  Sunday: "Воскресенье",
-}
-
-function dayLabelFromString(dayOfWeek: string): string {
-  return DAY_RU[dayOfWeek] ?? dayOfWeek
-}
-
-function ChangeTypeBadge({ type }: { type: CorrectionChangeType }) {
-  const meta = CHANGE_TYPE_META[type]
-  const Icon = meta.icon
-  return (
-    <Badge variant="outline" className={meta.className}>
-      <Icon /> {meta.label}
-    </Badge>
-  )
-}
-
 function formatValidationError(error: ScheduleValidationError): string {
   const message = error.message ?? ""
   if (/^Строка\s+\d+/i.test(message)) return message
@@ -103,13 +65,13 @@ function formatValidationError(error: ScheduleValidationError): string {
   return row ? `${row}: ${message}` : message
 }
 
-type Tab = "batches" | "editor" | "import" | "journal"
+// Журнала здесь нет: просмотр изменений живёт на отдельной странице «Изменения».
+type Tab = "batches" | "editor" | "import"
 
 const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
   { key: "batches", label: "Пакеты", icon: Package },
   { key: "editor", label: "Редактор", icon: FileSpreadsheet },
   { key: "import", label: "Импорт", icon: Upload },
-  { key: "journal", label: "Журнал", icon: History },
 ]
 
 export default function DispatcherCorrectionPage() {
@@ -123,56 +85,7 @@ export default function DispatcherCorrectionPage() {
   const [importResult, setImportResult] =
     useState<CorrectionImportResponse | null>(null)
 
-  const [history, setHistory] = useState<ScheduleHistoryItem[]>([])
-  const [historyPage, setHistoryPage] = useState(1)
-  const [historyTotalPages, setHistoryTotalPages] = useState(1)
-  const [weekFilter, setWeekFilter] = useState("")
-  const [loadingHistory, setLoadingHistory] = useState(false)
-  const [revertingId, setRevertingId] = useState<string | null>(null)
-  const reverting = history.find((item) => item.id === revertingId) ?? null
-
-  const loadHistory = useCallback(
-    async (page: number) => {
-      setLoadingHistory(true)
-      try {
-        const week = weekFilter ? Number(weekFilter) : undefined
-        const res = await getHistory({
-          week,
-          page,
-          pageSize: 20,
-        })
-        setHistory(res.items)
-        setHistoryPage(res.page)
-        setHistoryTotalPages(res.totalPages)
-      } catch (err) {
-        toast.error(extractErrorMessage(err) ?? "Ошибка загрузки журнала")
-      } finally {
-        setLoadingHistory(false)
-      }
-    },
-    [weekFilter],
-  )
-
-  useEffect(() => {
-    if (tab === "journal") loadHistory(1)
-  }, [tab, loadHistory])
-
-  // Откат убирает запись из журнала: перезагружаем текущую страницу, а если
-  // она стала пустой — предыдущую, иначе пользователь увидит пустую таблицу.
-  const handleRevert = async (item: ScheduleHistoryItem) => {
-    try {
-      const res = await revertHistory(item.id)
-      toast.success(res.message)
-      if (history.length === 1 && historyPage > 1) {
-        await loadHistory(historyPage - 1)
-      } else {
-        await loadHistory(historyPage)
-      }
-    } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось откатить корректировку")
-      return false
-    }
-  }
+  const [rulesOpen, setRulesOpen] = useState(false)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
@@ -232,172 +145,33 @@ export default function DispatcherCorrectionPage() {
     setTab("batches")
   }
 
-  const renderJournal = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center justify-between gap-2">
-          <span className="flex items-center gap-2">
-            <History className="size-4" />
-            Журнал изменений
-          </span>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              min={1}
-              placeholder="Неделя"
-              value={weekFilter}
-              onChange={(e) => setWeekFilter(e.target.value)}
-              className="w-28"
-              aria-label="Фильтр по неделе"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => loadHistory(1)}
-              aria-label="Обновить журнал"
-            >
-              <RefreshCw
-                className={`size-4 ${loadingHistory ? "animate-spin" : ""}`}
-              />
-            </Button>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {history.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Журнал пуст.
-          </p>
-        ) : (
-          <>
-            <div className="overflow-x-auto rounded-md border">
-              <Table className="min-w-[820px]">
-                <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground [&_th]:font-bold [&_th]:h-auto [&_th]:text-muted-foreground [&_tr]:border-b-0">
-                  <TableRow>
-                    <TableHead className="px-3 py-2 text-left">Дата</TableHead>
-                    <TableHead className="px-3 py-2 text-left">Тип</TableHead>
-                    <TableHead className="px-3 py-2 text-left">Группа</TableHead>
-                    <TableHead className="px-3 py-2 text-left">День</TableHead>
-                    <TableHead className="px-3 py-2 text-left">Пара</TableHead>
-                    <TableHead className="px-3 py-2 text-left">Предмет</TableHead>
-                    <TableHead className="px-3 py-2 text-left">
-                      Преподаватель
-                    </TableHead>
-                    <TableHead className="px-3 py-2 text-left">Примечание</TableHead>
-                    <TableHead className="px-3 py-2 text-right">
-                      <span className="sr-only">Действия</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody className="divide-y">
-                  {history.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                        {new Date(item.appliedAt).toLocaleString("ru-RU")}
-                      </TableCell>
-                      <TableCell className="px-3 py-2">
-                        <ChangeTypeBadge type={item.changeType} />
-                      </TableCell>
-                      <TableCell className="px-3 py-2 whitespace-nowrap">
-                        {item.groupName}
-                      </TableCell>
-                      <TableCell className="px-3 py-2 whitespace-nowrap">
-                        {dayLabelFromString(item.dayOfWeek)}
-                      </TableCell>
-                      <TableCell className="px-3 py-2">
-                        {item.removedNumberPair != null &&
-                          (item.changeType === "Replace" ||
-                            item.changeType === "Move") &&
-                          item.removedNumberPair !== item.numberPair
-                          ? `${item.removedNumberPair} → ${item.numberPair}`
-                          : item.numberPair}
-                      </TableCell>
-                      <TableCell className="whitespace-normal px-3 py-2">
-                        {(item.changeType === "Replace" ||
-                          item.changeType === "Move") &&
-                          item.removedSubject ? (
-                          <span className="flex items-center gap-1">
-                            <span className="line-through text-muted-foreground">
-                              {item.removedSubject}
-                            </span>
-                            <ArrowLeft className="size-3 rotate-180 text-muted-foreground" />
-                            <span className="font-medium">
-                              {item.subject}
-                            </span>
-                          </span>
-                        ) : (
-                          item.subject
-                        )}
-                      </TableCell>
-                      <TableCell className="px-3 py-2 max-w-[220px] truncate">
-                        {item.teacherName ?? "—"}
-                      </TableCell>
-                      <TableCell className="px-3 py-2 max-w-[200px] truncate text-muted-foreground">
-                        {item.note ?? "—"}
-                      </TableCell>
-                      <TableCell className="px-3 py-2 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          aria-label={`Откатить корректировку: ${item.groupName}, ${item.subject}`}
-                          onClick={() => setRevertingId(item.id)}
-                        >
-                          <Undo2 size={15} aria-hidden />
-                          Откатить
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                Стр. {historyPage} из {historyTotalPages}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={historyPage <= 1}
-                  onClick={() => loadHistory(historyPage - 1)}
-                >
-                  ← Назад
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={historyPage >= historyTotalPages}
-                  onClick={() => loadHistory(historyPage + 1)}
-                >
-                  Далее →
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
-  )
-
   return (
     <div className="flex flex-col gap-6 p-6 mx-auto max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Корректировка расписания</h2>
-        <div className="inline-flex rounded-lg border bg-card p-1">
-          {TABS.map(({ key, label, icon: Icon }) => (
-            <Button
-              key={key}
-              variant={tab === key ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setTab(key)}
-              disabled={key === "editor" && !selectedBatchId}
-            >
-              <Icon className="size-4 mr-2" />
-              {label}
-            </Button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setRulesOpen(true)}
+          >
+            <BookMarked className="size-4" aria-hidden />
+            Правила
+          </Button>
+          <div className="inline-flex rounded-lg border bg-card p-1">
+            {TABS.map(({ key, label, icon: Icon }) => (
+              <Button
+                key={key}
+                variant={tab === key ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setTab(key)}
+                disabled={key === "editor" && !selectedBatchId}
+              >
+                <Icon className="size-4 mr-2" />
+                {label}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -504,43 +278,7 @@ export default function DispatcherCorrectionPage() {
         </Card>
       )}
 
-      {tab === "journal" && renderJournal()}
-
-      <ConfirmDialog
-        open={reverting !== null}
-        onOpenChange={(open) => {
-          if (!open) setRevertingId(null)
-        }}
-        title="Откатить корректировку?"
-        description={
-          reverting ? (
-            <>
-              <p>
-                {CHANGE_TYPE_META[reverting.changeType].label}:{" "}
-                <span className="font-medium">{reverting.subject}</span>,{" "}
-                {reverting.groupName},{" "}
-                {dayLabelFromString(reverting.dayOfWeek)}, пара{" "}
-                {reverting.numberPair}
-                {reverting.removedNumberPair &&
-                reverting.removedNumberPair !== reverting.numberPair
-                  ? ` (была ${reverting.removedNumberPair})`
-                  : ""}
-                .
-              </p>
-              <p className="mt-2 text-muted-foreground">
-                Пара вернётся в расписание в исходном виде, запись исчезнет из
-                журнала. Отменить откат будет нельзя.
-              </p>
-            </>
-          ) : null
-        }
-        confirmLabel="Откатить"
-        confirmVariant="destructive"
-        onConfirm={async () => {
-          if (!reverting) return false
-          return await handleRevert(reverting)
-        }}
-      />
+      <CorrectionRules open={rulesOpen} onOpenChange={setRulesOpen} />
     </div>
   )
 }

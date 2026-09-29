@@ -175,7 +175,7 @@ export function SearchableSelect({
             id={listId}
             role="listbox"
             aria-label={aria["aria-label"] ?? placeholder}
-            className="mt-1 max-h-64 overflow-y-auto"
+            className="scroll-stable mt-1 max-h-64 overflow-y-auto"
           >
             {filtered.length === 0 && (
               <li className="px-2 py-3 text-center text-xs text-muted-foreground">
@@ -353,7 +353,7 @@ export function SearchableMultiSelect({
             role="listbox"
             aria-multiselectable
             aria-label={aria["aria-label"] ?? placeholder}
-            className="mt-1 max-h-64 overflow-y-auto"
+            className="scroll-stable mt-1 max-h-64 overflow-y-auto"
           >
             {filtered.length === 0 && (
               <li className="px-2 py-3 text-center text-xs text-muted-foreground">

@@ -29,7 +29,16 @@ interface ScheduleCardsProps {
   /** Текущая учебная неделя — нужна для подсветки «Сейчас идёт». */
   currentWeek?: number
   onEntryClick?: (entry: ScheduleResponse) => void
-  onDeleteClick?: (id: string) => void
+  /**
+   * Редактирование слота целиком. Для пары с подгруппами (ин.язык и т.п.) в слоте
+   * несколько записей, но это одна пара — карандаш и корзина у неё одни.
+   */
+  onSlotEditClick?: (
+    entry: ScheduleResponse,
+    subEntries: ScheduleResponse[],
+  ) => void
+  /** Удаление слота целиком: при подгруппах удаляются все записи слота. */
+  onSlotDeleteClick?: (entry: ScheduleResponse, subEntries: ScheduleResponse[]) => void
 }
 
 function formatTime(time: string) {
@@ -74,7 +83,8 @@ export default function ScheduleCards({
   selectedDay,
   currentWeek,
   onEntryClick,
-  onDeleteClick,
+  onSlotEditClick,
+  onSlotDeleteClick,
 }: ScheduleCardsProps) {
   const filteredEntries = selectedDay
     ? entries.filter((e) => e.dayOfWeek === selectedDay)
@@ -100,7 +110,9 @@ export default function ScheduleCards({
     )
   }
 
-  const hasActions = Boolean(onEntryClick || onDeleteClick)
+  const editSlot = onSlotEditClick ?? onEntryClick
+  const deleteSlot = onSlotDeleteClick
+  const hasActions = Boolean(editSlot || deleteSlot)
 
   return (
     <div className="flex flex-col gap-3">
@@ -190,14 +202,12 @@ export default function ScheduleCards({
               )}
               {entry.changeTags && entry.changeTags.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                  {entry.changeTags.map((tag, i) => (
-                    <ChangeTagBadge key={i} tag={tag} />
-                  ))}
+                  <ChangeTagBadge tags={entry.changeTags} />
                 </div>
               )}
 
               {/* Пара с несколькими подгруппами (например ин.язык) показывается
-                  одной строкой, но редактируется по каждой подгруппе. */}
+                  одной строкой; редактируется и удаляется как один слот. */}
               {subEntries.length > 1 && (
                 <ul className="mt-1.5 grid gap-1">
                   {subEntries.map((sub) => (
@@ -215,62 +225,32 @@ export default function ScheduleCards({
                           {sub.teacherName}
                         </span>
                       )}
-                      {hasActions && (
-                        <span className="flex gap-0.5">
-                          {onEntryClick && (
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              aria-label={`Редактировать подгруппу: ${sub.room}${
-                                sub.teacherName ? `, ${sub.teacherName}` : ""
-                              }`}
-                              className="text-muted-foreground hover:text-primary"
-                              onClick={() => onEntryClick(sub)}
-                            >
-                              <Pencil className="size-3.5" aria-hidden />
-                            </Button>
-                          )}
-                          {onDeleteClick && (
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              aria-label={`Удалить подгруппу: ${sub.room}${
-                                sub.teacherName ? `, ${sub.teacherName}` : ""
-                              }`}
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => onDeleteClick(sub.id)}
-                            >
-                              <Trash2 className="size-3.5" aria-hidden />
-                            </Button>
-                          )}
-                        </span>
-                      )}
                     </li>
                   ))}
                 </ul>
               )}
             </div>
 
-            {hasActions && subEntries.length <= 1 && (
+            {hasActions && (
               <div className="flex shrink-0 items-start gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100">
-                {onEntryClick && (
+                {editSlot && (
                   <Button
                     variant="ghost"
                     size="icon"
                     aria-label="Редактировать пару"
                     className="relative size-8 text-muted-foreground after:absolute after:-inset-1.5 hover:bg-primary/[0.08] hover:text-primary dark:hover:bg-primary/[0.12]"
-                    onClick={() => onEntryClick(entry)}
+                    onClick={() => editSlot(entry, subEntries)}
                   >
                     <Pencil className="size-3.5" aria-hidden />
                   </Button>
                 )}
-                {onDeleteClick && (
+                {deleteSlot && (
                   <Button
                     variant="ghost"
                     size="icon"
                     aria-label="Удалить пару"
                     className="relative size-8 text-destructive after:absolute after:-inset-1.5 hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
-                    onClick={() => onDeleteClick(entry.id)}
+                    onClick={() => deleteSlot(entry, subEntries)}
                   >
                     <Trash2 className="size-3.5" aria-hidden />
                   </Button>

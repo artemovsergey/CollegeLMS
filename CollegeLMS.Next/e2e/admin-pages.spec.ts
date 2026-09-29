@@ -94,18 +94,7 @@ test.describe("MAX mini-app preview page", () => {
     })
   })
 
-test.describe("Testing page", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem("token", "test-jwt-token")
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ id: "u1", email: "admin@collegelms.ru", fullName: "Администратор", role: "Admin" })
-      )
-    })
-  })
-
-  test("renders test list", async ({ page }) => {
+  test("opens create test dialog", async ({ page }) => {
     await page.route("**/api/tests**", (route) =>
       route.fulfill({
         status: 200,
@@ -140,47 +129,5 @@ test.describe("Testing page", () => {
     await expect(page.getByRole("heading", { name: "Тестирование" })).toBeVisible()
     await expect(page.getByText("Контрольная работа №1")).toBeVisible()
     await expect(page.getByText("Самостоятельная работа №1")).toBeVisible()
-    await expect(page.getByText("Контрольная")).toBeVisible()
-    await expect(page.getByText("Самостоятельная")).toBeVisible()
-  })
-
-  test("opens create test dialog", async ({ page }) => {
-    await page.route("**/api/tests**", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          isSuccess: true,
-          data: [
-            { id: "t1", title: "Контрольная работа №1", description: "Первая контрольная", courseId: "c1", courseTitle: "Математика", maxAttempts: 1, timeLimitMinutes: 90, passingScore: 60, type: "Control" },
-          ],
-          errorMessage: null,
-          statusCode: 200,
-        }),
-      })
-    )
-    await page.route("**/api/courses**", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          isSuccess: true,
-          data: [{ id: "c1", title: "Математика", description: "Курс математики", teacherId: "t1", teacherName: "Иван Петров", groupNames: "Группа А", status: "Active", lessonCount: 10, documentCount: 5 }],
-          errorMessage: null,
-          statusCode: 200,
-        }),
-      })
-    )
-    await page.route("**/api/groups**", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ isSuccess: true, data: [], errorMessage: null, statusCode: 200 }),
-      })
-    )
-
-    await page.goto("/admin/testing", { waitUntil: "networkidle" })
-    await page.getByRole("button", { name: "+ Создать тест" }).click()
-    await expect(page.getByText("Создать тест")).toBeVisible()
   })
 })

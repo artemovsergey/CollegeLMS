@@ -27,7 +27,14 @@ interface ScheduleDayViewProps {
   refreshKey?: number
   onDateChange: (date: string) => void
   onEntryClick?: (entry: ScheduleResponse) => void
-  onDeleteClick?: (id: string) => void
+  onSlotEditClick?: (
+    entry: ScheduleResponse,
+    subEntries: ScheduleResponse[],
+  ) => void
+  onSlotDeleteClick?: (
+    entry: ScheduleResponse,
+    subEntries: ScheduleResponse[],
+  ) => void
 }
 
 function formatDayMonth(iso: string): string {
@@ -46,7 +53,8 @@ export default function ScheduleDayView({
   refreshKey,
   onDateChange,
   onEntryClick,
-  onDeleteClick,
+  onSlotEditClick,
+  onSlotDeleteClick,
 }: ScheduleDayViewProps) {
   const [data, setData] = useState<ScheduleDayData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -132,7 +140,8 @@ export default function ScheduleDayView({
               selectedDay={null}
               currentWeek={isToday ? data.week : undefined}
               onEntryClick={onEntryClick}
-              onDeleteClick={onDeleteClick}
+              onSlotEditClick={onSlotEditClick}
+              onSlotDeleteClick={onSlotDeleteClick}
             />
           )}
         </div>

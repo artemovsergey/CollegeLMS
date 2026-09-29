@@ -94,7 +94,8 @@ export default function ManualCorrectionForm() {
 
   const generateFile = async () => {
     const blob = await exportManualCorrection(date, rows)
-    downloadBlob(blob, buildCorrectionFileName())
+    // Имя файла — по дате корректировки, как и у скачивания пакета.
+    downloadBlob(blob, buildCorrectionFileName(new Date(date)))
     return blob
   }
 

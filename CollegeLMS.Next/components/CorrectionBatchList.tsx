@@ -6,9 +6,9 @@ import {
   CalendarDays,
   CircleAlert,
   Download,
+  Eraser,
   Eye,
   FolderPlus,
-  LoaderCircle,
   Play,
   RefreshCw,
   RotateCcw,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import {
   applyBatch,
+  clearAppliedBatches,
   createBatch,
   deleteBatch,
   exportBatch,
@@ -45,6 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
+import { CreateBatchDialog } from "@/components/CreateBatchDialog"
 import EmptyState from "@/components/EmptyState"
 
 const PAGE_SIZE = 20
@@ -63,17 +65,13 @@ const STATUS_META: Record<
     className:
       "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
   },
-  Cancelled: {
-    label: "Отменён",
-    className: "bg-muted text-muted-foreground",
-  },
 }
 
+// Отменённых пакетов не бывает: применённый пакет можно удалить целиком.
 const STATUS_FILTERS: { key: CorrectionBatchStatus | "All"; label: string }[] = [
   { key: "All", label: "Все" },
   { key: "Draft", label: "Подготовленные" },
   { key: "Applied", label: "Применённые" },
-  { key: "Cancelled", label: "Отменённые" },
 ]
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -99,6 +97,10 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("ru-RU")
 }
 
+function dayLabel(dayOfWeek: number): string {
+  return DAYS.find((d) => d.value === dayOfWeek)?.full ?? String(dayOfWeek)
+}
+
 function canApply(batch: CorrectionBatch): boolean {
   return (
     batch.status === "Draft" &&
@@ -108,7 +110,7 @@ function canApply(batch: CorrectionBatch): boolean {
 }
 
 function applyBlockReason(batch: CorrectionBatch): string | undefined {
-  if (batch.status !== "Draft") return "Пакет уже применён или отменён"
+  if (batch.status !== "Draft") return "Пакет уже применён"
   if (batch.positionCount === 0) return "В пакете нет позиций"
   if (batch.errors.length > 0)
     return `В пакете ${batch.errors.length} ошибок — исправьте их в редакторе`
@@ -135,11 +137,12 @@ export default function CorrectionBatchList({
   const [to, setTo] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [date, setDate] = useState(todayIso())
-  const [creating, setCreating] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [pendingApply, setPendingApply] = useState<CorrectionBatch | null>(null)
   const [pendingDelete, setPendingDelete] = useState<CorrectionBatch | null>(null)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [appliedCount, setAppliedCount] = useState(0)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -160,6 +163,8 @@ export default function CorrectionBatchList({
       setBatches(res.items)
       setTotalCount(res.totalCount)
       setTotalPages(Math.max(1, res.totalPages))
+      const applied = res.items.filter((b) => b.status === "Applied").length
+      setAppliedCount(applied)
     } catch (err) {
       setError(extractErrorMessage(err) ?? "Не удалось загрузить пакеты")
       setBatches([])
@@ -186,29 +191,18 @@ export default function CorrectionBatchList({
     setPage(1)
   }
 
-  const handleCreate = async () => {
-    if (!date) {
-      toast.error("Укажите дату корректировки")
-      return
-    }
-    setCreating(true)
-    try {
-      const batch = await createBatch(date)
-      toast.success("Пакет создан")
-      onOpen(batch.id)
-    } catch (err) {
-      toast.error(extractErrorMessage(err) ?? "Не удалось создать пакет")
-    } finally {
-      setCreating(false)
-    }
+  const handleCreate = async (date: string) => {
+    const batch = await createBatch(date)
+    toast.success("Пакет создан")
+    onOpen(batch.id)
   }
 
   const handleDelete = async () => {
     if (!pendingDelete) return false
     setBusyId(pendingDelete.id)
     try {
-      await deleteBatch(pendingDelete.id)
-      toast.success("Пакет удалён")
+      const res = await deleteBatch(pendingDelete.id)
+      toast.success(res.message)
       setPendingDelete(null)
       await load()
       return true
@@ -220,10 +214,30 @@ export default function CorrectionBatchList({
     }
   }
 
+  const handleClearApplied = async () => {
+    setBusyId("__clear__")
+    try {
+      const res = await clearAppliedBatches()
+      toast.success(res.message)
+      await load()
+      return true
+    } catch (err) {
+      toast.error(
+        extractErrorMessage(err) ?? "Не удалось очистить применённые пакеты",
+      )
+      return false
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const handleExport = async (batch: CorrectionBatch) => {
     setBusyId(batch.id)
     try {
-      const { blob, fileName } = await exportBatch(batch.id)
+      const { blob, fileName } = await exportBatch(
+        batch.id,
+        batch.correctionDate,
+      )
       downloadBlob(blob, fileName)
     } catch (err) {
       toast.error(extractErrorMessage(err) ?? "Не удалось сформировать файл")
@@ -240,7 +254,10 @@ export default function CorrectionBatchList({
       const result = await applyBatch(pendingApply.id, crypto.randomUUID())
       toast.success(`Применено изменений: ${result.applied}`)
       try {
-        const { blob, fileName } = await exportBatch(pendingApply.id)
+        const { blob, fileName } = await exportBatch(
+          pendingApply.id,
+          pendingApply.correctionDate,
+        )
         downloadBlob(blob, fileName)
       } catch {
         toast.message("Пакет применён, но файл не удалось сформировать")
@@ -272,40 +289,24 @@ export default function CorrectionBatchList({
             <FolderPlus className="size-4" aria-hidden />
             Пакеты корректировок
           </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => void load()}
-            aria-label="Обновить список пакетов"
-            disabled={loading}
-          >
-            <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => void load()}
+              aria-label="Обновить список пакетов"
+              disabled={loading}
+            >
+              <RefreshCw className={cn("size-4", loading && "animate-spin")} />
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>
+              <FolderPlus className="size-4" aria-hidden />
+              Создать пакет
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="grid gap-1 text-sm font-medium">
-            Дата корректировки
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-44"
-            />
-          </label>
-          <Button onClick={() => void handleCreate()} disabled={creating}>
-            {creating ? (
-              <>
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-                Создание...
-              </>
-            ) : (
-              "Создать пакет"
-            )}
-          </Button>
-        </div>
-
         <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-[auto_1fr] sm:items-end">
           <div className="grid gap-1.5">
             <span className="text-xs font-medium text-muted-foreground">
@@ -398,24 +399,15 @@ export default function CorrectionBatchList({
         ) : (
           <>
             <div className="hidden overflow-x-auto rounded-md border md:block">
-              <Table className="min-w-[860px]">
+              <Table className="min-w-[760px]">
                 <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground [&_th]:text-muted-foreground [&_th]:font-bold [&_th]:h-auto [&_tr]:border-b-0">
                   <TableRow>
-                    <TableHead className="px-3 py-2 text-left">
-                      Дата
-                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">Дата</TableHead>
                     <TableHead className="px-3 py-2 text-left">
                       Неделя / день
                     </TableHead>
-                    <TableHead className="px-3 py-2 text-left">
-                      Позиций
-                    </TableHead>
-                    <TableHead className="px-3 py-2 text-left">
-                      Ошибки
-                    </TableHead>
-                    <TableHead className="px-3 py-2 text-left">
-                      Статус
-                    </TableHead>
+                    <TableHead className="px-3 py-2 text-left">Позиций</TableHead>
+                    <TableHead className="px-3 py-2 text-left">Статус</TableHead>
                     <TableHead className="px-3 py-2 text-right">
                       Действия
                     </TableHead>
@@ -438,22 +430,10 @@ export default function CorrectionBatchList({
                           </span>
                         </TableCell>
                         <TableCell className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                          {batch.week} неделя ·{" "}
-                          {DAYS.find((d) => d.value === batch.dayOfWeek)?.full ??
-                            batch.dayOfWeek}
+                          {batch.week} неделя · {dayLabel(batch.dayOfWeek)}
                         </TableCell>
                         <TableCell className="px-3 py-2">
                           {batch.positionCount}
-                        </TableCell>
-                        <TableCell className="px-3 py-2">
-                          {batch.errors.length > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-destructive">
-                              <CircleAlert className="size-3.5" aria-hidden />
-                              {batch.errors.length}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
                         </TableCell>
                         <TableCell className="px-3 py-2">
                           <Badge
@@ -505,6 +485,18 @@ export default function CorrectionBatchList({
                                 </Button>
                               </>
                             )}
+                            {batch.status === "Applied" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={busy}
+                                title="Отменить применение и удалить пакет"
+                                onClick={() => setPendingDelete(batch)}
+                                aria-label={`Отменить пакет за ${formatDate(batch.correctionDate)}`}
+                              >
+                                <Trash2 className="size-4 text-destructive" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -537,16 +529,8 @@ export default function CorrectionBatchList({
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {batch.week} неделя ·{" "}
-                      {DAYS.find((d) => d.value === batch.dayOfWeek)?.full ??
-                        batch.dayOfWeek}{" "}
-                      · позиций: {batch.positionCount}
-                      {batch.errors.length > 0 && (
-                        <span className="text-destructive">
-                          {" "}
-                          · ошибок: {batch.errors.length}
-                        </span>
-                      )}
+                      {batch.week} неделя · {dayLabel(batch.dayOfWeek)} ·
+                      позиций: {batch.positionCount}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -567,27 +551,25 @@ export default function CorrectionBatchList({
                         XLSX
                       </Button>
                       {batch.status === "Draft" && (
-                        <>
-                          <Button
-                            className="h-11 flex-1"
-                            disabled={busy || !canApply(batch)}
-                            title={blocked}
-                            onClick={() => setPendingApply(batch)}
-                          >
-                            <Play className="size-4" aria-hidden />
-                            Применить
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="h-11 text-destructive"
-                            disabled={busy}
-                            onClick={() => setPendingDelete(batch)}
-                          >
-                            <Trash2 className="size-4" aria-hidden />
-                            Удалить
-                          </Button>
-                        </>
+                        <Button
+                          className="h-11 flex-1"
+                          disabled={busy || !canApply(batch)}
+                          title={blocked}
+                          onClick={() => setPendingApply(batch)}
+                        >
+                          <Play className="size-4" aria-hidden />
+                          Применить
+                        </Button>
                       )}
+                      <Button
+                        variant="outline"
+                        className="h-11 text-destructive"
+                        disabled={busy}
+                        onClick={() => setPendingDelete(batch)}
+                      >
+                        <Trash2 className="size-4" aria-hidden />
+                        {batch.status === "Applied" ? "Отменить" : "Удалить"}
+                      </Button>
                     </div>
                   </li>
                 )
@@ -619,9 +601,31 @@ export default function CorrectionBatchList({
                 </Button>
               </div>
             </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed p-3">
+              <p className="text-sm text-muted-foreground">
+                Начать новый семестр? Все применённые пакеты можно убрать разом:
+                расписание вернётся к состоянию до корректировок.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setConfirmClear(true)}
+                disabled={busyId === "__clear__"}
+              >
+                <Eraser className="size-4" aria-hidden />
+                Очистить применённые
+              </Button>
+            </div>
           </>
         )}
       </CardContent>
+
+      <CreateBatchDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        initialDate={todayIso()}
+        onSubmit={handleCreate}
+      />
 
       <ConfirmDialog
         open={pendingApply != null}
@@ -638,13 +642,12 @@ export default function CorrectionBatchList({
                   {formatDate(pendingApply.correctionDate)}
                 </span>{" "}
                 изменит расписание на {pendingApply.week} неделе,{" "}
-                {DAYS.find((d) => d.value === pendingApply.dayOfWeek)?.full ??
-                  pendingApply.dayOfWeek}
-                . Позиций: {pendingApply.positionCount}.
+                {dayLabel(pendingApply.dayOfWeek)}. Позиций:{" "}
+                {pendingApply.positionCount}.
               </p>
               <p className="mt-2">
                 Изменения попадут в расписание и в журнал, а преподавателям уйдёт
-                уведомление. Отменить применение нельзя.
+                уведомление. Отменить применение можно удалением пакета.
               </p>
             </>
           ) : null
@@ -658,15 +661,44 @@ export default function CorrectionBatchList({
         onOpenChange={(open) => {
           if (!open) setPendingDelete(null)
         }}
-        title="Удалить пакет?"
+        title={
+          pendingDelete?.status === "Applied"
+            ? "Отменить применение пакета?"
+            : "Удалить пакет?"
+        }
         description={
           pendingDelete
-            ? `Пакет за ${formatDate(pendingDelete.correctionDate)} и все его позиции (${pendingDelete.positionCount}) будут удалены. Действие необратимо.`
+            ? pendingDelete.status === "Applied"
+              ? `Применение пакета за ${formatDate(pendingDelete.correctionDate)} будет отменено: расписание вернётся к состоянию до корректировки, записи журнала удалятся. Преподавателям уведомление об отмене не уходит.`
+              : `Пакет за ${formatDate(pendingDelete.correctionDate)} и все его позиции (${pendingDelete.positionCount}) будут удалены. Действие необратимо.`
             : null
         }
-        confirmLabel="Удалить"
+        confirmLabel={
+          pendingDelete?.status === "Applied" ? "Отменить и удалить" : "Удалить"
+        }
         confirmVariant="destructive"
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={confirmClear}
+        onOpenChange={setConfirmClear}
+        title="Очистить все применённые пакеты?"
+        description={
+          <>
+            <p>
+              Будут отменены все применённые пакеты (на этой странице их{" "}
+              {appliedCount}). Расписание вернётся к состоянию до корректировок,
+              записи журнала удалятся.
+            </p>
+            <p className="mt-2 text-muted-foreground">
+              Подготовленные (неприменённые) пакеты останутся нетронутыми.
+            </p>
+          </>
+        }
+        confirmLabel="Очистить"
+        confirmVariant="destructive"
+        onConfirm={handleClearApplied}
       />
     </Card>
   )

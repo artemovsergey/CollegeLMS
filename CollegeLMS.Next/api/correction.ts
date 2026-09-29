@@ -15,6 +15,7 @@ import type {
   CorrectionImportResponse,
   CorrectionApplyResult,
   CorrectionRevertResult,
+  CorrectionBatchDeleteResult,
 } from "@/types/correction"
 
 export interface HistoryParams {
@@ -120,6 +121,15 @@ export async function createBatch(correctionDate: string): Promise<CorrectionBat
   )
 }
 
+export async function updateBatch(
+  id: string,
+  correctionDate: string,
+): Promise<CorrectionBatch> {
+  return unwrap(
+    await api.put<Result<CorrectionBatch>>(`${BATCH_BASE}/${id}`, { correctionDate }),
+  )
+}
+
 export interface BatchListParams {
   status?: CorrectionBatchStatus
   from?: string
@@ -168,9 +178,12 @@ export async function getCorrectionReferences(params: {
   groupId: string
   date: string
   batchId?: string
+  /** Позиция, которую сейчас редактируют: исключается, иначе её слот занят собой. */
+  excludePositionId?: string
 }): Promise<CorrectionReferences> {
   const qs = new URLSearchParams({ groupId: params.groupId, date: params.date })
   if (params.batchId) qs.set("batchId", params.batchId)
+  if (params.excludePositionId) qs.set("excludePositionId", params.excludePositionId)
   return unwrap(
     await api.get<Result<CorrectionReferences>>(
       `/api/schedule/correction/references?${qs.toString()}`,
@@ -182,8 +195,18 @@ export async function getBatch(id: string): Promise<CorrectionBatch> {
   return unwrap(await api.get<Result<CorrectionBatch>>(`${BATCH_BASE}/${id}`))
 }
 
-export async function deleteBatch(id: string): Promise<void> {
-  await api.delete(`${BATCH_BASE}/${id}`)
+/** Удаляет пакет; применённый перед удалением откатывается. */
+export async function deleteBatch(id: string): Promise<CorrectionBatchDeleteResult> {
+  return unwrap(
+    await api.delete<Result<CorrectionBatchDeleteResult>>(`${BATCH_BASE}/${id}`),
+  )
+}
+
+/** Очищает все применённые пакеты (например, в начале нового семестра). */
+export async function clearAppliedBatches(): Promise<CorrectionBatchDeleteResult> {
+  return unwrap(
+    await api.delete<Result<CorrectionBatchDeleteResult>>(`${BATCH_BASE}/applied`),
+  )
 }
 
 export async function addPosition(
@@ -252,16 +275,17 @@ function extractFileName(
   return value ? value.trim() : null
 }
 
-export function buildCorrectionFileName(date: Date = new Date()): string {
+export function buildCorrectionFileName(correctionDate: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0")
-  const stamp = `${pad(date.getDate())}${pad(date.getMonth() + 1)}${String(
-    date.getFullYear(),
-  ).slice(-2)}_${pad(date.getHours())}${pad(date.getMinutes())}`
+  const stamp = `${pad(correctionDate.getDate())}${pad(
+    correctionDate.getMonth() + 1,
+  )}${String(correctionDate.getFullYear()).slice(-2)}`
   return `Корректировка_${stamp}.xlsx`
 }
 
 export async function exportBatch(
   batchId: string,
+  correctionDate?: string,
 ): Promise<{ blob: Blob; fileName: string }> {
   const response = await api.post<Blob>(
     `${BATCH_BASE}/${batchId}/export`,
@@ -271,9 +295,11 @@ export async function exportBatch(
   const disposition = response.headers?.["content-disposition"] as
     | string
     | undefined
+  const fallbackDate = correctionDate ? new Date(correctionDate) : new Date()
   return {
     blob: response.data,
-    fileName: extractFileName(disposition) ?? buildCorrectionFileName(),
+    fileName:
+      extractFileName(disposition) ?? buildCorrectionFileName(fallbackDate),
   }
 }
 

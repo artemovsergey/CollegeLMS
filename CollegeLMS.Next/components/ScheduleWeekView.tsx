@@ -154,6 +154,11 @@ function DayColumn({
                     />
                   </div>
                 )}
+                {/* Группа нужна преподавателю: у него в неделе несколько групп,
+                    иначе непонятно, чья это пара. */}
+                <p className="mt-0.5 truncate font-medium text-foreground">
+                  {entry.groupName}
+                </p>
                 <p className="mt-0.5 truncate text-muted-foreground">
                   {entry.room}
                   {entry.teacherName ? ` · ${entry.teacherName}` : ""}
@@ -166,9 +171,7 @@ function DayColumn({
                 )}
                 {entry.changeTags && entry.changeTags.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
-                    {entry.changeTags.map((tag, i) => (
-                      <ChangeTagBadge key={i} tag={tag} />
-                    ))}
+                    <ChangeTagBadge tags={entry.changeTags} />
                   </div>
                 )}
               </div>

@@ -81,7 +81,18 @@ export interface ChangeTag {
   note: string | null
 }
 
-export type CorrectionBatchStatus = "Draft" | "Applied" | "Cancelled"
+/** Строка файла корректировки в том же виде, что уходит в XLSX. */
+export interface CorrectionExportRow {
+  groupName: string
+  removedSubject: string | null
+  removedTeacherName: string | null
+  addedSubject: string | null
+  addedTeacherName: string | null
+  numberPair: number
+  note: string | null
+}
+
+export type CorrectionBatchStatus = "Draft" | "Applied"
 export type CorrectionPositionStatus = "Draft" | "Applied"
 
 export interface CorrectionPosition {
@@ -195,4 +206,11 @@ export interface CorrectionApplyResult {
   applied: number
   batchId: string
   history: ScheduleHistoryItem[]
+}
+
+/** Итог удаления пакета: сколько пакетов удалено и сколько изменений возвращено. */
+export interface CorrectionBatchDeleteResult {
+  batches: number
+  reverted: number
+  message: string
 }

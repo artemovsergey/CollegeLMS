@@ -203,12 +203,7 @@ export default function DayFeed({
                     ) : null}
                     {entry.changeTags.length > 0 ? (
                       <span className="max-schedule__tag-row">
-                        {entry.changeTags.map((tag, i) => (
-                          <ChangeBadge
-                            key={`${tag.changeType}:${tag.week}:${i}`}
-                            tag={tag}
-                          />
-                        ))}
+                        <ChangeBadge tags={entry.changeTags} />
                       </span>
                     ) : null}
                   </span>

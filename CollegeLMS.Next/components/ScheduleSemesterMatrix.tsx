@@ -107,9 +107,7 @@ function CellContent({ day, week }: { day: ScheduleDayData; week: number }) {
             )}
             {entry.changeTags && entry.changeTags.length > 0 && (
               <span className="mt-0.5 flex flex-wrap gap-0.5">
-                {entry.changeTags.map((tag, i) => (
-                  <ChangeTagBadge key={i} tag={tag} />
-                ))}
+                <ChangeTagBadge tags={entry.changeTags} />
               </span>
             )}
           </div>

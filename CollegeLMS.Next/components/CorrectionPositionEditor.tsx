@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
   ArrowLeft,
+  CalendarClock,
   CheckCircle,
   CircleAlert,
   Download,
+  Eye,
   Pencil,
   Play,
   Plus,
@@ -21,6 +23,7 @@ import {
   deletePosition,
   exportBatch,
   getBatch,
+  updateBatch,
   updatePosition,
 } from "@/api/correction"
 import type {
@@ -53,6 +56,8 @@ import {
 import Pagination from "@/components/ui/pagination"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { CorrectionPositionDialog } from "@/components/CorrectionPositionDialog"
+import { CorrectionFilePreview } from "@/components/CorrectionFilePreview"
+import { CreateBatchDialog } from "@/components/CreateBatchDialog"
 import EmptyState from "@/components/EmptyState"
 
 const POSITION_PAGE_SIZE = 20
@@ -111,38 +116,45 @@ function formatValidationError(error: ScheduleValidationError): string {
   return row ? `${row}: ${message}` : message
 }
 
+/** «Предмет Преподаватель» одной строкой — так позиция выглядит в файле. */
+function lessonLine(
+  subject: string | null | undefined,
+  teacher: string | null | undefined,
+): string {
+  return [subject, teacher].filter(Boolean).join(" ") || "—"
+}
+
+/**
+ * Замена и перенос показываются как «было => стало» без зачёркивания:
+ * так же выглядит строка в файле корректировки и в уведомлениях.
+ */
 function renderTitle(position: CorrectionPosition) {
   if (position.changeType === "Replace" || position.changeType === "Move") {
-    return (
-      <span className="flex items-center gap-1">
-        <span className="line-through text-muted-foreground">
-          {position.removedSubject ?? "—"}
+    const from = lessonLine(position.removedSubject, position.removedTeacherName)
+    const to = lessonLine(position.subject, position.teacherName)
+    if (position.removedSubject)
+      return (
+        <span className="flex flex-wrap items-center gap-1">
+          <span className="text-muted-foreground">{from}</span>
+          <span aria-hidden className="text-muted-foreground">
+            {"=>"}
+          </span>
+          <span className="font-medium">{to}</span>
         </span>
-        <span className="font-medium">{position.subject ?? "—"}</span>
-      </span>
-    )
+      )
+    return <span className="font-medium">{to}</span>
   }
   if (position.changeType === "Remove") {
     return (
-      <span className="line-through text-muted-foreground">
-        {position.removedSubject ?? "—"}
+      <span className="text-muted-foreground">
+        {lessonLine(position.removedSubject, position.removedTeacherName)}
       </span>
     )
   }
-  return <span className="font-medium">{position.subject ?? "—"}</span>
-}
-
-function renderTeacher(position: CorrectionPosition) {
-  if (position.changeType === "Replace" || position.changeType === "Move") {
-    const from = position.removedTeacherName
-    const to = position.teacherName
-    if (from && to) return `${from} → ${to}`
-    return to ?? from ?? "—"
-  }
   return (
-    position.teacherName ??
-    (position.changeType === "Remove" ? position.removedTeacherName : null) ??
-    "—"
+    <span className="font-medium">
+      {lessonLine(position.subject, position.teacherName)}
+    </span>
   )
 }
 
@@ -174,6 +186,8 @@ export default function CorrectionPositionEditor({
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<CorrectionPosition | null>(null)
   const [confirmApply, setConfirmApply] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [dateOpen, setDateOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<CorrectionPosition | null>(
     null,
   )
@@ -262,11 +276,17 @@ export default function CorrectionPositionEditor({
   const handleExport = async () => {
     if (!batch) return
     try {
-      const { blob, fileName } = await exportBatch(batch.id)
+      const { blob, fileName } = await exportBatch(batch.id, batch.correctionDate)
       downloadBlob(blob, fileName)
     } catch (err) {
       toast.error(extractErrorMessage(err) ?? "Не удалось сформировать файл")
     }
+  }
+
+  const handleChangeDate = async (date: string) => {
+    await updateBatch(batchId, date)
+    toast.success("Дата пакета изменена")
+    await load()
   }
 
   const applyBatchNow = async () => {
@@ -276,7 +296,10 @@ export default function CorrectionPositionEditor({
       const result = await applyBatch(batch.id, crypto.randomUUID())
       toast.success(`Применено изменений: ${result.applied}`)
       try {
-        const { blob, fileName } = await exportBatch(batch.id)
+        const { blob, fileName } = await exportBatch(
+          batch.id,
+          batch.correctionDate,
+        )
         downloadBlob(blob, fileName)
       } catch {
         toast.message("Пакет применён, но файл не удалось сформировать")
@@ -364,6 +387,13 @@ export default function CorrectionPositionEditor({
             <Button variant="outline" onClick={onBack}>
               <ArrowLeft className="size-4 mr-2" aria-hidden /> Назад
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => setPreviewOpen(true)}
+              title="Предпросмотр файла корректировки (экспериментально)"
+            >
+              <Eye className="size-4 mr-2" aria-hidden /> Предпросмотр
+            </Button>
             <Button variant="outline" onClick={() => void handleExport()}>
               <Download className="size-4 mr-2" aria-hidden /> XLSX
             </Button>
@@ -379,11 +409,23 @@ export default function CorrectionPositionEditor({
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-md border bg-muted/30 px-4 py-3 text-sm">
-          <span>
+          <span className="flex items-center gap-1.5">
             Дата:{" "}
             <span className="font-medium">
               {new Date(batch.correctionDate).toLocaleDateString("ru-RU")}
             </span>
+            {batchIsDraft && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => setDateOpen(true)}
+                title="Изменить дату пакета"
+              >
+                <CalendarClock className="size-3.5" aria-hidden />
+                Изменить
+              </Button>
+            )}
           </span>
           <span>
             Неделя: <span className="font-medium">{batch.week}</span>
@@ -410,7 +452,7 @@ export default function CorrectionPositionEditor({
               <CircleAlert className="size-4 shrink-0" aria-hidden />
               Ошибки пакета ({batchErrors.length}) — применить нельзя
             </p>
-            <ul className="grid max-h-48 gap-1 overflow-y-auto text-xs text-muted-foreground">
+            <ul className="scroll-stable grid max-h-48 gap-1 overflow-y-auto text-xs text-muted-foreground">
               {batchErrors.map((error, index) => (
                 <li key={index}>{formatValidationError(error)}</li>
               ))}
@@ -427,7 +469,7 @@ export default function CorrectionPositionEditor({
               <CircleAlert className="size-4 shrink-0" aria-hidden />
               Пакет не применён — бэкенд вернул ошибки
             </p>
-            <ul className="grid max-h-48 gap-1 overflow-y-auto text-xs text-muted-foreground">
+            <ul className="scroll-stable grid max-h-48 gap-1 overflow-y-auto text-xs text-muted-foreground">
               {applyErrors.map((line, index) => (
                 <li key={index}>{line}</li>
               ))}
@@ -488,16 +530,15 @@ export default function CorrectionPositionEditor({
               <EmptyState message="По выбранным фильтрам позиций нет." />
             ) : (
               <div className="overflow-x-auto rounded-md border">
-                <Table className="min-w-[900px]">
+                <Table className="min-w-[820px]">
                   <TableHeader className="bg-muted/50 text-xs uppercase text-muted-foreground [&_th]:text-muted-foreground [&_th]:font-bold [&_th]:h-auto [&_tr]:border-b-0">
                     <TableRow>
                       <TableHead className="px-3 py-2 text-left">№</TableHead>
                       <TableHead className="px-3 py-2 text-left">Тип</TableHead>
                       <TableHead className="px-3 py-2 text-left">Группа</TableHead>
                       <TableHead className="px-3 py-2 text-left">Пара</TableHead>
-                      <TableHead className="px-3 py-2 text-left">Предмет</TableHead>
                       <TableHead className="px-3 py-2 text-left">
-                        Преподаватель
+                        Предмет и преподаватель
                       </TableHead>
                       <TableHead className="px-3 py-2 text-left">
                         Примечание
@@ -574,6 +615,20 @@ export default function CorrectionPositionEditor({
         groups={groups}
         position={editing}
         onSubmit={handleSubmit}
+      />
+
+      <CorrectionFilePreview
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        batch={batch}
+      />
+
+      <CreateBatchDialog
+        open={dateOpen}
+        onOpenChange={setDateOpen}
+        initialDate={dateOnly}
+        batchId={batchId}
+        onSubmit={handleChangeDate}
       />
 
       <ConfirmDialog
@@ -667,9 +722,6 @@ function PositionRow({
         <TableCell className="px-3 py-2 whitespace-normal">
           {renderTitle(position)}
         </TableCell>
-        <TableCell className="px-3 py-2 max-w-[220px] truncate">
-          {renderTeacher(position)}
-        </TableCell>
         <TableCell className="px-3 py-2 max-w-[160px] truncate text-muted-foreground">
           {position.note ?? "—"}
         </TableCell>
@@ -699,7 +751,7 @@ function PositionRow({
       </TableRow>
       {hasErrors && (
         <TableRow className="bg-destructive/5 hover:bg-destructive/5">
-          <TableCell colSpan={8} className="px-3 pt-0 pb-2">
+          <TableCell colSpan={7} className="px-3 pt-0 pb-2">
             <ul className="grid gap-1 text-xs text-destructive">
               {errors.map((error, index) => (
                 <li key={index} className="flex items-start gap-1.5">

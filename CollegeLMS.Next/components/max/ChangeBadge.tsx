@@ -1,43 +1,41 @@
 "use client"
 
-import { Plus, Minus, Repeat, ArrowRightLeft, BookOpen } from "lucide-react"
+import type { ChangeTag } from "@/types/correction"
 import type { LucideIcon } from "lucide-react"
-import type { ChangeTag, CorrectionChangeType } from "@/types/correction"
+import { Plus, Minus, Repeat, ArrowRightLeft, BookOpen } from "lucide-react"
+import { changeTagLabel, isSelfStudyNote, primaryChangeTag } from "@/lib/change-tags"
 
-const META: Record<CorrectionChangeType, { label: string; icon: LucideIcon }> = {
-  Add: { label: "Добавлено", icon: Plus },
-  Remove: { label: "Снято", icon: Minus },
-  Replace: { label: "Замена", icon: Repeat },
-  Move: { label: "Перенос", icon: ArrowRightLeft },
+const META: Record<ChangeTag["changeType"], { icon: LucideIcon }> = {
+  Add: { icon: Plus },
+  Remove: { icon: Minus },
+  Replace: { icon: Repeat },
+  Move: { icon: ArrowRightLeft },
 }
 
-const SELF_STUDY_NOTE_RE = /сам[\s./-]*р/i
+const SELF_STUDY_ICON = BookOpen
 
-export default function ChangeBadge({ tag }: { tag: ChangeTag }) {
-  const selfStudy = SELF_STUDY_NOTE_RE.test(tag.note ?? "")
+interface ChangeBadgeProps {
+  tags: ChangeTag[]
+}
 
-  const meta = META[tag.changeType]
-  const Icon = meta.icon
-  const mainBadge = (
-    <span
-      className={`max-app__badge max-app__badge--${tag.changeType.toLowerCase()}`}
-    >
+/**
+ * Бейдж изменений в паре расписания мини-приложения. Ровно один бейдж на пару:
+ * остальные изменения перечислены в подсказке, чтобы бейджи не наезжали.
+ */
+export default function ChangeBadge({ tags }: ChangeBadgeProps) {
+  const tag = primaryChangeTag(tags)
+  if (!tag) return null
+
+  const selfStudy = isSelfStudyNote(tag.note)
+  const Icon = selfStudy ? SELF_STUDY_ICON : META[tag.changeType].icon
+  const modifier = selfStudy
+    ? "selfstudy"
+    : tag.changeType.toLowerCase()
+
+  return (
+    <span className={`max-app__badge max-app__badge--${modifier}`}>
       <Icon size={12} aria-hidden />
-      {meta.label}
+      {changeTagLabel(tag)}
     </span>
   )
-
-  if (selfStudy) {
-    return (
-      <>
-        {mainBadge}
-        <span className="max-app__badge max-app__badge--selfstudy">
-          <BookOpen size={12} aria-hidden />
-          Сам.р.
-        </span>
-      </>
-    )
-  }
-
-  return mainBadge
 }
