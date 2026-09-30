@@ -104,6 +104,12 @@ interface Draft {
   fromPair: number | null
   /** Служебное слово «сам.р.»: пара помечается, но не удаляется. */
   selfStudy: boolean
+  /**
+   * Служебное слово «снять» в примечании позиции снятия. Пишется бейджем, а
+   * не руками: в файле корректировки и в уведомлении видно, что пара именно
+   * снимается. На расписание не влияет — операцию и так задаёт тип позиции.
+   */
+  removeMark: boolean
   teacherIds: string[]
   /**
    * Имена преподавателей позиции как есть (через слеш). Нужны, чтобы при
@@ -123,6 +129,7 @@ function emptyDraft(): Draft {
     source: null,
     fromPair: null,
     selfStudy: false,
+    removeMark: false,
     teacherIds: [],
     teacherNameHint: "",
     subject: "",
@@ -139,6 +146,9 @@ function sameTeacherName(a: string, b: string): boolean {
 
 /** «вм.4 п.» в примечании позиции — какая пара в ней названа. */
 const NOTE_PAIR_RE = /вм\.?\s*(\d{1,2})/i
+
+/** Служебное слово «снять» — метка позиции снятия. */
+const NOTE_REMOVE_RE = /(?:^|\s)снять(?=\s|$)/iu
 
 /**
  * Восстанавливает форму из сохранённой позиции.
@@ -182,10 +192,14 @@ function draftFromPosition(position: CorrectionPosition): Draft {
     source: isRemove || isReplace ? source : null,
     fromPair,
     selfStudy: isSelfStudyNote(position.note),
+    removeMark: NOTE_REMOVE_RE.test(position.note ?? ""),
     teacherIds: position.teacherId ? [position.teacherId] : [],
     teacherNameHint: position.teacherName ?? "",
     subject: position.subject ?? "",
-    note: (position.note ?? "").replace(NOTE_PAIR_RE, "").trim(),
+    note: (position.note ?? "")
+      .replace(NOTE_PAIR_RE, "")
+      .replace(NOTE_REMOVE_RE, " ")
+      .trim(),
   }
 }
 
@@ -396,10 +410,11 @@ export function CorrectionPositionDialog({
   const buildNote = useCallback(() => {
     const parts: string[] = []
     if (draft.note.trim()) parts.push(draft.note.trim())
+    if (draft.removeMark) parts.push("снять")
     if (draft.selfStudy) parts.push("сам.р.")
     if (draft.fromPair != null) parts.push(`вм.${draft.fromPair} п.`)
     return parts.length > 0 ? parts.join(" ") : null
-  }, [draft.note, draft.selfStudy, draft.fromPair])
+  }, [draft.note, draft.removeMark, draft.selfStudy, draft.fromPair])
 
   const handleSubmit = async () => {
     if (blockedReason) {
@@ -724,17 +739,30 @@ export function CorrectionPositionDialog({
           <Step index={noteStep} title="Примечание">
             <div className="grid gap-3">
               {isRemove ? (
-                // Снятие всегда убирает пару, поэтому отдельной отметки здесь
-                // нет — показываем, что произойдёт с парой.
+                // У снятия своя служебная отметка: слово «снять» само пишется
+                // в примечание, руками набирать не нужно.
                 <div className="grid gap-1.5">
-                  <span className="text-sm font-medium">Что будет с парой</span>
-                  <Badge
-                    variant="outline"
-                    className="w-fit gap-1 border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
-                  >
-                    <Minus className="size-3" aria-hidden />
-                    Снять — пара уйдёт из расписания
-                  </Badge>
+                  <span className="text-sm font-medium">Бейдж позиции</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      aria-pressed={draft.removeMark}
+                      onClick={() => patch({ removeMark: !draft.removeMark })}
+                      className={cn(
+                        "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
+                        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                        draft.removeMark
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-input bg-background text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      <Minus className="size-3.5" aria-hidden />
+                      снять
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      Слово само попадёт в примечание — руками писать не нужно
+                    </span>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Пару нужно снять полностью. Если пара должна остаться, но с
                     отметкой для студентов, добавьте занятие заново через
