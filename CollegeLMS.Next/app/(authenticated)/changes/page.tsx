@@ -183,7 +183,9 @@ export default function ChangesPage() {
         </div>
       )}
 
-      {initialLoading ? (
+      {/* При ошибке запроса пустое состояние не показываем: «Изменений не
+          найдено» рядом с «Не удалось загрузить» читается как «записей нет». */}
+      {error ? null : initialLoading ? (
         <div className="flex min-h-[40vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
