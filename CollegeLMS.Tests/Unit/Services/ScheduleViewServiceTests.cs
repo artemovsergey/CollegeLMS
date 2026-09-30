@@ -178,7 +178,8 @@ public class ScheduleViewServiceTests : IDisposable
         DayOfWeek day,
         int numberPair,
         int week,
-        ScheduleChangeType type
+        ScheduleChangeType type,
+        string? note = null
     )
     {
         var utcNow = DateTime.UtcNow;
@@ -194,6 +195,7 @@ public class ScheduleViewServiceTests : IDisposable
                 NumberPair = numberPair,
                 Week = week,
                 Subject = "Математика",
+                Note = note,
                 CreatedAt = utcNow,
                 UpdatedAt = utcNow,
             }
@@ -234,6 +236,71 @@ public class ScheduleViewServiceTests : IDisposable
         result.Data.Entries.Should().BeEmpty();
         result.Data.Inserts.Should().BeEmpty();
         result.Data.Practices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetDayAsync_InformationalNote_ShowsPairWithoutScheduleEntry()
+    {
+        // Пара «только для информирования» в базу расписания не встаёт, но в
+        // расписании дня видна: иначе пометка осталась бы только в ленте.
+        var (group, _) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedHistoryAsync(
+            group.Id,
+            date.DayOfWeek,
+            3,
+            StudyWeek.WeekOf(date),
+            ScheduleChangeType.Add,
+            "сам.р."
+        );
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        var entry = result.Data!.Entries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(3);
+        entry.Subject.Should().Be("Математика");
+        entry.IsInformational.Should().BeTrue();
+        entry.ChangeTags.Should().ContainSingle().Which.Note.Should().Be("сам.р.");
+    }
+
+    [Fact]
+    public async Task GetDayAsync_PhysicalSelfStudyNote_NotShownAsExtraPair()
+    {
+        var (group, _) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedHistoryAsync(
+            group.Id,
+            date.DayOfWeek,
+            3,
+            StudyWeek.WeekOf(date),
+            ScheduleChangeType.Add,
+            "сам.р+"
+        );
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result
+            .Data!.Entries.Should()
+            .BeEmpty("пара «сам.р+» добавляется в расписание базой корректировки");
+    }
+
+    [Fact]
+    public async Task GetDayAsync_InformationalNote_NotShownInAnotherWeek()
+    {
+        var (group, _) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        await SeedHistoryAsync(
+            group.Id,
+            date.DayOfWeek,
+            3,
+            StudyWeek.WeekOf(date) + 1,
+            ScheduleChangeType.Add,
+            "сам.р."
+        );
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result.Data!.Entries.Should().BeEmpty();
     }
 
     [Fact]

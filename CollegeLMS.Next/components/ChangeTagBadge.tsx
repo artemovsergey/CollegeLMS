@@ -2,7 +2,7 @@
 
 import type { ChangeTag } from "@/types/correction"
 import type { LucideIcon } from "lucide-react"
-import { Plus, Minus, Repeat, ArrowRightLeft, BookOpen } from "lucide-react"
+import { Plus, Minus, BookOpen } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
@@ -10,35 +10,29 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import {
+  changeTagKind,
   changeTagLabel,
   changeTagTooltip,
+  isInformationalNote,
   isSelfStudyNote,
   primaryChangeTag,
   showsSelfStudyTag,
 } from "@/lib/change-tags"
 import { cn } from "@/lib/utils"
 
-const CHANGE_META: Record<
-  ChangeTag["changeType"],
-  { icon: LucideIcon; className: string }
-> = {
-  Add: {
-    icon: Plus,
-    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  },
-  Remove: {
-    icon: Minus,
-    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-  },
-  Replace: {
-    icon: Repeat,
-    className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-  },
-  Move: {
-    icon: ArrowRightLeft,
-    className: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-  },
-}
+/** Исходов два: добавлено и снято. */
+const CHANGE_META: Record<"Add" | "Remove", { icon: LucideIcon; className: string }> =
+  {
+    Add: {
+      icon: Plus,
+      className:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+    },
+    Remove: {
+      icon: Minus,
+      className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+    },
+  }
 
 const SELF_STUDY_META = {
   icon: BookOpen,
@@ -69,7 +63,14 @@ export default function ChangeTagBadge({ tags, className }: ChangeTagBadgeProps)
   // снятия сбивал бы с толку: красим бейдж в цвет самостоятельной работы.
   const selfStudyReplacesLabel =
     isSelfStudyNote(tag.note) && tag.changeType === "Remove"
-  const meta = selfStudyReplacesLabel ? SELF_STUDY_META : CHANGE_META[tag.changeType]
+  // Пара, которой в расписании нет, а есть только пометка, — тоже самостоятельная
+  // работа, а не изменение пары.
+  const informationalOnly =
+    !selfStudyReplacesLabel && isInformationalNote(tag.note)
+  const meta =
+    selfStudyReplacesLabel || informationalOnly
+      ? SELF_STUDY_META
+      : CHANGE_META[changeTagKind(tag.changeType)]
   const Icon = meta.icon
   const label = changeTagLabel(tag)
   const SelfStudyIcon = SELF_STUDY_META.icon

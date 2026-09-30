@@ -5,27 +5,30 @@ import type { LucideIcon } from "lucide-react"
 import {
   Plus,
   Minus,
-  Repeat,
-  ArrowRightLeft,
   BookOpen,
   CalendarDays,
   Clock,
   DoorOpen,
+  Info,
   User,
 } from "lucide-react"
-import type { ScheduleHistoryItem, CorrectionChangeType } from "@/types/correction"
+import type { ScheduleHistoryItem } from "@/types/correction"
 import { dateForLesson } from "@/lib/semester"
 import { dayLabelFromString } from "@/lib/max-lesson"
 import { toIsoDate } from "@/api/schedule"
+import {
+  changeTagKind,
+  isInformationalNote,
+  movePairFromNote,
+} from "@/lib/change-tags"
 
-const CHANGE_TYPE_META: Record<
-  CorrectionChangeType,
+/** Исходов два: добавлено и снято. */
+const CHANGE_KIND_META: Record<
+  "Add" | "Remove",
   { label: string; icon: LucideIcon; className: string }
 > = {
   Add: { label: "Добавлено", icon: Plus, className: "max-app__badge--add" },
   Remove: { label: "Снято", icon: Minus, className: "max-app__badge--remove" },
-  Replace: { label: "Замена", icon: Repeat, className: "max-app__badge--replace" },
-  Move: { label: "Перенос", icon: ArrowRightLeft, className: "max-app__badge--move" },
 }
 
 const DAY_OFFSET: Record<string, number> = {
@@ -96,24 +99,34 @@ export default function ChangeCard({
   semesterStartIso,
   highlighted = false,
 }: ChangeCardProps) {
-  const meta = CHANGE_TYPE_META[item.changeType]
+  const isRemove = item.changeType === "Remove"
+  const meta = CHANGE_KIND_META[changeTagKind(item.changeType)]
   const Icon = meta.icon
   const selfStudy = isSelfStudy(item)
+  const informational = isInformationalNote(item.note)
   const dayIndex = DAY_OFFSET[item.dayOfWeek] ?? 0
   const date = dateForLesson(semesterStartIso, item.week, dayIndex)
   const appliedAt = formatAppliedAt(item.appliedAt)
 
   const dayLabel = dayLabelFromString(item.dayOfWeek)
   // Разделитель тот же, что в вебе и в боте: тонкий «=>».
+  // Пара «откуда» берётся из примечания: после объединения операций перенос —
+  // это добавление с отметкой «вм.X».
+  const movedFrom = isRemove
+    ? null
+    : (movePairFromNote(item.note) ?? item.removedNumberPair)
   const pairLabel =
-    item.removedNumberPair != null &&
-    item.removedNumberPair !== item.numberPair &&
-    (item.changeType === "Replace" || item.changeType === "Move")
-      ? `пара ${item.removedNumberPair} => ${item.numberPair}`
+    movedFrom != null && movedFrom !== item.numberPair
+      ? `пара ${movedFrom} => ${item.numberPair}`
       : `пара ${item.numberPair}`
 
-  const isMoveOrReplace =
-    item.changeType === "Replace" || item.changeType === "Move"
+  // При переносе снимается само вводимое занятие — стрелка «X => X» ничего бы
+  // не сказала, поэтому показываем пару один раз.
+  const replaces =
+    !isRemove &&
+    item.removedSubject != null &&
+    item.removedSubject.trim().toLowerCase() !==
+      (item.subject ?? "").trim().toLowerCase()
   // «Предмет Преподаватель => Предмет Преподаватель» — так же, как в вебе и в боте.
   // Ссылка «Открыть день» ведёт сразу на нужный день с нужной группой
   // или преподавателем: иначе расписание открывается пустым.
@@ -123,8 +136,8 @@ export default function ChangeCard({
     item.teacherName,
   )
   const newLesson = lessonLine(
-    item.changeType === "Remove" ? null : item.subject,
-    item.changeType === "Remove" ? null : item.teacherName,
+    isRemove ? null : item.subject,
+    isRemove ? null : item.teacherName,
   )
 
   return (
@@ -140,7 +153,15 @@ export default function ChangeCard({
         </span>
         {selfStudy && (
           <span className="max-app__badge max-app__badge--selfstudy">
-            <BookOpen size={12} aria-hidden /> Сам.р.
+            {informational ? (
+              <>
+                <Info size={12} aria-hidden /> Только информация
+              </>
+            ) : (
+              <>
+                <BookOpen size={12} aria-hidden /> Сам.р.
+              </>
+            )}
           </span>
         )}
       </div>
@@ -167,7 +188,7 @@ export default function ChangeCard({
       </div>
 
       <div className="max-app__change-card-subject">
-        {isMoveOrReplace && item.removedSubject ? (
+        {replaces ? (
           <>
             <span className="max-app__change-card-removed">{removedLesson}</span>
             <span className="max-app__change-card-arrow" aria-hidden>
@@ -184,6 +205,11 @@ export default function ChangeCard({
         {!item.teacherName && (
           <span className="max-app__change-card-muted max-app__change-card-icon">
             <User size={14} aria-hidden /> Преподаватель не указан
+          </span>
+        )}
+        {informational && (
+          <span className="max-app__change-card-muted max-app__change-card-icon">
+            <Info size={14} aria-hidden /> Пара в расписание не вставала
           </span>
         )}
         {item.note && (

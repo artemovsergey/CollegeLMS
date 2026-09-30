@@ -46,19 +46,26 @@ interface XlsxPreviewRow {
 }
 
 function toRow(position: CorrectionPosition): XlsxPreviewRow {
-  const removes = position.changeType === "Remove" || position.changeType === "Replace"
+  const isRemove = position.changeType === "Remove"
+  // Перенос — это вводимое занятие, которое само переезжает из пары «откуда»:
+  // в колонке «снимается» для него места нет, только примечание «вм.X».
+  const isMove =
+    !isRemove
+    && position.removedSubject != null
+    && position.removedSubject.trim().toLowerCase() ===
+      (position.subject ?? "").trim().toLowerCase()
+
   return {
     groupName: position.groupName,
-    removedSubject: removes ? (position.removedSubject ?? "") : "",
-    removedTeacher: removes ? shortTeacher(position.removedTeacherName) : "",
-    addedSubject:
-      position.changeType !== "Remove" ? (position.subject ?? "") : "",
-    addedTeacher:
-      position.changeType !== "Remove" ? shortTeacher(position.teacherName) : "",
+    removedSubject: isMove ? "" : (position.removedSubject ?? ""),
+    removedTeacher: isMove ? "" : shortTeacher(position.removedTeacherName),
+    addedSubject: isRemove ? "" : (position.subject ?? ""),
+    addedTeacher: isRemove ? "" : shortTeacher(position.teacherName),
     numberPair: position.numberPair,
     note:
       position.note ??
-      (position.changeType === "Move" && position.removedNumberPair != null
+      (position.removedNumberPair != null &&
+      position.removedNumberPair !== position.numberPair
         ? `вм.${position.removedNumberPair}`
         : ""),
   }

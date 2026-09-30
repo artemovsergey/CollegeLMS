@@ -35,7 +35,7 @@ import type {
 } from "@/types/correction"
 import type { GroupResponse, Result } from "@/types"
 import { DAYS } from "@/types/schedule"
-import { REPLACE_ARROW_CLASS } from "@/lib/change-tags"
+import { REPLACE_ARROW_CLASS, changeTagKind } from "@/lib/change-tags"
 import { extractErrorMessage } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -63,29 +63,19 @@ import EmptyState from "@/components/EmptyState"
 
 const POSITION_PAGE_SIZE = 20
 
-const CHANGE_TYPE_META: Record<
-  CorrectionChangeType,
-  { label: string; className: string }
-> = {
-  Add: {
-    label: "Добавлено",
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  },
-  Remove: {
-    label: "Снято",
-    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-  },
-  Replace: {
-    label: "Замена",
-    className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-  },
-  Move: {
-    label: "Перенос",
-    className:
-      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-  },
-}
+/** Операций две: добавление и снятие. */
+const CHANGE_TYPE_META: Record<"Add" | "Remove", { label: string; className: string }> =
+  {
+    Add: {
+      label: "Добавлено",
+      className:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+    },
+    Remove: {
+      label: "Снято",
+      className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+    },
+  }
 
 const ALL_GROUPS = "__all__"
 const ALL_TYPES = "__all__"
@@ -102,7 +92,7 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 function PositionTypeBadge({ type }: { type: CorrectionChangeType }) {
-  const meta = CHANGE_TYPE_META[type]
+  const meta = CHANGE_TYPE_META[changeTagKind(type)]
   return (
     <Badge variant="outline" className={meta.className}>
       {meta.label}
@@ -126,25 +116,11 @@ function lessonLine(
 }
 
 /**
- * Замена и перенос показываются как «было => стало» без зачёркивания:
- * так же выглядит строка в файле корректировки и в уведомлениях.
+ * Замена показывается как «было => стало» без зачёркивания: так же выглядит
+ * строка в файле корректировки и в уведомлениях. При переносе снимается само
+ * вводимое занятие, поэтому стрелки нет.
  */
 function renderTitle(position: CorrectionPosition) {
-  if (position.changeType === "Replace" || position.changeType === "Move") {
-    const from = lessonLine(position.removedSubject, position.removedTeacherName)
-    const to = lessonLine(position.subject, position.teacherName)
-    if (position.removedSubject)
-      return (
-        <span className="flex flex-wrap items-center gap-1">
-          <span className="text-muted-foreground">{from}</span>
-          <span aria-hidden className={REPLACE_ARROW_CLASS}>
-            {"=>"}
-          </span>
-          <span className="font-medium">{to}</span>
-        </span>
-      )
-    return <span className="font-medium">{to}</span>
-  }
   if (position.changeType === "Remove") {
     return (
       <span className="text-muted-foreground">
@@ -152,11 +128,27 @@ function renderTitle(position: CorrectionPosition) {
       </span>
     )
   }
-  return (
-    <span className="font-medium">
-      {lessonLine(position.subject, position.teacherName)}
-    </span>
-  )
+
+  const to = lessonLine(position.subject, position.teacherName)
+  const replaces =
+    position.removedSubject != null &&
+    position.removedSubject.trim().toLowerCase() !==
+      (position.subject ?? "").trim().toLowerCase()
+
+  if (replaces)
+    return (
+      <span className="flex flex-wrap items-center gap-1">
+        <span className="text-muted-foreground">
+          {lessonLine(position.removedSubject, position.removedTeacherName)}
+        </span>
+        <span aria-hidden className={REPLACE_ARROW_CLASS}>
+          {"=>"}
+        </span>
+        <span className="font-medium">{to}</span>
+      </span>
+    )
+
+  return <span className="font-medium">{to}</span>
 }
 
 interface CorrectionPositionEditorProps {
@@ -510,13 +502,11 @@ export default function CorrectionPositionEditor({
                     setPage(1)
                   }}
                   options={[
-                    { value: ALL_TYPES, label: "Все типы" },
-                    ...(Object.keys(CHANGE_TYPE_META) as CorrectionChangeType[]).map(
-                      (type) => ({
-                        value: type,
-                        label: CHANGE_TYPE_META[type].label,
-                      }),
-                    ),
+                    { value: ALL_TYPES, label: "Все операции" },
+                    ...(["Add", "Remove"] as const).map((type) => ({
+                      value: type,
+                      label: CHANGE_TYPE_META[type].label,
+                    })),
                   ]}
                   placeholder="Все типы"
                 />

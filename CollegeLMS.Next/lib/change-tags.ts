@@ -1,5 +1,10 @@
 import type { ChangeTag, CorrectionChangeType } from "@/types/correction"
 
+/** «сам.р+» — самостоятельная работа, которая всё же добавляется в расписание. */
+const PHYSICAL_SELF_STUDY_NOTE_RE = /сам[\s./-]*р[\s.]*\+/i
+/** «вм.4 п.» — пара, откуда переносится занятие. */
+const MOVE_PAIR_NOTE_RE = /вм\.?\s*(\d{1,2})/i
+
 const SELF_STUDY_NOTE_RE = /сам[\s./-]*р/i
 /**
  * Разделитель замены и переноса. Тонкий и приглушённый: раньше стрелка была
@@ -12,27 +17,52 @@ export function isSelfStudyNote(note: string | null | undefined): boolean {
   return SELF_STUDY_NOTE_RE.test(note ?? "")
 }
 
+/** Самостоятельная работа с добавлением в расписание («сам.р+»). */
+export function isPhysicalSelfStudyNote(note: string | null | undefined): boolean {
+  return PHYSICAL_SELF_STUDY_NOTE_RE.test(note ?? "")
+}
+
+/** Пара только для информирования: в расписание не встаёт, нужна пометка. */
+export function isInformationalNote(note: string | null | undefined): boolean {
+  return isSelfStudyNote(note) && !isPhysicalSelfStudyNote(note)
+}
+
+/** Пара «откуда» из примечания или null. */
+export function movePairFromNote(note: string | null | undefined): number | null {
+  const match = MOVE_PAIR_NOTE_RE.exec(note ?? "")
+  return match ? Number(match[1]) : null
+}
+
 const CHANGE_LABEL: Record<CorrectionChangeType, string> = {
   Add: "Добавлено",
   Remove: "Снято",
-  Replace: "Замена",
-  Move: "Перенос",
+  // Замена и перенос остались в базе после объединения операций. Показываем их
+  // тем же, чем они и являются, — добавлением занятия в пару.
+  Replace: "Добавлено",
+  Move: "Добавлено",
 }
 
 function changeTypeLabel(changeType: CorrectionChangeType): string {
   return CHANGE_LABEL[changeType]
 }
 
+/** Исход изменения для показа: добавлено или снято. */
+export function changeTagKind(
+  changeType: CorrectionChangeType,
+): "Add" | "Remove" {
+  return changeType === "Remove" ? "Remove" : "Add"
+}
+
 /**
- * Приоритет бейджа в паре: важнее то, что студент обязан заметить в первую очередь.
- * Самостоятельная работа важнее снятия (пара остаётся в расписании и просто
- * помечается), снятие важнее замены, замена — переноса и добавления.
+ * Приоритет бейджа в паре: важнее то, что студент обязан заметить в первую
+ * очередь. Самостоятельная работа важнее снятия (пара остаётся в расписании и
+ * просто помечается), снятие важнее добавления.
  */
 const PRIORITY: Record<CorrectionChangeType, number> = {
   Remove: 0,
+  Add: 3,
   Replace: 1,
   Move: 2,
-  Add: 3,
 }
 
 function rank(tag: ChangeTag): number {
@@ -59,20 +89,39 @@ export function primaryChangeTag(tags: ChangeTag[]): ChangeTag | null {
  * первого.
  */
 export function changeTagLabel(tag: ChangeTag): string {
-  if (isSelfStudyNote(tag.note) && tag.changeType === "Remove") return "Сам.р."
+  // Пара «только для информирования» и снятая с пометкой — это самостоятельная
+  // работа: говорить «Добавлено» или «Снято» было бы неправдой.
+  if (
+    isSelfStudyNote(tag.note)
+    && (tag.changeType === "Remove" || isInformationalNote(tag.note))
+  )
+    return "Сам.р."
   return changeTypeLabel(tag.changeType)
 }
 
 /** Нужен ли рядом с подписью операции отдельный бейдж «Сам.р.». */
 export function showsSelfStudyTag(tag: ChangeTag): boolean {
-  return isSelfStudyNote(tag.note) && tag.changeType !== "Remove"
+  return (
+    isSelfStudyNote(tag.note)
+    && tag.changeType !== "Remove"
+    && !isInformationalNote(tag.note)
+  )
 }
 
 function tagDetail(tag: ChangeTag): string[] {
   const parts = [changeTagLabel(tag), `неделя ${tag.week}`]
-  if (isSelfStudyNote(tag.note)) parts.push("самостоятельная работа")
-  if (tag.changeType === "Move" && tag.removedNumberPair != null) {
-    parts.push(`перенос с пары ${tag.removedNumberPair}`)
+  if (isSelfStudyNote(tag.note)) {
+    parts.push(
+      isInformationalNote(tag.note)
+        ? "только для информирования, в расписание не встала"
+        : "самостоятельная работа",
+    )
+  }
+  if (tag.changeType !== "Remove") {
+    const from = movePairFromNote(tag.note) ?? tag.removedNumberPair
+    if (from != null && from !== tag.removedNumberPair) {
+      parts.push(`с пары ${from}`)
+    }
   }
   if (tag.removedSubject) {
     parts.push(`вместо: ${tag.removedSubject}`)

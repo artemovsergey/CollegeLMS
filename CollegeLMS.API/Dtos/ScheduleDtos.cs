@@ -22,6 +22,12 @@ public class ScheduleResponse
     /// <summary>Признак пары практики (УП), синтезированной в расписании дня.</summary>
     public bool IsPractice { get; set; }
 
+    /// <summary>
+    /// Пара только для информирования («сам.р» без «+»): добавлена корректировкой
+    /// как пометка, поэтому в базе расписания её нет — она собрана из журнала.
+    /// </summary>
+    public bool IsInformational { get; set; }
+
     /// <summary>Название практики для пар УП (null для обычных пар).</summary>
     public string? PracticeName { get; set; }
 }

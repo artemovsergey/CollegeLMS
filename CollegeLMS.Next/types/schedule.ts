@@ -20,6 +20,11 @@ export interface ScheduleResponse {
   lessonType: LessonType
   /** Пара синтезирована из дня УП. */
   isPractice?: boolean
+  /**
+   * Пара только для информирования («сам.р» без «+»): добавлена корректировкой
+   * как пометка, поэтому в базе расписания её нет — она собрана из журнала.
+   */
+  isInformational?: boolean
   /** Название практики для пар, синтезированных из дней УП. */
   practiceName?: string | null
   changeTags: ChangeTag[]

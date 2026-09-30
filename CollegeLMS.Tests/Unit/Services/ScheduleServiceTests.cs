@@ -180,6 +180,204 @@ public class ScheduleServiceTests : IDisposable
             .BeEquivalentTo([1, 2, 3, 4, 5, 6, 7, 8]);
     }
 
+    private async Task<(Guid GroupId, Guid? TeacherId)> SeedInformationalAsync(
+        string note = "сам.р.",
+        string subject = "Математика"
+    )
+    {
+        var utcNow = DateTime.UtcNow;
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ГР-12",
+            Course = 1,
+        };
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = $"{Guid.NewGuid():N}@collegelms.ru",
+            FullName = "Марченко И.А.",
+            PasswordHash = "hash",
+            Role = UserRole.Teacher,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+        };
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            CyclicalCommission = "ЦК",
+            Position = "Преподаватель",
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+            User = user,
+        };
+        _db.Groups.Add(group);
+        _db.Teachers.Add(teacher);
+        _db.ScheduleHistory.Add(
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Add,
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 3,
+                Week = 2,
+                Subject = subject,
+                Note = note,
+                AppliedAt = utcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+        return (group.Id, teacher.Id);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_InformationalNote_ShowsPairInSchedule()
+    {
+        // Пара «только для информирования» в базе расписания нет, но в расписании
+        // дня она видна — иначе пометка осталась бы только в ленте изменений.
+        var (groupId, _) = await SeedInformationalAsync();
+
+        var result = await _sut.GetAllAsync(
+            groupId,
+            null,
+            null,
+            DayOfWeek.Tuesday,
+            null,
+            2,
+            null,
+            null,
+            null,
+            null,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var entry = result.Data!.Items.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(3);
+        entry.Subject.Should().Be("Математика");
+        entry.IsInformational.Should().BeTrue();
+        entry.ChangeTags.Should().ContainSingle().Which.Note.Should().Be("сам.р.");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_PhysicalSelfStudyNote_NotAddedAsSeparatePair()
+    {
+        // «сам.р+» — пара в расписании есть, второй раз показывать нечего.
+        var (groupId, _) = await SeedInformationalAsync(note: "сам.р+");
+
+        var result = await _sut.GetAllAsync(
+            groupId,
+            null,
+            null,
+            DayOfWeek.Tuesday,
+            null,
+            2,
+            null,
+            null,
+            null,
+            null,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAllAsync_InformationalNote_NotShownForOtherWeek()
+    {
+        var (groupId, _) = await SeedInformationalAsync();
+
+        var result = await _sut.GetAllAsync(
+            groupId,
+            null,
+            null,
+            DayOfWeek.Tuesday,
+            null,
+            5,
+            null,
+            null,
+            null,
+            null,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAllAsync_InformationalNote_ShownForTeacherView()
+    {
+        var (groupId, teacherId) = await SeedInformationalAsync();
+
+        var result = await _sut.GetAllAsync(
+            null,
+            teacherId,
+            null,
+            DayOfWeek.Tuesday,
+            null,
+            2,
+            null,
+            null,
+            null,
+            null,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var entry = result.Data!.Items.Should().ContainSingle().Subject;
+        entry.GroupId.Should().Be(groupId);
+        entry.IsInformational.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetAllAsync_InformationalNote_NotDuplicatedByExistingLesson()
+    {
+        var (groupId, teacherId) = await SeedInformationalAsync();
+        _db.ScheduleEntries.Add(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = groupId,
+                TeacherId = teacherId,
+                Subject = "Математика",
+                Room = "301",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 3,
+                StartTime = new TimeSpan(10, 0, 0),
+                EndTime = new TimeSpan(11, 30, 0),
+                Weeks = [2],
+                LessonType = LessonType.Lecture,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetAllAsync(
+            groupId,
+            null,
+            null,
+            DayOfWeek.Tuesday,
+            null,
+            2,
+            null,
+            null,
+            null,
+            null,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var entry = result.Data!.Items.Should().ContainSingle().Subject;
+        entry.IsInformational.Should().BeFalse("пара уже есть в расписании");
+    }
+
     [Fact]
     public async Task GetByIdAsync_ReturnsEntry_WhenFound()
     {

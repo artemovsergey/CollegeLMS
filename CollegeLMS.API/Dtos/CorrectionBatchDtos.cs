@@ -62,6 +62,13 @@ public class CorrectionDayEntry
     public string? TeacherName { get; set; }
     public string? Note { get; set; }
     public bool IsSelfStudy { get; set; }
+
+    /// <summary>
+    /// Пара только для информирования («сам.р.» без «+»): в расписании её нет,
+    /// слот она не занимает и снять её нельзя — это просто пометка.
+    /// </summary>
+    public bool Informational { get; set; }
+
     public ScheduleChangeType? PendingChangeType { get; set; }
     public List<ChangeTag> ChangeTags { get; set; } = [];
 }

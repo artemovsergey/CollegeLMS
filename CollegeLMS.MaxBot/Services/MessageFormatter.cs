@@ -306,25 +306,59 @@ public static class MessageFormatter
             System.Text.RegularExpressions.RegexOptions.IgnoreCase
         );
 
-    /// <summary>Заголовок по типу изменения: добавлена / снята / замена.</summary>
+    /// <summary>«сам.р.» без «+» — пара только для информирования, в расписание не встаёт.</summary>
+    private static bool IsInformationalNote(string? note) =>
+        IsSelfStudyNote(note)
+        && (
+            note is null
+            || !System.Text.RegularExpressions.Regex.IsMatch(
+                note,
+                @"сам[\s./\-]*р[\s.]*\+",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            )
+        );
+
+    /// <summary>Пара «откуда» из примечания: «вм.4 п.».</summary>
+    private static int? MovePair(string? note)
+    {
+        if (string.IsNullOrWhiteSpace(note))
+            return null;
+
+        var match = System.Text.RegularExpressions.Regex.Match(
+            note,
+            @"вм\.?\s*(\d{1,2})",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase
+        );
+        return match.Success ? int.Parse(match.Groups[1].Value) : null;
+    }
+
+    /// <summary>
+    /// Пометка под изменением пары. Исходов всего два — добавлено и снято,
+    /// поэтому замена и перенос подписываются как добавление, а подробности
+    /// («вместо…», «с пары N») идут следом.
+    /// </summary>
     private static void AppendChangeMarkers(System.Text.StringBuilder sb, ScheduleResponse entry)
     {
         foreach (var tag in entry.ChangeTags)
         {
             var isSelfStudy = IsSelfStudyNote(tag.Note);
+            var isRemove = tag.ChangeType == "Remove";
 
-            var marker = isSelfStudy
-                ? "🟣 сам.р. (самостоятельная работа)"
-                : tag.ChangeType switch
-                {
-                    "Add" => "🟢 добавлено",
-                    "Remove" => "🔴 снято",
-                    "Move" => tag.RemovedNumberPair.HasValue
-                        ? $"🔄 перенос с пары {tag.RemovedNumberPair}"
-                        : "🔄 перенос",
-                    _ => "🔵 замена",
-                };
-            sb.AppendLine($"    ⚠️ {marker} (нед. {tag.Week})");
+            var marker =
+                isSelfStudy && isRemove ? "🟣 сам.р. (самостоятельная работа)"
+                : isRemove ? "🔴 снято"
+                : "🟢 добавлено";
+
+            var details = new List<string>();
+            if (isSelfStudy && !isRemove)
+                details.Add(IsInformationalNote(tag.Note) ? "только информация" : "сам.р.");
+            if (!isRemove && tag.RemovedSubject is not null)
+                details.Add($"вместо: {tag.RemovedSubject}");
+            if (!isRemove && MovePair(tag.Note) is { } from)
+                details.Add($"с пары {from}");
+
+            var suffix = details.Count > 0 ? " — " + string.Join(", ", details) : string.Empty;
+            sb.AppendLine($"    ⚠️ {marker}{suffix} (нед. {tag.Week})");
         }
     }
 
@@ -332,9 +366,8 @@ public static class MessageFormatter
     {
         return changeType switch
         {
-            "Add" => "добавлена",
             "Remove" => "снята",
-            "Replace" => "замена",
+            "Add" or "Replace" or "Move" => "добавлена",
             _ => "изменена",
         };
     }
@@ -392,7 +425,7 @@ public static class MessageFormatter
 
         var badges = new List<string> { $"**{FormatChangeCardLabel(r.ChangeType)}**" };
         if (IsSelfStudyNote(r.Note))
-            badges.Add("🟣 Сам.р.");
+            badges.Add(IsInformationalNote(r.Note) ? "🟣 Сам.р. (только информация)" : "🟣 Сам.р.");
         if (DateForRevision(r) is { } date)
             badges.Add($"📅 {FormatDayMonthYear(date)}");
         badges.Add($"{r.DayOfWeek}, {r.Week}-я неделя");
@@ -416,11 +449,11 @@ public static class MessageFormatter
         return sb.ToString();
     }
 
-    /// <summary>Пара: «пара N» или «пара X => Y» при переносе/замене.</summary>
+    /// <summary>Пара: «пара N» или «пара X => Y», если занятие переехало.</summary>
     private static string FormatPairLabel(ScheduleRevision r)
     {
-        var isMoveOrReplace = r.ChangeType is "Replace" or "Move";
-        if (isMoveOrReplace && r.RemovedNumberPair is { } from && from != r.NumberPair)
+        var moved = MovePair(r.Note) ?? r.RemovedNumberPair;
+        if (r.ChangeType != "Remove" && moved is { } from && from != r.NumberPair)
             return $"пара {from} {ReplaceArrow} {r.NumberPair}";
 
         return $"пара {r.NumberPair}";
@@ -441,7 +474,7 @@ public static class MessageFormatter
             return $"**{LessonLine(removed, r.TeacherName ?? r.RemovedTeacherName)}**";
         }
 
-        if (r.ChangeType is "Replace" or "Move" && !string.IsNullOrWhiteSpace(r.RemovedSubject))
+        if (r.ChangeType != "Remove" && !string.IsNullOrWhiteSpace(r.RemovedSubject))
         {
             // Зачёркнутый старый предмет в MAX выглядит плохо, поэтому тот же
             // формат, что в вебе: «старое => новое» одной строкой.
@@ -471,10 +504,8 @@ public static class MessageFormatter
     {
         return changeType switch
         {
-            "Add" => "Добавлено",
             "Remove" => "Снято",
-            "Replace" => "Замена",
-            "Move" => "Перенос",
+            "Add" or "Replace" or "Move" => "Добавлено",
             _ => "Изменено",
         };
     }

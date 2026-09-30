@@ -145,6 +145,63 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task AddPositionAsync_PairOutsideDayRange_ReturnsBadRequest()
+    {
+        var group = await SeedGroupAsync();
+        var batch = await CreateBatchAsync();
+
+        var result = await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Add,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 8,
+                Subject = "Математика",
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("1 до 7");
+    }
+
+    [Fact]
+    public async Task AddPositionAsync_LegacyReplaceRequest_StoredAsAddWithRemovedLesson()
+    {
+        // Старые клиенты и файлы присылают замену отдельным типом — в базе она
+        // хранится как добавление со снимаемым занятием.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var batch = await CreateBatchAsync();
+
+        var result = await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Replace,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                Subject = "Математика",
+                TeacherId = teacher.Id,
+                TeacherName = teacher.User.FullName,
+                RemovedSubject = "ОБП и ЗР",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+                RemovedNumberPair = 2,
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ChangeType.Should().Be(ScheduleChangeType.Add);
+        result.Data!.RemovedSubject.Should().Be("ОБП и ЗР");
+        result.Data!.RemovedNumberPair.Should().BeNull();
+    }
+
+    [Fact]
     public async Task AddPositionAsync_AllowsSelfStudyOnAdd()
     {
         var group = await SeedGroupAsync();
@@ -305,12 +362,13 @@ public class CorrectionBatchServiceTests : IDisposable
         entries[0].NumberPair.Should().Be(2);
         entries[0].Subject.Should().Be("Обществ.");
 
-        // В журнале две записи: замена в паре 2 и снятие из пары 4.
+        // В журнале две записи: добавленное занятие в паре 2 (вместо прежнего) и
+        // снятое из пары 4.
         result.Data!.Applied.Should().Be(2);
         result
             .Data!.History.Select(h => h.ChangeType)
             .Should()
-            .BeEquivalentTo([ScheduleChangeType.Replace, ScheduleChangeType.Remove]);
+            .BeEquivalentTo([ScheduleChangeType.Add, ScheduleChangeType.Remove]);
     }
 
     [Fact]
@@ -354,20 +412,18 @@ public class CorrectionBatchServiceTests : IDisposable
         var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
         entry.NumberPair.Should().Be(2);
         entry.Subject.Should().Be("Обществ.");
-        // Одна запись журнала: замена целиком, а не снятие плюс добавление.
-        result
-            .Data!.History.Should()
-            .ContainSingle()
-            .Which.ChangeType.Should()
-            .Be(ScheduleChangeType.Replace);
+        // Одна запись журнала: замена — это добавление со снимаемым занятием,
+        // поэтому в журнале тип «добавлено» и снятое занятие в полях Removed*.
+        var history = result.Data!.History.Should().ContainSingle().Subject;
+        history.ChangeType.Should().Be(ScheduleChangeType.Add);
+        history.RemovedSubject.Should().Be("ОБП и ЗР");
     }
 
     [Fact]
-    public async Task ApplyAsync_AddWithSelfStudyNote_AddsLessonAndKeepsBadge()
+    public async Task ApplyAsync_AddWithSelfStudyNote_OnlyInformsAndKeepsHistory()
     {
-        // «Добавить» с «сам.р.»: занятие добавляется в пару и дополнительно
-        // помечается для студентов — в отличие от снятия, пара не остаётся
-        // на месте, а появляется.
+        // «Добавить» с «сам.р.»: пара в расписание не встаёт — нужна только
+        // пометка, поэтому в базе остаётся запись журнала.
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
         var batch = await CreateBatchAsync();
@@ -396,10 +452,51 @@ public class CorrectionBatchServiceTests : IDisposable
         );
 
         result.IsSuccess.Should().BeTrue();
+        _db.ScheduleEntries.Should().BeEmpty("пара только для информирования");
+
+        var history = result.Data!.History.Should().ContainSingle().Subject;
+        history.ChangeType.Should().Be(ScheduleChangeType.Add);
+        history.NumberPair.Should().Be(3);
+        history.Note.Should().Be("сам.р.");
+    }
+
+    [Fact]
+    public async Task ApplyAsync_AddWithSelfStudyPlusNote_AddsLessonAndKeepsBadge()
+    {
+        // «сам.р+»: та же самостоятельная работа, но пара физически встаёт в
+        // расписание.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Add,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 3,
+                Subject = "Математика",
+                TeacherId = teacher.Id,
+                TeacherName = teacher.User.FullName,
+                Note = "сам.р+",
+            },
+            CancellationToken.None
+        );
+
+        var result = await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
         var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
         entry.NumberPair.Should().Be(3);
         entry.Subject.Should().Be("Математика");
-        result.Data!.History.Should().ContainSingle().Which.Note.Should().Be("сам.р.");
+        result.Data!.History.Should().ContainSingle().Which.Note.Should().Be("сам.р+");
     }
 
     [Fact]
@@ -861,6 +958,61 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     // --- UC-SCH-19: импорт с ошибками создаёт пакет ---
+
+    [Fact]
+    public async Task ImportAsync_FileRows_BecomeAddAndRemovePositions()
+    {
+        // В файле три вида строк: замена (обе колонки), перенос («вм.X») и
+        // снятие. В пакете остаются только два типа — добавление и снятие.
+        var group = await SeedGroupAsync();
+
+        using var stream = BuildWorkbook(
+            "Корректировка на 10.09.2026 г.",
+            ws =>
+            {
+                ws.Cell(7, 1).Value = group.Name;
+                ws.Cell(7, 2).Value = "ОБП и ЗР";
+                ws.Cell(7, 3).Value = "Абатуров С.А.";
+                ws.Cell(7, 4).Value = "Математика";
+                ws.Cell(7, 5).Value = "Марченко И.А.";
+                ws.Cell(7, 6).Value = 2;
+                ws.Cell(8, 1).Value = group.Name;
+                ws.Cell(8, 4).Value = "Математика";
+                ws.Cell(8, 5).Value = "Марченко И.А.";
+                ws.Cell(8, 6).Value = 5;
+                ws.Cell(8, 7).Value = "вм.4 п.";
+                ws.Cell(9, 1).Value = group.Name;
+                ws.Cell(9, 2).Value = "Физика";
+                ws.Cell(9, 3).Value = "Марченко И.А.";
+                ws.Cell(9, 6).Value = 4;
+                ws.Cell(9, 7).Value = "снять";
+            }
+        );
+
+        var imported = await _sut.ImportAsync(stream, Guid.NewGuid(), CancellationToken.None);
+
+        imported.IsSuccess.Should().BeTrue();
+        imported.Data!.BatchId.Should().NotBeNull();
+        imported
+            .Data.Positions.Select(p => p.ChangeType)
+            .Should()
+            .Equal(ScheduleChangeType.Add, ScheduleChangeType.Add, ScheduleChangeType.Remove);
+
+        // Замена: снимаемое занятие — из колонки «снимается».
+        var replace = imported.Data.Positions[0];
+        replace.RemovedSubject.Should().Be("ОБП и ЗР");
+        replace.RemovedTeacherName.Should().Be("Абатуров С.А.");
+        replace.RemovedNumberPair.Should().BeNull();
+
+        // Перенос: снимается само вводимое занятие из пары «вм.X».
+        var move = imported.Data.Positions[1];
+        move.RemovedSubject.Should().Be("Математика");
+        move.RemovedTeacherName.Should().Be("Марченко И.А.");
+        move.RemovedNumberPair.Should().Be(4);
+
+        var remove = imported.Data.Positions[2];
+        remove.RemovedSubject.Should().Be("Физика");
+    }
 
     [Fact]
     public async Task ImportAsync_RowWithDataError_StillCreatesBatch()

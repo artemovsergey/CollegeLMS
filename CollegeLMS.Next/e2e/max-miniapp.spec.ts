@@ -113,7 +113,7 @@ const HISTORY = {
     items: [
       {
         id: "h1",
-        changeType: "Replace",
+        changeType: "Add",
         appliedAt: "2026-09-06T10:00:00Z",
         appliedByUserId: "disp-1",
         groupId: "g1",
@@ -329,17 +329,21 @@ test.describe("MAX mini-app", () => {
 
     const card = page.locator(".max-app__change-card")
     await expect(card).toHaveCount(1)
-    // Тип, занятие «старое => новое» и пара «2 => 3».
-    await expect(card.getByText("Замена")).toBeVisible()
-    await expect(card.locator(".max-app__badge--replace")).toHaveText(/Замена/)
+    // Тип, занятие «старое => новое» и пара «2 => 3». Исходов два: добавлено и
+    // снято — замена показывается как «старое => новое» внутри добавленного.
+    await expect(card.getByText("Добавлено")).toBeVisible()
+    await expect(card.locator(".max-app__badge--add")).toHaveText(/Добавлено/)
     // Компактные бейджи без суффикса «· нед. N».
     await expect(page.getByText(/нед\./)).toHaveCount(0)
     await expect(card.locator(".max-app__change-card-subject")).toContainText("=>")
     await expect(card.getByText(/Математика/)).toBeVisible()
     await expect(card.getByText(/Физика/)).toBeVisible()
     await expect(card.getByText("пара 2 => 3")).toBeVisible()
-    // Зачёркнутого старого предмета в MAX нет.
-    await expect(card.locator(".max-app__change-card-removed")).toHaveCount(0)
+    // Прежний предмет показывается стрелкой, а не зачёркиванием: в MAX
+    // перечёркивание читается как отмена пары.
+    const removed = card.locator(".max-app__change-card-removed")
+    await expect(removed).toHaveText(/Математика/)
+    await expect(removed).not.toHaveCSS("text-decoration-line", "line-through")
     // Группа, аудитория, дата занятия и неделя.
     await expect(card.getByText("ПО262")).toBeVisible()
     await expect(card.getByText("ауд. 204")).toBeVisible()
@@ -383,12 +387,12 @@ test.describe("MAX mini-app", () => {
           week: 2,
           removedNumberPair: null,
           removedSubject: null,
-          note: "сам.р.",
+          note: "сам.р+",
         },
         {
-          changeType: "Move",
+          changeType: "Remove",
           week: 2,
-          removedNumberPair: 1,
+          removedNumberPair: null,
           removedSubject: null,
           note: null,
         },
@@ -405,15 +409,46 @@ test.describe("MAX mini-app", () => {
       waitUntil: "networkidle",
     })
 
-    // На паре ровно один бейдж: «Сам.р.» важнее добавления и переноса,
-    // остальные операции перечислены в подсказке. Раньше бейджи стояли рядом.
-    await expect(page.getByText("Сам.р.")).toBeVisible()
-    await expect(page.getByText("Добавлено")).toHaveCount(0)
-    await expect(page.getByText("Перенос")).toHaveCount(0)
-    await expect(page.getByText(/нед\./)).toHaveCount(0)
+    // На паре ровно один бейдж: добавленная пара с самостоятельной работой
+    // важнее снятия. Раньше бейджи стояли рядом.
     await expect(page.locator(".max-app__badge")).toHaveCount(1)
+    await expect(page.getByText("Добавлено")).toBeVisible()
+    await expect(page.getByText("Снято")).toHaveCount(0)
+    await expect(page.getByText(/нед\./)).toHaveCount(0)
   })
 
+  test("Расписание: пара только для информирования помечена «Сам.р.»", async ({
+    page,
+  }) => {
+    // «сам.р» без «+»: сама пара в базу расписания не встала, но показывается
+    // как пометка — говорить «Добавлено» было бы неправдой.
+    const informational = {
+      ...ENTRY,
+      changeTags: [
+        {
+          changeType: "Add",
+          week: 2,
+          removedNumberPair: null,
+          removedSubject: null,
+          note: "сам.р.",
+        },
+      ],
+    }
+    await page.route(
+      (url) =>
+        url.pathname === "/api/schedule" && url.searchParams.get("view") === "day",
+      (route) =>
+        route.fulfill(inlineJson(ok(dayView({ entries: [informational] })))),
+    )
+
+    await page.goto("/max/schedule?route=day&date=2026-09-07", {
+      waitUntil: "networkidle",
+    })
+
+    await expect(page.locator(".max-app__badge")).toHaveCount(1)
+    await expect(page.getByText("Сам.р.")).toBeVisible()
+    await expect(page.getByText("Добавлено")).toHaveCount(0)
+  })
   test("Поиск: «Выбрать» сохраняет группу в боте и делает её контекстом", async ({
     page,
   }) => {

@@ -380,24 +380,23 @@ public class CorrectionApplyEngineTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteBatchAsync_Replace_ChangesPairAndWritesRemovedHistory()
+    public async Task ExecuteBatchAsync_AddReplacingSlotLesson_SwapsLessonAndWritesAddedHistory()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
-        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, 2);
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, TestWeek);
         var batch = await SeedBatchAsync(
             group,
             Pos(
                 1,
-                ScheduleChangeType.Replace,
+                ScheduleChangeType.Add,
                 2,
                 subject: "Математика",
                 teacherId: teacher.Id,
                 teacherName: teacher.User.FullName,
                 removedSubject: "Физика",
                 removedTeacherId: teacher.Id,
-                removedTeacherName: teacher.User.FullName,
-                removedNumberPair: 2
+                removedTeacherName: teacher.User.FullName
             )
         );
 
@@ -409,7 +408,7 @@ public class CorrectionApplyEngineTests : IDisposable
         entry.Subject.Should().Be("Математика");
 
         var history = _db.ScheduleHistory.Should().ContainSingle().Subject;
-        history.ChangeType.Should().Be(ScheduleChangeType.Replace);
+        history.ChangeType.Should().Be(ScheduleChangeType.Add);
         history.NumberPair.Should().Be(2);
         history.RemovedNumberPair.Should().Be(2);
         history.RemovedSubject.Should().Be("Физика");
@@ -417,11 +416,123 @@ public class CorrectionApplyEngineTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteBatchAsync_Move_ChangesPairAndWritesRemovedHistory()
+    public async Task ExecuteBatchAsync_AddParallel_KeepsSlotLesson()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
-        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, 2);
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                2,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName
+            )
+        );
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        _db.ScheduleEntries.Should().HaveCount(2);
+        _db.ScheduleEntries.Should().Contain(e => e.Subject == "Физика");
+        _db.ScheduleEntries.Should().Contain(e => e.Subject == "Математика");
+    }
+
+    [Fact]
+    public async Task ExecuteBatchAsync_AddWithMovePair_FreesSourcePairOfSameLesson()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 2, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                4,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "Математика",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
+                removedNumberPair: 2,
+                note: "вм.2 п."
+            )
+        );
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(4);
+        entry.Subject.Should().Be("Математика");
+
+        var history = _db.ScheduleHistory.Should().ContainSingle().Subject;
+        history.ChangeType.Should().Be(ScheduleChangeType.Add);
+        history.NumberPair.Should().Be(4);
+        history.RemovedNumberPair.Should().Be(2);
+        history.RemovedSubject.Should().Be("Математика");
+    }
+
+    [Fact]
+    public async Task ExecuteBatchAsync_AddWithReplaceAndMove_RemovesBothPairsAndWritesTwoHistories()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 3, TestWeek);
+        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 5, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                3,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "Физика",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
+                removedNumberPair: 5,
+                note: "вм.5 п."
+            )
+        );
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(3);
+        entry.Subject.Should().Be("Математика");
+
+        _db.ScheduleHistory.Should().HaveCount(2);
+        _db.ScheduleHistory.Should()
+            .Contain(h =>
+                h.ChangeType == ScheduleChangeType.Add
+                && h.NumberPair == 3
+                && h.RemovedNumberPair == 3
+                && h.RemovedSubject == "Физика"
+            );
+        _db.ScheduleHistory.Should()
+            .Contain(h =>
+                h.ChangeType == ScheduleChangeType.Remove
+                && h.NumberPair == 5
+                && h.Subject == "Математика"
+            );
+    }
+
+    [Fact]
+    public async Task ExecuteBatchAsync_LegacyMovePosition_StillFreesSourcePair()
+    {
+        // Позиции, созданные до объединения операций, остаются в базе: их должен
+        // понимать и движок, и откат.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, TestWeek);
         var batch = await SeedBatchAsync(
             group,
             Pos(
@@ -445,25 +556,56 @@ public class CorrectionApplyEngineTests : IDisposable
         entry.NumberPair.Should().Be(4);
         entry.Subject.Should().Be("Математика");
 
+        // Даже для старой позиции журнал пишет два исхода: добавлено и снято.
         var history = _db.ScheduleHistory.Should().ContainSingle().Subject;
-        history.ChangeType.Should().Be(ScheduleChangeType.Move);
+        history.ChangeType.Should().Be(ScheduleChangeType.Add);
         history.NumberPair.Should().Be(4);
         history.RemovedNumberPair.Should().Be(2);
         history.RemovedSubject.Should().Be("Физика");
     }
 
     [Fact]
-    public async Task ExecuteBatchAsync_ReplaceWithMove_RemovesBothPairsAndWritesTwoHistories()
+    public async Task ExecuteBatchAsync_InformationalSelfStudyNote_WritesHistoryWithoutEntry()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
-        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 3, TestWeek);
-        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 5, TestWeek);
         var batch = await SeedBatchAsync(
             group,
             Pos(
                 1,
-                ScheduleChangeType.Replace,
+                ScheduleChangeType.Add,
+                3,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                note: "сам.р."
+            )
+        );
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        _db.ScheduleEntries.Should().BeEmpty("пара только для информирования");
+
+        var history = _db.ScheduleHistory.Should().ContainSingle().Subject;
+        history.ChangeType.Should().Be(ScheduleChangeType.Add);
+        history.NumberPair.Should().Be(3);
+        history.Subject.Should().Be("Математика");
+    }
+
+    [Fact]
+    public async Task ExecuteBatchAsync_InformationalNoteWithReplace_FreesSlotWithoutAddingLesson()
+    {
+        // «сам.р» вместе с заменой: прежнее занятие снимается по-настоящему, а
+        // сама пара остаётся только пометкой.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 3, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
                 3,
                 subject: "Математика",
                 teacherId: teacher.Id,
@@ -471,8 +613,106 @@ public class CorrectionApplyEngineTests : IDisposable
                 removedSubject: "Физика",
                 removedTeacherId: teacher.Id,
                 removedTeacherName: teacher.User.FullName,
+                note: "сам.р."
+            )
+        );
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        _db.ScheduleEntries.Should().BeEmpty("пара только для информирования");
+
+        var history = _db.ScheduleHistory.Should().ContainSingle().Subject;
+        history.ChangeType.Should().Be(ScheduleChangeType.Add);
+        history.NumberPair.Should().Be(3);
+        history.RemovedSubject.Should().Be("Физика");
+        history.RemovedNumberPair.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task ExecuteBatchAsync_InformationalNoteWithMovePair_FreesSourcePair()
+    {
+        // «сам.р» вместе с «вм.X»: освобождается пара «откуда», а в выбранную
+        // пара не встаёт — только пометка.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 5, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                3,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "Математика",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
                 removedNumberPair: 5,
-                note: "вм.5 п."
+                note: "сам.р. вм.5 п."
+            )
+        );
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        _db.ScheduleEntries.Should().BeEmpty();
+
+        var history = _db.ScheduleHistory.Should().ContainSingle().Subject;
+        history.ChangeType.Should().Be(ScheduleChangeType.Add);
+        history.NumberPair.Should().Be(3);
+        history.RemovedNumberPair.Should().Be(5);
+        history.RemovedSubject.Should().Be("Математика");
+    }
+
+    [Fact]
+    public async Task BuildEffectiveEntriesAsync_InformationalNote_ShowsEntryWithoutScheduleRow()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                4,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                note: "сам.р."
+            )
+        );
+
+        var entries = await _sut.BuildEffectiveEntriesAsync(
+            group.Id,
+            DayOfWeek.Tuesday,
+            TestWeek,
+            batch.Id,
+            CancellationToken.None
+        );
+
+        var entry = entries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(4);
+        entry.Informational.Should().BeTrue();
+        entry.IsSelfStudy.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExecuteBatchAsync_PhysicalSelfStudyNote_CreatesEntryAndKeepsNote()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                3,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                note: "сам.р+"
             )
         );
 
@@ -480,23 +720,65 @@ public class CorrectionApplyEngineTests : IDisposable
         await _db.SaveChangesAsync();
 
         var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
-        entry.NumberPair.Should().Be(3);
         entry.Subject.Should().Be("Математика");
+        entry.NumberPair.Should().Be(3);
 
-        _db.ScheduleHistory.Should().HaveCount(2);
-        _db.ScheduleHistory.Should()
-            .Contain(h =>
-                h.ChangeType == ScheduleChangeType.Replace
-                && h.NumberPair == 3
-                && h.RemovedNumberPair == 3
-                && h.RemovedSubject == "Физика"
-            );
-        _db.ScheduleHistory.Should()
-            .Contain(h =>
-                h.ChangeType == ScheduleChangeType.Remove
-                && h.NumberPair == 5
-                && h.Subject == "Математика"
-            );
+        var history = _db.ScheduleHistory.Should().ContainSingle().Subject;
+        history.Note.Should().Be("сам.р+");
+    }
+
+    [Fact]
+    public async Task ValidateBatchAsync_MovePairWithoutSameLesson_ReturnsRowError()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 5, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                3,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "Математика",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
+                removedNumberPair: 5,
+                note: "вм.5 п."
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        var error = errors.Should().ContainSingle().Subject;
+        error.Message.Should().StartWith("Строка 1:");
+        error.Message.Should().Contain("в паре 5 нет занятия");
+    }
+
+    [Fact]
+    public async Task ValidateBatchAsync_PairOutsideDayRange_ReturnsRowError()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                8,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        var error = errors.Should().ContainSingle().Subject;
+        error.Message.Should().StartWith("Строка 1:");
+        error.Message.Should().Contain("1–7");
     }
 
     [Fact]

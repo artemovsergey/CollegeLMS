@@ -1356,6 +1356,49 @@ public class ScheduleCorrectionServiceTests : IDisposable
         entry.PendingChangeType.Should().Be(ScheduleChangeType.Remove);
     }
 
+    [Fact]
+    public async Task GetDayAsync_AppliedInformationalNote_ShowsPairWithoutScheduleRow()
+    {
+        // Пара «только для информирования» в расписании нет, но диспетчер
+        // должен видеть, что пометка по этой паре уже стоит.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        _db.ScheduleHistory.Add(
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Add,
+                AppliedAt = DateTime.UtcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "Математика",
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 3,
+                Week = StudyWeek.ForDate(new DateTime(2026, 9, 8)),
+                Note = "сам.р.",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetDayAsync(
+            group.Id,
+            new DateTime(2026, 9, 8),
+            null,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var entry = result.Data!.Entries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(3);
+        entry.Subject.Should().Be("Математика");
+        entry.Informational.Should().BeTrue();
+        entry.IsSelfStudy.Should().BeTrue();
+        result.Data.Entries.Should().NotContain(e => e.Informational == false);
+    }
+
     // --- UC-SCH-25: фильтры журнала изменений ---
 
     [Fact]
@@ -1845,6 +1888,80 @@ public class ScheduleCorrectionServiceTests : IDisposable
         entries[0].Subject.Should().Be("Физика");
         entries[0].TeacherId.Should().Be(oldTeacher.Id);
         entries[0].Room.Should().Be("303");
+    }
+
+    [Fact]
+    public async Task RevertHistoryAsync_AddWithRemovedLesson_ReturnsItToTheSlot()
+    {
+        // Замена — это добавление со снимаемым занятием: откат убирает новое
+        // занятие и возвращает прежнее в ту же пару.
+        var group = await SeedGroupAsync();
+        var oldTeacher = await SeedTeacherAsync("Старый И.И.", "old@collegelms.ru");
+        var newTeacher = await SeedTeacherAsync("Новый И.И.", "new@collegelms.ru");
+        var history = new ScheduleHistory
+        {
+            Id = Guid.NewGuid(),
+            ChangeType = ScheduleChangeType.Add,
+            AppliedAt = DateTime.UtcNow,
+            AppliedByUserId = Guid.NewGuid(),
+            GroupId = group.Id,
+            TeacherId = newTeacher.Id,
+            Subject = "Математика",
+            DayOfWeek = DayOfWeek.Tuesday,
+            NumberPair = 2,
+            Week = 3,
+            RemovedSubject = "Физика",
+            RemovedTeacherId = oldTeacher.Id,
+            RemovedRoom = "303",
+            RemovedNumberPair = 2,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        await SeedEntryAsync(group.Id, newTeacher.Id, "Математика", 2, [3]);
+        _db.ScheduleHistory.Add(history);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RevertHistoryAsync(history.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ScheduleChanged.Should().BeTrue();
+        var entries = await _db.ScheduleEntries.ToListAsync(CancellationToken.None);
+        entries.Should().HaveCount(1);
+        entries[0].Subject.Should().Be("Физика");
+        entries[0].TeacherId.Should().Be(oldTeacher.Id);
+        entries[0].Room.Should().Be("303");
+    }
+
+    [Fact]
+    public async Task RevertHistoryAsync_InformationalNote_ClearsOnlyJournalRow()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var history = new ScheduleHistory
+        {
+            Id = Guid.NewGuid(),
+            ChangeType = ScheduleChangeType.Add,
+            AppliedAt = DateTime.UtcNow,
+            AppliedByUserId = Guid.NewGuid(),
+            GroupId = group.Id,
+            TeacherId = teacher.Id,
+            Subject = "Математика",
+            DayOfWeek = DayOfWeek.Tuesday,
+            NumberPair = 2,
+            Week = 3,
+            Note = "сам.р.",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        _db.ScheduleHistory.Add(history);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RevertHistoryAsync(history.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ScheduleChanged.Should().BeFalse();
+        _db.ScheduleEntries.Should().BeEmpty();
+        _db.ScheduleHistory.Should().BeEmpty();
     }
 
     [Fact]

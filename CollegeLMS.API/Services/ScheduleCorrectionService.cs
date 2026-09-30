@@ -26,8 +26,7 @@ public class ScheduleCorrectionService(
     /// <summary>Последний столбец таблицы корректировки: A..G.</summary>
     private const int LastColumn = 7;
 
-    private static bool IsSelfStudyNote(string? note) =>
-        ScheduleImportService.IsSelfStudyNote(note);
+    private static bool IsSelfStudyNote(string? note) => CorrectionNotes.IsSelfStudy(note);
 
     /// <summary>Есть ли на дату рабочий день (override) — разрешает корректировку на выходной.</summary>
     private async Task<bool> HasWorkingOverrideAsync(DateTime date, CancellationToken ct) =>
@@ -525,7 +524,7 @@ public class ScheduleCorrectionService(
                 _ => ScheduleChangeType.Replace,
             };
 
-            var noteOldPair = ParseNoteOldPair(note);
+            var noteOldPair = CorrectionNotes.MovePair(note);
             var rowEntries = new List<CorrectionPreviewEntry>();
 
             if (changeType == ScheduleChangeType.Add)
@@ -715,34 +714,19 @@ public class ScheduleCorrectionService(
             var changeType = (hasRemove, hasAdd) switch
             {
                 (true, false) => ScheduleChangeType.Remove,
-                (false, true) => ScheduleChangeType.Add,
-                _ => ScheduleChangeType.Replace,
+                _ => ScheduleChangeType.Add,
             };
 
-            var oldPair = ParseNoteOldPair(note);
-
-            if (changeType == ScheduleChangeType.Add && oldPair is { } movePair)
-            {
-                // «вм.X»: перенос — снять D/E со старой пары X, ввести на пару F.
-                all.Add(
-                    new CorrectionPreviewEntry
-                    {
-                        Row = row,
-                        GroupName = groupName,
-                        ChangeType = ScheduleChangeType.Move,
-                        DayOfWeek = (int)date.DayOfWeek,
-                        Week = week,
-                        NumberPair = pair,
-                        Subject = addSubject,
-                        TeacherName = addTeacher,
-                        RemovedSubject = addSubject,
-                        RemovedTeacherName = addTeacher,
-                        RemovedNumberPair = movePair,
-                        Note = note,
-                    }
-                );
-                continue;
-            }
+            // «вм.X» — пара «откуда». Строка с вводом и таким примечанием
+            // читается как перенос: вводимое занятие сейчас стоит в паре X.
+            var oldPair = CorrectionNotes.MovePair(note);
+            var movePair =
+                changeType == ScheduleChangeType.Add
+                && oldPair is { } from
+                && from != pair
+                && hasAdd
+                    ? from
+                    : (int?)null;
 
             all.Add(
                 new CorrectionPreviewEntry
@@ -761,16 +745,19 @@ public class ScheduleCorrectionService(
                         changeType != ScheduleChangeType.Remove && addTeacher.Length > 0
                             ? addTeacher
                             : null,
+                    // Колонка «снимается» — это занятие в выбранной паре, и она
+                    // главнее примечания: «вм.X» при замене добавляет ещё и
+                    // освобождение пары «откуда». Если колонки нет, строка с
+                    // «вм.X» — это перенос, и снимается само вводимое занятие.
                     RemovedSubject =
-                        changeType != ScheduleChangeType.Add && removeSubject.Length > 0
-                            ? removeSubject
-                            : null,
+                        hasRemove && removeSubject.Length > 0 ? removeSubject
+                        : movePair.HasValue && addSubject.Length > 0 ? addSubject
+                        : null,
                     RemovedTeacherName =
-                        changeType != ScheduleChangeType.Add && removeTeacher.Length > 0
-                            ? removeTeacher
-                            : null,
-                    RemovedNumberPair =
-                        changeType == ScheduleChangeType.Replace ? oldPair ?? pair : null,
+                        hasRemove && removeTeacher.Length > 0 ? removeTeacher
+                        : movePair.HasValue && addTeacher.Length > 0 ? addTeacher
+                        : null,
+                    RemovedNumberPair = movePair,
                     Note = note,
                 }
             );
@@ -885,20 +872,6 @@ public class ScheduleCorrectionService(
             return n;
 
         var match = TextPairPattern.Match(text);
-        return match.Success ? int.Parse(match.Groups[1].Value) : null;
-    }
-
-    private static readonly Regex NotePairPattern = new(
-        @"вм\.?\s*(\d{1,2})\s*п?",
-        RegexOptions.Compiled
-    );
-
-    private static int? ParseNoteOldPair(string note)
-    {
-        if (string.IsNullOrWhiteSpace(note))
-            return null;
-
-        var match = NotePairPattern.Match(note);
         return match.Success ? int.Parse(match.Groups[1].Value) : null;
     }
 
@@ -1196,6 +1169,8 @@ public class ScheduleCorrectionService(
 
         var history = await db
             .ScheduleHistory.AsNoTracking()
+            .Include(h => h.Teacher!)
+                .ThenInclude(t => t.User)
             .Where(h => h.GroupId == groupId && h.DayOfWeek == day && h.Week == week)
             .ToListAsync(ct);
         var tagsByPair = history
@@ -1234,13 +1209,67 @@ public class ScheduleCorrectionService(
                     TeacherName = e.TeacherName,
                     Note = e.Note,
                     IsSelfStudy = e.IsSelfStudy,
+                    Informational = e.Informational,
                     PendingChangeType = ParseChangeType(e.PendingChangeType),
                     ChangeTags = tagsByPair.GetValueOrDefault(e.NumberPair, []),
                 })
                 .ToList(),
         };
 
+        response.Entries.AddRange(BuildInformationalEntries(history, response.Entries));
+
         return Result<CorrectionDayResponse>.Ok(response);
+    }
+
+    /// <summary>
+    /// Пары «только для информирования» из журнала: в расписании их нет, но
+    /// диспетчер должен видеть, что пометка «сам.р.» по этой паре уже стоит.
+    /// Повторы и те, что уже присутствуют в паре физически, не добавляются.
+    /// </summary>
+    private static List<CorrectionDayEntry> BuildInformationalEntries(
+        List<ScheduleHistory> history,
+        List<CorrectionDayEntry> entries
+    )
+    {
+        var seen = entries.Select(e => (e.NumberPair, e.Subject)).ToHashSet();
+
+        var result = new List<CorrectionDayEntry>();
+        foreach (
+            var record in history.Where(h =>
+                h.ChangeType == ScheduleChangeType.Add && CorrectionNotes.IsInformational(h.Note)
+            )
+        )
+        {
+            if (!seen.Add((record.NumberPair, record.Subject)))
+                continue;
+
+            result.Add(
+                new CorrectionDayEntry
+                {
+                    NumberPair = record.NumberPair,
+                    Subject = record.Subject,
+                    Room = record.Room ?? string.Empty,
+                    TeacherId = record.TeacherId,
+                    TeacherName = record.Teacher?.User?.FullName,
+                    Note = record.Note,
+                    IsSelfStudy = true,
+                    Informational = true,
+                    ChangeTags =
+                    [
+                        new ChangeTag
+                        {
+                            ChangeType = ScheduleChangeType.Add,
+                            Week = record.Week,
+                            RemovedNumberPair = null,
+                            RemovedSubject = null,
+                            Note = record.Note,
+                        },
+                    ],
+                }
+            );
+        }
+
+        return result;
     }
 
     private static ScheduleChangeType? ParseChangeType(string? value) =>
@@ -1824,11 +1853,12 @@ public class ScheduleCorrectionService(
         CancellationToken ct
     )
     {
-        // «Сам.р.» ничего не меняет в расписании: откатывать нечего, только чистим журнал.
-        if (IsSelfStudyNote(history.Note))
+        // Пара «только для информирования» («сам.р.» без «+») расписание не меняла:
+        // откатывать нечего, только чистим журнал.
+        if (CorrectionNotes.IsInformational(history.Note))
         {
             db.ScheduleHistory.Remove(history);
-            return ("Запись журнала удалена: сам.р. не меняет расписание.", false);
+            return ("Запись журнала удалена: пара была только для информирования.", false);
         }
 
         var utcNow = DateTime.UtcNow;
@@ -1840,6 +1870,8 @@ public class ScheduleCorrectionService(
         {
             // Добавление: убираем созданную пару. Если недели в паре больше нет —
             // удаляем пару целиком, как это делает и применение корректировки.
+            // Добавление могло ещё заменить занятие в слоте и/или освободить
+            // пару «откуда» («вм.X») — тогда возвращаем и их.
             case ScheduleChangeType.Add:
             {
                 var removed = await FindEntryAsync(
@@ -1860,6 +1892,25 @@ public class ScheduleCorrectionService(
                         removed.UpdatedAt = utcNow;
                     message =
                         $"Занятие «{history.Subject}» на {dayName} {history.Week}-й неделе убрано.";
+                }
+
+                if (!string.IsNullOrWhiteSpace(history.RemovedSubject))
+                {
+                    var freedPair = history.RemovedNumberPair ?? history.NumberPair;
+                    var restored = await RestoreWeekAsync(
+                        group.Id,
+                        day,
+                        freedPair,
+                        history.RemovedSubject,
+                        history.RemovedTeacherId,
+                        history.RemovedRoom,
+                        history.Week,
+                        utcNow,
+                        ct
+                    );
+                    if (restored)
+                        message =
+                            $"Возвращено «{history.RemovedSubject}» на {dayName} {history.Week}-й неделе, пара {freedPair}.";
                 }
                 break;
             }

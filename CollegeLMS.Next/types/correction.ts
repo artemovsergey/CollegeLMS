@@ -143,6 +143,11 @@ export interface CorrectionDayEntry {
   teacherName: string | null
   note: string | null
   isSelfStudy: boolean
+  /**
+   * Пара только для информирования («сам.р.» без «+»): в расписании её нет,
+   * слот она не занимает и снять её нельзя.
+   */
+  informational?: boolean
   pendingChangeType: CorrectionChangeType | null
   changeTags: ChangeTag[]
 }

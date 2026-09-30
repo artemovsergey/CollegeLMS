@@ -306,6 +306,7 @@ public class ScheduleViewService(
 
         var entries = await entriesQuery.OrderBy(s => s.NumberPair).ToListAsync(ct);
         var changeTags = await ScheduleChangeTags.BuildAsync(db, entries, null, ct);
+        var informational = await LoadInformationalAsync(groupId, teacherId, from, to, ct);
 
         // Резолв профиля звонков на каждую дату диапазона (кэш сервиса звонков делает это дешёвым).
         var bellByDate = new Dictionary<DateTime, BellDayInfo>();
@@ -349,9 +350,69 @@ public class ScheduleViewService(
                 entries,
                 changeTags,
                 bellByDate,
-                insertsByDay
+                insertsByDay,
+                informational
             )
         );
+    }
+
+    /// <summary>
+    /// Пары «только для информирования» («сам.р» без «+») в базе расписания нет:
+    /// они показываются рядом с настоящими парами, иначе пометка осталась бы
+    /// только в ленте изменений. Берём их из журнала по тому же диапазону дат.
+    /// </summary>
+    private async Task<List<InformationalPair>> LoadInformationalAsync(
+        Guid? groupId,
+        Guid? teacherId,
+        DateTime from,
+        DateTime to,
+        CancellationToken ct
+    )
+    {
+        if (!groupId.HasValue && !teacherId.HasValue)
+            return [];
+
+        var weekFrom = StudyWeek.WeekOf(from.Date);
+        var weekTo = StudyWeek.WeekOf(to.Date);
+
+        var query = db
+            .ScheduleHistory.AsNoTracking()
+            .Include(h => h.Group)
+            .Include(h => h.Teacher!)
+                .ThenInclude(t => t.User)
+            .Where(h =>
+                h.ChangeType == ScheduleChangeType.Add
+                && h.Note != null
+                && h.Week >= weekFrom
+                && h.Week <= weekTo
+            );
+
+        if (groupId.HasValue)
+            query = query.Where(h => h.GroupId == groupId.Value);
+
+        if (teacherId.HasValue)
+            query = query.Where(h =>
+                h.TeacherId == teacherId.Value || h.RemovedTeacherId == teacherId.Value
+            );
+
+        var history = await query.ToListAsync(ct);
+
+        return history
+            .Where(h => CorrectionNotes.IsInformational(h.Note))
+            .Select(h => new InformationalPair(
+                h.Id,
+                h.GroupId,
+                h.Group?.Name ?? string.Empty,
+                h.TeacherId,
+                h.Teacher?.User?.FullName,
+                h.Subject,
+                h.Room ?? string.Empty,
+                h.DayOfWeek,
+                h.NumberPair,
+                h.Week,
+                h.Note ?? string.Empty
+            ))
+            .ToList();
     }
 
     /// <summary>Показывать ли день недели: Пн–Пт всегда, Сб — при override или контенте, Вс — только при override.</summary>
@@ -548,7 +609,7 @@ public class ScheduleViewService(
     {
         var times = data.BellByDate.GetValueOrDefault(target.Date)?.Times ?? new();
 
-        return data
+        var entries = data
             .Entries.Where(e => e.DayOfWeek == effectiveDay && e.Weeks.Contains(week))
             .Select(e =>
             {
@@ -565,6 +626,64 @@ public class ScheduleViewService(
                 return dto;
             })
             .ToList();
+
+        // Пара «только для информирования» в базу расписания не вставала, но
+        // показывается вместе с остальными — с бейджем «Сам.р.».
+        foreach (
+            var pair in data.Informational.Where(p => p.DayOfWeek == effectiveDay && p.Week == week)
+        )
+        {
+            // Если такая пара уже стоит в расписании, вторую не показываем.
+            var duplicated = entries.Any(e =>
+                e.GroupId == pair.GroupId
+                && e.NumberPair == pair.NumberPair
+                && e.TeacherId == pair.TeacherId
+                && string.Equals(
+                    ScheduleImportService.SubjectLookupKey(e.Subject),
+                    ScheduleImportService.SubjectLookupKey(pair.Subject),
+                    StringComparison.OrdinalIgnoreCase
+                )
+            );
+            if (duplicated)
+                continue;
+
+            var time = times.TryGetValue(pair.NumberPair, out var pairTime)
+                ? pairTime
+                : ScheduleImportService.GetPairTime(effectiveDay, pair.NumberPair);
+
+            entries.Add(
+                new ScheduleResponse
+                {
+                    Id = pair.Id,
+                    GroupId = pair.GroupId,
+                    GroupName = pair.GroupName,
+                    TeacherId = pair.TeacherId,
+                    TeacherName = pair.TeacherName,
+                    Subject = pair.Subject,
+                    Room = pair.Room,
+                    DayOfWeek = (int)pair.DayOfWeek,
+                    NumberPair = pair.NumberPair,
+                    StartTime = time.Start,
+                    EndTime = time.End,
+                    Weeks = [pair.Week],
+                    LessonType = nameof(LessonType.None),
+                    IsInformational = true,
+                    ChangeTags =
+                    [
+                        new ChangeTag
+                        {
+                            ChangeType = ScheduleChangeType.Add,
+                            Week = pair.Week,
+                            RemovedNumberPair = null,
+                            RemovedSubject = null,
+                            Note = pair.Note,
+                        },
+                    ],
+                }
+            );
+        }
+
+        return entries.OrderBy(e => e.NumberPair).ThenBy(e => e.StartTime).ToList();
     }
 
     /// <summary>Пары УП: синтезируются по PracticeDay (номера из PairNumbers, время из звонков дня).</summary>
@@ -655,7 +774,23 @@ public class ScheduleViewService(
         List<ScheduleEntry> Entries,
         Dictionary<(Guid GroupId, DayOfWeek DayOfWeek, int NumberPair), List<ChangeTag>> ChangeTags,
         Dictionary<DateTime, BellDayInfo> BellByDate,
-        Dictionary<DayOfWeek, List<ScheduleInsertResponse>> InsertsByDay
+        Dictionary<DayOfWeek, List<ScheduleInsertResponse>> InsertsByDay,
+        List<InformationalPair> Informational
+    );
+
+    /// <summary>Пара, добавленная корректировкой как пометка «сам.р».</summary>
+    private sealed record InformationalPair(
+        Guid Id,
+        Guid GroupId,
+        string GroupName,
+        Guid? TeacherId,
+        string? TeacherName,
+        string Subject,
+        string Room,
+        DayOfWeek DayOfWeek,
+        int NumberPair,
+        int Week,
+        string Note
     );
 
     private sealed record BellDayInfo(

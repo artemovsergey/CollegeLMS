@@ -7,17 +7,12 @@ import {
   Upload,
   FileSpreadsheet,
   AlertCircle,
-  Plus,
-  Minus,
-  Repeat,
-  ArrowRightLeft,
   BookMarked,
   Package,
 } from "lucide-react"
 import { importCorrection } from "@/api/correction"
 import { extractErrorMessage } from "@/lib/utils"
 import type {
-  CorrectionChangeType,
   CorrectionImportResponse,
   ScheduleValidationError,
 } from "@/types/correction"
@@ -27,36 +22,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import CorrectionBatchList from "@/components/CorrectionBatchList"
 import CorrectionPositionEditor from "@/components/CorrectionPositionEditor"
 import { CorrectionRules } from "@/components/CorrectionRules"
-
-const CHANGE_TYPE_META: Record<
-  CorrectionChangeType,
-  { label: string; icon: LucideIcon; className: string }
-> = {
-  Add: {
-    label: "Добавлено",
-    icon: Plus,
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  },
-  Remove: {
-    label: "Снято",
-    icon: Minus,
-    className:
-      "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-  },
-  Replace: {
-    label: "Замена",
-    icon: Repeat,
-    className:
-      "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-  },
-  Move: {
-    label: "Перенос",
-    icon: ArrowRightLeft,
-    className:
-      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-  },
-}
 
 function formatValidationError(error: ScheduleValidationError): string {
   const message = error.message ?? ""

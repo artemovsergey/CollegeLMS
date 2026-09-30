@@ -842,7 +842,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"entries\": [\n    {\n      \"row\": 7,\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"changeType\": \"Replace\",\n      \"dayOfWeek\": 2,\n      \"week\": 2,\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"teacherId\": \"{{teacherId}}\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"removedSubject\": \"Физика\",\n      \"removedTeacherId\": \"{{teacherId}}\",\n      \"removedTeacherName\": \"Иванов Д.А.\",\n      \"removedNumberPair\": 2,\n      \"note\": \"вм. 4 п\"\n    }\n  ]\n}"
+              "raw": "{\n  \"entries\": [\n    {\n      \"row\": 7,\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"changeType\": \"Add\",\n      \"dayOfWeek\": 2,\n      \"week\": 2,\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"teacherId\": \"{{teacherId}}\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"removedSubject\": \"Физика\",\n      \"removedTeacherId\": \"{{teacherId}}\",\n      \"removedTeacherName\": \"Иванов Д.А.\",\n      \"removedNumberPair\": 2,\n      \"note\": \"вм. 4 п\"\n    }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/schedule/correction/confirm",
@@ -876,7 +876,7 @@
               ]
             }
           },
-          "description": "Откат уже применённой корректировки. Роли: Dispatcher, Admin.\n\nВозвращает: { historyId, changeType, groupName, dayOfWeek, week, scheduleChanged, message }.\n- Add: неделя убирается из созданной пары, пара без недель удаляется\n- Remove: неделя возвращается в пару, при отсутствии пары она создаётся заново\n- Replace/Move: снимается добавленное, возвращается исходное на RemovedNumberPair\n- сам.р. расписание не меняет — удаляется только запись журнала\n\nЗапись журнала удаляется всегда. scheduleChanged=false — пару уже изменили или удалили, тронут только журнал. Откат необратим."
+          "description": "Откат уже применённой корректировки. Роли: Dispatcher, Admin.\n\nВозвращает: { historyId, changeType, groupName, dayOfWeek, week, scheduleChanged, message }.\n- Add: неделя убирается из созданной пары, пара без недель удаляется; если в записи есть RemovedSubject, прежнее занятие возвращается на RemovedNumberPair (это замена или перенос)\n- Remove: неделя возвращается в пару, при отсутствии пары она создаётся заново\n- Replace/Move — записи, созданные до объединения операций, откатываются как раньше\n- сам.р без «+» расписание не меняет — удаляется только запись журнала\n\nЗапись журнала удаляется всегда. scheduleChanged=false — пару уже изменили или удалили, тронут только журнал. Откат необратим."
         },
         {
           "name": "Correction history",
@@ -884,7 +884,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/schedule/history?week=2&date=2026-09-10&from=2026-09-01&to=2026-09-30&changeType=Replace&groupId={{groupId}}&teacherId={{teacherId}}&page=1&pageSize=20",
+              "raw": "{{baseUrl}}/api/schedule/history?week=2&date=2026-09-10&from=2026-09-01&to=2026-09-30&changeType=Add&groupId={{groupId}}&teacherId={{teacherId}}&page=1&pageSize=20",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -912,7 +912,7 @@
                 },
                 {
                   "key": "changeType",
-                  "value": "Replace"
+                  "value": "Add"
                 },
                 {
                   "key": "groupId",
@@ -933,7 +933,7 @@
               ]
             }
           },
-          "description": "Журнал корректировок с фильтрами и пагинацией (эндпоинт AllowAnonymous).\n- week — номер учебной недели; date — конкретная дата (преобразуется в week + день недели)\n- from/to — диапазон по AppliedAt; changeType — Add | Remove | Replace | Move\n- groupId; teacherId — совпадение по текущему ИЛИ снятому преподавателю\n- page/pageSize (1..100, по умолчанию 20)\nОтвет: { items, totalCount, page, pageSize, totalPages }. Для записей «сам.р.» note=\"сам.р.\", для переноса — removedNumberPair.\nПример: {\n  \"items\": [\n    {\n      \"id\": \"...\",\n      \"changeType\": \"Remove\",\n      \"appliedAt\": \"2026-09-05T10:00:00Z\",\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"teacherName\": \"Иванов Д.А.\",\n      \"subject\": \"Физика\",\n      \"dayOfWeek\": \"Thursday\",\n      \"numberPair\": 2,\n      \"week\": 2,\n      \"note\": \"сам.р.\"\n    }\n  ],\n  \"totalCount\": 1,\n  \"page\": 1,\n  \"pageSize\": 20,\n  \"totalPages\": 1\n}"
+          "description": "Журнал корректировок с фильтрами и пагинацией (эндпоинт AllowAnonymous).\n- week — номер учебной недели; date — конкретная дата (преобразуется в week + день недели)\n- from/to — диапазон по AppliedAt; changeType — Add | Remove (замена и перенос пишутся как Add)\n- groupId; teacherId — совпадение по текущему ИЛИ снятому преподавателю\n- page/pageSize (1..100, по умолчанию 20)\nОтвет: { items, totalCount, page, pageSize, totalPages }. Для записей «сам.р.» note=\"сам.р.\", для переноса — removedNumberPair.\nПример: {\n  \"items\": [\n    {\n      \"id\": \"...\",\n      \"changeType\": \"Remove\",\n      \"appliedAt\": \"2026-09-05T10:00:00Z\",\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"teacherName\": \"Иванов Д.А.\",\n      \"subject\": \"Физика\",\n      \"dayOfWeek\": \"Thursday\",\n      \"numberPair\": 2,\n      \"week\": 2,\n      \"note\": \"сам.р.\"\n    }\n  ],\n  \"totalCount\": 1,\n  \"page\": 1,\n  \"pageSize\": 20,\n  \"totalPages\": 1\n}"
         },
         {
           "name": "Create correction batch",
@@ -1025,7 +1025,7 @@
               ]
             }
           },
-          "description": "Пакет корректировки с позициями и ошибками. Для черновика поле errors содержит пакетные ошибки (сформированные чтением позиций через движок симуляции), а у каждой позиции — свои errors с сообщениями вида «Строка N: …». Поля appliedByUserId, appliedByName, appliedAt заполняются после применения. Пример: {\n  \"id\": \"...\",\n  \"correctionDate\": \"2026-09-10T00:00:00Z\",\n  \"week\": 2,\n  \"dayOfWeek\": 4,\n  \"status\": \"Draft\",\n  \"positionCount\": 2,\n  \"positions\": [\n    {\n      \"id\": \"...\",\n      \"row\": 1,\n      \"changeType\": \"Replace\",\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"dayOfWeek\": 4,\n      \"week\": 2,\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"removedSubject\": \"Физика\",\n      \"removedTeacherName\": \"Иванов Д.А.\",\n      \"note\": \"замена\",\n      \"status\": \"Draft\",\n      \"historyId\": null,\n      \"errors\": []\n    }\n  ],\n  \"errors\": []\n}"
+          "description": "Пакет корректировки с позициями и ошибками. Для черновика поле errors содержит пакетные ошибки (сформированные чтением позиций через движок симуляции), а у каждой позиции — свои errors с сообщениями вида «Строка N: …». Поля appliedByUserId, appliedByName, appliedAt заполняются после применения. Пример: {\n  \"id\": \"...\",\n  \"correctionDate\": \"2026-09-10T00:00:00Z\",\n  \"week\": 2,\n  \"dayOfWeek\": 4,\n  \"status\": \"Draft\",\n  \"positionCount\": 2,\n  \"positions\": [\n    {\n      \"id\": \"...\",\n      \"row\": 1,\n      \"changeType\": \"Add\",\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"dayOfWeek\": 4,\n      \"week\": 2,\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"removedSubject\": \"Физика\",\n      \"removedTeacherName\": \"Иванов Д.А.\",\n      \"note\": \"вм.2 п.\",\n      \"status\": \"Draft\",\n      \"historyId\": null,\n      \"errors\": []\n    }\n  ],\n  \"errors\": []\n}"
         },
         {
           "name": "Delete correction batch",
@@ -1060,7 +1060,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"changeType\": \"Remove\",\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"numberPair\": 2,\n  \"removedSubject\": \"Физика\",\n  \"removedTeacherId\": \"{{teacherId}}\",\n  \"removedTeacherName\": \"Иванов Д.А.\",\n  \"note\": \"сам.р.\"\n}"
+              "raw": "{\n  \"changeType\": \"Add\",\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"numberPair\": 4,\n  \"subject\": \"Математика\",\n  \"teacherId\": \"{{teacherId}}\",\n  \"teacherName\": \"Марченко И.А.\",\n  \"removedSubject\": \"Физика\",\n  \"removedTeacherId\": \"{{teacherId}}\",\n  \"removedTeacherName\": \"Иванов Д.А.\",\n  \"removedNumberPair\": 2,\n  \"note\": \"вм.2 п.\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}/positions",
@@ -1077,7 +1077,7 @@
               ]
             }
           },
-          "description": "Добавить позицию в пакет. Примечание «сам.р.» допустимо только для changeType=Remove"
+          "description": "Добавить позицию в пакет. Типов два: Add и Remove. Замена получается из заполненных removedSubject/removedTeacherId — это занятие снимается в выбранной паре. Перенос — из removedNumberPair: освобождается пара с тем же предметом и преподавателем. Примечание «сам.р» — только информирование (пара в расписание не встаёт), «сам.р+» — пара добавляется."
         },
         {
           "name": "Update correction position",
@@ -1091,7 +1091,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"changeType\": \"Replace\",\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"numberPair\": 4,\n  \"subject\": \"Математика\",\n  \"teacherName\": \"Марченко И.А.\",\n  \"removedSubject\": \"Физика\",\n  \"removedTeacherName\": \"Иванов Д.А.\",\n  \"note\": \"замена\"\n}"
+              "raw": "{\n  \"changeType\": \"Add\",\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"numberPair\": 4,\n  \"subject\": \"Математика\",\n  \"teacherName\": \"Марченко И.А.\",\n  \"removedSubject\": \"Физика\",\n  \"removedTeacherName\": \"Иванов Д.А.\",\n  \"note\": \"сам.р+\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}/positions/{{positionId}}",
@@ -1326,7 +1326,7 @@
               ]
             }
           },
-          "description": "Применить пакет одной транзакцией (кнопка «Применить» после подтверждения). Заголовок Idempotency-Key опционален: при отсутствии генерируется GUID.\n- Пустой пакет (нет черновых позиций) → 400 «В пакете нет позиций для применения.»\n- Ошибки валидации движка → 400 со списком сообщений «Строка N: …», строки объединены символом \\n; частичных изменений нет.\n- Повторный apply или статус не Draft → 409 «Пакет уже применён или отменён.»\n\nПосле COMMIT (fail-safe, сбой не откатывает применение): POST /notify в бота Max с изменениями и POST /notify/correction-image с PNG-таблицей в канал MaxBot:CorrectionChannelId.\n\nПример успеха: {\n  \"applied\": 2,\n  \"batchId\": \"...\",\n  \"history\": [\n    {\n      \"id\": \"...\",\n      \"changeType\": \"Replace\",\n      \"appliedAt\": \"2026-09-05T10:00:00Z\",\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"subject\": \"Математика\",\n      \"dayOfWeek\": \"Thursday\",\n      \"numberPair\": 4,\n      \"week\": 2,\n      \"note\": \"замена\",\n      \"removedSubject\": \"Физика\",\n      \"removedNumberPair\": 2\n    }\n  ]\n}"
+          "description": "Применить пакет одной транзакцией (кнопка «Применить» после подтверждения). Заголовок Idempotency-Key опционален: при отсутствии генерируется GUID.\n- Пустой пакет (нет черновых позиций) → 400 «В пакете нет позиций для применения.»\n- Ошибки валидации движка → 400 со списком сообщений «Строка N: …», строки объединены символом \\n; частичных изменений нет.\n- Повторный apply или статус не Draft → 409 «Пакет уже применён или отменён.»\n\nПосле COMMIT (fail-safe, сбой не откатывает применение): POST /notify в бота Max с изменениями и POST /notify/correction-image с PNG-таблицей в канал MaxBot:CorrectionChannelId.\n\nПример успеха: {\n  \"applied\": 2,\n  \"batchId\": \"...\",\n  \"history\": [\n    {\n      \"id\": \"...\",\n      \"changeType\": \"Add\",\n      \"appliedAt\": \"2026-09-05T10:00:00Z\",\n      \"groupId\": \"{{groupId}}\",\n      \"groupName\": \"ПО-262\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"subject\": \"Математика\",\n      \"dayOfWeek\": \"Thursday\",\n      \"numberPair\": 4,\n      \"week\": 2,\n      \"note\": \"вм.2 п.\",\n      \"removedSubject\": \"Физика\",\n      \"removedNumberPair\": 2\n    }\n  ]\n}"
         },
         {
           "name": "Correction day",
@@ -1360,7 +1360,7 @@
               ]
             }
           },
-          "description": "Эффективное расписание группы на дату для флоу корректировки: базовое расписание + применённые изменения + неприменённые позиции пакета (если передан batchId).\nСнятые без «сам.р.» пары исключаются; для «сам.р.» isSelfStudy=true. Сортировка по номеру пары.\nНовая схема ответа: entries[].pendingChangeType (Add | Remove | Replace | Move | null), entries[].isSelfStudy, entries[].changeTags (история применённых изменений пары).\nПример: {\n  \"date\": \"2026-09-10T00:00:00Z\",\n  \"week\": 2,\n  \"dayOfWeek\": 4,\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"entries\": [\n    {\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"room\": \"204\",\n      \"teacherId\": \"{{teacherId}}\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"note\": \"замена\",\n      \"isSelfStudy\": false,\n      \"pendingChangeType\": \"Replace\",\n      \"changeTags\": [ { \"changeType\": \"Replace\", \"week\": 2, \"removedNumberPair\": 2, \"removedSubject\": \"Физика\", \"note\": \"замена\" } ]\n    }\n  ]\n}"
+          "description": "Эффективное расписание группы на дату для флоу корректировки: базовое расписание + применённые изменения + неприменённые позиции пакета (если передан batchId).\nСнятые без «сам.р.» пары исключаются; для «сам.р.» isSelfStudy=true. Сортировка по номеру пары.\nСхема ответа: entries[].pendingChangeType (Add | Remove | null), entries[].isSelfStudy, entries[].informational (пара только для информирования: «сам.р» без «+», сама она в базу расписания не встаёт, слот не занимается и снять её нельзя), entries[].changeTags (история применённых изменений пары).\nПример: {\n  \"date\": \"2026-09-10T00:00:00Z\",\n  \"week\": 2,\n  \"dayOfWeek\": 4,\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"entries\": [\n    {\n      \"numberPair\": 4,\n      \"subject\": \"Математика\",\n      \"room\": \"204\",\n      \"teacherId\": \"{{teacherId}}\",\n      \"teacherName\": \"Марченко И.А.\",\n      \"note\": \"вм.2 п.\",\n      \"isSelfStudy\": false,\n      \"informational\": false,\n      \"pendingChangeType\": \"Add\",\n      \"changeTags\": [ { \"changeType\": \"Add\", \"week\": 2, \"removedNumberPair\": 2, \"removedSubject\": \"Физика\", \"note\": \"вм.2 п.\" } ]\n    }\n  ]\n}"
         },
         {
           "name": "Correction references",
@@ -1744,7 +1744,7 @@
               ]
             }
           },
-          "description": "Журнал преподавателя (Teacher/Admin/Dispatcher): subjects[] { groupId, groupName, subject, items[] { week, dayOfWeek, date, numberPairs[], changeTypes[] }, pairCount }, totalPairCount. Карточки формируются по паре «группа + предмет»: один предмет у нескольких групп даёт отдельные карточки с разными groupId/groupName. Фильтры: ?subject= по точному названию предмета, ?groupId= — только выбранная группа. Без groupId возвращаются все группы преподавателя (из ответа клиент строит список групп). changeTypes — бейджи корректировок: Add, Replace, Move, Remove, SelfStudy (сам.р.). Показываются только проведённые занятия (дата <= сегодня). 400 — не определён преподаватель; 403 — чужой teacherId; 404 — преподаватель не найден."
+          "description": "Журнал преподавателя (Teacher/Admin/Dispatcher): subjects[] { groupId, groupName, subject, items[] { week, dayOfWeek, date, numberPairs[], changeTypes[] }, pairCount }, totalPairCount. Карточки формируются по паре «группа + предмет»: один предмет у нескольких групп даёт отдельные карточки с разными groupId/groupName. Фильтры: ?subject= по точному названию предмета, ?groupId= — только выбранная группа. Без groupId возвращаются все группы преподавателя (из ответа клиент строит список групп). changeTypes — бейджи корректировок: Add, Remove, SelfStudy (сам.р. и сам.р+). Показываются только проведённые занятия (дата <= сегодня). 400 — не определён преподаватель; 403 — чужой teacherId; 404 — преподаватель не найден."
         },
         {
           "name": "Get subjects",

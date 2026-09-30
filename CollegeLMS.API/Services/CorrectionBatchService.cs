@@ -18,9 +18,6 @@ public class CorrectionBatchService(
     ILogger<CorrectionBatchService> logger
 ) : ICorrectionBatchService
 {
-    private static bool IsSelfStudyNote(string? note) =>
-        ScheduleImportService.IsSelfStudyNote(note);
-
     public async Task<Result<CorrectionBatchResponse>> CreateBatchAsync(
         CreateCorrectionBatchRequest request,
         Guid createdByUserId,
@@ -387,6 +384,8 @@ public class CorrectionBatchService(
         if (batch.Status != CorrectionBatchStatus.Draft)
             return Result<CorrectionPositionResponse>.Fail("Пакет уже применён.", 409);
 
+        NormalizeRequest(request);
+
         var error = await ValidatePositionAsync(request, ct);
         if (error is not null)
             return Result<CorrectionPositionResponse>.Fail(error, 400);
@@ -449,6 +448,8 @@ public class CorrectionBatchService(
         );
         if (position is null)
             return Result<CorrectionPositionResponse>.Fail("Позиция не найдена.", 404);
+
+        NormalizeRequest(request);
 
         var error = await ValidatePositionAsync(request, ct);
         if (error is not null)
@@ -745,8 +746,14 @@ public class CorrectionBatchService(
         CancellationToken ct
     )
     {
-        if (request.NumberPair < 1 || request.NumberPair > 8)
-            return "Номер пары должен быть от 1 до 8.";
+        if (request.NumberPair < 1 || request.NumberPair > CorrectionApplyEngine.MaxPair)
+            return $"Номер пары должен быть от 1 до {CorrectionApplyEngine.MaxPair}.";
+
+        if (
+            request.RemovedNumberPair is { } removedPair
+            && removedPair is < 1 or > CorrectionApplyEngine.MaxPair
+        )
+            return $"Пара в примечании должна быть от 1 до {CorrectionApplyEngine.MaxPair}.";
 
         if (string.IsNullOrWhiteSpace(request.GroupName))
             return "Укажите группу.";
@@ -758,12 +765,32 @@ public class CorrectionBatchService(
         return null;
     }
 
+    /// <summary>
+    /// Приводит запрос к двум типам позиции — добавление и снятие. Замена и
+    /// перенос остались в модели ради ранее созданных пакетов и файлов
+    /// импорта, но по сути это добавление со снимаемым занятием, поэтому
+    /// приводятся к нему, а не создаются как отдельные операции.
+    /// </summary>
+    private static void NormalizeRequest(CreateCorrectionPositionRequest request)
+    {
+        if (request.ChangeType is not (ScheduleChangeType.Replace or ScheduleChangeType.Move))
+            return;
+
+        request.ChangeType = ScheduleChangeType.Add;
+
+        // У простой замены RemovedNumberPair совпадал с целевой парой: в
+        // единой модели это поле означает только перенос, поэтому убираем.
+        if (request.RemovedNumberPair == request.NumberPair)
+            request.RemovedNumberPair = null;
+    }
+
     private static string? ResolveNote(CreateCorrectionPositionRequest request)
     {
         var note = request.Note;
         if (
-            request.ChangeType == ScheduleChangeType.Move
+            request.ChangeType == ScheduleChangeType.Add
             && request.RemovedNumberPair.HasValue
+            && request.RemovedNumberPair != request.NumberPair
             && string.IsNullOrWhiteSpace(note)
         )
         {
@@ -773,29 +800,77 @@ public class CorrectionBatchService(
         return note;
     }
 
+    /// <summary>
+    /// Строка файла корректировки для позиции. Замена записывается двумя
+    /// колонками («снимается» и «вводится»), перенос — только примечанием
+    /// «вм.X»: вводимое занятие само переезжает из старой пары, поэтому в
+    /// колонке «снимается» для него места нет.
+    /// </summary>
     private static ManualCorrectionRow ToManualRow(CorrectionPosition p)
     {
         var note = p.Note;
-        if (p.ChangeType == ScheduleChangeType.Move && p.RemovedNumberPair.HasValue && note is null)
+        if (
+            p.ChangeType == ScheduleChangeType.Add
+            && p.RemovedNumberPair.HasValue
+            && p.RemovedNumberPair != p.NumberPair
+            && note is null
+        )
         {
             note = $"вм.{p.RemovedNumberPair}";
         }
 
+        var isRemove = p.ChangeType == ScheduleChangeType.Remove;
+        var isMove = !isRemove && IsMovePosition(p);
+
         return new ManualCorrectionRow
         {
             GroupName = p.GroupName,
-            RemovedSubject = p.ChangeType is ScheduleChangeType.Remove or ScheduleChangeType.Replace
-                ? p.RemovedSubject
-                : null,
-            RemovedTeacherName = p.ChangeType
-                is ScheduleChangeType.Remove
-                    or ScheduleChangeType.Replace
-                ? p.RemovedTeacherName
-                : null,
-            AddedSubject = p.ChangeType != ScheduleChangeType.Remove ? p.Subject : null,
-            AddedTeacherName = p.ChangeType != ScheduleChangeType.Remove ? p.TeacherName : null,
+            RemovedSubject = isMove ? null : p.RemovedSubject,
+            RemovedTeacherName = isMove ? null : p.RemovedTeacherName,
+            AddedSubject = isRemove ? null : p.Subject,
+            AddedTeacherName = isRemove ? null : p.TeacherName,
             NumberPair = p.NumberPair,
             Note = note,
         };
+    }
+
+    /// <summary>
+    /// Перенос ли это: вводимое занятие само стоит в паре «откуда», поэтому
+    /// снимать в колонке «снимается» нечего — только освободить пару.
+    /// </summary>
+    private static bool IsMovePosition(CorrectionPosition p) =>
+        p.ChangeType == ScheduleChangeType.Move
+        || (
+            p.ChangeType == ScheduleChangeType.Add
+            && p.RemovedSubject is not null
+            && SameLesson(p.RemovedSubject, p.Subject)
+            && SameTeacher(p.RemovedTeacherId, p.RemovedTeacherName, p.TeacherId, p.TeacherName)
+        );
+
+    private static bool SameLesson(string? left, string? right) =>
+        string.Equals(
+            ScheduleImportService.SubjectLookupKey(left ?? string.Empty),
+            ScheduleImportService.SubjectLookupKey(right ?? string.Empty),
+            StringComparison.OrdinalIgnoreCase
+        );
+
+    private static bool SameTeacher(
+        Guid? leftId,
+        string? leftName,
+        Guid? rightId,
+        string? rightName
+    )
+    {
+        if (leftId.HasValue && rightId.HasValue)
+            return leftId == rightId;
+
+        if (!string.IsNullOrWhiteSpace(leftName) && !string.IsNullOrWhiteSpace(rightName))
+            return string.Equals(
+                ScheduleImportService.NormalizeTeacherName(leftName),
+                ScheduleImportService.NormalizeTeacherName(rightName),
+                StringComparison.OrdinalIgnoreCase
+            );
+
+        return leftId == rightId;
     }
 }

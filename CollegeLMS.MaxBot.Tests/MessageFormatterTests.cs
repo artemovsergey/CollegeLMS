@@ -278,9 +278,10 @@ public class MessageFormatterTests
                 [
                     new ChangeTag
                     {
-                        ChangeType = "Move",
+                        ChangeType = "Add",
                         Week = 1,
                         RemovedNumberPair = 2,
+                        Note = "вм.2 п.",
                     },
                 ]
             ),
@@ -292,7 +293,7 @@ public class MessageFormatterTests
             showGroup: false
         );
 
-        text.Should().Contain("🔄 перенос с пары 2");
+        text.Should().Contain("⚠️ 🟢 добавлено — с пары 2");
     }
 
     [Fact]
@@ -569,7 +570,7 @@ public class MessageFormatterTests
         line.Should().Be("УП: ПО-262 · Марченко И.А., Сидоров С.С. (с 07.09.2026 по 11.09.2026)");
     }
 
-    private static ScheduleRevision Revision(string changeType = "Replace") =>
+    private static ScheduleRevision Revision(string changeType = "Add") =>
         new()
         {
             Id = 1,
@@ -582,14 +583,13 @@ public class MessageFormatterTests
             DayOfWeek = "Вторник",
             Week = 1,
             NumberPair = 2,
-            Note = "вм.4 п",
             CreatedAt = new DateTime(2026, 9, 8, 10, 0, 0, DateTimeKind.Utc),
         };
 
     [Theory]
     [InlineData("Add", "добавлена")]
     [InlineData("Remove", "снята")]
-    [InlineData("Replace", "замена")]
+    [InlineData("Replace", "добавлена")]
     [InlineData("", "изменена")]
     public void FormatChangeNotificationTitle_TitlesByType(string changeType, string expected)
     {
@@ -599,17 +599,20 @@ public class MessageFormatterTests
     [Fact]
     public void FormatCorrectionDigest_RendersWebStyleCard()
     {
-        var text = MessageFormatter.FormatCorrectionDigest([Revision()]);
+        var revision = Revision();
+        revision.Note = "каб.224";
+
+        var text = MessageFormatter.FormatCorrectionDigest([revision]);
 
         text.Should().Contain("🔔 **Изменения в расписании**");
-        text.Should().Contain("**Замена**");
+        text.Should().Contain("**Добавлено**");
         text.Should().Contain("📅 1 сентября 2026");
         text.Should().Contain("Вторник, 1-я неделя");
         text.Should().Contain("🏫 **ПО262**");
         text.Should().Contain("🕐 пара 2");
         text.Should().Contain("📍 ауд. 301");
         text.Should().Contain("📖 **История Петренко В.Б.**");
-        text.Should().Contain("📝 Примечание: вм.4 п");
+        text.Should().Contain("📝 Примечание: каб.224");
         text.Should().NotContain("http");
     }
 
@@ -617,15 +620,16 @@ public class MessageFormatterTests
     public void FormatCorrectionDigest_Move_ShowsArrowWithoutStrikethrough()
     {
         var revision = Revision();
-        revision.ChangeType = "Move";
+        revision.ChangeType = "Add";
         revision.RemovedSubject = "Математика";
         revision.RemovedTeacherName = "Сидоров С.С.";
         revision.RemovedNumberPair = 2;
         revision.NumberPair = 3;
+        revision.Note = "вм.2 п.";
 
         var text = MessageFormatter.FormatCorrectionDigest([revision]);
 
-        text.Should().Contain("**Перенос**");
+        text.Should().Contain("**Добавлено**");
         text.Should().Contain("🕐 пара 2 => 3");
         text.Should().Contain("📖 Математика Сидоров С.С. => **История Петренко В.Б.**");
         // Зачёркнутый старый предмет в MAX выглядит плохо.
@@ -643,12 +647,12 @@ public class MessageFormatterTests
     [Fact]
     public void FormatCorrectionDigest_SelfStudyNote_ShowsSelfStudyBadge()
     {
-        var revision = Revision(changeType: "Remove");
+        var revision = Revision(changeType: "Add");
         revision.Note = "сам.р.";
 
         var text = MessageFormatter.FormatCorrectionDigest([revision]);
 
-        text.Should().Contain("🟣 Сам.р.");
+        text.Should().Contain("🟣 Сам.р. (только информация)");
         text.Should().Contain("📖 **История Петренко В.Б.**");
         text.Should().Contain("📝 Примечание: сам.р.");
     }
@@ -677,11 +681,14 @@ public class MessageFormatterTests
     [Fact]
     public void FormatChangeNotification_ContainsMetaHeaderAndFields()
     {
-        var text = MessageFormatter.FormatChangeNotification(Revision(), "https://stvcc.tech/max");
+        var revision = Revision();
+        revision.Note = "вм.4 п";
+
+        var text = MessageFormatter.FormatChangeNotification(revision, "https://stvcc.tech/max");
 
         text.Should().Contain("🔔 *Изменение в расписании*");
         text.Should().Contain("ПО262 · Вторник · Нед. 1 · Пара 2");
-        text.Should().Contain("📖 История — замена");
+        text.Should().Contain("📖 История — добавлена");
         text.Should().Contain("👨‍🏫 Преподаватель: Петренко В.Б.");
         text.Should().Contain("📝 Примечание: вм.4 п");
         text.Should().Contain("route=day&date=");
@@ -696,7 +703,7 @@ public class MessageFormatterTests
 
         var text = MessageFormatter.FormatChangeNotification(r, "https://stvcc.tech/max");
 
-        text.Should().Contain("📖 История — замена");
+        text.Should().Contain("📖 История — добавлена");
         text.Should().NotContain("👨‍🏫");
         text.Should().NotContain("📝");
     }

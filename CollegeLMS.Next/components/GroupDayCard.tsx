@@ -1,12 +1,13 @@
 "use client"
 
 import type { CorrectionDayEntry } from "@/types/correction"
-import { CircleAlert, MapPin, UserRound } from "lucide-react"
+import { CircleAlert, Info, MapPin, UserRound } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
 import { cn } from "@/lib/utils"
 
-const MAX_PAIR = 8
+/** Пар в учебном дне семь — столько и слотов показываем. */
+export const MAX_PAIR = 7
 
 const PENDING_META: Record<string, { label: string; className: string }> = {
   Add: {
@@ -29,15 +30,37 @@ const PENDING_META: Record<string, { label: string; className: string }> = {
   },
 }
 
-/** Первое занятие слота, которое форма считает занятым. */
+/** Занятия выбранной пары в порядке показа: сначала настоящие, потом пометки. */
+export function entriesForPair(
+  entries: CorrectionDayEntry[],
+  numberPair: number,
+): CorrectionDayEntry[] {
+  return entries
+    .filter((entry) => entry.numberPair === numberPair)
+    .sort((a, b) => Number(a.informational) - Number(b.informational))
+}
+
+/** Занятия пары, которые действительно стоят в расписании. */
+export function physicalEntriesForPair(
+  entries: CorrectionDayEntry[],
+  numberPair: number,
+): CorrectionDayEntry[] {
+  return entriesForPair(entries, numberPair).filter(
+    (entry) => !entry.informational,
+  )
+}
+
+/**
+ * Первое занятие слота, которое форма считает занятым. Пометки «только
+ * информация» слот не занимают: в расписании их нет.
+ */
 export function occupiedEntryFor(
   entries: CorrectionDayEntry[],
   numberPair: number,
 ): CorrectionDayEntry | null {
   return (
-    entries.find(
-      (entry) =>
-        entry.numberPair === numberPair && entry.pendingChangeType == null,
+    physicalEntriesForPair(entries, numberPair).find(
+      (entry) => entry.pendingChangeType == null,
     ) ?? null
   )
 }
@@ -58,9 +81,9 @@ interface GroupDayCardProps {
   selectedPair: number | null
   onSelectPair: (numberPair: number) => void
   /**
-   * Задание внутри выбранной пары. Передаётся при снятии и замене: там нужно
-   * указать не пару, а конкретное занятие, и лишний отдельный шаг только мешает —
-   * клик по занятию в этой же карточке выбирает и пару, и занятие сразу.
+   * Занятие внутри выбранной пары. Передаётся при снятии: там нужно указать не
+   * пару, а конкретное занятие, и лишний отдельный шаг только мешает — клик по
+   * занятию в этой же карточке выбирает и пару, и занятие сразу.
    */
   onSelectEntry?: (entry: CorrectionDayEntry) => void
   /** Ключ выбранного занятия: пара, предмет и преподаватель. */
@@ -98,9 +121,7 @@ export default function GroupDayCard({
       <ul className="grid gap-1 p-2">
         {Array.from({ length: MAX_PAIR }, (_, index) => index + 1).map(
           (numberPair) => {
-            const pairEntries = entries.filter(
-              (entry) => entry.numberPair === numberPair,
-            )
+            const pairEntries = entriesForPair(entries, numberPair)
             const occupied = isPairOccupied(entries, numberPair)
             const selected = selectedPair === numberPair
 
@@ -145,7 +166,13 @@ export default function GroupDayCard({
                           const key = entryKey(entry)
                           const detail = (
                             <>
-                              <span className="truncate text-sm">
+                              <span
+                                className={cn(
+                                  "truncate text-sm",
+                                  entry.informational &&
+                                    "text-muted-foreground line-through decoration-muted-foreground/40",
+                                )}
+                              >
                                 {entry.subject}
                               </span>
                               <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
@@ -161,13 +188,23 @@ export default function GroupDayCard({
                                     {entry.room}
                                   </span>
                                 )}
-                                {entry.isSelfStudy && (
+                                {entry.informational ? (
                                   <Badge
                                     variant="outline"
                                     className="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
                                   >
-                                    Сам.р.
+                                    <Info className="size-3" aria-hidden />
+                                    только информация
                                   </Badge>
+                                ) : (
+                                  entry.isSelfStudy && (
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+                                    >
+                                      Сам.р.
+                                    </Badge>
+                                  )
                                 )}
                                 {entry.pendingChangeType && (
                                   <Badge
@@ -184,14 +221,19 @@ export default function GroupDayCard({
                             </>
                           )
 
-                          if (!onSelectEntry) return <span key={key}>{detail}</span>
+                          // Пометку «только информация» снять нельзя: в
+                          // расписании её нет, выбирать её нечего.
+                          const pickable =
+                            Boolean(onSelectEntry) && !entry.informational
+
+                          if (!pickable) return <span key={key}>{detail}</span>
 
                           return (
                             <button
                               key={key}
                               type="button"
                               aria-pressed={selectedEntryKey === key}
-                              onClick={() => onSelectEntry(entry)}
+                              onClick={() => onSelectEntry?.(entry)}
                               className={cn(
                                 "grid w-full gap-0.5 rounded-md border px-2 py-1.5 text-left transition-colors",
                                 "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
@@ -228,7 +270,7 @@ export default function GroupDayCard({
         <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
         {onSelectEntry
           ? "Кликните по занятию — оно и пара выберутся сразу."
-          : "Занятую пару выбрать можно: в слоте может быть несколько занятий."}
+          : "Занятую пару выбрать можно: в слоте может быть несколько занятий. «Только информация» — пометка, в расписании её нет."}
       </p>
     </div>
   )

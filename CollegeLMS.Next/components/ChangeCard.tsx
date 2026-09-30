@@ -5,25 +5,30 @@ import type { LucideIcon } from "lucide-react"
 import {
   Plus,
   Minus,
-  Repeat,
-  ArrowRightLeft,
   BookOpen,
   CalendarDays,
   Clock,
   DoorOpen,
+  Info,
   User,
 } from "lucide-react"
-import type { ScheduleHistoryItem, CorrectionChangeType } from "@/types/correction"
+import type { ScheduleHistoryItem } from "@/types/correction"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { dateForLesson } from "@/lib/semester"
 import { toIsoDate } from "@/api/schedule"
-import { REPLACE_ARROW_CLASS } from "@/lib/change-tags"
+import {
+  REPLACE_ARROW_CLASS,
+  changeTagKind,
+  isInformationalNote,
+  movePairFromNote,
+} from "@/lib/change-tags"
 import { dayLabelFromString } from "@/lib/max-lesson"
 
-const CHANGE_TYPE_META: Record<
-  CorrectionChangeType,
+/** Исходов два: добавлено и снято. */
+const CHANGE_KIND_META: Record<
+  "Add" | "Remove",
   { label: string; icon: LucideIcon; className: string }
 > = {
   Add: {
@@ -37,19 +42,10 @@ const CHANGE_TYPE_META: Record<
     icon: Minus,
     className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
   },
-  Replace: {
-    label: "Замена",
-    icon: Repeat,
-    className:
-      "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-  },
-  Move: {
-    label: "Перенос",
-    icon: ArrowRightLeft,
-    className:
-      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-  },
 }
+
+const SELF_STUDY_BADGE =
+  "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
 
 const DAY_OFFSET: Record<string, number> = {
   Monday: 0,
@@ -127,9 +123,16 @@ export default function ChangeCard({
   semesterStartIso,
   className,
 }: ChangeCardProps) {
-  const meta = CHANGE_TYPE_META[item.changeType]
+  const isRemove = item.changeType === "Remove"
+  const meta = CHANGE_KIND_META[changeTagKind(item.changeType)]
   const Icon = meta.icon
   const selfStudy = isSelfStudy(item)
+  const informational = isInformationalNote(item.note)
+  // Перенос — это добавление с отметкой «вм.X», поэтому пара «откуда» берётся
+  // из примечания, а не из отдельного поля.
+  const movedFrom = isRemove
+    ? null
+    : (movePairFromNote(item.note) ?? item.removedNumberPair)
   const dayIndex = DAY_OFFSET[item.dayOfWeek] ?? 0
   const date = dateForLesson(semesterStartIso, item.week, dayIndex)
   const appliedAt = formatAppliedAt(item.appliedAt)
@@ -139,22 +142,25 @@ export default function ChangeCard({
   // или преподавателем: иначе расписание открывается пустым.
   const dayHref = buildDayHref(item, date, dayIndex)
   const pairLabel =
-    item.removedNumberPair != null &&
-    item.removedNumberPair !== item.numberPair &&
-    (item.changeType === "Replace" || item.changeType === "Move")
-      ? `пара ${item.removedNumberPair} → ${item.numberPair}`
+    movedFrom != null && movedFrom !== item.numberPair
+      ? `пара ${movedFrom} → ${item.numberPair}`
       : `пара ${item.numberPair}`
 
-  const isMoveOrReplace =
-    item.changeType === "Replace" || item.changeType === "Move"
   const removedLesson = lessonLine(
     item.removedSubject ?? item.subject,
     item.teacherName,
   )
   const newLesson = lessonLine(
-    item.changeType === "Remove" ? null : item.subject,
-    item.changeType === "Remove" ? null : item.teacherName,
+    isRemove ? null : item.subject,
+    isRemove ? null : item.teacherName,
   )
+  // При переносе снимается само вводимое занятие — стрелка «X => X» ничего бы
+  // не сказала, поэтому показываем пару один раз.
+  const replaces =
+    !isRemove &&
+    item.removedSubject != null &&
+    item.removedSubject.trim().toLowerCase() !==
+      (item.subject ?? "").trim().toLowerCase()
 
   return (
     <Card
@@ -168,11 +174,16 @@ export default function ChangeCard({
             <Icon aria-hidden /> {meta.label}
           </Badge>
           {selfStudy && (
-            <Badge
-              variant="outline"
-              className="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
-            >
-              <BookOpen aria-hidden /> Сам.р.
+            <Badge variant="outline" className={SELF_STUDY_BADGE}>
+              {informational ? (
+                <>
+                  <Info aria-hidden /> Только информация
+                </>
+              ) : (
+                <>
+                  <BookOpen aria-hidden /> Сам.р.
+                </>
+              )}
             </Badge>
           )}
           <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground">
@@ -199,7 +210,7 @@ export default function ChangeCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-base">
-          {isMoveOrReplace && item.removedSubject ? (
+          {replaces ? (
             <span className="flex flex-wrap items-center gap-1.5">
               <span className="text-muted-foreground">{removedLesson}</span>
               <span className={REPLACE_ARROW_CLASS} aria-hidden>
@@ -217,6 +228,12 @@ export default function ChangeCard({
             <span className="inline-flex items-center gap-1">
               <User className="size-3.5" aria-hidden />
               Преподаватель не указан
+            </span>
+          )}
+          {informational && (
+            <span className="inline-flex items-center gap-1">
+              <Info className="size-3.5" aria-hidden />
+              Пара в расписание не вставала — только пометка
             </span>
           )}
           {item.note && <span>Примечание: {item.note}</span>}

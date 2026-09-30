@@ -23,11 +23,10 @@ export interface ChangeFiltersValue {
   changeType?: CorrectionChangeType
 }
 
+/** Исходов два: добавлено и снято. */
 const CHANGE_TYPE_OPTIONS: { value: CorrectionChangeType; label: string }[] = [
   { value: "Add", label: "Добавлено" },
   { value: "Remove", label: "Снято" },
-  { value: "Replace", label: "Замена" },
-  { value: "Move", label: "Перенос" },
 ]
 
 export function hasActiveChangeFilters(value: ChangeFiltersValue): boolean {

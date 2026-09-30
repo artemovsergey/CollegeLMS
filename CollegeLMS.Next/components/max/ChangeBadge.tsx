@@ -2,14 +2,19 @@
 
 import type { ChangeTag } from "@/types/correction"
 import type { LucideIcon } from "lucide-react"
-import { Plus, Minus, Repeat, ArrowRightLeft, BookOpen } from "lucide-react"
-import { changeTagLabel, isSelfStudyNote, primaryChangeTag } from "@/lib/change-tags"
+import { Plus, Minus, BookOpen } from "lucide-react"
+import {
+  changeTagKind,
+  changeTagLabel,
+  isInformationalNote,
+  isSelfStudyNote,
+  primaryChangeTag,
+} from "@/lib/change-tags"
 
-const META: Record<ChangeTag["changeType"], { icon: LucideIcon }> = {
+/** Исходов два: добавлено и снято. */
+const META: Record<"Add" | "Remove", { icon: LucideIcon }> = {
   Add: { icon: Plus },
   Remove: { icon: Minus },
-  Replace: { icon: Repeat },
-  Move: { icon: ArrowRightLeft },
 }
 
 const SELF_STUDY_ICON = BookOpen
@@ -26,11 +31,14 @@ export default function ChangeBadge({ tags }: ChangeBadgeProps) {
   const tag = primaryChangeTag(tags)
   if (!tag) return null
 
-  const selfStudy = isSelfStudyNote(tag.note)
-  const Icon = selfStudy ? SELF_STUDY_ICON : META[tag.changeType].icon
-  const modifier = selfStudy
-    ? "selfstudy"
-    : tag.changeType.toLowerCase()
+  const kind = changeTagKind(tag.changeType)
+  // Пара, которой в расписании нет, а есть только пометка, — самостоятельная
+  // работа, а не изменение пары.
+  const selfStudy =
+    isSelfStudyNote(tag.note) &&
+    (isInformationalNote(tag.note) || tag.changeType === "Remove")
+  const Icon = selfStudy ? SELF_STUDY_ICON : META[kind].icon
+  const modifier = selfStudy ? "selfstudy" : kind.toLowerCase()
 
   return (
     <span className={`max-app__badge max-app__badge--${modifier}`}>

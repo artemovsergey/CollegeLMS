@@ -101,9 +101,138 @@ public class ScheduleService(
             })
             .ToList();
 
+        // Пары «только для информирования» («сам.р» без «+») в базе расписания
+        // нет — они приходят из журнала и показываются рядом с настоящими
+        // парами, чтобы пометка была видна студентам и преподавателю.
+        var informational =
+            await BuildInformationalAsync(
+                groupId,
+                teacherId,
+                dayOfWeek ?? (period == "day" ? today.DayOfWeek : null),
+                week,
+                items,
+                bellByDay,
+                ct
+            ) ?? [];
+
+        dtos.AddRange(informational);
+
         return Result<PagedResponse<ScheduleResponse>>.Ok(
-            new PagedResponse<ScheduleResponse>(dtos, totalCount, p, ps)
+            new PagedResponse<ScheduleResponse>(dtos, totalCount + informational.Count, p, ps)
         );
+    }
+
+    /// <summary>
+    /// Пары, добавленные с примечанием «сам.р» без «+»: в расписание они не
+    /// встают, но показываются, иначе пометка осталась бы только в ленте
+    /// изменений. Запрос строим теми же фильтрами, что и основной, иначе в
+    /// расписании дня появятся пометки чужих недель.
+    /// </summary>
+    private async Task<List<ScheduleResponse>?> BuildInformationalAsync(
+        Guid? groupId,
+        Guid? teacherId,
+        DayOfWeek? dayOfWeek,
+        int? week,
+        List<ScheduleEntry> existing,
+        Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>> bellByDay,
+        CancellationToken ct
+    )
+    {
+        // Без фильтров запрос ушёл бы по всему журналу: ограничиваемся
+        // конкретной группой, преподавателем, днём или неделей.
+        if (!groupId.HasValue && !teacherId.HasValue && !dayOfWeek.HasValue && !week.HasValue)
+            return null;
+
+        var query = db
+            .ScheduleHistory.AsNoTracking()
+            .Include(h => h.Group)
+            .Include(h => h.Teacher!)
+                .ThenInclude(t => t.User)
+            .Where(h => h.ChangeType == Entities.Enums.ScheduleChangeType.Add && h.Note != null);
+
+        if (groupId.HasValue)
+            query = query.Where(h => h.GroupId == groupId.Value);
+
+        if (teacherId.HasValue)
+            query = query.Where(h =>
+                h.TeacherId == teacherId.Value || h.RemovedTeacherId == teacherId.Value
+            );
+
+        if (dayOfWeek.HasValue)
+            query = query.Where(h => h.DayOfWeek == dayOfWeek.Value);
+
+        if (week.HasValue)
+            query = query.Where(h => h.Week == week.Value);
+
+        var history = await query.OrderBy(h => h.AppliedAt).ToListAsync(ct);
+        var records = history.Where(h => CorrectionNotes.IsInformational(h.Note)).ToList();
+        if (records.Count == 0)
+            return [];
+
+        var result = new List<ScheduleResponse>();
+        foreach (var record in records)
+        {
+            // Пара с тем же предметом и преподавателем в этом слоте уже есть в
+            // расписании — второй раз показывать пометку не нужно.
+            var duplicated = existing.Any(s =>
+                s.GroupId == record.GroupId
+                && s.DayOfWeek == record.DayOfWeek
+                && s.NumberPair == record.NumberPair
+                && s.TeacherId == record.TeacherId
+                && string.Equals(
+                    ScheduleImportService.SubjectLookupKey(s.Subject),
+                    ScheduleImportService.SubjectLookupKey(record.Subject),
+                    StringComparison.OrdinalIgnoreCase
+                )
+            );
+            if (duplicated)
+                continue;
+
+            // Время пары берём из профиля звонков того же дня.
+            var dayMap = bellByDay.GetValueOrDefault(record.DayOfWeek);
+            if (dayMap is null)
+            {
+                dayMap = await bells.GetTimeMapAsync(record.DayOfWeek, ct);
+                bellByDay[record.DayOfWeek] = dayMap;
+            }
+
+            var time = dayMap.TryGetValue(record.NumberPair, out var pairTime)
+                ? pairTime
+                : ScheduleImportService.GetPairTime(record.DayOfWeek, record.NumberPair);
+
+            result.Add(
+                new ScheduleResponse
+                {
+                    Id = record.Id,
+                    GroupId = record.GroupId,
+                    GroupName = record.Group?.Name ?? string.Empty,
+                    TeacherId = record.TeacherId,
+                    TeacherName = record.Teacher?.User?.FullName,
+                    Subject = record.Subject,
+                    Room = record.Room ?? string.Empty,
+                    DayOfWeek = (int)record.DayOfWeek,
+                    NumberPair = record.NumberPair,
+                    StartTime = time.Start,
+                    EndTime = time.End,
+                    Weeks = [record.Week],
+                    LessonType = nameof(LessonType.None),
+                    IsInformational = true,
+                    ChangeTags =
+                    [
+                        new ChangeTag
+                        {
+                            ChangeType = Entities.Enums.ScheduleChangeType.Add,
+                            Week = record.Week,
+                            RemovedNumberPair = null,
+                            RemovedSubject = null,
+                            Note = record.Note,
+                        },
+                    ],
+                }
+            );
+        }
+
+        return result;
     }
 
     public async Task<Result<ScheduleMetaResponse>> GetMetaAsync(CancellationToken ct)

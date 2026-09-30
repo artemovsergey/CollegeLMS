@@ -141,22 +141,23 @@ public class CorrectionImageService
     private static string ChangeTypeLabel(ScheduleChangeType changeType) =>
         changeType switch
         {
-            ScheduleChangeType.Add => "Добавлено",
             ScheduleChangeType.Remove => "Снято",
-            ScheduleChangeType.Replace => "Замена",
-            ScheduleChangeType.Move => "Перенос",
+            // Замена и перенос — это добавление со снимаемым занятием: в
+            // картинке, как и в расписании, остаются два исхода.
+            ScheduleChangeType.Add or ScheduleChangeType.Replace or ScheduleChangeType.Move =>
+                "Добавлено",
             _ => changeType.ToString(),
         };
 
     private static string PairLabel(CorrectionPosition position)
     {
         if (
-            position.ChangeType is ScheduleChangeType.Replace or ScheduleChangeType.Move
-            && position.RemovedNumberPair.HasValue
-            && position.RemovedNumberPair != position.NumberPair
+            position.RemovedNumberPair is { } from
+            && from != position.NumberPair
+            && position.RemovedSubject is not null
         )
         {
-            return $"{position.RemovedNumberPair} → {position.NumberPair}";
+            return $"{from} → {position.NumberPair}";
         }
 
         return position.NumberPair.ToString();
@@ -164,28 +165,45 @@ public class CorrectionImageService
 
     private static (string Removed, string Added) Describe(CorrectionPosition position)
     {
-        var removed = position.ChangeType switch
-        {
-            ScheduleChangeType.Remove => Combine(
-                position.RemovedSubject ?? position.Subject,
-                position.RemovedTeacherName ?? position.TeacherName
-            ),
-            ScheduleChangeType.Replace or ScheduleChangeType.Move => Combine(
-                position.RemovedSubject,
-                position.RemovedTeacherName
-            ),
-            _ => "—",
-        };
+        var isRemove = position.ChangeType == ScheduleChangeType.Remove;
 
-        var added = position.ChangeType switch
-        {
-            ScheduleChangeType.Add or ScheduleChangeType.Replace or ScheduleChangeType.Move =>
-                Combine(position.Subject, position.TeacherName),
-            _ => "—",
-        };
+        // При переносе снимается само вводимое занятие из пары «откуда» —
+        // в картинке это уже видно в колонке «вводится», дублировать не нужно.
+        var isMove =
+            !isRemove
+            && position.RemovedSubject is not null
+            && SameLesson(position.RemovedSubject, position.Subject)
+            && SameTeacher(position, position.TeacherId, position.TeacherName);
+
+        var removed =
+            isRemove
+                ? Combine(
+                    position.RemovedSubject ?? position.Subject,
+                    position.RemovedTeacherName ?? position.TeacherName
+                )
+            : isMove ? "—"
+            : Combine(position.RemovedSubject, position.RemovedTeacherName);
+
+        var added = isRemove ? "—" : Combine(position.Subject, position.TeacherName);
 
         return (removed, added);
     }
+
+    private static bool SameLesson(string? left, string? right) =>
+        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static bool SameTeacher(
+        CorrectionPosition position,
+        Guid? teacherId,
+        string? teacherName
+    ) =>
+        position.RemovedTeacherId.HasValue && teacherId.HasValue
+            ? position.RemovedTeacherId == teacherId
+            : string.Equals(
+                position.RemovedTeacherName?.Trim(),
+                teacherName?.Trim(),
+                StringComparison.OrdinalIgnoreCase
+            );
 
     private static string Combine(string? subject, string? teacher)
     {
