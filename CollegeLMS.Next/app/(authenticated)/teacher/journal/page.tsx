@@ -77,6 +77,13 @@ function formatDate(value: string): string {
   })
 }
 
+// Номера пар дня: подряд идущие пары должны быть видны, а не прятаться за счётчиком.
+function formatPairs(numbers: number[]): string {
+  if (numbers.length === 0) return "Пар нет"
+  if (numbers.length === 1) return `Пара ${numbers[0]}`
+  return `Пары ${numbers.join(", ")}`
+}
+
 // Карточка журнала — пара «группа + предмет», поэтому ключ составной.
 function journalCardKey(group: Pick<JournalSubjectGroup, "groupId" | "subject">): string {
   return `${group.groupId}::${group.subject}`
@@ -405,7 +412,7 @@ export default function TeacherJournalPage() {
                         <JournalBadges types={entry.changeTypes ?? []} />
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        Пар: {entry.numberPairs.length}
+                        {formatPairs(entry.numberPairs)}
                       </span>
                     </li>
                   ))}

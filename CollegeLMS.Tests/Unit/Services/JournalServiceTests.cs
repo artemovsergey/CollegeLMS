@@ -80,7 +80,8 @@ public class JournalServiceTests : IDisposable
         string subject,
         int pair,
         List<int> weeks,
-        Guid? groupId = null
+        Guid? groupId = null,
+        DayOfWeek day = DayOfWeek.Tuesday
     )
     {
         var utcNow = DateTime.UtcNow;
@@ -92,7 +93,7 @@ public class JournalServiceTests : IDisposable
                 TeacherId = teacherId,
                 Subject = subject,
                 Room = "303",
-                DayOfWeek = DayOfWeek.Tuesday,
+                DayOfWeek = day,
                 NumberPair = pair,
                 StartTime = new TimeSpan(8, 0, 0),
                 EndTime = new TimeSpan(9, 30, 0),
@@ -171,6 +172,24 @@ public class JournalServiceTests : IDisposable
         // Вторник 2-й недели: понедельник недели + (DayOfWeek.Tuesday)=1.
         var tuesdayWeek2 = StudyWeek.MondayOf(StudyWeek.SemesterStart).AddDays(7 + 1);
         result.Data!.Subjects.Single().Items.Single().Date.Should().Be(tuesdayWeek2);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_SkipsDaysBeforeSemesterStart()
+    {
+        var teacher = await SeedTeacherAsync();
+        // Неделя 1 начинается в понедельник 31.08.2026 — до начала семестра.
+        await SeedEntryAsync(teacher.Id, "Математика", 1, [1], day: DayOfWeek.Monday);
+        await SeedEntryAsync(teacher.Id, "Физика", 2, [1], day: DayOfWeek.Tuesday);
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Subjects.Should().ContainSingle();
+        var card = result.Data.Subjects.Single();
+        card.Subject.Should().Be("Физика");
+        card.Items.Single().Date.Should().Be(StudyWeek.SemesterStart);
+        result.Data.TotalPairCount.Should().Be(1);
     }
 
     private async Task SeedHistoryAsync(

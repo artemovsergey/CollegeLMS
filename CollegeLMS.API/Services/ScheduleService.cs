@@ -237,8 +237,11 @@ public class ScheduleService(
 
         // Группировка по (группа, предмет, неделя, день недели) с фактической датой дня.
         // Показываем только проведённые занятия — дата не позже сегодняшнего дня (UTC).
+        // Нижняя граница — начало семестра: неделя 1 начинается в понедельник перед
+        // 1 сентября, и без этого фильтра в журнал попадали пары августа.
         var utcToday = DateTime.UtcNow.Date;
         var mondayOfWeek1 = StudyWeek.MondayOf(StudyWeek.SemesterStart);
+        var semesterFirstDate = StudyWeek.SemesterStart.Date;
         var itemMap =
             new Dictionary<
                 (Guid GroupId, string Subject, int Week, DayOfWeek DayOfWeek),
@@ -250,7 +253,7 @@ public class ScheduleService(
             {
                 var dayIndex = ((int)entry.DayOfWeek + 6) % 7;
                 var date = mondayOfWeek1.AddDays((week - 1) * 7 + dayIndex);
-                if (date > utcToday)
+                if (date < semesterFirstDate || date > utcToday)
                     continue;
 
                 var key = (entry.GroupId, entry.Subject, week, entry.DayOfWeek);

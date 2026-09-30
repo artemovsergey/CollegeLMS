@@ -817,6 +817,60 @@ test.describe("MAX mini-app", () => {
     await expect(page.getByText(/Петренко В\.Б\. · всего пар: 12/)).toBeVisible()
   })
 
+  test("Журнал: пары, идущие подряд, видны номерами, а не счётчиком", async ({
+    page,
+  }) => {
+    await loginMaxProfile(page, {
+      maxUserId: 2,
+      role: "Teacher",
+      groupId: null,
+      groupName: null,
+      teacherId: "t1",
+      teacherName: "Петренко В.Б.",
+    })
+    await page.route("**/api/schedule/journal**", (route) =>
+      route.fulfill(
+        inlineJson(
+          ok({
+            teacherId: "t1",
+            teacherName: "Петренко В.Б.",
+            subjects: [
+              {
+                groupId: "g1",
+                groupName: "ИВ 244",
+                subject: "МДК.09.01",
+                pairCount: 3,
+                items: [
+                  {
+                    week: 1,
+                    dayOfWeek: 2,
+                    date: "2026-09-01T00:00:00",
+                    numberPairs: [4, 5],
+                    changeTypes: [],
+                  },
+                  {
+                    week: 1,
+                    dayOfWeek: 3,
+                    date: "2026-09-02T00:00:00",
+                    numberPairs: [2],
+                    changeTypes: [],
+                  },
+                ],
+              },
+            ],
+            totalPairCount: 3,
+          }),
+        ),
+      ),
+    )
+
+    await page.goto("/max/journal", { waitUntil: "networkidle" })
+
+    await expect(page.getByText("Пары 4, 5")).toBeVisible()
+    await expect(page.getByText("Пара 2")).toBeVisible()
+    await expect(page.getByText(/Пар: /)).toHaveCount(0)
+  })
+
   test("MAX initData: поздняя загрузка бриджа всё равно логинит", async ({ page }) => {
     let authRequests = 0
     const MAX_TOKEN = "max-jwt-late"
