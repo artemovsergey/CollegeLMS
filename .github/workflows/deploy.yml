@@ -74,10 +74,27 @@ jobs:
             docker image prune -af || true
             docker volume prune -f || true
             docker network prune -f || true
-            docker builder prune -af --filter "until=48h" || true
+            # Без фильтра по возрасту: кэш сборки полезнее всего свежий, и он же
+            # каждый деплой прибавляет гигабайты. С фильтром «until=48h» prune
+            # не возвращал ничего, и сборка Next падала на «no space left».
+            docker builder prune -af || true
 
             echo "=== Disk after cleanup ==="
             df -h /
+
+            # Сборка фронтенда идёт на самом VPS и ест несколько гигабайт.
+            # Лучше упасть сразу с понятным текстом, чем после двадцати минут
+            # сборки.
+            FREE_MB=$(df -m / | awk 'NR==2 {print $4}')
+            echo "Free space: ${FREE_MB} MB"
+            if [ "$FREE_MB" -lt 3000 ]; then
+              echo "ERROR: after cleanup less than 3 GB free on /."
+              echo "The VPS is full. Check what is eating the disk:"
+              echo "  sudo lsof +L1 | awk 'NR==1 || \$7>200000000'   # deleted but open files"
+              echo "  docker system df"
+              df -h /
+              exit 1
+            fi
 
             echo "=== Store current commit for rollback ==="
             PREVIOUS_COMMIT=$(git rev-parse HEAD)
@@ -233,3 +250,7 @@ jobs:
 
             echo "=== Final cleanup ==="
             docker image prune -af || true
+            # Иначе кэш сборки копится от деплоя к деплою, и VPS заполняется
+            # сам — следующий деплой упадёт, не успев ничего построить.
+            docker builder prune -af || true
+            df -h /
