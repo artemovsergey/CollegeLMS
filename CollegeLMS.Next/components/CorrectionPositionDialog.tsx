@@ -172,7 +172,8 @@ function draftFromPosition(position: CorrectionPosition): Draft {
   return {
     operation: isRemove ? "remove" : isReplace ? "replace" : "add",
     groupId,
-    targetPair: isRemove ? null : position.numberPair,
+    // Пара нужна всем операциям, в том числе снятию.
+    targetPair: position.numberPair,
     source: isRemove || isReplace ? source : null,
     fromPair,
     selfStudy: isSelfStudyNote(position.note),
@@ -310,11 +311,21 @@ export function CorrectionPositionDialog({
 
   const isRemove = draft.operation === "remove"
   const isReplace = draft.operation === "replace"
-  // «Преподаватели» и «Предмет» нужны, когда вводится занятие. Номера шагов
-  // считаем явно, иначе у «Снять» после третьего шага сразу шёл шестой —
-  // выглядит как пропавшие поля.
-  const showLessonSteps = !isRemove
-  const noteStep = showLessonSteps ? 6 : 4
+  // Занятие в паре выбирается и при снятии, и при замене: пара уже выбрана
+  // карточкой дня, поэтому список ограничен ею. Преподаватели и предмет нужны
+  // только когда вводится занятие. Номера шагов считаем явно, иначе после
+  // пропущенного шага нумерация выглядит как пропавшие поля.
+  const needsSource = isRemove || isReplace
+  const pairEntries = useMemo(
+    () =>
+      draft.targetPair == null
+        ? []
+        : entries.filter((entry) => entry.numberPair === draft.targetPair),
+    [entries, draft.targetPair],
+  )
+  const teacherStep = isReplace ? 5 : 4
+  const subjectStep = isReplace ? 6 : 5
+  const noteStep = isReplace ? 7 : isRemove ? 5 : 6
 
   // Занятие, «откуда» берётся вводимое при «вм.X».
   const fromEntry =
@@ -334,21 +345,21 @@ export function CorrectionPositionDialog({
 
   const blockedReason = useMemo(() => {
     if (!draft.groupId) return "Выберите группу"
+    if (draft.targetPair == null) return "Выберите пару"
 
-    if (isRemove) {
-      if (!draft.source) return "Выберите занятие, которое нужно снять"
+    if (needsSource) {
+      if (pairEntries.length === 0)
+        return `В паре ${draft.targetPair} нет занятий`
+      if (!draft.source)
+        return isReplace
+          ? "Выберите занятие, которое снимаете"
+          : "Выберите занятие, которое нужно снять"
       if (sourceBusy) return "На это занятие уже есть позиция в пакете"
-      return null
+      if (isRemove) return null
     }
 
-    if (draft.targetPair == null) return "Выберите пару для занятия"
     if (draft.teacherIds.length === 0) return "Выберите преподавателя"
     if (!draft.subject) return "Выберите предмет"
-
-    if (isReplace && !draft.source)
-      return "Выберите занятие, которое снимаете"
-    if (isReplace && draft.source?.numberPair !== draft.targetPair)
-      return "Снимаемое занятие должно быть из пары, в которую вводите"
 
     // «вм.X» без занятия в паре X превратился бы в пустую пару.
     if (draft.fromPair != null) {
@@ -362,11 +373,13 @@ export function CorrectionPositionDialog({
     draft.groupId,
     isRemove,
     isReplace,
+    needsSource,
     draft.source,
     draft.targetPair,
     draft.fromPair,
     draft.subject,
     draft.teacherIds.length,
+    pairEntries.length,
     fromEntry,
     sourceBusy,
   ])
@@ -471,19 +484,22 @@ export function CorrectionPositionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      {/* Высота задана явно: иначе при переключении операции окно то выше,
+          то ниже — содержимое прыгает под курсором. */}
+      <DialogContent className="flex h-[85vh] flex-col sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {editing ? "Редактирование позиции" : "Новая позиция корректировки"}
           </DialogTitle>
           <DialogDescription>
-            Позиция добавляется в пакет за {formatDate(batchDate)}. Перенос
-            отдельной операцией не нужен: он получается сам, если в примечании
-            указать «вм.X» — пару, откуда берётся занятие.
+            Позиция добавляется в пакет за {formatDate(batchDate)}. Порядок
+            шагов одинаковый у всех операций: сначала пара в карточке дня.
+            Перенос отдельной операцией не нужен — он получается сам из
+            примечания.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-5">
+        <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto pr-1">
           <Step index={1} title="Операция">
             <div
               className="grid gap-2 sm:grid-cols-2"
@@ -499,9 +515,7 @@ export function CorrectionPositionDialog({
                   onClick={() =>
                     patch({
                       operation: card.value,
-                      // Операция меняет смысл выбранного — часть полей сбрасываем.
-                      targetPair:
-                        card.value === "remove" ? null : draft.targetPair,
+                      // Пара нужна всем трём операциям — её выбор не сбрасываем.
                       // Снятое занятие нужно снятию и замене, но не добавлению.
                       source: card.value === "add" ? null : draft.source,
                       // «вм.X» переносит занятие, поэтому теряет смысл, если
@@ -549,7 +563,7 @@ export function CorrectionPositionDialog({
           {draft.groupId && (
             <Step
               index={3}
-              title="Позиция"
+              title="Пара"
               icon={<CalendarDays className="size-4" aria-hidden />}
             >
               {loading && (
@@ -576,61 +590,64 @@ export function CorrectionPositionDialog({
               )}
 
               {!loading && !loadError && (
-                <div className="grid gap-4">
-                  {isReplace && (
-                    <div className="grid gap-1.5">
-                      <span className="text-sm font-medium">
-                        Снимаемое занятие
-                      </span>
-                      <RemovePairPicker
-                        value={draft.source}
-                        onChange={(source) =>
-                          patch({
-                            source,
-                            // У снимаемого занятия своя пара — она и есть
-                            // пара назначения, выбирать её заново не нужно.
-                            targetPair: source?.numberPair ?? draft.targetPair,
-                          })
-                        }
-                        entries={entries}
-                      />
-                    </div>
-                  )}
+                <GroupDayCard
+                  groupName={group?.name ?? ""}
+                  dateLabel={formatDate(batchDate)}
+                  entries={entries}
+                  selectedPair={draft.targetPair}
+                  onSelectPair={(numberPair) =>
+                    patch({
+                      targetPair: numberPair,
+                      // Снятое занятие принадлежало прежней паре — в новой
+                      // его может не быть.
+                      source:
+                        draft.source?.numberPair === numberPair
+                          ? draft.source
+                          : null,
+                    })
+                  }
+                />
+              )}
+            </Step>
+          )}
 
-                  {!isRemove && (
-                    <GroupDayCard
-                      groupName={group?.name ?? ""}
-                      dateLabel={formatDate(batchDate)}
-                      entries={entries}
-                      selectedPair={draft.targetPair}
-                      onSelectPair={(numberPair) =>
-                        patch({ targetPair: numberPair })
-                      }
-                    />
-                  )}
-
-                  {isReplace && draft.source && draft.targetPair != null && (
-                    <p className="text-xs text-muted-foreground">
-                      {draft.source.numberPair === draft.targetPair
-                        ? `В паре ${draft.targetPair} вместо «${draft.source.removedSubject}» встанет новое занятие.`
-                        : `Снимаемое занятие из пары ${draft.source.numberPair}, новое встанет в пару ${draft.targetPair}.`}
-                    </p>
-                  )}
-
-                  {isRemove && (
-                    <p className="text-xs text-muted-foreground">
-                      Без примечания «сам.р.» пара снимается с расписания; с ним
-                      — остаётся и помечается для студентов.
-                    </p>
-                  )}
-                </div>
+          {draft.groupId && needsSource && (
+            <Step
+              index={4}
+              title={
+                draft.targetPair == null
+                  ? "Занятие в паре"
+                  : `Занятие в паре ${draft.targetPair}`
+              }
+            >
+              {draft.targetPair == null ? (
+                <p className="text-sm text-muted-foreground">
+                  Сначала выберите пару в карточке дня.
+                </p>
+              ) : pairEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  В этой паре занятий нет — выберите другую пару в карточке дня.
+                </p>
+              ) : (
+                <>
+                  <RemovePairPicker
+                    value={draft.source}
+                    onChange={(source) => patch({ source })}
+                    entries={pairEntries}
+                  />
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {isReplace
+                      ? "Выбранное занятие будет снято, новое встанет на его место."
+                      : "Занятие уберётся из пары. С отметкой «сам.р.» пара останется и просто пометится для студентов."}
+                  </p>
+                </>
               )}
             </Step>
           )}
 
           {draft.groupId && !isRemove && (
             <Step
-              index={4}
+              index={teacherStep}
               title="Преподаватели"
               icon={<UserRound className="size-4" aria-hidden />}
             >
@@ -677,7 +694,7 @@ export function CorrectionPositionDialog({
 
           {draft.groupId && !isRemove && (
             <Step
-              index={5}
+              index={subjectStep}
               title="Предмет"
               icon={<GraduationCap className="size-4" aria-hidden />}
             >
@@ -734,32 +751,38 @@ export function CorrectionPositionDialog({
                 </div>
               </div>
 
-              <div className="grid gap-1.5">
-                <Label htmlFor="position-from-pair">вм.X — пара «откуда»</Label>
-                <NativeSelect
-                  value={draft.fromPair == null ? "none" : String(draft.fromPair)}
-                  onValueChange={(value) =>
-                    patch({ fromPair: value === "none" ? null : Number(value) })
-                  }
-                  disabled={isRemove}
-                  aria-label="Пара, откуда берётся занятие"
-                >
-                  <NativeSelectItem value="none">Без переноса</NativeSelectItem>
-                  {Array.from({ length: MAX_PAIR }, (_, i) => i + 1).map((n) => (
-                    <NativeSelectItem key={n} value={String(n)}>
-                      вм.{n}
-                      {occupiedEntryFor(entries, n)
-                        ? ` — ${occupiedEntryFor(entries, n)?.subject}`
-                        : " — пара свободна"}
+              {!isRemove && (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="position-from-pair">Перенос</Label>
+                  <NativeSelect
+                    value={
+                      draft.fromPair == null ? "none" : String(draft.fromPair)
+                    }
+                    onValueChange={(value) =>
+                      patch({ fromPair: value === "none" ? null : Number(value) })
+                    }
+                    aria-label="Перенос из другой пары"
+                  >
+                    <NativeSelectItem value="none">
+                      Без переноса
                     </NativeSelectItem>
-                  ))}
-                </NativeSelect>
-                <p className="text-xs text-muted-foreground">
-                  {isRemove
-                    ? "Для снятия перенос не нужен."
-                    : "Занятие переносится из указанной пары в ту, что выбрана выше: без этого отметка занятие осталось бы в обеих парах."}
-                </p>
-              </div>
+                    {Array.from({ length: MAX_PAIR }, (_, i) => i + 1)
+                      .filter((n) => n !== draft.targetPair)
+                      .map((n) => {
+                        const from = occupiedEntryFor(entries, n)
+                        return (
+                          <NativeSelectItem key={n} value={String(n)}>
+                            {`Из пары ${n} — ${from ? from.subject : "пусто"}`}
+                          </NativeSelectItem>
+                        )
+                      })}
+                  </NativeSelect>
+                  <p className="text-xs text-muted-foreground">
+                    Занятие переносится из указанной пары в ту, что выбрана
+                    выше. Без переноса оно осталось бы в обеих.
+                  </p>
+                </div>
+              )}
 
               <div className="grid gap-1.5">
                 <Label htmlFor="position-note">Свободный текст</Label>
