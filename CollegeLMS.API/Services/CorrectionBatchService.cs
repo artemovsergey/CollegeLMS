@@ -277,6 +277,8 @@ public class CorrectionBatchService(
             .ScheduleHistory.Where(h => h.BatchId != null && batchIds.Contains(h.BatchId.Value))
             .ToListAsync(ct);
 
+        history.AddRange(await FindUnlinkedHistoryAsync(batches, ct));
+
         var reverted = 0;
         if (history.Count > 0)
         {
@@ -295,6 +297,82 @@ public class CorrectionBatchService(
 
         return reverted;
     }
+
+    /// <summary>
+    /// Записи журнала без связи с пакетом. Их создавал ручной путь применения и
+    /// они остались в базе до появления <c>BatchId</c> у <see cref="ScheduleHistory"/>,
+    /// поэтому по пакету не находятся. Такие записи не откатывались и не удалялись:
+    /// пакет исчезал, а его изменение навсегда оставалось в меню «Изменения», и
+    /// расписание не возвращалось в исходное состояние — ровно то, что видно и в
+    /// LMS, и в боте, пока файл расписания не импортируют заново.
+    ///
+    /// Узнаём их по содержимому: запись описывает ровно то же изменение, что и
+    /// позиция удаляемого пакета, и сделана в его пределах по времени. Совпадение
+    /// строгое — по группе, дню, неделе, типу, паре, предмету, преподавателю и
+    /// примечанию, — чтобы не задеть чужую запись журнала.
+    /// </summary>
+    private async Task<List<ScheduleHistory>> FindUnlinkedHistoryAsync(
+        IReadOnlyList<CorrectionBatch> batches,
+        CancellationToken ct
+    )
+    {
+        var appliedBatches = batches.Where(b => b.Status == CorrectionBatchStatus.Applied).ToList();
+        if (appliedBatches.Count == 0)
+            return [];
+
+        var batchIds = appliedBatches.Select(b => b.Id).ToList();
+        var positions = await db
+            .CorrectionPositions.AsNoTracking()
+            .Where(p => batchIds.Contains(p.BatchId))
+            .ToListAsync(ct);
+        if (positions.Count == 0)
+            return [];
+
+        // Без AsNoTracking: запись может быть уже в контексте, и тогда нужна
+        // именно она — иначе откат получит второй экземпляр с тем же ключом.
+        var unlinked = await db.ScheduleHistory.Where(h => h.BatchId == null).ToListAsync(ct);
+
+        return unlinked
+            .Where(h =>
+                appliedBatches.Any(b =>
+                    h.AppliedAt >= b.CreatedAt
+                    && (b.AppliedAt == null || h.AppliedAt <= b.AppliedAt)
+                )
+            )
+            .Where(h => positions.Any(p => SameChange(p, h)))
+            .ToList();
+    }
+
+    /// <summary>Описывает ли позиция пакета ровно это изменение журнала.</summary>
+    private static bool SameChange(CorrectionPosition position, ScheduleHistory history)
+    {
+        if (
+            position.ChangeType != history.ChangeType
+            || position.GroupId != history.GroupId
+            || position.DayOfWeek != (int)history.DayOfWeek
+            || position.Week != history.Week
+            || position.NumberPair != history.NumberPair
+            || !SameText(position.Note, history.Note)
+        )
+            return false;
+
+        // При снятии журнал пишет снимаемое занятие в Subject/TeacherId, а позиция
+        // хранит его в Removed*: сравниваем по смыслу, а не по имени поля.
+        if (position.ChangeType == ScheduleChangeType.Remove)
+            return SameText(position.RemovedSubject, history.Subject)
+                && position.RemovedTeacherId == history.TeacherId
+                && history.RemovedSubject is null
+                && history.RemovedNumberPair is null;
+
+        return SameText(position.Subject, history.Subject)
+            && position.TeacherId == history.TeacherId
+            && SameText(position.RemovedSubject, history.RemovedSubject)
+            && position.RemovedTeacherId == history.RemovedTeacherId
+            && position.RemovedNumberPair == history.RemovedNumberPair;
+    }
+
+    private static bool SameText(string? left, string? right) =>
+        string.Equals(left?.Trim(), right?.Trim(), StringComparison.Ordinal);
 
     public async Task<Result<CorrectionPositionResponse>> AddPositionAsync(
         Guid batchId,

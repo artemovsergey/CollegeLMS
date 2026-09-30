@@ -213,7 +213,7 @@ export default function ScheduleCards({
                         {entry.room}
                       </span>
                     )}
-                    {entry.teacherName && (
+                    {!alreadyInFilter(entry.teacherName, filterTeacherName) && (
                       <span className="flex items-center gap-1">
                         <GraduationCap className="size-3 shrink-0" />
                         {entry.teacherName}

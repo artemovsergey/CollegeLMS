@@ -581,6 +581,98 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteBatchAsync_LegacyHistoryWithoutBatch_RevertsAndRemovesIt()
+    {
+        // Записи, сделанные до появления связи с пакетом, лежат в журнале без
+        // BatchId: по пакету они не находятся. Раньше из-за них пакет удалялся,
+        // а изменение навсегда оставалось в меню «Изменения», и расписание не
+        // возвращалось в исходное состояние.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [1, 2]);
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Remove,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+            },
+            CancellationToken.None
+        );
+        await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+        _db.ScheduleEntries.Single().Weeks.Should().BeEquivalentTo([1]);
+
+        // Обрываем связь с пакетом — как у записей, созданных старой версией.
+        var applied = await _db.ScheduleHistory.ToListAsync();
+        applied.Should().ContainSingle();
+        applied[0].BatchId = null;
+        await _db.SaveChangesAsync();
+
+        var deleted = await _sut.DeleteBatchAsync(batch, CancellationToken.None);
+
+        deleted.IsSuccess.Should().BeTrue();
+        deleted.Data!.Reverted.Should().Be(1);
+        _db.ScheduleHistory.Should().BeEmpty();
+        _db.ScheduleEntries.Single().Weeks.Should().BeEquivalentTo([1, 2]);
+    }
+
+    [Fact]
+    public async Task DeleteBatchAsync_UnrelatedHistoryWithoutBatch_IsKept()
+    {
+        // Чужая запись журнала описывает другое изменение — её откатывать нельзя,
+        // иначе удаление пакета испортило бы чужое расписание.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, [1, 2]);
+        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 5, [2]);
+        var batch = await CreateBatchAsync();
+
+        await _sut.AddPositionAsync(
+            batch,
+            new CreateCorrectionPositionRequest
+            {
+                ChangeType = ScheduleChangeType.Remove,
+                GroupId = group.Id,
+                GroupName = group.Name,
+                NumberPair = 2,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacherName = teacher.User.FullName,
+            },
+            CancellationToken.None
+        );
+        await _sut.ApplyAsync(
+            batch,
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        var applied = await _db.ScheduleHistory.ToListAsync();
+        applied.Should().ContainSingle();
+        applied[0].BatchId = null;
+        applied[0].NumberPair = 5;
+        applied[0].Subject = "Математика";
+        await _db.SaveChangesAsync();
+
+        await _sut.DeleteBatchAsync(batch, CancellationToken.None);
+
+        _db.ScheduleHistory.Should().ContainSingle().Which.Subject.Should().Be("Математика");
+    }
+
+    [Fact]
     public async Task UpdateBatchAsync_ChangesDateAndPositionsWeek()
     {
         var group = await SeedGroupAsync();

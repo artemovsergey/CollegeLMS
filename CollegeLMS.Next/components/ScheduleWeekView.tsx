@@ -165,9 +165,13 @@ function DayColumn({
                     {entry.groupName}
                   </p>
                 )}
+                {/* Преподавателя в его собственном виде повторять незачем —
+                    он уже выбран в фильтре. Группе он, наоборот, нужен. */}
                 <p className="mt-0.5 truncate text-muted-foreground">
                   {entry.room}
-                  {entry.teacherName ? ` · ${entry.teacherName}` : ""}
+                  {!teacherView && entry.teacherName
+                    ? ` · ${entry.teacherName}`
+                    : ""}
                 </p>
                 {isNow && (
                   <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-medium text-primary">

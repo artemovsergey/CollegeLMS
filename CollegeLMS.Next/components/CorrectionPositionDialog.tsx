@@ -9,10 +9,12 @@ import {
   GraduationCap,
   LoaderCircle,
   Lock,
+  Minus,
   UserRound,
 } from "lucide-react"
 import { getCorrectionReferences } from "@/api/correction"
 import type {
+  CorrectionDayEntry,
   CorrectionGroupTeacher,
   CorrectionPosition,
   CorrectionReferences,
@@ -36,7 +38,10 @@ import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import RemovePairPicker, {
   type RemovedPairSelection,
 } from "@/components/RemovePairPicker"
-import GroupDayCard, { occupiedEntryFor } from "@/components/GroupDayCard"
+import GroupDayCard, {
+  entryKey,
+  occupiedEntryFor,
+} from "@/components/GroupDayCard"
 import { isSelfStudyNote } from "@/lib/change-tags"
 import {
   SearchableMultiSelect,
@@ -323,9 +328,9 @@ export function CorrectionPositionDialog({
         : entries.filter((entry) => entry.numberPair === draft.targetPair),
     [entries, draft.targetPair],
   )
-  const teacherStep = isReplace ? 5 : 4
-  const subjectStep = isReplace ? 6 : 5
-  const noteStep = isReplace ? 7 : isRemove ? 5 : 6
+  const teacherStep = 4
+  const subjectStep = 5
+  const noteStep = isRemove ? 4 : 6
 
   // Занятие, «откуда» берётся вводимое при «вм.X».
   const fromEntry =
@@ -352,8 +357,8 @@ export function CorrectionPositionDialog({
         return `В паре ${draft.targetPair} нет занятий`
       if (!draft.source)
         return isReplace
-          ? "Выберите занятие, которое снимаете"
-          : "Выберите занятие, которое нужно снять"
+          ? "Выберите в карточке занятие, которое снимаете"
+          : "Выберите в карточке занятие, которое нужно снять"
       if (sourceBusy) return "На это занятие уже есть позиция в пакете"
       if (isRemove) return null
     }
@@ -606,41 +611,32 @@ export function CorrectionPositionDialog({
                           : null,
                     })
                   }
+                  // При снятии и замене нужен не слот, а занятие: выбираем его
+                  // прямо в карточке, чтобы не делать лишний шаг.
+                  onSelectEntry={
+                    needsSource
+                      ? (entry) =>
+                          patch({
+                            targetPair: entry.numberPair,
+                            source: {
+                              numberPair: entry.numberPair,
+                              removedSubject: entry.subject,
+                              removedTeacherId: entry.teacherId,
+                              removedTeacherName: entry.teacherName,
+                            },
+                          })
+                      : undefined
+                  }
+                  selectedEntryKey={
+                    draft.source
+                      ? entryKey({
+                          numberPair: draft.source.numberPair,
+                          subject: draft.source.removedSubject,
+                          teacherName: draft.source.removedTeacherName,
+                        } as CorrectionDayEntry)
+                      : null
+                  }
                 />
-              )}
-            </Step>
-          )}
-
-          {draft.groupId && needsSource && (
-            <Step
-              index={4}
-              title={
-                draft.targetPair == null
-                  ? "Занятие в паре"
-                  : `Занятие в паре ${draft.targetPair}`
-              }
-            >
-              {draft.targetPair == null ? (
-                <p className="text-sm text-muted-foreground">
-                  Сначала выберите пару в карточке дня.
-                </p>
-              ) : pairEntries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  В этой паре занятий нет — выберите другую пару в карточке дня.
-                </p>
-              ) : (
-                <>
-                  <RemovePairPicker
-                    value={draft.source}
-                    onChange={(source) => patch({ source })}
-                    entries={pairEntries}
-                  />
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    {isReplace
-                      ? "Выбранное занятие будет снято, новое встанет на его место."
-                      : "Занятие уберётся из пары. С отметкой «сам.р.» пара останется и просто пометится для студентов."}
-                  </p>
-                </>
               )}
             </Step>
           )}
@@ -727,29 +723,49 @@ export function CorrectionPositionDialog({
 
           <Step index={noteStep} title="Примечание">
             <div className="grid gap-3">
-              <div className="grid gap-1.5">
-                <span className="text-sm font-medium">Служебные отметки</span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    aria-pressed={draft.selfStudy}
-                    onClick={() => patch({ selfStudy: !draft.selfStudy })}
-                    className={cn(
-                      "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
-                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                      draft.selfStudy
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-input bg-background text-muted-foreground hover:bg-muted",
-                    )}
+              {isRemove ? (
+                // Снятие всегда убирает пару, поэтому отдельной отметки здесь
+                // нет — показываем, что произойдёт с парой.
+                <div className="grid gap-1.5">
+                  <span className="text-sm font-medium">Что будет с парой</span>
+                  <Badge
+                    variant="outline"
+                    className="w-fit gap-1 border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
                   >
-                    <BookOpen className="size-3.5" aria-hidden />
-                    сам.р.
-                  </button>
-                  <span className="text-xs text-muted-foreground">
-                    Пара остаётся в расписании и помечается для студентов
-                  </span>
+                    <Minus className="size-3" aria-hidden />
+                    Снять — пара уйдёт из расписания
+                  </Badge>
+                  <p className="text-xs text-muted-foreground">
+                    Пару нужно снять полностью. Если пара должна остаться, но с
+                    отметкой для студентов, добавьте занятие заново через
+                    «Добавить».
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="grid gap-1.5">
+                  <span className="text-sm font-medium">Служебные отметки</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      aria-pressed={draft.selfStudy}
+                      onClick={() => patch({ selfStudy: !draft.selfStudy })}
+                      className={cn(
+                        "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
+                        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                        draft.selfStudy
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-input bg-background text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      <BookOpen className="size-3.5" aria-hidden />
+                      сам.р.
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      Пара остаётся в расписании и помечается для студентов
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {!isRemove && (
                 <div className="grid gap-1.5">
