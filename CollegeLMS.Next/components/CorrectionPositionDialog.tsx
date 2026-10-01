@@ -522,7 +522,6 @@ export function CorrectionPositionDialog({
     const teacherNames = draft.teacherIds
       .map((id) => teachers.find((teacher) => teacher.id === id)?.fullName)
       .filter((name): name is string => Boolean(name))
-    const isMove = draft.moveFrom != null && fromEntry != null
     const note = buildNote()
 
     return {
@@ -541,11 +540,10 @@ export function CorrectionPositionDialog({
       removedSubject: slotRemoved?.subject ?? moveRemoved?.subject ?? null,
       removedTeacherId: slotRemoved?.teacherId ?? moveRemoved?.teacherId ?? null,
       removedTeacherName: slotRemoved?.teacherName ?? moveRemoved?.teacherName ?? null,
-      removedNumberPair: isRemove
-        ? (draft.source?.numberPair ?? null)
-        : isMove
-          ? draft.moveFrom
-          : null,
+      // Пара «откуда» переносится всегда, когда её выбрали: даже если занятия
+      // в ней не нашлось, потерять «вм.X» молча нельзя — об этом скажет
+      // проверка пакета.
+      removedNumberPair: isRemove ? (draft.source?.numberPair ?? null) : draft.moveFrom,
       note,
     }
   }, [buildNote, draft, fromEntry, group?.name, isRemove, teachers])
