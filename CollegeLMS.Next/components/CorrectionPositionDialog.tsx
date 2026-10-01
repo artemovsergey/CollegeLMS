@@ -142,6 +142,23 @@ function emptyDraft(): Draft {
 }
 
 /** «Рахимова А.Л.» и «рахимова а.л.» — один и тот же преподаватель. */
+/**
+ * Снимаемое занятие — то же самое, что вводимое? Так помечается чистый перенос:
+ * в паре «вм.X» сейчас стоит именно то занятие, которое вводится в другую пару.
+ */
+function isIncomingLesson(
+  removedSubject: string,
+  removedTeacherName: string | null | undefined,
+  position: CorrectionPosition
+): boolean {
+  return (
+    sameSubject(removedSubject, position.subject ?? "") &&
+    (!removedTeacherName ||
+      !position.teacherName ||
+      sameTeacherName(removedTeacherName, position.teacherName))
+  )
+}
+
 function sameTeacherName(a: string, b: string): boolean {
   const normalize = (value: string) =>
     value.replace(/\s+/g, " ").trim().toLowerCase().replace(/ё/g, "е")
@@ -203,13 +220,13 @@ function draftFromPosition(position: CorrectionPosition): Draft {
       : "none"
 
   // Замена — это добавление, в котором снимается занятие выбранной пары. При
-  // переносе снимается само вводимое занятие из пары «вм.X», поэтому слот
-  // остаётся нетронутым.
+  // чистом переносе снимается само вводимое занятие из пары «вм.X», поэтому
+  // слот остаётся нетронутым. Замена с переносом отличается только снимаемым:
+  // в паре стоит прежнее занятие, а «вм.X» освобождает ещё и пару «откуда».
   const replacesSlot =
     !isRemove
     && position.removedSubject != null
-    && (position.removedNumberPair == null ||
-      position.removedNumberPair === position.numberPair)
+    && !isIncomingLesson(position.removedSubject, position.removedTeacherName, position)
 
   return {
     operation: isRemove ? "remove" : "add",
@@ -499,6 +516,9 @@ export function CorrectionPositionDialog({
   // Обе операции — это Add и Remove. Замена и перенос получаются из полей
   // позиции: снимаемое занятие в выбранной паре и пара «откуда».
   const payload = useMemo<CreateCorrectionPosition>(() => {
+    const slotRemoved = isRemove || draft.slotMode === "replace" ? draft.source : null
+    const moveRemoved =
+      !isRemove && !slotRemoved && draft.moveFrom != null ? fromEntry : null
     const teacherNames = draft.teacherIds
       .map((id) => teachers.find((teacher) => teacher.id === id)?.fullName)
       .filter((name): name is string => Boolean(name))
@@ -514,29 +534,13 @@ export function CorrectionPositionDialog({
       teacherId: isRemove ? null : (draft.teacherIds[0] ?? null),
       teacherName:
         isRemove || teacherNames.length === 0 ? null : teacherNames.join("/"),
-      // Снятие — выбранное занятие. Перенос — вводимое занятие из пары «вм.X».
-      // Замена — прежнее занятие из выбранной пары.
-      removedSubject: isRemove
-        ? (draft.source?.subject ?? null)
-        : isMove
-          ? (fromEntry?.subject ?? null)
-          : draft.slotMode === "replace"
-            ? (draft.source?.subject ?? null)
-            : null,
-      removedTeacherId: isRemove
-        ? (draft.source?.teacherId ?? null)
-        : isMove
-          ? (fromEntry?.teacherId ?? null)
-          : draft.slotMode === "replace"
-            ? (draft.source?.teacherId ?? null)
-            : null,
-      removedTeacherName: isRemove
-        ? (draft.source?.teacherName ?? null)
-        : isMove
-          ? (fromEntry?.teacherName ?? null)
-          : draft.slotMode === "replace"
-            ? (draft.source?.teacherName ?? null)
-            : null,
+      // Снимаемое занятие — это то, что стоит в выбранной паре: при снятии и
+      // при замене это выбранное занятие, а при чистом переносе — вводимое
+      // занятие из пары «вм.X». Раньше перенос перебивал замену, и в файле
+      // вместо прежнего занятия оказывалось вводимое.
+      removedSubject: slotRemoved?.subject ?? moveRemoved?.subject ?? null,
+      removedTeacherId: slotRemoved?.teacherId ?? moveRemoved?.teacherId ?? null,
+      removedTeacherName: slotRemoved?.teacherName ?? moveRemoved?.teacherName ?? null,
       removedNumberPair: isRemove
         ? (draft.source?.numberPair ?? null)
         : isMove
@@ -1077,14 +1081,20 @@ export function CorrectionPositionDialog({
             <PreviewCell label="Группа" value={preview.groupName} />
             <PreviewCell
               label="Снимается"
-              // Для переноса важнее номер освобождаемой пары: он живёт в
-              // примечании «вм.X», а колонка «снимается» повторяет вводимое занятие.
+              // Чистый перенос: в колонке «снимается» стоит вводимое занятие,
+              // а номер освобождаемой пары живёт в примечании «вм.X». При замене
+              // с переносом снимается прежнее занятие, и освобождаемая пара
+              // добавляется к нему — обе операции видны в одной строке.
               value={
-                preview.movedFrom
-                  ? `пара ${preview.movedFrom.pair} — ${preview.movedFrom.lesson}`
-                  : [preview.removedSubject, preview.removedTeacher]
+                !preview.movedFrom
+                  ? [preview.removedSubject, preview.removedTeacher]
                       .filter(Boolean)
                       .join(" ")
+                  : preview.removedSubject === preview.addedSubject
+                    ? `пара ${preview.movedFrom.pair} — ${preview.movedFrom.lesson}`
+                    : `${[preview.removedSubject, preview.removedTeacher]
+                        .filter(Boolean)
+                        .join(" ")} + перенос из пары ${preview.movedFrom.pair}`
               }
             />
             <PreviewCell
