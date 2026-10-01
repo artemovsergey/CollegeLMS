@@ -520,7 +520,6 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
     private static SubjectCellParse BuildSubjectCell(string room, string body)
     {
         // Прочерк — явная пометка «аудитория не указана», а не номер аудитории.
-        var roomMissing = false;
         if (room == NoRoomPlaceholder)
             room = string.Empty;
 
@@ -964,7 +963,7 @@ public class ScheduleImportService(AppDbContext db, IBellScheduleService bells)
 
             var allEntries = await db
                 .ScheduleEntries.Include(e => e.Group)
-                .Include(e => e.Teacher)
+                .Include(e => e.Teacher!)
                     .ThenInclude(t => t.User)
                 .OrderBy(e => e.DayOfWeek)
                 .ThenBy(e => e.NumberPair)

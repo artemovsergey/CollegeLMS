@@ -424,7 +424,7 @@ public class ScheduleCorrectionControllerTests : BaseIntegrationTest
         );
         Assert.NotNull(body);
         Assert.True(body!.IsSuccess);
-        Assert.Equal(1, body.Data!.Items.Count);
+        Assert.Single(body.Data!.Items);
         Assert.Equal("ПО-262", body.Data!.Items[0].GroupName);
     }
 

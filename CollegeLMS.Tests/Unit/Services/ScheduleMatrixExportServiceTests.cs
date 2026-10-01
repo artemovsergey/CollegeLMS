@@ -197,7 +197,7 @@ public class ScheduleMatrixExportServiceTests : IDisposable
         var expected = seeded
             .Select(e =>
                 Parsed(
-                    e.Group.Name,
+                    e.Group!.Name,
                     e.NumberPair,
                     e.Subject,
                     e.Room,
