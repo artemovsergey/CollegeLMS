@@ -1051,6 +1051,23 @@ public class CorrectionBatchServiceTests : IDisposable
         sheet.Cell(7, 3).GetString().Trim().Should().Be("Марченко И.А.");
         sheet.Cell(7, 4).GetString().Trim().Should().Be("Математика");
         sheet.Cell(7, 7).GetString().Trim().Should().Be("вм.4 п.");
+
+        // Выгруженный файл должен импортироваться обратно тем же переносом:
+        // заполненная «снимается» — это то же вводимое занятие, а не замена
+        // занятия в паре ввода.
+        var reimported = await _sut.ImportAsync(
+            new MemoryStream(exported.Data!.Content),
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        reimported.IsSuccess.Should().BeTrue();
+        reimported.Data!.Positions.Should().ContainSingle();
+        var position = reimported.Data.Positions[0];
+        position.ChangeType.Should().Be(ScheduleChangeType.Add);
+        position.Subject.Should().Be("Математика");
+        position.RemovedSubject.Should().Be("Математика");
+        position.RemovedNumberPair.Should().Be(4);
     }
 
     [Fact]

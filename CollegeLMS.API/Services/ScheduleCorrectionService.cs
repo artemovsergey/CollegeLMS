@@ -527,6 +527,20 @@ public class ScheduleCorrectionService(
             var noteOldPair = CorrectionNotes.MovePair(note);
             var rowEntries = new List<CorrectionPreviewEntry>();
 
+            // Перенос, записанный «развёрнуто»: в колонке «снимается» стоит то
+            // же вводимое занятие (так выгружается наш файл). Смысл строки —
+            // перенос, поэтому проверяем пару «откуда», а не наличие занятия в
+            // паре ввода: иначе такой файл не проходит проверку.
+            if (
+                changeType == ScheduleChangeType.Replace
+                && noteOldPair is not null
+                && SameLessonText(removeSubject, addSubject)
+                && SameTeacherText(removeTeacher, addTeacher)
+            )
+            {
+                changeType = ScheduleChangeType.Add;
+            }
+
             if (changeType == ScheduleChangeType.Add)
             {
                 var subject = addSubject;
@@ -670,6 +684,27 @@ public class ScheduleCorrectionService(
         var allEntries = await BuildAllEntriesAsync(ws, lastRow, date, week, ct);
 
         return (date, week, entries, allEntries, errors);
+    }
+
+    /// <summary>Один и тот же предмет в двух колонках файла.</summary>
+    private static bool SameLessonText(string? left, string? right) =>
+        string.Equals(
+            ScheduleImportService.SubjectLookupKey(left ?? string.Empty),
+            ScheduleImportService.SubjectLookupKey(right ?? string.Empty),
+            StringComparison.OrdinalIgnoreCase
+        );
+
+    /// <summary>Один и тот же преподаватель в двух колонках файла.</summary>
+    private static bool SameTeacherText(string? left, string? right)
+    {
+        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+            return false;
+
+        return string.Equals(
+            ScheduleImportService.NormalizeTeacherName(left),
+            ScheduleImportService.NormalizeTeacherName(right),
+            StringComparison.OrdinalIgnoreCase
+        );
     }
 
     /// <summary>
