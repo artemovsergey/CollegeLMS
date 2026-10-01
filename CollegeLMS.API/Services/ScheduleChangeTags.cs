@@ -25,6 +25,23 @@ internal static class ScheduleChangeTags
 
         var history = await historyQuery.ToListAsync(ct);
 
+        // Имена снимаемых преподавателей нужны для подсказки бейджа: по одному
+        // идентификатору подсказка «вместо: Физика» ничего не говорит.
+        var removedTeacherIds = history
+            .Where(h => h.RemovedTeacherId.HasValue)
+            .Select(h => h.RemovedTeacherId!.Value)
+            .Distinct()
+            .ToList();
+
+        var RemovedTeacherNames =
+            removedTeacherIds.Count == 0
+                ? new Dictionary<Guid, string>()
+                : await db
+                    .Teachers.AsNoTracking()
+                    .Include(t => t.User)
+                    .Where(t => removedTeacherIds.Contains(t.Id))
+                    .ToDictionaryAsync(t => t.Id, t => t.User.FullName, ct);
+
         // Дедупликация: Add+Remove за одну неделю на одном слоте аннулируют друг друга
         var filtered = history
             .GroupBy(h => (h.GroupId, h.DayOfWeek, h.NumberPair))
@@ -76,6 +93,9 @@ internal static class ScheduleChangeTags
                             Week = h.Week,
                             RemovedNumberPair = h.RemovedNumberPair,
                             RemovedSubject = h.RemovedSubject,
+                            RemovedTeacherName = h.RemovedTeacherId is { } removedId
+                                ? RemovedTeacherNames.GetValueOrDefault(removedId)
+                                : null,
                             Note = h.Note,
                         })
                         .ToList()

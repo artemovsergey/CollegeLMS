@@ -62,6 +62,8 @@ export function CorrectionFilePreview({
     [batch],
   )
 
+  const movedRows = rows.filter((row) => row.movedFrom)
+
   if (!batch) return null
 
   const date = new Date(batch.correctionDate)
@@ -152,6 +154,19 @@ export function CorrectionFilePreview({
             </Table>
           </div>
         </div>
+
+        {/* Перенос в файле записан только примечанием «вм.X», поэтому колонка
+            «снимается» пустая. Ниже поясняем, что именно освобождается. */}
+        {movedRows.length > 0 && (
+          <ul className="grid gap-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            {movedRows.map((row, index) => (
+              <li key={index}>
+                Строка {index + 1}: перенос — освобождается пара {row.movedFrom!.pair} ({" "}
+                {row.movedFrom!.lesson})
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="outline">

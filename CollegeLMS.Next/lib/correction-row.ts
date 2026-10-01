@@ -13,6 +13,12 @@ export interface CorrectionRowPreview {
   addedTeacher: string
   numberPair: number
   note: string
+  /**
+   * Пара «откуда» при переносе. В файле для переноса заполняется только
+   * примечание «вм.X», поэтому колонка «снимается» пустая — показываем
+   * освобождаемую пару отдельно, чтобы потерянной она не выглядела.
+   */
+  movedFrom: { pair: number; lesson: string } | null
 }
 
 export interface CorrectionRowInput {
@@ -70,6 +76,16 @@ export function toCorrectionRow(input: CorrectionRowInput): CorrectionRowPreview
       ? `вм.${input.removedNumberPair}`
       : "")
 
+  const movedFrom =
+    isMove && input.removedNumberPair != null && input.removedNumberPair !== input.numberPair
+      ? {
+          pair: input.removedNumberPair,
+          lesson: [input.removedSubject, shortTeacherName(input.removedTeacherName)]
+            .filter(Boolean)
+            .join(" "),
+        }
+      : null
+
   return {
     groupName: input.groupName,
     removedSubject: isMove ? "" : (input.removedSubject ?? ""),
@@ -78,5 +94,6 @@ export function toCorrectionRow(input: CorrectionRowInput): CorrectionRowPreview
     addedTeacher: isRemove ? "" : shortTeacherName(input.teacherName),
     numberPair: input.numberPair,
     note,
+    movedFrom,
   }
 }

@@ -1410,6 +1410,8 @@ public class ScheduleCorrectionService(
             .Include(h => h.Group)
             .Include(h => h.Teacher!)
                 .ThenInclude(t => t.User)
+            .Include(h => h.RemovedTeacher!)
+                .ThenInclude(t => t.User)
             .AsQueryable();
 
         if (groupId.HasValue)

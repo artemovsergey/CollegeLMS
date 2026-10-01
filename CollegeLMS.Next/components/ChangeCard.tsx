@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react"
 import {
   Plus,
   Minus,
+  ArrowRightLeft,
   BookOpen,
   CalendarDays,
   Clock,
@@ -146,9 +147,11 @@ export default function ChangeCard({
       ? `пара ${movedFrom} → ${item.numberPair}`
       : `пара ${item.numberPair}`
 
+  // Преподаватель снимаемого занятия — из Removed*, иначе в «вместо» стоял бы
+  // преподаватель нового занятия.
   const removedLesson = lessonLine(
     item.removedSubject ?? item.subject,
-    item.teacherName,
+    item.removedTeacherName ?? item.teacherName,
   )
   const newLesson = lessonLine(
     isRemove ? null : item.subject,
@@ -161,6 +164,12 @@ export default function ChangeCard({
     item.removedSubject != null &&
     item.removedSubject.trim().toLowerCase() !==
       (item.subject ?? "").trim().toLowerCase()
+  // Перенос: занятие само переезжает, поэтому стрелки «старое => новое» нет —
+  // называем освобождаемую пару отдельной строкой.
+  const movedFromLesson =
+    !isRemove && movedFrom != null && !replaces
+      ? { pair: movedFrom, lesson: lessonLine(item.removedSubject, item.removedTeacherName) }
+      : null
 
   return (
     <Card
@@ -228,6 +237,12 @@ export default function ChangeCard({
             <span className="inline-flex items-center gap-1">
               <User className="size-3.5" aria-hidden />
               Преподаватель не указан
+            </span>
+          )}
+          {movedFromLesson && (
+            <span className="inline-flex items-center gap-1">
+              <ArrowRightLeft className="size-3.5" aria-hidden />
+              С пары {movedFromLesson.pair}: {movedFromLesson.lesson}
             </span>
           )}
           {informational && (

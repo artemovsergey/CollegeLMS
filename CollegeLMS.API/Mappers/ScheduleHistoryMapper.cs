@@ -23,6 +23,7 @@ public static class ScheduleHistoryMapper
             Week = h.Week,
             Note = h.Note,
             RemovedSubject = h.RemovedSubject,
+            RemovedTeacherName = h.RemovedTeacher?.User?.FullName,
             RemovedRoom = h.RemovedRoom,
             RemovedNumberPair = h.RemovedNumberPair,
         };

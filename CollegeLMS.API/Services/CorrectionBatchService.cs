@@ -686,6 +686,8 @@ public class CorrectionBatchService(
                 .Include(h => h.Group)
                 .Include(h => h.Teacher!)
                     .ThenInclude(t => t.User)
+                .Include(h => h.RemovedTeacher!)
+                    .ThenInclude(t => t.User)
                 .Where(h => ids.Contains(h.Id))
                 .OrderBy(h => h.AppliedAt)
                 .ToListAsync(ct);

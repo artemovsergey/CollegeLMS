@@ -124,7 +124,9 @@ function tagDetail(tag: ChangeTag): string[] {
     }
   }
   if (tag.removedSubject) {
-    parts.push(`вместо: ${tag.removedSubject}`)
+    parts.push(
+      `вместо: ${[tag.removedSubject, tag.removedTeacherName].filter(Boolean).join(" ")}`,
+    )
   }
   if (tag.note) {
     parts.push(`примечание: ${tag.note}`)

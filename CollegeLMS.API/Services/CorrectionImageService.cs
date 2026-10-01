@@ -167,8 +167,9 @@ public class CorrectionImageService
     {
         var isRemove = position.ChangeType == ScheduleChangeType.Remove;
 
-        // При переносе снимается само вводимое занятие из пары «откуда» —
-        // в картинке это уже видно в колонке «вводится», дублировать не нужно.
+        // При переносе снимается само вводимое занятие из пары «откуда»: в файле
+        // для этого хватает примечания «вм.X», а в картинке колонка «снимается»
+        // иначе выглядела бы пустой — показываем занятие с номером пары.
         var isMove =
             !isRemove
             && position.RemovedSubject is not null
@@ -181,7 +182,14 @@ public class CorrectionImageService
                     position.RemovedSubject ?? position.Subject,
                     position.RemovedTeacherName ?? position.TeacherName
                 )
-            : isMove ? "—"
+            : isMove
+                ? Combine(
+                    position.RemovedSubject,
+                    position.RemovedTeacherName,
+                    position.RemovedNumberPair is { } from && from != position.NumberPair
+                        ? $"(с пары {from})"
+                        : null
+                )
             : Combine(position.RemovedSubject, position.RemovedTeacherName);
 
         var added = isRemove ? "—" : Combine(position.Subject, position.TeacherName);
@@ -205,13 +213,15 @@ public class CorrectionImageService
                 StringComparison.OrdinalIgnoreCase
             );
 
-    private static string Combine(string? subject, string? teacher)
+    private static string Combine(string? subject, string? teacher, string? suffix = null)
     {
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(subject))
             parts.Add(subject);
         if (!string.IsNullOrWhiteSpace(teacher))
             parts.Add(teacher);
+        if (!string.IsNullOrWhiteSpace(suffix))
+            parts.Add(suffix);
 
         return parts.Count == 0 ? "—" : string.Join("\n", parts);
     }

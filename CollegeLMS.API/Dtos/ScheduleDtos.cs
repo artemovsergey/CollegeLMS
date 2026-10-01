@@ -38,6 +38,7 @@ public class ChangeTag
     public int Week { get; set; }
     public int? RemovedNumberPair { get; set; }
     public string? RemovedSubject { get; set; }
+    public string? RemovedTeacherName { get; set; }
     public string? Note { get; set; }
 }
 

@@ -32,4 +32,8 @@ public class ScheduleHistory : Entity
 
     [JsonIgnore]
     public Teacher? Teacher { get; set; }
+
+    /// <summary>Преподаватель снимаемого занятия (при замене и переносе).</summary>
+    [JsonIgnore]
+    public Teacher? RemovedTeacher { get; set; }
 }

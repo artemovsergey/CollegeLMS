@@ -1402,6 +1402,68 @@ public class ScheduleCorrectionServiceTests : IDisposable
     // --- UC-SCH-25: фильтры журнала изменений ---
 
     [Fact]
+    public async Task GetHistoryAsync_Replace_ReturnsRemovedTeacherName()
+    {
+        // В журнале «вместо» должно называться снимаемое занятие вместе со своим
+        // преподавателем — иначе карточка показывает преподавателя нового занятия.
+        var group = await SeedGroupAsync();
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            User = new User { Id = Guid.NewGuid(), FullName = "Иванов Иван" },
+        };
+        var newTeacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            User = new User { Id = Guid.NewGuid(), FullName = "Марченко Игорь" },
+        };
+        _db.Teachers.AddRange(teacher, newTeacher);
+        var utcNow = DateTime.UtcNow;
+        _db.ScheduleHistory.Add(
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Add,
+                AppliedAt = utcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                GroupId = group.Id,
+                Group = group,
+                Subject = "Математика",
+                TeacherId = newTeacher.Id,
+                Teacher = newTeacher,
+                RemovedSubject = "Физика",
+                RemovedTeacherId = teacher.Id,
+                RemovedTeacher = teacher,
+                RemovedNumberPair = 1,
+                DayOfWeek = DayOfWeek.Tuesday,
+                NumberPair = 2,
+                Week = 2,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetHistoryAsync(
+            group.Id,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var item = result.Data!.Items.Should().ContainSingle().Subject;
+        item.RemovedSubject.Should().Be("Физика");
+        item.RemovedTeacherName.Should().Be("Иванов Иван");
+    }
+
+    [Fact]
     public async Task GetHistoryAsync_FiltersByDateAndChangeType()
     {
         var group = await SeedGroupAsync();

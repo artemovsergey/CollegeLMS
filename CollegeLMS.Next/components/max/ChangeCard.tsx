@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react"
 import {
   Plus,
   Minus,
+  ArrowRightLeft,
   BookOpen,
   CalendarDays,
   Clock,
@@ -127,13 +128,21 @@ export default function ChangeCard({
     item.removedSubject != null &&
     item.removedSubject.trim().toLowerCase() !==
       (item.subject ?? "").trim().toLowerCase()
+  // Перенос: занятие само переезжает, поэтому стрелки «старое => новое» нет —
+  // называем освобождаемую пару отдельной строкой.
+  const movedFromLesson =
+    !isRemove && movedFrom != null && !replaces
+      ? { pair: movedFrom, lesson: lessonLine(item.removedSubject, item.removedTeacherName) }
+      : null
   // «Предмет Преподаватель => Предмет Преподаватель» — так же, как в вебе и в боте.
   // Ссылка «Открыть день» ведёт сразу на нужный день с нужной группой
   // или преподавателем: иначе расписание открывается пустым.
   const dayHref = buildDayHref(item, date)
+  // Преподаватель снимаемого занятия — из Removed*, иначе в «вместо» стоял бы
+  // преподаватель нового занятия.
   const removedLesson = lessonLine(
     item.removedSubject ?? item.subject,
-    item.teacherName,
+    item.removedTeacherName ?? item.teacherName,
   )
   const newLesson = lessonLine(
     isRemove ? null : item.subject,
@@ -205,6 +214,12 @@ export default function ChangeCard({
         {!item.teacherName && (
           <span className="max-app__change-card-muted max-app__change-card-icon">
             <User size={14} aria-hidden /> Преподаватель не указан
+          </span>
+        )}
+        {movedFromLesson && (
+          <span className="max-app__change-card-muted max-app__change-card-icon">
+            <ArrowRightLeft size={14} aria-hidden /> С пары {movedFromLesson.pair}:{" "}
+            {movedFromLesson.lesson}
           </span>
         )}
         {informational && (

@@ -443,10 +443,32 @@ public static class MessageFormatter
         if (string.IsNullOrWhiteSpace(teacher) && r.ChangeType != "Remove")
             sb.AppendLine("👤 Преподаватель не указан");
 
+        var movedFrom = MovePair(r.Note) ?? r.RemovedNumberPair;
+        if (
+            r.ChangeType != "Remove"
+            && movedFrom is { } from
+            && from != r.NumberPair
+            && !string.IsNullOrWhiteSpace(r.RemovedSubject)
+            && IsSameLesson(r.RemovedSubject, r.Subject)
+        )
+            sb.AppendLine(
+                $"🔀 Перенос: освобождается пара {from} ({LessonLine(r.RemovedSubject, r.RemovedTeacherName ?? r.TeacherName)})"
+            );
+
         if (!string.IsNullOrWhiteSpace(r.Note))
             sb.AppendLine($"📝 Примечание: {r.Note}");
 
         return sb.ToString();
+    }
+
+    /// <summary>Одно и то же ли занятие (предмет без учёта регистра и пробелов).</summary>
+    private static bool IsSameLesson(string? left, string? right)
+    {
+        static string Key(string? value) =>
+            string.Join(" ", (value ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                .ToLowerInvariant();
+
+        return Key(left) == Key(right);
     }
 
     /// <summary>Пара: «пара N» или «пара X => Y», если занятие переехало.</summary>
@@ -476,10 +498,15 @@ public static class MessageFormatter
 
         if (r.ChangeType != "Remove" && !string.IsNullOrWhiteSpace(r.RemovedSubject))
         {
-            // Зачёркнутый старый предмет в MAX выглядит плохо, поэтому тот же
-            // формат, что в вебе: «старое => новое» одной строкой.
             var from = LessonLine(r.RemovedSubject, r.RemovedTeacherName ?? r.TeacherName);
             var to = LessonLine(r.Subject, r.TeacherName);
+
+            // При переносе снимается то же самое занятие: стрелка вывела бы
+            // «Математика => Математика», поэтому занятие печатаем один раз, а
+            // освобождаемую пару — отдельной строкой.
+            if (IsSameLesson(r.RemovedSubject, r.Subject))
+                return $"**{to}**";
+
             return $"{from} {ReplaceArrow} **{to}**";
         }
 

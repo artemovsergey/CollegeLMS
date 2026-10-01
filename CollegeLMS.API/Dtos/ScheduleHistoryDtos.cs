@@ -19,6 +19,10 @@ public class ScheduleHistoryResponse
     public int Week { get; set; }
     public string? Note { get; set; }
     public string? RemovedSubject { get; set; }
+
+    /// <summary>Преподаватель снимаемого занятия — им заполняется «вместо».</summary>
+    public string? RemovedTeacherName { get; set; }
+
     public string? RemovedRoom { get; set; }
     public int? RemovedNumberPair { get; set; }
 }

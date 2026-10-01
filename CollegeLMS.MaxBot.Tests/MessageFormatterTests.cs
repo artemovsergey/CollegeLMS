@@ -671,6 +671,37 @@ public class MessageFormatterTests
     }
 
     [Fact]
+    public void FormatCorrectionDigest_Move_DoesNotDuplicateLessonInArrow()
+    {
+        var revision = Revision(changeType: "Add");
+        revision.Note = "вм.1 п.";
+        revision.RemovedSubject = "История";
+        revision.RemovedTeacherName = "Петренко В.Б.";
+        revision.RemovedNumberPair = 1;
+
+        var text = MessageFormatter.FormatCorrectionDigest([revision]);
+
+        // Стрелка «История => История» в переносе бессмысленна (стрелка пары — нет).
+        text.Should().NotContain("Петренко В.Б. =>");
+        text.Should().Contain("пара 1 => 2");
+        text.Should().Contain("🔀 Перенос: освобождается пара 1 (История Петренко В.Б.)");
+    }
+
+    [Fact]
+    public void FormatCorrectionDigest_Replace_KeepsArrowWithBothTeachers()
+    {
+        var revision = Revision(changeType: "Add");
+        revision.RemovedSubject = "Физика";
+        revision.RemovedTeacherName = "Марченко В.М.";
+        revision.RemovedNumberPair = 1;
+
+        var text = MessageFormatter.FormatCorrectionDigest([revision]);
+
+        text.Should().Contain("Физика Марченко В.М. => **История Петренко В.Б.**");
+        text.Should().NotContain("🔀");
+    }
+
+    [Fact]
     public void FormatCorrectionDigest_WithoutSelfStudy_HidesSelfStudyBadge()
     {
         var text = MessageFormatter.FormatCorrectionDigest([Revision()]);

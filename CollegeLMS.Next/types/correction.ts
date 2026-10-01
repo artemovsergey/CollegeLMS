@@ -57,6 +57,7 @@ export interface ScheduleHistoryItem {
   week: number
   note: string | null
   removedSubject: string | null
+  removedTeacherName: string | null
   removedRoom: string | null
   removedNumberPair: number | null
 }
@@ -78,6 +79,7 @@ export interface ChangeTag {
   week: number
   removedNumberPair: number | null
   removedSubject: string | null
+  removedTeacherName: string | null
   note: string | null
 }
 

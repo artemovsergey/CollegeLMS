@@ -36,5 +36,13 @@ public class ScheduleHistoryConfiguration : IEntityTypeConfiguration<ScheduleHis
             .WithMany()
             .HasForeignKey(x => x.TeacherId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Преподаватель снимаемого занятия — чтобы в изменениях и в подсказке
+        // бейджа было видно, кого заменили.
+        builder
+            .HasOne(x => x.RemovedTeacher)
+            .WithMany()
+            .HasForeignKey(x => x.RemovedTeacherId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
