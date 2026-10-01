@@ -3,6 +3,8 @@
 import { useMemo } from "react"
 import { FileSpreadsheet } from "lucide-react"
 import type { CorrectionBatch, CorrectionPosition } from "@/types/correction"
+import type { CorrectionRowPreview } from "@/lib/correction-row"
+import { toCorrectionRow } from "@/lib/correction-row"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
@@ -18,57 +20,19 @@ const DAY_RU: Record<number, string> = {
   0: "воскресенье",
 }
 
-/** Преподаватель в том же виде, что в файле: «Иванов И.И.». */
-function shortTeacher(value: string | null | undefined): string {
-  if (!value) return ""
-  return value
-    .split("/")
-    .map((part) => {
-      const pieces = part.trim().split(/\s+/).filter(Boolean)
-      if (pieces.length < 2) return part.trim()
-      const initials = pieces
-        .slice(1)
-        .map((piece) => (piece.length === 1 || piece.endsWith(".") ? piece : `${piece[0].toUpperCase()}.`))
-        .join("")
-      return `${pieces[0]} ${initials}`
-    })
-    .join("/")
-}
-
-interface XlsxPreviewRow {
-  groupName: string
-  removedSubject: string
-  removedTeacher: string
-  addedSubject: string
-  addedTeacher: string
-  numberPair: number
-  note: string
-}
-
-function toRow(position: CorrectionPosition): XlsxPreviewRow {
-  const isRemove = position.changeType === "Remove"
-  // Перенос — это вводимое занятие, которое само переезжает из пары «откуда»:
-  // в колонке «снимается» для него места нет, только примечание «вм.X».
-  const isMove =
-    !isRemove
-    && position.removedSubject != null
-    && position.removedSubject.trim().toLowerCase() ===
-      (position.subject ?? "").trim().toLowerCase()
-
-  return {
+/** Позиция пакета в виде строки файла корректировки. */
+function toRow(position: CorrectionPosition): CorrectionRowPreview {
+  return toCorrectionRow({
+    changeType: position.changeType,
     groupName: position.groupName,
-    removedSubject: isMove ? "" : (position.removedSubject ?? ""),
-    removedTeacher: isMove ? "" : shortTeacher(position.removedTeacherName),
-    addedSubject: isRemove ? "" : (position.subject ?? ""),
-    addedTeacher: isRemove ? "" : shortTeacher(position.teacherName),
     numberPair: position.numberPair,
-    note:
-      position.note ??
-      (position.removedNumberPair != null &&
-      position.removedNumberPair !== position.numberPair
-        ? `вм.${position.removedNumberPair}`
-        : ""),
-  }
+    subject: position.subject,
+    teacherName: position.teacherName,
+    removedSubject: position.removedSubject,
+    removedTeacherName: position.removedTeacherName,
+    removedNumberPair: position.removedNumberPair,
+    note: position.note,
+  })
 }
 
 /** Оформление как в выгрузке: Times New Roman, рамка, центрирование. */

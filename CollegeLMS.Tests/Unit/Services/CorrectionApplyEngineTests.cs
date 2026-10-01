@@ -728,6 +728,36 @@ public class CorrectionApplyEngineTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateBatchAsync_ReplaceWithTheSameLesson_ReturnsRowError()
+    {
+        // Замена занятия на него же ничего не меняет, но пара была бы удалена и
+        // создана заново — вместе с аудиторией.
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 2, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                2,
+                subject: "Физика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "Физика",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        var error = errors.Should().ContainSingle().Subject;
+        error.Message.Should().StartWith("Строка 1:");
+        error.Message.Should().Contain("заменять не на что");
+    }
+
+    [Fact]
     public async Task ValidateBatchAsync_MovePairWithoutSameLesson_ReturnsRowError()
     {
         var group = await SeedGroupAsync();

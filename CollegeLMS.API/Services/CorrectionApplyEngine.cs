@@ -721,6 +721,28 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                 );
                 return;
             }
+
+            // Замена на то же самое занятие ничего не меняет, но пара была бы
+            // удалена и создана заново — вместе с аудиторией и другими неделями.
+            var sameLesson =
+                MatchesSubject(slotSource, position.Subject)
+                && (
+                    teacherId.HasValue
+                        ? slotSource.TeacherId == teacherId.Value
+                        : MatchesTeacherName(slotSource.TeacherName, teacherName ?? string.Empty)
+                );
+
+            if (strictMove && sameLesson)
+            {
+                result.Errors.Add(
+                    Error(
+                        position.Row,
+                        4,
+                        $"в паре {position.NumberPair} уже стоит это занятие — заменять не на что."
+                    )
+                );
+                return;
+            }
         }
 
         // «вм.X»: освобождается занятие преподавателя с предметом замены, и

@@ -36,12 +36,14 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import GroupDayCard, {
   entryKey,
   physicalEntriesForPair,
 } from "@/components/GroupDayCard"
 import { isPhysicalSelfStudyNote, isSelfStudyNote } from "@/lib/change-tags"
+import { toCorrectionRow } from "@/lib/correction-row"
 import {
   SearchableMultiSelect,
   SearchableSelect,
@@ -377,15 +379,11 @@ export function CorrectionPositionDialog({
     [entries, draft.targetPair],
   )
   // Занят ли слот: есть занятие, которого не трогает ни одна позиция пакета.
+  // От выбранного занятия не зависит — иначе шаг «что делаем с парой» пропадал бы
+  // сразу после выбора занятия для замены.
   const slotBusy = useMemo(
-    () =>
-      slotPhysical.some(
-        (entry) =>
-          entry.pendingChangeType == null &&
-          (draft.source == null ||
-            removedLessonKey(draft.source) !== entryKey(entry)),
-      ),
-    [slotPhysical, draft.source],
+    () => slotPhysical.some((entry) => entry.pendingChangeType == null),
+    [slotPhysical],
   )
 
   // «вм.X»: у вводимого преподавателя уже есть это же занятие в другой паре
@@ -453,8 +451,12 @@ export function CorrectionPositionDialog({
       if (!draft.source)
         return "Выберите занятие, которое заменяете — в шаге «Что делаем с парой»"
       if (sourceBusy) return "На это занятие уже есть позиция в пакете"
-      if (replacesSameLesson) return "Нельзя заменить занятие на такое же"
     }
+
+    // Замена на то же самое занятие ничего не меняет: пара была бы удалена и
+    // создана заново, потеряв аудиторию. Поэтому запрещаем в любом случае.
+    if (replacesSameLesson)
+      return "Нельзя заменить занятие на такое же — выберите другой предмет или преподавателя"
 
     // «вм.X» без занятия в паре X превратился бы в пустую пару.
     if (draft.moveFrom != null) {
@@ -494,21 +496,16 @@ export function CorrectionPositionDialog({
     return parts.length > 0 ? parts.join(" ") : null
   }, [draft.note, draft.removeMark, draft.selfStudy, draft.moveFrom])
 
-  const handleSubmit = async () => {
-    if (blockedReason) {
-      toast.error(blockedReason)
-      return
-    }
-
+  // Обе операции — это Add и Remove. Замена и перенос получаются из полей
+  // позиции: снимаемое занятие в выбранной паре и пара «откуда».
+  const payload = useMemo<CreateCorrectionPosition>(() => {
     const teacherNames = draft.teacherIds
       .map((id) => teachers.find((teacher) => teacher.id === id)?.fullName)
       .filter((name): name is string => Boolean(name))
     const isMove = draft.moveFrom != null && fromEntry != null
     const note = buildNote()
 
-    // Обе операции — это Add и Remove. Замена и перенос получаются из полей
-    // позиции: снимаемое занятие в выбранной паре и пара «откуда».
-    const payload: CreateCorrectionPosition = {
+    return {
       changeType: isRemove ? "Remove" : "Add",
       groupId: draft.groupId,
       groupName: group?.name ?? "",
@@ -546,6 +543,16 @@ export function CorrectionPositionDialog({
           ? draft.moveFrom
           : null,
       note,
+    }
+  }, [buildNote, draft, fromEntry, group?.name, isRemove, teachers])
+
+  /** Строка позиции в том виде, в каком она уйдёт в файл и в уведомление. */
+  const preview = useMemo(() => toCorrectionRow(payload), [payload])
+
+  const handleSubmit = async () => {
+    if (blockedReason) {
+      toast.error(blockedReason)
+      return
     }
 
     setSaving(true)
@@ -1060,6 +1067,36 @@ export function CorrectionPositionDialog({
           </Step>
         </div>
 
+        {/* Предпросмотр строки: диспетчер видит позицию ровно в том виде, в
+            каком она уйдёт в файл корректировки и в уведомление бота. */}
+        <div className="shrink-0 rounded-md border bg-muted/30 px-3 py-2">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Позиция в файле корректировки
+          </p>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-4">
+            <PreviewCell label="Группа" value={preview.groupName} />
+            <PreviewCell
+              label="Снимается"
+              value={[preview.removedSubject, preview.removedTeacher]
+                .filter(Boolean)
+                .join(" ")}
+            />
+            <PreviewCell
+              label="Вводится"
+              value={[preview.addedSubject, preview.addedTeacher]
+                .filter(Boolean)
+                .join(" ")}
+            />
+            <PreviewCell
+              label="Пара"
+              value={preview.numberPair ? String(preview.numberPair) : ""}
+            />
+            <div className="col-span-2 sm:col-span-4">
+              <PreviewCell label="Примечание" value={preview.note} />
+            </div>
+          </dl>
+        </div>
+
         <DialogFooter>
           <span className="mr-auto self-center text-xs text-muted-foreground">
             {blockedReason ?? summary}
@@ -1148,6 +1185,24 @@ function Step({
   )
 }
 
+/** Ячейка предпросмотра: подпись сверху, значение снизу. */
+function PreviewCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid gap-0.5">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd
+        className={cn(
+          "truncate font-medium",
+          !value && "text-muted-foreground",
+        )}
+        title={value || undefined}
+      >
+        {value || "—"}
+      </dd>
+    </div>
+  )
+}
+
 /** Переключатель-бейдж служебного слова примечания. */
 function ToggleChip({
   active,
@@ -1212,8 +1267,9 @@ function Choice({
 }
 
 /**
- * Самостоятельная работа: три взаимоисключающих состояния. «Только
- * информация» пара в расписание не встаёт, «добавить и пометить» — встаёт.
+ * Самостоятельная работа двумя тумблерами: первый — «это сам.работа?», второй —
+ * «ввести пару в расписание?». Оба выключены — обычная пара. Второй появляется
+ * только когда первый включён.
  */
 function SelfStudyPicker({
   value,
@@ -1222,59 +1278,65 @@ function SelfStudyPicker({
   value: SelfStudyMode
   onChange: (value: SelfStudyMode) => void
 }) {
-  const options: { value: SelfStudyMode; label: string; hint: string }[] = [
-    {
-      value: "none",
-      label: "Обычное занятие",
-      hint: "Пара появится в расписании",
-    },
-    {
-      value: "info",
-      label: "Только информация (сам.р)",
-      hint: "Студентам сообщаем, сама пара в расписание не встаёт",
-    },
-    {
-      value: "physical",
-      label: "Добавить и пометить (сам.р+)",
-      hint: "Пара встанет в расписание с пометкой",
-    },
-  ]
+  const isSelfStudy = value !== "none"
+  const isInSchedule = value === "physical"
 
   return (
-    <div className="grid gap-1.5">
-      <span className="text-sm font-medium">Самостоятельная работа</span>
-      <div
-        className="grid gap-2"
-        role="radiogroup"
-        aria-label="Самостоятельная работа"
-      >
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={value === option.value}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "flex items-start gap-2 rounded-md border px-3 py-2 text-left transition-colors",
-              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-              value === option.value
-                ? "border-violet-300 bg-violet-50 text-violet-900 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-100"
-                : "border-input bg-background hover:bg-muted",
-            )}
-          >
-            {option.value === "none" ? (
-              <Plus className="mt-0.5 size-4 shrink-0" aria-hidden />
-            ) : (
-              <BookOpen className="mt-0.5 size-4 shrink-0" aria-hidden />
-            )}
-            <span className="grid gap-0.5">
-              <span className="text-sm font-semibold">{option.label}</span>
-              <span className="text-xs opacity-80">{option.hint}</span>
-            </span>
-          </button>
-        ))}
-      </div>
+    <div className="grid gap-2 rounded-md border px-3 py-2.5">
+      <SelfStudyToggle
+        id="self-study"
+        label="Это самостоятельная работа?"
+        hint="Пометить пару для студентов: они занимаются сами"
+        checked={isSelfStudy}
+        onCheckedChange={(checked) => onChange(checked ? "info" : "none")}
+      />
+
+      {isSelfStudy && (
+        <SelfStudyToggle
+          id="self-study-schedule"
+          label="Ввести пару в расписание?"
+          hint="Нет — пара останется только пометкой, в базу расписания не встанет"
+          checked={isInSchedule}
+          onCheckedChange={(checked) => onChange(checked ? "physical" : "info")}
+        />
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        {isSelfStudy
+          ? isInSchedule
+            ? "В примечание попадёт «сам.р+» — пара встанет в расписание с пометкой."
+            : "В примечание попадёт «сам.р» — пара не встаёт в расписание, нужна только пометка."
+          : "Обычная пара: в примечание не попадёт ничего."}
+      </p>
+    </div>
+  )
+}
+
+function SelfStudyToggle({
+  id,
+  label,
+  hint,
+  checked,
+  onCheckedChange,
+}: {
+  id: string
+  label: string
+  hint: string
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <Switch
+        id={id}
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        aria-label={label}
+      />
+      <Label htmlFor={id} className="grid cursor-pointer gap-0.5">
+        <span className="text-sm font-medium">{label}</span>
+        <span className="text-xs font-normal text-muted-foreground">{hint}</span>
+      </Label>
     </div>
   )
 }
