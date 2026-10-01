@@ -803,10 +803,11 @@ public class CorrectionBatchService(
     }
 
     /// <summary>
-    /// Строка файла корректировки для позиции. Замена записывается двумя
-    /// колонками («снимается» и «вводится»), перенос — только примечанием
-    /// «вм.X»: вводимое занятие само переезжает из старой пары, поэтому в
-    /// колонке «снимается» для него места нет.
+    /// Строка файла корректировки для позиции. И замена, и перенос пишутся двумя
+    /// колонками: у переноса вводимое занятие само освобождает пару «откуда», но
+    /// диспетчеру нужно видеть в файле, какое именно занятие и с кем уходит —
+    /// иначе колонка «снимается» выглядит незаполненной. Пара «откуда»
+    /// остаётся в примечании «вм.X», отдельной колонки для неё в формате нет.
     /// </summary>
     private static ManualCorrectionRow ToManualRow(CorrectionPosition p)
     {
@@ -822,57 +823,18 @@ public class CorrectionBatchService(
         }
 
         var isRemove = p.ChangeType == ScheduleChangeType.Remove;
-        var isMove = !isRemove && IsMovePosition(p);
 
         return new ManualCorrectionRow
         {
             GroupName = p.GroupName,
-            RemovedSubject = isMove ? null : p.RemovedSubject,
-            RemovedTeacherName = isMove ? null : p.RemovedTeacherName,
+            // Снимаемое занятие пишем всегда: у снятия это сам предмет, у
+            // замены — то, что стоит в паре, у переноса — освобождаемое занятие.
+            RemovedSubject = p.RemovedSubject,
+            RemovedTeacherName = p.RemovedTeacherName,
             AddedSubject = isRemove ? null : p.Subject,
             AddedTeacherName = isRemove ? null : p.TeacherName,
             NumberPair = p.NumberPair,
             Note = note,
         };
-    }
-
-    /// <summary>
-    /// Перенос ли это: вводимое занятие само стоит в паре «откуда», поэтому
-    /// снимать в колонке «снимается» нечего — только освободить пару.
-    /// </summary>
-    private static bool IsMovePosition(CorrectionPosition p) =>
-        p.ChangeType == ScheduleChangeType.Move
-        || (
-            p.ChangeType == ScheduleChangeType.Add
-            && p.RemovedSubject is not null
-            && SameLesson(p.RemovedSubject, p.Subject)
-            && SameTeacher(p.RemovedTeacherId, p.RemovedTeacherName, p.TeacherId, p.TeacherName)
-        );
-
-    private static bool SameLesson(string? left, string? right) =>
-        string.Equals(
-            ScheduleImportService.SubjectLookupKey(left ?? string.Empty),
-            ScheduleImportService.SubjectLookupKey(right ?? string.Empty),
-            StringComparison.OrdinalIgnoreCase
-        );
-
-    private static bool SameTeacher(
-        Guid? leftId,
-        string? leftName,
-        Guid? rightId,
-        string? rightName
-    )
-    {
-        if (leftId.HasValue && rightId.HasValue)
-            return leftId == rightId;
-
-        if (!string.IsNullOrWhiteSpace(leftName) && !string.IsNullOrWhiteSpace(rightName))
-            return string.Equals(
-                ScheduleImportService.NormalizeTeacherName(leftName),
-                ScheduleImportService.NormalizeTeacherName(rightName),
-                StringComparison.OrdinalIgnoreCase
-            );
-
-        return leftId == rightId;
     }
 }

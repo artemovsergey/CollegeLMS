@@ -88,6 +88,24 @@ public class CorrectionRoundTripTests : IDisposable
                 .Should()
                 .BeEquivalentTo(sourceRows[index], "строка {0} файла {1}", 7 + index, fileName);
         }
+
+        // Отдельно проверяем, что расхождение у переносов ровно одно и ожидаемое:
+        // в файле диспетчера колонка «снимается» пустая, в нашей выгрузке там
+        // стоит освобождаемое занятие.
+        resultRows
+            .Where(row => row[1].Length > 0 && row[1] == row[3])
+            .Should()
+            .OnlyContain(
+                row => IsMoveRow(row),
+                "заполненная «снимается» допустима только у переноса"
+            );
+    }
+
+    /// <summary>Перенос: примечание «вм.X» и пара «откуда» отличается от пары ввода.</summary>
+    private static bool IsMoveRow(string[] row)
+    {
+        var match = Regex.Match(row[6] ?? string.Empty, @"вм\.?\s*(\d{1,2})");
+        return match.Success && match.Groups[1].Value != NormalizePair(row[5]);
     }
 
     private static (string Date, List<string[]> Rows) ReadRows(IXLWorksheet sheet)
@@ -107,6 +125,15 @@ public class CorrectionRoundTripTests : IDisposable
                 continue;
 
             values[5] = NormalizePair(values[5]);
+            // Перенос в файле диспетчера несёт примечание «вм.X» и пустую
+            // колонку «снимается», в нашей выгрузке там освобождаемое занятие —
+            // для сравнения приводим оба варианта к виду файла диспетчера.
+            if (values[1].Length > 0 && values[1] == values[3])
+            {
+                values[1] = string.Empty;
+                values[2] = string.Empty;
+            }
+
             rows.Add(values);
         }
 

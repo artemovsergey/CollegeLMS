@@ -1015,6 +1015,45 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExportAsync_Move_FillsRemovedColumnsWithFreedLesson()
+    {
+        // Перенос в файле диспетчера несёт только примечание «вм.X», и колонка
+        // «снимается» выглядит незаполненной. В выгрузке занятие, которое
+        // освобождает пару «откуда», должно быть видно — иначе по файлу не
+        // понять, что именно переносится.
+        var group = await SeedGroupAsync();
+
+        using var stream = BuildWorkbook(
+            "Корректировка на 11.09.2026 г.",
+            ws =>
+            {
+                ws.Cell(7, 1).Value = group.Name;
+                ws.Cell(7, 4).Value = "Математика";
+                ws.Cell(7, 5).Value = "Марченко И.А.";
+                ws.Cell(7, 6).Value = 2;
+                ws.Cell(7, 7).Value = "вм.4 п.";
+            }
+        );
+
+        var imported = await _sut.ImportAsync(stream, Guid.NewGuid(), CancellationToken.None);
+        imported.IsSuccess.Should().BeTrue();
+
+        var exported = await _sut.ExportAsync(
+            imported.Data!.BatchId!.Value,
+            CancellationToken.None
+        );
+        exported.IsSuccess.Should().BeTrue();
+
+        using var book = new XLWorkbook(new MemoryStream(exported.Data!.Content));
+        var sheet = book.Worksheet(1);
+
+        sheet.Cell(7, 2).GetString().Trim().Should().Be("Математика");
+        sheet.Cell(7, 3).GetString().Trim().Should().Be("Марченко И.А.");
+        sheet.Cell(7, 4).GetString().Trim().Should().Be("Математика");
+        sheet.Cell(7, 7).GetString().Trim().Should().Be("вм.4 п.");
+    }
+
+    [Fact]
     public async Task ImportAsync_RowWithDataError_StillCreatesBatch()
     {
         await SeedTeacherAsync();

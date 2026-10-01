@@ -1077,16 +1077,14 @@ export function CorrectionPositionDialog({
             <PreviewCell label="Группа" value={preview.groupName} />
             <PreviewCell
               label="Снимается"
+              // Для переноса важнее номер освобождаемой пары: он живёт в
+              // примечании «вм.X», а колонка «снимается» повторяет вводимое занятие.
               value={
-                // При переносе в файле колонка пустая (занятие само переезжает),
-                // поэтому показываем освобождаемую пару здесь.
-                preview.removedSubject
-                  ? [preview.removedSubject, preview.removedTeacher]
+                preview.movedFrom
+                  ? `пара ${preview.movedFrom.pair} — ${preview.movedFrom.lesson}`
+                  : [preview.removedSubject, preview.removedTeacher]
                       .filter(Boolean)
                       .join(" ")
-                  : preview.movedFrom
-                    ? `пара ${preview.movedFrom.pair} — ${preview.movedFrom.lesson}`
-                    : ""
               }
             />
             <PreviewCell

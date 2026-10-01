@@ -76,6 +76,9 @@ export function toCorrectionRow(input: CorrectionRowInput): CorrectionRowPreview
       ? `вм.${input.removedNumberPair}`
       : "")
 
+  // При переносе снимается само вводимое занятие, но диспетчеру в файле и в
+  // предпросмотре нужно видеть его в колонке «снимается» — пара «откуда»
+  // остаётся в примечании «вм.X».
   const movedFrom =
     isMove && input.removedNumberPair != null && input.removedNumberPair !== input.numberPair
       ? {
@@ -88,8 +91,8 @@ export function toCorrectionRow(input: CorrectionRowInput): CorrectionRowPreview
 
   return {
     groupName: input.groupName,
-    removedSubject: isMove ? "" : (input.removedSubject ?? ""),
-    removedTeacher: isMove ? "" : shortTeacherName(input.removedTeacherName),
+    removedSubject: input.removedSubject ?? "",
+    removedTeacher: shortTeacherName(input.removedTeacherName),
     addedSubject: isRemove ? "" : (input.subject ?? ""),
     addedTeacher: isRemove ? "" : shortTeacherName(input.teacherName),
     numberPair: input.numberPair,
