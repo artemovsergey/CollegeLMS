@@ -1080,19 +1080,15 @@ export function CorrectionPositionDialog({
             <PreviewCell
               label="Снимается"
               // Чистый перенос: в колонке «снимается» стоит вводимое занятие,
-              // а номер освобождаемой пары живёт в примечании «вм.X». При замене
-              // с переносом снимается прежнее занятие, и освобождаемая пара
-              // добавляется к нему — обе операции видны в одной строке.
+              // а номер освобождаемой пары живёт в примечании «вм.X», поэтому он и
+              // подписан здесь. Во всех остальных случаях ячейка повторяет файл
+              // ровно — никаких дописываний про перенос.
               value={
-                !preview.movedFrom
-                  ? [preview.removedSubject, preview.removedTeacher]
+                preview.movedFrom && preview.removedSubject === preview.addedSubject
+                  ? `пара ${preview.movedFrom.pair} — ${preview.movedFrom.lesson}`
+                  : [preview.removedSubject, preview.removedTeacher]
                       .filter(Boolean)
                       .join(" ")
-                  : preview.removedSubject === preview.addedSubject
-                    ? `пара ${preview.movedFrom.pair} — ${preview.movedFrom.lesson}`
-                    : `${[preview.removedSubject, preview.removedTeacher]
-                        .filter(Boolean)
-                        .join(" ")} + перенос из пары ${preview.movedFrom.pair}`
               }
             />
             <PreviewCell
