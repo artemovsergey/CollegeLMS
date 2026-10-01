@@ -1199,10 +1199,10 @@ function PreviewCell({ label, value }: { label: string; value: string }) {
     <div className="grid gap-0.5">
       <dt className="text-muted-foreground">{label}</dt>
       <dd
-        className={cn(
-          "truncate font-medium",
-          !value && "text-muted-foreground",
-        )}
+        // Значения короткие, но «пара N — Предмет Преподаватель» в тесной
+        // колонке обрезался многоточием и читался как «преподаватель не указан» —
+        // поэтому переносим, а не режем.
+        className={cn("break-words font-medium", !value && "text-muted-foreground")}
         title={value || undefined}
       >
         {value || "—"}
