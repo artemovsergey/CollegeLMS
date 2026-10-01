@@ -125,6 +125,11 @@ public class CorrectionRoundTripTests : IDisposable
                 continue;
 
             values[5] = NormalizePair(values[5]);
+            // Предмет приводится к названию расписания, поэтому «ОБП и ЗР» из
+            // файла диспетчера и «ОБПиЗР» из нашей выгрузки — один предмет.
+            // Сравнивать надо названия, а не написание: в этом и смысл выгрузки.
+            values[1] = NormalizeSubject(values[1]);
+            values[3] = NormalizeSubject(values[3]);
             // Перенос в файле диспетчера несёт примечание «вм.X» и пустую
             // колонку «снимается», в нашей выгрузке там освобождаемое занятие —
             // для сравнения приводим оба варианта к виду файла диспетчера.
@@ -145,6 +150,9 @@ public class CorrectionRoundTripTests : IDisposable
         var match = Regex.Match(text, @"^(\d{1,2})\s*п?\.?$");
         return match.Success ? int.Parse(match.Groups[1].Value).ToString() : text;
     }
+
+    private static string NormalizeSubject(string text) =>
+        text.Length == 0 ? text : ScheduleImportService.NormalizeSubject(text);
 
     private static void EnsureCorrectionTemplate()
     {

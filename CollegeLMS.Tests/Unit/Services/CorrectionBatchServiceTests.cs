@@ -320,12 +320,14 @@ public class CorrectionBatchServiceTests : IDisposable
     public async Task ApplyAsync_ReplaceWithFromPairNote_ReplacesInTargetAndFreesSource()
     {
         // «Заменить» + «вм.4 п.» при вводе в пару 2: в паре 2 вместо
-        // прежнего встанет новое, а само новое освободит пару 4.
+        // прежнего встанет новое, а само новое освободит пару 4. Названия
+        // предметов — как в расписании: приведение написаний проверяется
+        // отдельно, здесь важны пары и предмет замены.
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
         var newTeacher = await SeedTeacherAsync("Сидоров С.С.");
-        await SeedEntryAsync(group.Id, teacher.Id, "ОБП и ЗР", 2, [2]);
-        await SeedEntryAsync(group.Id, newTeacher.Id, "Обществ.", 4, [2]);
+        await SeedEntryAsync(group.Id, teacher.Id, "ОБПиЗР", 2, [2]);
+        await SeedEntryAsync(group.Id, newTeacher.Id, "Обществоз.", 4, [2]);
         var batch = await CreateBatchAsync();
 
         await _sut.AddPositionAsync(
@@ -336,10 +338,10 @@ public class CorrectionBatchServiceTests : IDisposable
                 GroupId = group.Id,
                 GroupName = group.Name,
                 NumberPair = 2,
-                Subject = "Обществ.",
+                Subject = "Обществоз.",
                 TeacherId = newTeacher.Id,
                 TeacherName = newTeacher.User.FullName,
-                RemovedSubject = "ОБП и ЗР",
+                RemovedSubject = "ОБПиЗР",
                 RemovedTeacherId = teacher.Id,
                 RemovedTeacherName = teacher.User.FullName,
                 RemovedNumberPair = 4,
@@ -356,11 +358,12 @@ public class CorrectionBatchServiceTests : IDisposable
         );
 
         result.IsSuccess.Should().BeTrue();
-        // Пара 4 освободилась, в паре 2 осталось новое занятие.
+        // Пара 4 освободилась, в паре 2 осталось новое занятие. Название приведено
+        // к названию расписания: «Обществ.» → «Обществоз.».
         var entries = _db.ScheduleEntries.OrderBy(e => e.NumberPair).ToList();
         entries.Should().ContainSingle();
         entries[0].NumberPair.Should().Be(2);
-        entries[0].Subject.Should().Be("Обществ.");
+        entries[0].Subject.Should().Be("Обществоз.");
 
         // В журнале две записи: добавленное занятие в паре 2 (вместо прежнего) и
         // снятое из пары 4.
@@ -375,11 +378,11 @@ public class CorrectionBatchServiceTests : IDisposable
     public async Task ApplyAsync_ReplaceInSamePair_SwapsLessonInOneTransaction()
     {
         // Обычная замена без «вм.X»: прежнее занятие исчезает, новое встаёт
-        // на его место, пара не меняется.
+        // на его место, пара не меняется. Названия предметов — как в расписании.
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
         var newTeacher = await SeedTeacherAsync("Сидоров С.С.");
-        await SeedEntryAsync(group.Id, teacher.Id, "ОБП и ЗР", 2, [2]);
+        await SeedEntryAsync(group.Id, teacher.Id, "ОБПиЗР", 2, [2]);
         var batch = await CreateBatchAsync();
 
         await _sut.AddPositionAsync(
@@ -390,10 +393,10 @@ public class CorrectionBatchServiceTests : IDisposable
                 GroupId = group.Id,
                 GroupName = group.Name,
                 NumberPair = 2,
-                Subject = "Обществ.",
+                Subject = "Обществоз.",
                 TeacherId = newTeacher.Id,
                 TeacherName = newTeacher.User.FullName,
-                RemovedSubject = "ОБП и ЗР",
+                RemovedSubject = "ОБПиЗР",
                 RemovedTeacherId = teacher.Id,
                 RemovedTeacherName = teacher.User.FullName,
                 RemovedNumberPair = 2,
@@ -411,12 +414,12 @@ public class CorrectionBatchServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
         entry.NumberPair.Should().Be(2);
-        entry.Subject.Should().Be("Обществ.");
+        entry.Subject.Should().Be("Обществоз.");
         // Одна запись журнала: замена — это добавление со снимаемым занятием,
         // поэтому в журнале тип «добавлено» и снятое занятие в полях Removed*.
         var history = result.Data!.History.Should().ContainSingle().Subject;
         history.ChangeType.Should().Be(ScheduleChangeType.Add);
-        history.RemovedSubject.Should().Be("ОБП и ЗР");
+        history.RemovedSubject.Should().Be("ОБПиЗР");
     }
 
     [Fact]
@@ -998,9 +1001,11 @@ public class CorrectionBatchServiceTests : IDisposable
             .Should()
             .Equal(ScheduleChangeType.Add, ScheduleChangeType.Add, ScheduleChangeType.Remove);
 
-        // Замена: снимаемое занятие — из колонки «снимается».
+        // Замена: снимаемое занятие — из колонки «снимается». Название предмета
+        // приводится к тому, что в расписании, поэтому «ОБП и ЗР» становится
+        // «ОБПиЗР» — иначе позиция потом не нашла бы занятие в паре.
         var replace = imported.Data.Positions[0];
-        replace.RemovedSubject.Should().Be("ОБП и ЗР");
+        replace.RemovedSubject.Should().Be("ОБПиЗР");
         replace.RemovedTeacherName.Should().Be("Абатуров С.А.");
         replace.RemovedNumberPair.Should().BeNull();
 

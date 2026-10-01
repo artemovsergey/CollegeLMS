@@ -369,9 +369,10 @@ public class ScheduleCorrectionService(
         for (int row = 7; row <= lastRow; row++)
         {
             var groupName = ws.Cell(row, 1).GetString().Trim();
-            var removeSubject = ws.Cell(row, 2).GetString().Trim();
+            // Как и при импорте пакета, предмет приводится к написанию расписания.
+            var removeSubject = NormalizeSubjectCell(ws.Cell(row, 2));
             var removeTeacher = ws.Cell(row, 3).GetString().Trim();
-            var addSubject = ws.Cell(row, 4).GetString().Trim();
+            var addSubject = NormalizeSubjectCell(ws.Cell(row, 4));
             var addTeacher = ws.Cell(row, 5).GetString().Trim();
             var pairValue = ws.Cell(row, 6).Value;
             var note = ws.Cell(row, 7).GetString().Trim();
@@ -725,9 +726,13 @@ public class ScheduleCorrectionService(
         for (int row = 7; row <= lastRow; row++)
         {
             var groupName = ws.Cell(row, 1).GetString().Trim();
-            var removeSubject = ws.Cell(row, 2).GetString().Trim();
+            // Предмет приводится к тому написанию, что в расписании: диспетчер
+            // пишет «Ин.язык(1и2)» или «ОА и П», а в базе должен лежать «Ин.язык»
+            // и «ОАиП» — иначе позиция не найдёт занятие при переносе, а в файле
+            // на выходе будет другое название, чем в расписании.
+            var removeSubject = NormalizeSubjectCell(ws.Cell(row, 2));
             var removeTeacher = ws.Cell(row, 3).GetString().Trim();
-            var addSubject = ws.Cell(row, 4).GetString().Trim();
+            var addSubject = NormalizeSubjectCell(ws.Cell(row, 4));
             var addTeacher = ws.Cell(row, 5).GetString().Trim();
             var pairValue = ParsePair(ws.Cell(row, 6).Value);
             var pair = pairValue ?? 0;
@@ -893,6 +898,16 @@ public class ScheduleCorrectionService(
         @"^(\d{1,2})\s*п?\.?$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
+
+    /// <summary>
+    /// Название предмета из ячейки в написании расписания. Пустая ячейка остаётся
+    /// пустой: нормализация не должна превращать отсутствие предмета в строку.
+    /// </summary>
+    private static string NormalizeSubjectCell(IXLCell cell)
+    {
+        var value = cell.GetString().Trim();
+        return value.Length == 0 ? string.Empty : ScheduleImportService.NormalizeSubject(value);
+    }
 
     private static int? ParsePair(XLCellValue pairValue)
     {
