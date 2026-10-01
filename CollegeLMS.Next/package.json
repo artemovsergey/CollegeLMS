@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:e2e": "playwright test",
+    "test:e2e:stand": "PLAYWRIGHT_BASE_URL=http://localhost playwright test e2e/dispatcher-corrections.spec.ts --project=chromium",
     "check:design-system": "node scripts/check-design-system.mjs && node scripts/check-token-contrast.mjs",
     "check:token-contrast": "node scripts/check-token-contrast.mjs",
     "check:design-system:report": "node scripts/check-token-contrast.mjs --report"
