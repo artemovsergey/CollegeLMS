@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import ContentRenderer from "@/components/ContentRenderer"
 import Image from "next/image"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 const normalizeUrl = (url: string) =>
   url.replace(/-[0-9]+x[0-9]+(\.[a-z]+)$/, "$1")
@@ -124,7 +125,7 @@ export default function NewsDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+        <LoadingSpinner />
       </div>
     )
   }

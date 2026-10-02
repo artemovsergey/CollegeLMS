@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, StudentDashboardResponse, ProfileResponse } from "@/types"
@@ -224,7 +225,7 @@ export default function StudentDashboardPage() {
       </div>
 
       {dashboard && dashboard.courses.length === 0 && (
-        <p className="text-muted-foreground">У вас нет активных курсов</p>
+        <EmptyState message="У вас нет активных курсов" className="py-8" />
       )}
 
       {dashboard && dashboard.courses.length > 0 && (

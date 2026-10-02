@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
@@ -301,7 +302,7 @@ export default function UsersPage() {
       {loading ? (
         <LoadingSpinner size="lg" className="py-20" />
       ) : users.length === 0 ? (
-        <p className="text-muted-foreground">Нет пользователей</p>
+        <EmptyState message="Нет пользователей" className="py-8" />
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>

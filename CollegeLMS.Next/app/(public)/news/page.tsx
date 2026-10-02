@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
@@ -8,6 +9,7 @@ import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import Pagination from "@/components/ui/pagination"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 const ITEMS_PER_PAGE = 12
 
@@ -136,11 +138,11 @@ export default function NewsListPage() {
       {/* Loading */}
       {loading ? (
           <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+          <LoadingSpinner />
         </div>
       ) : news.length === 0 ? (
         <div className="py-20 text-center">
-          <p className="text-muted-foreground">Новостей пока нет</p>
+          <EmptyState message="Новостей пока нет" className="border-0 py-8" />
         </div>
       ) : (
         <>

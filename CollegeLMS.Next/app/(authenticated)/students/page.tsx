@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { useEffect, useState, useCallback, useRef } from "react"
 import type { Result, StudentResponse, GroupResponse, TransferRecordResponse } from "@/types"
 import api from "@/lib/api"
@@ -413,7 +414,7 @@ export default function StudentsPage() {
       {loading ? (
         <LoadingSpinner size="lg" className="py-20" />
       ) : filteredStudents.length === 0 ? (
-        <p className="text-muted-foreground">Нет студентов</p>
+        <EmptyState message="Нет студентов" className="py-8" />
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>

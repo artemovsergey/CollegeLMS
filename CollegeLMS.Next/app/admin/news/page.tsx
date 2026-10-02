@@ -1,5 +1,8 @@
 "use client"
 
+import ErrorBanner from "@/components/ErrorBanner"
+import EmptyState from "@/components/EmptyState"
+import LoadingSpinner from "@/components/LoadingSpinner"
 import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type {
@@ -538,15 +541,15 @@ export default function AdminNewsPage() {
       )}
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
+        <ErrorBanner message={error} />
       )}
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+          <LoadingSpinner />
         </div>
       ) : news.length === 0 ? (
-        <p className="text-muted-foreground">Новостей пока нет</p>
+        <EmptyState message="Новостей пока нет" className="py-8" />
       ) : (
         <>
           <div className="rounded-lg border bg-card">

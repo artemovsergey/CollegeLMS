@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, GroupResponse, CreateGroupRequest } from "@/types"
 import api from "@/lib/api"
@@ -195,7 +196,7 @@ export default function GroupsPage() {
       {loading ? (
         <LoadingSpinner size="lg" className="py-20" />
       ) : groups.length === 0 ? (
-        <p className="text-muted-foreground">Нет групп</p>
+        <EmptyState message="Нет групп" className="py-8" />
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>

@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -193,7 +194,7 @@ export default function LessonList({
   return (
     <div className="flex flex-col gap-3">
       {sorted.length === 0 ? (
-        <p className="text-muted-foreground">Нет занятий</p>
+        <EmptyState message="Нет занятий" className="py-8" />
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={sorted.map(l => l.id)} strategy={verticalListSortingStrategy}>

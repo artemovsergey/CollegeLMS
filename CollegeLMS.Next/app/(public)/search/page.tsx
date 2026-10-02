@@ -8,6 +8,7 @@ import { Search as SearchIcon } from "lucide-react"
 import type { Result, PagedResponse, NewsResponse, SearchResult } from "@/types"
 import api from "@/lib/api"
 import EmptyState from "@/components/EmptyState"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 function SearchResults() {
   const router = useRouter()
@@ -210,7 +211,7 @@ function SearchResults() {
 
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+          <LoadingSpinner />
         </div>
       )}
 
@@ -288,7 +289,7 @@ function SearchResults() {
           <SubTitle className="mb-4">Последние новости</SubTitle>
           {recentNews.length === 0 ? (
             <div className="rounded-lg border border-border bg-card p-8 text-center">
-              <p className="text-muted-foreground">Новостей пока нет</p>
+              <EmptyState message="Новостей пока нет" className="border-0 py-6" />
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -332,7 +333,7 @@ export default function SearchPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+          <LoadingSpinner />
         </div>
       }
     >

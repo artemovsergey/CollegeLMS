@@ -1,5 +1,6 @@
 "use client"
 
+import ErrorBanner from "@/components/ErrorBanner"
 import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useMemo } from "react"
 import { Loader2, AlertTriangle } from "lucide-react"
@@ -170,10 +171,7 @@ export default function DispatcherDashboardPage() {
       <PageTitle>Панель диспетчера</PageTitle>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          <AlertTriangle className="size-4 shrink-0" />
-          {error}
-        </div>
+        <ErrorBanner message={error} />
       )}
 
       <DispatcherLiveSection />

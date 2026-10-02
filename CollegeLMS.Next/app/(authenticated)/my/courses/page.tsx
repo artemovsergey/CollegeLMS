@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { PageShell } from "@/components/ui/page-shell"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
@@ -60,7 +61,7 @@ export default function MyCoursesPage() {
         <LoadingSpinner size="lg" />
       </div>
       ) : courses.length === 0 ? (
-        <p className="text-muted-foreground">Вы не записаны ни на один курс</p>
+        <EmptyState message="Вы не записаны ни на один курс" className="py-8" />
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>

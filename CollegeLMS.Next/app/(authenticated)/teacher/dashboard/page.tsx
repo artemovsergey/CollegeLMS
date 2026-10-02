@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { PageShell } from "@/components/ui/page-shell"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, TeacherDashboardResponse } from "@/types"
@@ -57,7 +58,7 @@ export default function TeacherDashboardPage() {
       {error && <ErrorBanner message={error} />}
 
       {dashboard && dashboard.courses.length === 0 && (
-        <p className="text-muted-foreground">У вас нет курсов</p>
+        <EmptyState message="У вас нет курсов" className="py-8" />
       )}
 
       {dashboard && dashboard.courses.length > 0 && (

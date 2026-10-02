@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, TeacherResponse } from "@/types"
@@ -182,7 +183,7 @@ export default function TeachersPage() {
       {loading ? (
         <LoadingSpinner size="lg" className="py-20" />
       ) : teachers.length === 0 ? (
-        <p className="text-muted-foreground">Нет преподавателей</p>
+        <EmptyState message="Нет преподавателей" className="py-8" />
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>

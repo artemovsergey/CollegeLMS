@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Copy, Trash2 } from "lucide-react"
@@ -123,7 +124,7 @@ export default function CoursesPage() {
         <LoadingSpinner size="lg" />
       </div>
       ) : courses.length === 0 ? (
-        <p className="text-muted-foreground">Нет курсов</p>
+        <EmptyState message="Нет курсов" className="py-8" />
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>

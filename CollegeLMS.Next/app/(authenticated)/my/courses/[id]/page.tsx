@@ -1,5 +1,6 @@
 "use client"
 
+import ErrorBanner from "@/components/ErrorBanner"
 import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
@@ -13,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import LessonList from "@/components/lesson/LessonList"
 import DocumentsTab from "@/components/course/DocumentsTab"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 const roleVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   Admin: "default",
@@ -77,7 +79,7 @@ export default function MyCourseDetailPage() {
   if (error) {
     return (
       <div className="flex flex-col gap-4 p-6 max-w-5xl mx-auto">
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
+        <ErrorBanner message={error} />
         <Button variant="ghost" onClick={() => router.push("/my/courses")}>Назад к курсам</Button>
       </div>
     )
@@ -159,7 +161,7 @@ export default function MyCourseDetailPage() {
 function Loading() {
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+      <LoadingSpinner />
     </div>
   )
 }

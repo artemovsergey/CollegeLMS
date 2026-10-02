@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { SectionTitle } from "@/components/ui/heading"
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -83,7 +84,7 @@ function HomePageContent() {
               ))}
             </div>
           ) : news.length === 0 && !error ? (
-            <p className="text-center text-muted-foreground">Новостей пока нет</p>
+            <EmptyState message="Новостей пока нет" className="border-0 py-8" />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {news.map((item) => (
