@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { specialties } from "@/data/specialties"
@@ -9,7 +10,7 @@ export default function SpecialtiesSection() {
     <section className="py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-12 text-center">
-          <h2 className="mb-3 text-3xl font-bold text-fg">Специальности</h2>
+          <SectionTitle className="mb-3">Специальности</SectionTitle>
           <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             Выберите свою будущую профессию среди востребованных направлений подготовки
           </p>

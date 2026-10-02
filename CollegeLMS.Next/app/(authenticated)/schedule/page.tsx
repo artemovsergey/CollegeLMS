@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import type { Result, GroupResponse, TeacherResponse } from "@/types"
@@ -476,7 +477,7 @@ export default function SchedulePage() {
     <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-4 p-6">
       <div className="flex items-center gap-2">
         <CalendarDays className="size-5 text-primary" aria-hidden />
-        <h2 className="text-xl font-semibold">Расписание</h2>
+        <PageTitle>Расписание</PageTitle>
       </div>
 
       <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">

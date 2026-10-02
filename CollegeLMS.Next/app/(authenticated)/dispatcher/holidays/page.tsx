@@ -42,6 +42,7 @@ import Pagination from "@/components/ui/pagination"
 import ErrorBanner from "@/components/ErrorBanner"
 import EmptyState from "@/components/EmptyState"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { PageShell } from "@/components/ui/page-shell"
 import {
   createNonWorkingDay,
   deleteNonWorkingDay,
@@ -207,13 +208,11 @@ export default function DispatcherHolidaysPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Календарь</h1>
-        <p className="text-sm text-muted-foreground">
-          Нерабочие дни отменяют занятия, рабочие — переносят их на выходной.
-        </p>
-      </header>
+    <PageShell
+      density="compact"
+      title="Календарь"
+      description="Нерабочие дни отменяют занятия, рабочие — переносят их на выходной."
+    >
 
       <div
         role="tablist"
@@ -510,6 +509,6 @@ export default function DispatcherHolidaysPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }

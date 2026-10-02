@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { Button } from "@/components/ui/button"
 
 export default function ErrorPage({
@@ -11,7 +12,7 @@ export default function ErrorPage({
 }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-      <h2 className="text-xl font-semibold">Что-то пошло не так</h2>
+      <PageTitle>Что-то пошло не так</PageTitle>
       <p className="text-muted-foreground">{error.message}</p>
       <Button onClick={reset}>Попробовать снова</Button>
     </div>

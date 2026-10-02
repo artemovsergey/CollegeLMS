@@ -1,3 +1,4 @@
+import { SectionTitle } from "@/components/ui/heading"
 import { FileText, Award, ScrollText } from "lucide-react"
 
 const docs = [
@@ -22,7 +23,7 @@ export default function LicensesSection() {
   return (
     <section className="bg-muted py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Лицензии и документы</h2>
+        <SectionTitle className="mb-8 text-center ">Лицензии и документы</SectionTitle>
         <div className="mx-auto grid max-w-3xl gap-4">
           {docs.map((doc) => (
             <div

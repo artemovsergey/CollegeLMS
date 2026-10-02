@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -161,7 +162,7 @@ export default function NewsDetailPage() {
               })}
               {news.categoryName && ` · ${news.categoryName}`}
             </p>
-            <h1 className="text-xl font-bold leading-tight sm:text-2xl">{news.title}</h1>
+            <PageTitle className="text-2xl leading-tight sm:text-3xl">{news.title}</PageTitle>
             {excerpt && <p className="line-clamp-3 text-sm text-primary-foreground/90">{excerpt}</p>}
           </div>
           <button
@@ -190,9 +191,9 @@ export default function NewsDetailPage() {
             })}
             {news.categoryName && ` · ${news.categoryName}`}
           </p>
-          <h1 className="text-2xl font-bold leading-tight text-primary-foreground sm:text-3xl">
+          <PageTitle className="leading-tight text-primary-foreground">
             {news.title}
-          </h1>
+          </PageTitle>
         </div>
       )}
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, TeacherResponse } from "@/types"
 import api from "@/lib/api"
@@ -137,7 +138,7 @@ export default function TeachersPage() {
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
 
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Преподаватели</h2>
+        <PageTitle>Преподаватели</PageTitle>
         {isAdmin && (
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>

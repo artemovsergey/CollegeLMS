@@ -1,3 +1,4 @@
+import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Metadata } from "next"
@@ -43,7 +44,7 @@ export default function SpecialtyDetailPage({ params }: { params: { slug: string
               <Icon size={32} />
             </span>
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-fg leading-tight">{spec.title}</h1>
+              <PageTitle className="leading-tight">{spec.title}</PageTitle>
               <p className="mt-1 text-sm text-muted-foreground">{spec.level}</p>
             </div>
           </div>
@@ -67,13 +68,13 @@ export default function SpecialtyDetailPage({ params }: { params: { slug: string
 
         {/* Description */}
         <div className="prose prose-sm dark:prose-invert max-w-none mb-10">
-          <h2 className="text-lg font-semibold text-fg">О специальности</h2>
+          <SubTitle>О специальности</SubTitle>
           <p className="text-muted-foreground leading-relaxed">{spec.description}</p>
         </div>
 
         {/* Qualifications */}
         <div className="mb-10 rounded-xl border border-border bg-card p-6">
-          <h2 className="mb-4 text-lg font-semibold text-fg">Квалификация</h2>
+          <SubTitle className="mb-4">Квалификация</SubTitle>
           <ul className="space-y-2">
             {spec.qualifications.map((q) => (
               <li key={q} className="flex items-start gap-3 text-sm text-fg">
@@ -86,7 +87,7 @@ export default function SpecialtyDetailPage({ params }: { params: { slug: string
 
         {/* Duration */}
         <div className="mb-10 rounded-xl border border-border bg-card p-6">
-          <h2 className="mb-4 text-lg font-semibold text-fg">Срок обучения</h2>
+          <SubTitle className="mb-4">Срок обучения</SubTitle>
           <p className="text-sm text-muted-foreground">{spec.duration}</p>
         </div>
 

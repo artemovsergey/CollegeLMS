@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { History, Inbox, RefreshCw } from "lucide-react"
@@ -144,7 +145,7 @@ export default function ChangesPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <History className="size-5 text-primary" aria-hidden />
-          <h2 className="text-xl font-semibold">Изменения расписания</h2>
+          <PageTitle>Изменения расписания</PageTitle>
         </div>
         <div className="flex items-center gap-2">
           {totalCount > 0 && (

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageShell } from "@/components/ui/page-shell"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, TeacherDashboardResponse } from "@/types"
 import api from "@/lib/api"
@@ -48,10 +49,10 @@ export default function TeacherDashboardPage() {
   )
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-      {user && (
-        <h2 className="text-xl font-semibold">Здравствуйте, {user.fullName}</h2>
-      )}
+    <PageShell
+      density="compact"
+      title={user ? `Здравствуйте, ${user.fullName}` : undefined}
+    >
 
       {error && <ErrorBanner message={error} />}
 
@@ -72,6 +73,6 @@ export default function TeacherDashboardPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

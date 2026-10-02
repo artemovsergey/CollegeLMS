@@ -1,5 +1,6 @@
 "use client"
 
+import { PageShell } from "@/components/ui/page-shell"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import type { Result, CourseResponse } from "@/types"
@@ -50,8 +51,7 @@ export default function MyCoursesPage() {
 
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-      <h2 className="text-xl font-semibold">Мои курсы</h2>
+    <PageShell density="compact" title="Мои курсы">
 
       {error && <ErrorBanner message={error} />}
 
@@ -89,7 +89,7 @@ export default function MyCoursesPage() {
           </Table>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }
 

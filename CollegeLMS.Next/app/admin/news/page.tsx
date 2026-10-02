@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type {
   Result,
@@ -438,7 +439,7 @@ export default function AdminNewsPage() {
   return (
     <div className="flex flex-col gap-6 p-6 mx-auto max-w-5xl">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Новости</h2>
+        <PageTitle>Новости</PageTitle>
         <div className="flex items-center gap-2">
           {canManage && (
             <>

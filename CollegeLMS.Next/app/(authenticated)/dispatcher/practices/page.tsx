@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import {
@@ -703,7 +704,7 @@ export default function DispatcherPracticesPage() {
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">Практики</h1>
+          <PageTitle>Практики</PageTitle>
           <p className="text-sm text-muted-foreground">
             Периоды УП и ПП: в это время обычные пары группы заменяются
             карточкой практики. Для УП задаются учебные дни и номера пар.

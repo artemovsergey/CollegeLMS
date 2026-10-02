@@ -1,3 +1,4 @@
+import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import { GraduationCap, Users, School, Building2, Award, TrendingUp } from "lucide-react"
 
 const facts = [
@@ -32,7 +33,7 @@ export default function StatisticsSection() {
   return (
     <section className="bg-primary py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-2 text-center text-2xl font-semibold text-white">Колледж в цифрах</h2>
+        <SectionTitle className="mb-2 text-center text-white">Колледж в цифрах</SectionTitle>
         <p className="mb-10 text-center text-sm text-white/70">
           Факты и достижения Ставропольского колледжа связи
         </p>

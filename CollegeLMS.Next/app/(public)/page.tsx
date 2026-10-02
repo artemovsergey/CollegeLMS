@@ -1,5 +1,6 @@
 "use client"
 
+import { SectionTitle } from "@/components/ui/heading"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import type { Result, NewsResponse, PagedResponse } from "@/types"
@@ -45,7 +46,7 @@ function HomePageContent() {
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="mb-4 text-2xl font-semibold text-primary">О колледже</h2>
+            <SectionTitle className="mb-4 ">О колледже</SectionTitle>
             <p className="text-base leading-relaxed text-muted-foreground">
               Государственное бюджетное профессиональное образовательное учреждение
               «Ставропольский колледж связи имени Героя Советского Союза В.А. Петрова»
@@ -63,7 +64,7 @@ function HomePageContent() {
       <section className="bg-muted py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-primary">Последние новости</h2>
+            <SectionTitle className="">Последние новости</SectionTitle>
             <Button variant="ghost" asChild>
               <Link href="/news">Все новости →</Link>
             </Button>
@@ -114,7 +115,7 @@ function HomePageContent() {
 
       <section className="bg-muted py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Обратная связь</h2>
+          <SectionTitle className="mb-8 text-center ">Обратная связь</SectionTitle>
           <p className="mb-8 text-center text-sm text-muted-foreground">
             Есть вопрос или предложение? Напишите нам, и мы обязательно ответим.
           </p>

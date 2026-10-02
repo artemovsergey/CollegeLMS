@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import type {
@@ -203,7 +204,7 @@ export default function LessonTestPage() {
           &larr; Назад к занятию
         </Button>
         <div className="rounded-lg border bg-card p-8 flex flex-col items-center gap-4">
-          <h2 className="text-xl font-semibold">Тест по занятию «{lesson?.title ?? ""}»</h2>
+          <PageTitle>Тест по занятию «{lesson?.title ?? ""}»</PageTitle>
           <p className="text-sm text-muted-foreground">
             Отвечайте на вопросы по материалу занятия. После отправки вы увидите результат.
           </p>

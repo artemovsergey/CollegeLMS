@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import ErrorBanner from "@/components/ErrorBanner"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { PageShell } from "@/components/ui/page-shell"
 import {
   createBellProfile,
   deleteBellProfile,
@@ -404,25 +405,20 @@ export default function DispatcherBellsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-semibold">Звонки</h1>
+      <PageShell density="compact" title="Звонки">
         <div role="status" aria-label="Загрузка профилей звонков">
           <LoadingSpinner size="lg" className="py-24" />
         </div>
-      </div>
+      </PageShell>
     )
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Звонки</h1>
-        <p className="text-sm text-muted-foreground">
-          Профили звонков для расписания, экспорта и бота. Профиль выбирается по
-          дате, затем по дню недели, иначе применяется профиль по умолчанию.
-        </p>
-      </header>
-
+    <PageShell
+      density="compact"
+      title="Звонки"
+      description="Профили звонков для расписания, экспорта и бота. Профиль выбирается по дате, затем по дню недели, иначе применяется профиль по умолчанию."
+    >
       {loadError && (
         <>
           <ErrorBanner message={loadError} className="justify-between" />
@@ -879,6 +875,6 @@ export default function DispatcherBellsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }

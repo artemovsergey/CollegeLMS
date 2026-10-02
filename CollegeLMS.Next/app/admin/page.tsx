@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import type { User, Result, CreateUserRequest, UpdateUserRequest, ChangeRoleRequest } from "@/types"
@@ -232,7 +233,7 @@ export default function UsersPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Пользователи</h2>
+        <PageTitle>Пользователи</PageTitle>
         {isAdmin && (
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>

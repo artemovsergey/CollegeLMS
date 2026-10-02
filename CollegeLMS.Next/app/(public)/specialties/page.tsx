@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/ui/heading"
 import { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
@@ -13,7 +14,7 @@ export default function SpecialtiesPage() {
     <div className="py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-12 text-center">
-          <h1 className="mb-3 text-3xl font-bold text-fg">Специальности и профессии</h1>
+          <PageTitle className="mb-3">Специальности и профессии</PageTitle>
           <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             Колледж ведёт подготовку по востребованным направлениям в сфере IT, связи, электроэнергетики и радиоэлектроники
           </p>

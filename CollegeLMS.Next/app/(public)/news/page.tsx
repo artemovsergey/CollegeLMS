@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import type { Result, NewsResponse, NewsCategoryResponse, PagedResponse } from "@/types"
@@ -72,7 +73,7 @@ export default function NewsListPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-primary">Новости</h1>
+        <PageTitle>Новости</PageTitle>
         <p className="mt-1 text-sm text-muted-foreground">
           Последние события и объявления колледжа
         </p>

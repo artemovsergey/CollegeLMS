@@ -8,6 +8,7 @@ import { parseErrors } from "@/lib/errors"
 import ErrorBanner from "@/components/ErrorBanner"
 import FormField from "@/components/FormField"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { PageShell } from "@/components/ui/page-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -300,10 +301,10 @@ export default function StudentsPage() {
     : students
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Студенты</h2>
+    <PageShell
+      density="compact"
+      title="Студенты"
+      actions={
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-1">
             <Label htmlFor="filter-group" className="text-xs">Фильтр по группе</Label>
@@ -404,7 +405,8 @@ export default function StudentsPage() {
             </>
           )}
         </div>
-      </div>
+      }
+    >
 
       {error && <ErrorBanner message={error} />}
 
@@ -515,6 +517,6 @@ export default function StudentsPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   )
 }

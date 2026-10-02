@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import type { Result, CourseResponse, UpdateCourseRequest, TeacherResponse } from "@/types"
@@ -87,7 +88,7 @@ export default function EditCoursePage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold">Редактировать курс</h2>
+      <PageTitle>Редактировать курс</PageTitle>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && <ErrorBanner message={error} />}

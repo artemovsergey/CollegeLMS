@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -105,7 +106,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <h1 className="mb-6 text-2xl font-semibold text-primary text-center">Личный кабинет</h1>
+          <PageTitle className="mb-6 text-center">Личный кабинет</PageTitle>
 
           <div className="mb-6">
             <NativeSelect

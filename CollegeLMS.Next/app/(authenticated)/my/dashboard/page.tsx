@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, StudentDashboardResponse, ProfileResponse } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
@@ -136,9 +137,9 @@ export default function StudentDashboardPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       {user && (
-        <h2 className="text-xl font-semibold">
+        <PageTitle>
           Здравствуйте, {user.fullName}
-        </h2>
+        </PageTitle>
       )}
 
       {error && <ErrorBanner message={error} />}

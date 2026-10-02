@@ -1,5 +1,6 @@
 "use client"
 
+import { SectionTitle } from "@/components/ui/heading"
 import { useState } from "react"
 import { Play, Calendar, Clock, Tv, X } from "lucide-react"
 import Image from "next/image"
@@ -13,7 +14,7 @@ export default function MediaSection() {
   return (
     <section className="py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Колледж в СМИ</h2>
+        <SectionTitle className="mb-8 text-center ">Колледж в СМИ</SectionTitle>
 
         <div className="mx-auto max-w-2xl">
           <button

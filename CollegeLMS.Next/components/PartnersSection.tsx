@@ -1,10 +1,11 @@
+import { SectionTitle } from "@/components/ui/heading"
 import { partners } from "@/data/partners"
 
 export default function PartnersSection() {
   return (
     <section className="bg-muted py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Наши партнёры</h2>
+        <SectionTitle className="mb-8 text-center ">Наши партнёры</SectionTitle>
 
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {partners.map((p) => (

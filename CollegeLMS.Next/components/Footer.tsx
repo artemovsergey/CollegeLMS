@@ -41,7 +41,7 @@ const footerColumns: { title: string; items: FooterLink[] }[] = [
 export default function Footer() {
   return (
     <footer className="bg-muted border-t border-border">
-      <div className="mx-auto max-w-7xl px-4 lg:px-8 py-12">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           <div>
             <span className="inline-block mb-3 text-base font-bold text-primary">

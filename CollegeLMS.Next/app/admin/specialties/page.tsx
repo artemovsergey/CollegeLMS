@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, SpecialtyResponse, CreateSpecialtyRequest, UpdateSpecialtyRequest } from "@/types"
 import api from "@/lib/api"
@@ -237,7 +238,7 @@ export default function SpecialtiesPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Специальности</h2>
+        <PageTitle>Специальности</PageTitle>
         {isAdmin && (
           <Dialog open={showCreate} onOpenChange={open => { if (open) resetForm(); setShowCreate(open) }}>
             <DialogTrigger asChild>

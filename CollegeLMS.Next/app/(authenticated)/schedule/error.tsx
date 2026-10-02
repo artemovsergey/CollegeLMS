@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -13,7 +14,7 @@ export default function ScheduleError({
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-6">
       <AlertCircle className="size-12 text-destructive" />
-      <h2 className="text-xl font-semibold">Ошибка загрузки расписания</h2>
+      <PageTitle>Ошибка загрузки расписания</PageTitle>
       <p className="text-sm text-muted-foreground max-w-md text-center">
         {error.message || "Не удалось загрузить данные расписания. Проверьте подключение к серверу."}
       </p>

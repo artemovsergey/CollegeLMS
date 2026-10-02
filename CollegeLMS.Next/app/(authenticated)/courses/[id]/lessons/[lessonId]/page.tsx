@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
@@ -383,9 +384,9 @@ export default function LessonViewPage() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1 min-w-0">
-          <h2 className="text-xl font-semibold">
+          <PageTitle>
             {lesson.order}. {lesson.title}
-          </h2>
+          </PageTitle>
           <Badge variant={LESSON_KIND_VARIANTS[lesson.kind] ?? "outline"} className="w-fit">
             {LESSON_KIND_LABELS[lesson.kind] ?? lesson.kind}
           </Badge>

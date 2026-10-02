@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type {
   Result,
@@ -778,7 +779,7 @@ export default function AdminTestingPage() {
               <ArrowLeft className="size-4 mr-1" />
               Назад к списку
             </Button>
-            <h2 className="text-xl font-semibold">{selectedTest.title}</h2>
+            <PageTitle>{selectedTest.title}</PageTitle>
             <Badge variant="outline">{typeLabels[selectedTest.type] ?? selectedTest.type}</Badge>
           </div>
         </div>
@@ -1025,7 +1026,7 @@ export default function AdminTestingPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Тестирование</h2>
+        <PageTitle>Тестирование</PageTitle>
         {isAdmin && (
           <Dialog
             open={showCreateTest}

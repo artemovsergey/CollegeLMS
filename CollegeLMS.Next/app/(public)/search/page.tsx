@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle, SubTitle } from "@/components/ui/heading"
 import { useState, useEffect, useCallback, useRef, Suspense, type FormEvent } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -150,7 +151,7 @@ function SearchResults() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="mb-2 text-2xl font-bold text-primary">Поиск</h1>
+      <PageTitle className="mb-2">Поиск</PageTitle>
 
       <form onSubmit={handleSubmit} className="relative mb-6">
         <input
@@ -284,7 +285,7 @@ function SearchResults() {
 
       {!query && (
         <section className="mt-6">
-          <h2 className="mb-4 text-lg font-semibold text-fg">Последние новости</h2>
+          <SubTitle className="mb-4">Последние новости</SubTitle>
           {recentNews.length === 0 ? (
             <div className="rounded-lg border border-border bg-card p-8 text-center">
               <p className="text-muted-foreground">Новостей пока нет</p>

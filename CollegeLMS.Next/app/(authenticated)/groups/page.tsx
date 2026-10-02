@@ -8,6 +8,7 @@ import { parseErrors } from "@/lib/errors"
 import ErrorBanner from "@/components/ErrorBanner"
 import FormField from "@/components/FormField"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { PageShell } from "@/components/ui/page-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -155,11 +156,11 @@ export default function GroupsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Группы</h2>
-        {isAdmin && (
+    <PageShell
+      density="compact"
+      title="Группы"
+      actions={
+        <>{isAdmin && (
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>
               <Button size="sm">+ Создать</Button>
@@ -185,8 +186,9 @@ export default function GroupsPage() {
               </form>
             </DialogContent>
           </Dialog>
-        )}
-      </div>
+        )}</>
+      }
+    >
 
       {error && <ErrorBanner message={error} />}
 
@@ -250,7 +252,7 @@ export default function GroupsPage() {
           </Table>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
@@ -251,7 +252,7 @@ export default function TeacherJournalPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <BookOpen className="size-5 text-primary" aria-hidden />
-          <h2 className="text-xl font-semibold">Журнал преподавателя</h2>
+          <PageTitle>Журнал преподавателя</PageTitle>
         </div>
         <div className="flex items-center gap-2">
           {journal && (

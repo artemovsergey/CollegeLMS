@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useMemo } from "react"
 import { Loader2, AlertTriangle } from "lucide-react"
 import type { PagedResponse, Result } from "@/types"
@@ -166,7 +167,7 @@ export default function DispatcherDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
-      <h2 className="text-xl font-semibold">Панель диспетчера</h2>
+      <PageTitle>Панель диспетчера</PageTitle>
 
       {error && (
         <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">

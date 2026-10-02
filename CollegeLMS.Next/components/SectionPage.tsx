@@ -8,6 +8,7 @@ import DocsSidebar from "@/components/DocsSidebar"
 import { getSectionBySlug } from "@/data/site-content"
 import pageContents from "@/data/page-contents.json"
 import EmptyState from "@/components/EmptyState"
+import { PageTitle } from "@/components/ui/heading"
 
 interface SectionPageProps {
   sectionSlug: string
@@ -50,7 +51,6 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
     ? (pageContents as Record<string, { content: string }>)["trudoustroystvo"]?.content || ""
     : getContent(subSlug) || subsection.content
 
-  const titleClass = "text-primary"
   const boxClass = "rounded-lg border border-border bg-card p-8 text-center"
 
   return (
@@ -68,7 +68,7 @@ export default function SectionPage({ sectionSlug, slug }: SectionPageProps) {
             { label: subsection.title },
           ]}
         />
-        <h1 className={`mb-6 text-2xl font-bold ${titleClass}`}>{subsection.title}</h1>
+        <PageTitle className="mb-6">{subsection.title}</PageTitle>
         {rawContent ? (
           <ContentRenderer content={rawContent} />
         ) : (

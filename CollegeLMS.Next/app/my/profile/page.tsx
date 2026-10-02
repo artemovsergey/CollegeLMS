@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle, SubTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
@@ -138,12 +139,12 @@ export default function ProfilePage() {
         Назад
       </button>
 
-      <h1 className="mb-6 text-2xl font-semibold text-primary">Мой профиль</h1>
+      <PageTitle className="mb-6">Мой профиль</PageTitle>
 
       <div className="mb-8 rounded-lg border border-border bg-card p-6">
-        <h2 className="mb-4 text-lg font-medium text-foreground">
+        <SubTitle className="mb-4">
           Основные данные
-        </h2>
+        </SubTitle>
         <div className="space-y-4">
           {user?.role !== "Student" && (
             <div className="flex items-center gap-4">
@@ -200,9 +201,9 @@ export default function ProfilePage() {
 
       {profile.teacherData && (
         <div className="mb-8 rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-4 text-lg font-medium text-foreground">
+          <SubTitle className="mb-4">
             Данные преподавателя
-          </h2>
+          </SubTitle>
           <div className="space-y-4">
             <div>
               <Label htmlFor="cyclicalCommission">Цикловая комиссия</Label>
@@ -236,9 +237,9 @@ export default function ProfilePage() {
 
       {profile.studentData && (
         <div className="mb-8 rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-4 text-lg font-medium text-foreground">
+          <SubTitle className="mb-4">
             Данные студента
-          </h2>
+          </SubTitle>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Группа</span>

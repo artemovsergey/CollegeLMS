@@ -7,6 +7,7 @@ import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { PageShell } from "@/components/ui/page-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -88,8 +89,7 @@ export default function CreateCoursePage() {
   const teacherOptions = teachers.filter(t => t.id !== (user?.teacherId ?? ""))
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold">Создать курс</h2>
+    <PageShell density="compact" title="Создать курс">
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && <ErrorBanner message={error} />}
@@ -160,6 +160,6 @@ export default function CreateCoursePage() {
           </Button>
         </div>
       </form>
-    </div>
+    </PageShell>
   )
 }
