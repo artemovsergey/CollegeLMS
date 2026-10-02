@@ -301,10 +301,13 @@ export default function SchedulePage() {
         // Приоритет контекста: ссылка из «Изменений» → запомненный выбор →
         // группа/преподаватель по роли. Иначе возврат на страницу каждый раз
         // сбрасывал бы расписание на пустое.
+        // Именно `||`, а не `??`: запомненный выбор — это пустая строка,
+        // когда фильтр не выбран, и `??` на ней останавливался, не доходя
+        // до дефолта роли (у преподавателя и студента оставался пустой вид).
         const stored = readStoredSelection()
-        setSelectedGroupId(urlGroupRef.current ?? stored.groupId ?? groupId)
+        setSelectedGroupId(urlGroupRef.current || stored.groupId || groupId)
         setSelectedTeacherId(
-          urlTeacherRef.current ?? stored.teacherId ?? teacherId,
+          urlTeacherRef.current || stored.teacherId || teacherId,
         )
         if (urlGroupRef.current) setSelectedTeacherId("")
         if (urlTeacherRef.current) setSelectedGroupId("")

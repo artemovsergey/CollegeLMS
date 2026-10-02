@@ -44,6 +44,47 @@ const WEEK_VIEW = {
   statusCode: 200,
 }
 
+function dayEntry(groupId: string, groupName: string, teacherId: string | null, teacherName: string | null) {
+  return {
+    id: `e-${groupId}-${teacherId ?? "none"}`,
+    groupId,
+    groupName,
+    teacherId,
+    teacherName,
+    subject: "Математика",
+    room: "201",
+    dayOfWeek: 1,
+    numberPair: 1,
+    startTime: "08:30:00",
+    endTime: "10:00:00",
+    weeks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    lessonType: "Lecture",
+    changeTags: [],
+  }
+}
+
+const TEACHER_ID = "t-1"
+
+const DAY_VIEW = {
+  isSuccess: true,
+  data: {
+    date: "2026-09-21",
+    week: 4,
+    dayOfWeek: 1,
+    isSunday: false,
+    isNonWorking: false,
+    nonWorkingTitle: null,
+    practices: [],
+    inserts: [],
+    entries: [
+      dayEntry("g-1", "ТМ-1", TEACHER_ID, "Иванов И. И."),
+      dayEntry("g-2", "ТМ-2", TEACHER_ID, "Иванов И. И."),
+    ],
+  },
+  errorMessage: null,
+  statusCode: 200,
+}
+
 const MONTH_VIEW = {
   isSuccess: true,
   data: { year: 2026, month: 9, days: [] },
@@ -188,5 +229,120 @@ test.describe("Schedule page toolbar", () => {
     const download = await downloadPromise
 
     expect(download.suggestedFilename()).toBe("schedule-grid.pdf")
+  })
+})
+
+test.describe("Расписание: группа в карточке дня", () => {
+  const GROUPS = [
+    { id: "g-1", name: "ТМ-1" },
+    { id: "g-2", name: "ТМ-2" },
+  ]
+  const TEACHERS = [{ id: TEACHER_ID, fullName: "Иванов И. И." }]
+
+  async function setup(page: import("@playwright/test").Page, context: unknown) {
+    await page.addInitScript(() => {
+      localStorage.setItem("token", "test-jwt-token")
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: "u1",
+          email: "teacher@collegelms.ru",
+          fullName: "Иванов И. И.",
+          roles: ["Teacher"],
+        })
+      )
+    })
+
+    await page.route(
+      (url) => url.pathname.startsWith("/api/schedule"),
+      (route) => {
+        const requestUrl = route.request().url()
+        if (requestUrl.includes("/meta")) return route.fulfill(json(META))
+        if (requestUrl.includes("/context")) return route.fulfill(json(context))
+        if (requestUrl.includes("view=calendar"))
+          return route.fulfill(json(MONTH_VIEW))
+        if (requestUrl.includes("view=day")) return route.fulfill(json(DAY_VIEW))
+        return route.fulfill(json(WEEK_VIEW))
+      }
+    )
+    await page.route("**/api/groups**", (route) =>
+      route.fulfill(
+        json({
+          isSuccess: true,
+          data: GROUPS,
+          errorMessage: null,
+          statusCode: 200,
+        }),
+      )
+    )
+    await page.route("**/api/teachers**", (route) =>
+      route.fulfill(
+        json({
+          isSuccess: true,
+          data: TEACHERS,
+          errorMessage: null,
+          statusCode: 200,
+        }),
+      )
+    )
+  }
+
+  test("В виде по преподавателю группа показана в каждой карточке", async ({
+    page,
+  }) => {
+    await setup(page, {
+      isSuccess: true,
+      data: {
+        role: "Teacher",
+        groupId: null,
+        groupName: null,
+        teacherId: TEACHER_ID,
+        teacherName: "Иванов И. И.",
+      },
+      errorMessage: null,
+      statusCode: 200,
+    })
+
+    await page.goto("/schedule?view=day&date=2026-09-21", {
+      waitUntil: "networkidle",
+    })
+
+    // Карточки пар. Локатор именно по ним: те же названия групп есть
+    // в `<option>` фильтров, которые `getByText` тоже находит.
+    const cards = page.locator("div.group.relative.flex.items-stretch")
+
+    // У преподавателя несколько групп в один слот — без названия непонятно,
+    // чья это пара.
+    await expect(cards.getByText("ТМ-1", { exact: true })).toBeVisible()
+    await expect(cards.getByText("ТМ-2", { exact: true })).toBeVisible()
+    // Преподаватель выбран фильтром — повторять его имя в каждой паре незачем.
+    await expect(cards.getByText("Иванов И. И.")).toHaveCount(0)
+  })
+
+  test("В виде по группе название группы не дублируется в карточке", async ({
+    page,
+  }) => {
+    await setup(page, {
+      isSuccess: true,
+      data: {
+        role: "Student",
+        groupId: "g-1",
+        groupName: "ТМ-1",
+        teacherId: null,
+        teacherName: null,
+      },
+      errorMessage: null,
+      statusCode: 200,
+    })
+
+    await page.goto("/schedule?view=day&date=2026-09-21", {
+      waitUntil: "networkidle",
+    })
+
+    const cards = page.locator("div.group.relative.flex.items-stretch")
+    await expect(cards.getByText("Математика").first()).toBeVisible()
+    // Группа выбрана фильтром: в выпадающем списке она есть, в карточках — нет.
+    await expect(page.locator("select").first()).toContainText("ТМ-1")
+    await expect(cards.getByText("ТМ-1", { exact: true })).toHaveCount(0)
   })
 })
