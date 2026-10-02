@@ -224,7 +224,7 @@ export default function ScheduleCards({
                 {/* Группу и преподавателя не повторяем, если они уже стоят
                     в выбранном фильтре — иначе каждая пара начинается
                     с одного и того же текста. */}
-                {alreadyInFilter(entry.groupName, filterGroupName) && (
+                {!alreadyInFilter(entry.groupName, filterGroupName) && (
                   <span className="flex items-center gap-1">
                     <Users className="size-3 shrink-0" />
                     {entry.groupName}
