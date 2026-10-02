@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import Link from "next/link"
 import type { LucideIcon } from "lucide-react"
 import {
@@ -258,7 +259,7 @@ export default function ChangeCard({
           </span>
           <Link
             href={dayHref}
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded"
+ className={cn(FOCUS_RING, "inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline rounded")}
           >
             Открыть день расписания
           </Link>

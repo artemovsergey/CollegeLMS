@@ -253,7 +253,7 @@ export default function DispatcherInsertsPage() {
           <Button
             variant="outline"
             onClick={() => void load()}
-            className="w-fit min-h-11 sm:min-h-9"
+            className="w-fit min-h-11"
           >
             Повторить загрузку
           </Button>
@@ -354,7 +354,7 @@ export default function DispatcherInsertsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-11"
+                             
                               onClick={() => openEdit(item)}
                               aria-label={`Редактировать событие «${item.title}»`}
                             >

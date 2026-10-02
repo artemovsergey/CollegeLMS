@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 import type { ScheduleMonthDay, ScheduleMonthView } from "@/types/schedule"
@@ -127,7 +128,7 @@ export default function ScheduleMonthCalendar({
           type="button"
           variant="outline"
           size="icon"
-          className="size-11"
+         
           aria-label="Предыдущий месяц"
           onClick={() => shiftMonth(-1)}
         >
@@ -140,7 +141,7 @@ export default function ScheduleMonthCalendar({
           type="button"
           variant="outline"
           size="icon"
-          className="size-11"
+         
           aria-label="Следующий месяц"
           onClick={() => shiftMonth(1)}
         >
@@ -229,7 +230,7 @@ export default function ScheduleMonthCalendar({
                   onClick={() => iso && onDayClick(iso)}
                   aria-label={`Открыть ${dayNumber}: ${dayLabel}`}
                   className={cn(
-                    "flex min-h-[64px] flex-col items-start gap-1 rounded-md border p-1.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:hover:bg-primary/[0.10]",
+"flex min-h-[64px] flex-col items-start gap-1 rounded-md border p-1.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] dark:hover:bg-primary/[0.10]",
                     isToday &&
                       "border-primary/40 bg-primary/[0.04] ring-1 ring-primary/40 dark:bg-primary/[0.10]",
                     muted && "text-muted-foreground opacity-50",

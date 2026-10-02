@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Radio, RefreshCw } from "lucide-react"
 import type {
@@ -77,7 +78,7 @@ function DayColumn({
           onOpen(iso)
         }
       }}
-      className="flex min-h-11 cursor-pointer flex-col gap-2 rounded-lg border bg-card p-2 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:hover:bg-primary/[0.10]"
+ className={cn(FOCUS_RING, "flex min-h-11 cursor-pointer flex-col gap-2 rounded-lg border bg-card p-2 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] dark:hover:bg-primary/[0.10]")}
     >
       <div className="flex items-baseline justify-between gap-1">
         <span className="text-sm font-semibold">{info?.label ?? "—"}</span>

@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -714,12 +715,12 @@ export default function DispatcherPracticesPage() {
           <Button
             variant="outline"
             onClick={() => setImportOpen(true)}
-            className="min-h-11 sm:min-h-9"
+           
           >
             <Upload className="size-4" aria-hidden="true" />
             Импорт графика УП
           </Button>
-          <Button onClick={openCreate} className="min-h-11 sm:min-h-9">
+          <Button onClick={openCreate}>
             <Plus className="size-4" aria-hidden="true" />
             Добавить практику
           </Button>
@@ -807,7 +808,7 @@ export default function DispatcherPracticesPage() {
                 ? "Выберите группу, чтобы скачать график УП"
                 : "Скачать график УП выбранной группы в DOCX"
             }
-            className="min-h-11 sm:min-h-9"
+           
           >
             <Download className="size-4" aria-hidden="true" />
             {exporting ? "Формирование…" : "Скачать график УП"}
@@ -817,7 +818,7 @@ export default function DispatcherPracticesPage() {
           <Button
             variant="ghost"
             onClick={resetFilters}
-            className="min-h-11 sm:min-h-9"
+           
           >
             <SearchX className="size-4" aria-hidden="true" />
             Сбросить
@@ -831,7 +832,7 @@ export default function DispatcherPracticesPage() {
           <Button
             variant="outline"
             onClick={() => void load(page)}
-            className="w-fit min-h-11 sm:min-h-9"
+            className="w-fit min-h-11"
           >
             Повторить загрузку
           </Button>
@@ -973,7 +974,7 @@ export default function DispatcherPracticesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-11"
+                               
                                 onClick={() => openEdit(practice)}
                                 aria-label={`Редактировать практику «${practiceName(practice)}»`}
                               >
@@ -1368,7 +1369,7 @@ export default function DispatcherPracticesPage() {
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
               className={cn(
-                "flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+"flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors",
                 dragging
                   ? "border-primary bg-primary/[0.06]"
                   : "border-border hover:bg-muted/50",
@@ -1412,7 +1413,7 @@ export default function DispatcherPracticesPage() {
                 type="button"
                 onClick={() => void runPreview()}
                 disabled={!importFile || previewing}
-                className="min-h-11 sm:min-h-9"
+               
               >
                 {previewing ? "Чтение…" : "Проверить документ"}
               </Button>
@@ -1425,7 +1426,7 @@ export default function DispatcherPracticesPage() {
                     setPreview(null)
                     if (fileInputRef.current) fileInputRef.current.value = ""
                   }}
-                  className="min-h-11 sm:min-h-9"
+                 
                 >
                   Убрать файл
                 </Button>

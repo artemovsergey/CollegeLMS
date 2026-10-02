@@ -449,7 +449,7 @@ export default function DispatcherBellsPage() {
                   aria-selected={active}
                   variant={active ? "default" : "outline"}
                   onClick={() => applyProfile(profile)}
-                  className="min-h-11 sm:min-h-9"
+                 
                 >
                   {profile.name}
                   {profile.isDefault && (
@@ -472,7 +472,7 @@ export default function DispatcherBellsPage() {
               aria-selected={isCreating}
               variant={isCreating ? "default" : "outline"}
               onClick={startCreate}
-              className="min-h-11 sm:min-h-9"
+             
             >
               <Plus className="size-4" aria-hidden="true" />
               Новый профиль
@@ -613,7 +613,7 @@ export default function DispatcherBellsPage() {
                       type="button"
                       variant="outline"
                       onClick={addDateRow}
-                      className="w-fit min-h-11 sm:min-h-9"
+                      className="w-fit min-h-11"
                     >
                       <CalendarPlus className="size-4" aria-hidden="true" />
                       Добавить диапазон
@@ -816,7 +816,7 @@ export default function DispatcherBellsPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setDeleteTarget(activeProfile)}
-                    className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive sm:min-h-9"
+                    className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="size-4" aria-hidden="true" />
                     Удалить профиль
@@ -825,7 +825,7 @@ export default function DispatcherBellsPage() {
                 <Button
                   onClick={() => void handleSave()}
                   disabled={saving}
-                  className="min-w-44 min-h-11 sm:min-h-9"
+                  className="min-w-44 min-h-11"
                 >
                   {saving ? (
                     <>

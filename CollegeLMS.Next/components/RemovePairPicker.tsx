@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { RotateCw } from "lucide-react"
 import type {
   CorrectionChangeType,
@@ -110,7 +111,7 @@ export default function RemovePairPicker({
             }}
             className={cn(
               "flex items-start justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm transition-colors",
-              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
               selected
                 ? "border-primary bg-primary/5"
                 : "border-input hover:bg-muted",

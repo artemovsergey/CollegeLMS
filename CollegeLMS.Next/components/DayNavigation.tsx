@@ -1,5 +1,7 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import { FOCUS_RING } from "@/lib/focus"
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { isValidDate, parseIsoDate, toIsoDate } from "@/api/schedule"
@@ -28,7 +30,7 @@ export default function DayNavigation({ date, onChange }: DayNavigationProps) {
         type="button"
         variant="outline"
         size="icon"
-        className="size-11"
+       
         aria-label="Предыдущий день"
         onClick={() => shift(-1)}
       >
@@ -42,14 +44,14 @@ export default function DayNavigation({ date, onChange }: DayNavigationProps) {
           if (e.target.value) onChange(e.target.value)
         }}
         aria-label="Выбрать дату"
-        className="h-11 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+ className={cn(FOCUS_RING, "h-11 rounded-md border bg-background px-3 text-sm outline-none")}
       />
 
       <Button
         type="button"
         variant="outline"
         size="icon"
-        className="size-11"
+       
         aria-label="Следующий день"
         onClick={() => shift(1)}
       >

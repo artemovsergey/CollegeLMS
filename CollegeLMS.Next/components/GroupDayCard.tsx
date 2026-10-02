@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import type { CorrectionDayEntry } from "@/types/correction"
 import { CircleAlert, Info, MapPin, UserRound } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -131,7 +132,7 @@ export default function GroupDayCard({
                     onClick={() => onSelectPair(numberPair)}
                     className={cn(
                       "flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
                       selected
                         ? "bg-primary text-primary-foreground"
                         : occupied
@@ -223,7 +224,7 @@ export default function GroupDayCard({
                               onClick={() => onSelectEntry?.(entry)}
                               className={cn(
                                 "grid w-full gap-0.5 rounded-md border px-2 py-1.5 text-left transition-colors",
-                                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
                                 selectedEntryKey === key
                                   ? "border-primary bg-primary/10"
                                   : "border-transparent hover:bg-muted",

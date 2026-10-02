@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Radio, RefreshCw } from "lucide-react"
 import type {
@@ -238,7 +239,7 @@ export default function ScheduleSemesterMatrix({
                           type="button"
                           onClick={() => iso && onDayClick(iso)}
                           aria-label={`Открыть день ${formatDate(iso)}`}
-                          className="flex min-h-[56px] w-full flex-col gap-1 border border-transparent p-1.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:hover:bg-primary/[0.10]"
+ className={cn(FOCUS_RING, "flex min-h-[56px] w-full flex-col gap-1 border border-transparent p-1.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] dark:hover:bg-primary/[0.10]")}
                         >
                           <CellContent day={day} week={week.week} />
                         </button>

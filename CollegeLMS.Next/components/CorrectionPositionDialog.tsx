@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
@@ -678,7 +679,7 @@ export function CorrectionPositionDialog({
                   }
                   className={cn(
                     "rounded-md border px-3 py-2 text-left transition-colors",
-                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
                     draft.operation === card.value
                       ? card.className
                       : "border-input bg-background hover:bg-muted",
@@ -951,7 +952,7 @@ export function CorrectionPositionDialog({
                           }
                           className={cn(
                             "rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                            "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
                             "disabled:cursor-not-allowed disabled:opacity-50",
                             selected
                               ? "border-primary bg-primary/10"
@@ -1251,7 +1252,7 @@ function ToggleChip({
       onClick={onToggle}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-input bg-background text-muted-foreground hover:bg-muted",
@@ -1283,7 +1284,7 @@ function Choice({
       onClick={onSelect}
       className={cn(
         "rounded-md border px-3 py-2 text-left transition-colors",
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
         selected
           ? "border-primary bg-primary/10"
           : "border-input bg-background hover:bg-muted",

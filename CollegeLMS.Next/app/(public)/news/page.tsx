@@ -1,5 +1,7 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import { FOCUS_RING } from "@/lib/focus"
 import EmptyState from "@/components/EmptyState"
 import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
@@ -89,7 +91,7 @@ export default function NewsListPage() {
               setCategoryFilter(undefined)
               setPage(1)
             }}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+ className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               !categoryFilter
                 ? "bg-accent text-accent-foreground"
                 : "bg-muted text-primary hover:bg-border"
@@ -104,7 +106,7 @@ export default function NewsListPage() {
                 setCategoryFilter(cat.id)
                 setPage(1)
               }}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+ className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 categoryFilter === cat.id
                   ? "bg-accent text-accent-foreground"
                   : "bg-muted text-primary hover:bg-border"
@@ -120,7 +122,7 @@ export default function NewsListPage() {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Поиск..."
-            className="rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 bg-background"
+ className={cn(FOCUS_RING, "rounded-md border border-border px-3 py-1.5 text-sm outline-none bg-background")}
           />
           <Button type="submit" size="sm">
             Найти

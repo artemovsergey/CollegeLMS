@@ -1,5 +1,7 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import { FOCUS_RING } from "@/lib/focus"
 import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
@@ -697,7 +699,7 @@ export default function SchedulePage() {
                   setSlotParts(null)
                   handleEdit(sub)
                 }}
-                className="rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+ className={cn(FOCUS_RING, "rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted")}
               >
                 <span className="block font-medium">
                   {sub.room || "без аудитории"}

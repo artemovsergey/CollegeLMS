@@ -1,5 +1,7 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import { FOCUS_RING } from "@/lib/focus"
 import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
@@ -67,7 +69,7 @@ export default function SpecialtiesSection() {
 
                 {/* Button */}
                 <div className="flex items-center gap-1 text-sm font-medium text-accent">
-                  <span className="rounded focus-visible:outline-none">Подробнее</span>
+ <span className={cn(FOCUS_RING, "rounded")}>Подробнее</span>
                   <ArrowRight size={15} />
                 </div>
               </div>

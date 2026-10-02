@@ -251,7 +251,7 @@ export default function WorkingDaysTab() {
         <Button
           variant="outline"
           onClick={applyFilters}
-          className="min-h-11 sm:min-h-9"
+         
         >
           <Filter className="size-4" aria-hidden="true" />
           Применить
@@ -260,7 +260,7 @@ export default function WorkingDaysTab() {
           <Button
             variant="ghost"
             onClick={resetFilters}
-            className="min-h-11 sm:min-h-9"
+           
           >
             <SearchX className="size-4" aria-hidden="true" />
             Сбросить
@@ -268,7 +268,7 @@ export default function WorkingDaysTab() {
         )}
         <Button
           onClick={openCreate}
-          className="min-h-11 sm:ml-auto sm:min-h-9"
+          className="min-h-11 sm:ml-auto"
         >
           <Plus className="size-4" aria-hidden="true" />
           Добавить рабочий день
@@ -281,7 +281,7 @@ export default function WorkingDaysTab() {
           <Button
             variant="outline"
             onClick={() => void load(page)}
-            className="w-fit min-h-11 sm:min-h-9"
+            className="w-fit min-h-11"
           >
             Повторить загрузку
           </Button>
@@ -361,7 +361,7 @@ export default function WorkingDaysTab() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-11"
+                             
                               onClick={() => openEdit(item)}
                               aria-label={`Редактировать рабочий день «${item.title}»`}
                             >

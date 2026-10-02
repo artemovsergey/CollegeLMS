@@ -3,6 +3,7 @@
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 import { Moon, Sun } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -10,15 +11,18 @@ export default function ThemeToggle() {
 
   useEffect(() => setMounted(true), [])
 
-  if (!mounted) return null
+  // Без `mounted` тема неизвестна: сервер отдал бы одну подпись, клиент —
+  // другую. Возвращаем пустое место той же ширины, чтобы шапка не прыгала.
+  if (!mounted) return <span className="size-11 sm:size-9" aria-hidden />
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-accent"
       aria-label={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
     >
       {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-    </button>
+    </Button>
   )
 }

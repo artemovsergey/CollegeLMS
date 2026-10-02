@@ -65,6 +65,20 @@ const FORBIDDEN = [
       ),
   },
   {
+    // Рецепт видимого фокуса задан один раз в `lib/focus.ts` и подключён к
+    // примитивам. В странице он не пишется: как только кольцо появляется в
+    // разметке, у него тут же появляется вторая версия, а третья страница
+    // не получает его вовсе. Запрещено и `focus:` вместо `focus-visible:` —
+    // первое вспыхивает и при клике мышью.
+    id: "no-focus-recipe-in-pages",
+    hint: "рецепт фокуса задан в примитиве — уберите focus-visible:ring-* отсюда",
+    exts: [".tsx", ".ts"],
+    files: undefined,
+    exclude: ["components/ui", "lib/focus.ts"],
+    test: (line) =>
+      /(?:^|[\s"':])(?:focus|focus-visible):(?:outline-none|ring)/.test(line),
+  },
+  {
     // Белая *панель* литералом не переключается за темой: в тёмной теме белый
     // фон остаётся белым, а текст на нём — токенный, то есть тёмный, и пропадает.
     // Намеренно не проверяем `text-white` и `bg-white/10`: белый текст поверх
@@ -150,6 +164,7 @@ for (const file of files) {
   for (const rule of FORBIDDEN) {
     if (rule.exempt?.includes(rel)) continue
     if (rule.files && !rule.files.includes(rel)) continue
+    if (rule.exclude?.some((dir) => rel.startsWith(dir))) continue
     if (rule.exts && !rule.exts.some((ext) => file.endsWith(ext))) continue
     lines.forEach((line, i) => {
       if (rule.test(line)) {
