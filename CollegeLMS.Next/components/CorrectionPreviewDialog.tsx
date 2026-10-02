@@ -1,5 +1,6 @@
 "use client"
 
+import { CHANGE_ARROW } from "@/lib/change-tags"
 import { useState } from "react"
 import { AlertCircle, ListChecks, XCircle } from "lucide-react"
 
@@ -104,7 +105,7 @@ export function CorrectionPreviewDialog({
                         }`
                       : entry.changeType === "Remove"
                         ? `Снимается: ${entry.removedSubject ?? "—"}`
-                        : `Снимается: ${entry.removedSubject ?? "—"} → Вводится: ${entry.subject ?? "—"}`}
+                        : `Снимается: ${entry.removedSubject ?? "—"} ${CHANGE_ARROW} Вводится: ${entry.subject ?? "—"}`}
                     {entry.note ? ` · ${entry.note}` : ""}
                   </div>
                 </li>

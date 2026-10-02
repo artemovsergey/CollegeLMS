@@ -35,7 +35,11 @@ import type {
 } from "@/types/correction"
 import type { GroupResponse, Result } from "@/types"
 import { DAYS } from "@/types/schedule"
-import { REPLACE_ARROW_CLASS, changeTagKind } from "@/lib/change-tags"
+import {
+  CHANGE_ARROW,
+  REPLACE_ARROW_CLASS,
+  changeTagKind,
+} from "@/lib/change-tags"
 import { cn, extractErrorMessage } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -140,7 +144,7 @@ function renderTitle(position: CorrectionPosition) {
           {lessonLine(position.removedSubject, position.removedTeacherName)}
         </span>
         <span aria-hidden className={REPLACE_ARROW_CLASS}>
-          {"=>"}
+          {CHANGE_ARROW}
         </span>
         <span className="font-medium">{to}</span>
       </span>
@@ -732,7 +736,7 @@ function PositionRow({
           {position.removedNumberPair != null &&
           position.changeType !== "Remove" &&
           position.removedNumberPair !== position.numberPair
-            ? `${position.removedNumberPair} → ${position.numberPair}`
+            ? `${position.removedNumberPair} ${CHANGE_ARROW} ${position.numberPair}`
             : position.numberPair || <span className="text-destructive">—</span>}
         </TableCell>
         <TableCell className="px-3 py-2 whitespace-normal">

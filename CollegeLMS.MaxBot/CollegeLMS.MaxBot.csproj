@@ -10,4 +10,8 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
     <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
   </ItemGroup>
+  <!-- Словарь терминов — один файл на API и бот (см. комментарий в нём). -->
+  <ItemGroup>
+    <Compile Include="../shared/ChangeVocabulary.cs" Link="ChangeVocabulary.cs" />
+  </ItemGroup>
 </Project>

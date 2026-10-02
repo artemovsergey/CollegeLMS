@@ -13,6 +13,17 @@ const SELF_STUDY_NOTE_RE = /сам[\s./-]*р/i
 export const REPLACE_ARROW_CLASS =
   "text-xs font-normal text-muted-foreground/70"
 
+/**
+ * Знак изменения в строке позиции.
+ *
+ * Раньше в одном и том же компоненте стояли два знака: `=>` для замены
+ * предмета и `→` для переноса пары. В MAX был `=>`, в боте `=>`, а в PNG
+ * корректировки — `→`. Один знак на продукт, тот, что уже закреплён тестом
+ * миниаппа; в чате он ещё и безопаснее, потому что `→` в разных шрифтах
+ * отображается по-разному.
+ */
+export const CHANGE_ARROW = "=>"
+
 export function isSelfStudyNote(note: string | null | undefined): boolean {
   return SELF_STUDY_NOTE_RE.test(note ?? "")
 }

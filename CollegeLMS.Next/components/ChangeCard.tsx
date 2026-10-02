@@ -27,6 +27,7 @@ import {
   movePairFromNote,
 } from "@/lib/change-tags"
 import { dayLabelFromString } from "@/lib/max-lesson"
+import { CHANGE_ARROW } from "@/lib/change-tags"
 import {
   CHANGE_KIND_STYLE,
   SELF_STUDY_BADGE_STYLE,
@@ -139,7 +140,7 @@ export default function ChangeCard({
   const dayHref = buildDayHref(item, date, dayIndex)
   const pairLabel =
     movedFrom != null && movedFrom !== item.numberPair
-      ? `пара ${movedFrom} → ${item.numberPair}`
+      ? `пара ${movedFrom} ${CHANGE_ARROW} ${item.numberPair}`
       : `пара ${item.numberPair}`
 
   // Преподаватель снимаемого занятия — из Removed*, иначе в «вместо» стоял бы
@@ -218,7 +219,7 @@ export default function ChangeCard({
             <span className="flex flex-wrap items-center gap-1.5">
               <span className="text-muted-foreground">{removedLesson}</span>
               <span className={REPLACE_ARROW_CLASS} aria-hidden>
-                {"=>"}
+                {CHANGE_ARROW}
               </span>
               <span className="font-medium">{newLesson}</span>
             </span>

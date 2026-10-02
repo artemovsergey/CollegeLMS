@@ -1,4 +1,5 @@
 using CollegeLMS.MaxBot.Clients;
+using CollegeLMS.Shared;
 using CollegeLMS.MaxBot.Models;
 
 namespace CollegeLMS.MaxBot.Services;
@@ -513,8 +514,11 @@ public static class MessageFormatter
         return $"**{LessonLine(r.Subject, r.TeacherName)}**";
     }
 
-    /// <summary>Стрелка замены: тонкая, чтобы не перетягивать внимание.</summary>
-    private const string ReplaceArrow = "=>";
+    /// <summary>
+    /// Знак изменения. Раньше константа была объявлена здесь, а на вебе для
+    /// переноса пары стоял другой знак — теперь оба берут общий словарь.
+    /// </summary>
+    private const string ReplaceArrow = ChangeVocabulary.ChangeArrow;
 
     /// <summary>«Предмет Преподаватель» одной строкой — как в веб-приложении.</summary>
     private static string LessonLine(string? subject, string? teacher)
@@ -527,15 +531,8 @@ public static class MessageFormatter
         return parts.Count == 0 ? "—" : string.Join(" ", parts);
     }
 
-    private static string FormatChangeCardLabel(string changeType)
-    {
-        return changeType switch
-        {
-            "Remove" => "Снято",
-            "Add" or "Replace" or "Move" => "Добавлено",
-            _ => "Изменено",
-        };
-    }
+    private static string FormatChangeCardLabel(string changeType) =>
+        ChangeVocabulary.Label(changeType);
 
     private static readonly string[] MonthNames =
     [

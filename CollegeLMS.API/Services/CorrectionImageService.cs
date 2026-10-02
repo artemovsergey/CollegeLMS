@@ -1,5 +1,6 @@
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
+using CollegeLMS.Shared;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -38,7 +39,7 @@ public class CorrectionImageService
             {
                 page.Size(new PageSize(860, height));
                 page.Margin(24);
-                page.DefaultTextStyle(t => t.FontSize(11).FontColor("#111827"));
+                page.DefaultTextStyle(t => t.FontSize(11).FontColor(BrandPalette.Fg));
 
                 page.Content()
                     .Column(column =>
@@ -83,10 +84,10 @@ public class CorrectionImageService
                                     {
                                         header
                                             .Cell()
-                                            .Background("#1e3a5f")
+                                            .Background(BrandPalette.Accent)
                                             .Padding(5)
                                             .Text(title)
-                                            .FontColor(Colors.White)
+                                            .FontColor(BrandPalette.AccentForeground)
                                             .FontSize(10)
                                             .SemiBold();
                                     }
@@ -113,7 +114,7 @@ public class CorrectionImageService
                                         table
                                             .Cell()
                                             .BorderBottom(0.5f)
-                                            .BorderColor("#e5e7eb")
+                                            .BorderColor(BrandPalette.Border)
                                             .PaddingVertical(5)
                                             .PaddingHorizontal(5)
                                             .Text(text)
@@ -139,15 +140,7 @@ public class CorrectionImageService
     private static string DayName(DayOfWeek day) => DayNames[(int)day];
 
     private static string ChangeTypeLabel(ScheduleChangeType changeType) =>
-        changeType switch
-        {
-            ScheduleChangeType.Remove => "Снято",
-            // Замена и перенос — это добавление со снимаемым занятием: в
-            // картинке, как и в расписании, остаются два исхода.
-            ScheduleChangeType.Add or ScheduleChangeType.Replace or ScheduleChangeType.Move =>
-                "Добавлено",
-            _ => changeType.ToString(),
-        };
+        ChangeVocabulary.Label(changeType.ToString());
 
     private static string PairLabel(CorrectionPosition position)
     {
@@ -157,7 +150,7 @@ public class CorrectionImageService
             && position.RemovedSubject is not null
         )
         {
-            return $"{from} → {position.NumberPair}";
+            return $"{from} {ChangeArrow} {position.NumberPair}";
         }
 
         return position.NumberPair.ToString();
