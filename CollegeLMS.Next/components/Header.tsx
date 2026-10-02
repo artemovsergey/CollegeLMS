@@ -169,7 +169,7 @@ export default function Header() {
                         isOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
                       }`}
                     >
-                      <div className="overflow-hidden rounded-lg border border-border bg-white shadow-xl">
+                      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xl">
                         {section.subsections.map((sub) => (
                           <Link
                             key={sub.slug}

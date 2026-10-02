@@ -54,7 +54,7 @@ export default function Carousel() {
     return (
       <div className="mx-auto max-w-7xl">
         <section>
-          <div className="h-[400px] animate-pulse bg-white/5 md:h-[550px]" />
+          <div className="h-[400px] animate-pulse bg-muted md:h-[550px]" />
         </section>
       </div>
     )

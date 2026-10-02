@@ -39,13 +39,53 @@ const FORBIDDEN = [
     id: "no-raw-select",
     hint: "используйте UI-примитив Select вместо нативного select",
     exts: [".tsx"],
-    test: (line) => /<select[\s>]/.test(line),
+    // `$` обязателен: JSX разбит prettier-форматтером, и `<select` почти всегда
+    // стоит последним символом строки. Без `$` правило молча ловит ноль файлов.
+    test: (line) => /<select(\s|>|$)/.test(line),
+    exempt: ["components/ui/native-select.tsx", "components/FilterSelect.tsx"],
   },
   {
     id: "no-raw-table",
     hint: "используйте UI-примитив Table вместо нативного table",
     exts: [".tsx"],
-    test: (line) => /<table[\s>]/.test(line),
+    test: (line) => /<table(\s|>|$)/.test(line),
+    exempt: ["components/ui/table.tsx"],
+  },
+  {
+    // Стандартная палитра Tailwind обходит семантические токены: свой набор
+    // оттенков на каждую тему, свои значения в тёмной и режиме высокой
+    // контрастности. Статусные цвета задаются только токенами (--success,
+    // --warning, --destructive, --lesson-*).
+    id: "no-raw-palette",
+    hint: "палитра Tailwind обходит токены — возьмите семантический токен",
+    exts: [".tsx"],
+    test: (line) =>
+      /(?:^|[\s"':])(?:bg|text|border|ring|fill|stroke|from|to|via)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]{2,3}\b/.test(
+        line,
+      ),
+  },
+  {
+    // Белая *панель* литералом не переключается за темой: в тёмной теме белый
+    // фон остаётся белым, а текст на нём — токенный, то есть тёмный, и пропадает.
+    // Намеренно не проверяем `text-white` и `bg-white/10`: белый текст поверх
+    // брендовой заливки (`bg-accent`, `bg-primary`) — законный паттерн, а прозрачные
+    // белые подложки на такой заливке читаются как блик, а не как поверхность.
+    id: "no-literal-bg-white",
+    hint: "bg-white не следует за темой — используйте токен карточки/панели",
+    exts: [".tsx"],
+    test: (line) => /(?:^|[\s"':])bg-white(?![\-\w/])/.test(line),
+    // Слайды и оверлеи карусели лежат поверх фотографии, а не поверх темы:
+    // там белый — часть композиции снимка, а не поверхность интерфейса.
+    exempt: ["components/Carousel.tsx", "components/CorrectionFilePreview.tsx"],
+  },
+  {
+    // Токены объявлены как готовые цвета (`#111827`), поэтому оборачивать их в
+    // `hsl(var(--…))` нельзя: это невалидный CSS, и декларация молча отбрасывается.
+    // Наследие Tailwind v3, где токены хранились HSL-триплетами.
+    id: "no-dead-token-function",
+    hint: "hsl(var(--токен)) невалиден — токен уже цвет; пишите var(--токен)",
+    exts: [".css"],
+    test: (line) => /\b(?:hsl|rgb|hwb|lab|lch|oklch|oklab|color)\(\s*var\(--/.test(line),
   },
   {
     // Палитра miniapp MAX живёт в CSS, поэтому правило no-raw-hex её не видит.
@@ -75,7 +115,7 @@ const REQUIRED_FILES = [
 
 const FORBIDDEN_FILES = ["lib/design-provider.tsx"]
 
-const TABLE_PRIMITIVE = resolve(ROOT, "components/ui/table.tsx")
+
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -106,10 +146,9 @@ const files = SOURCE_ROOTS.flatMap((dir) => {
 
 for (const file of files) {
   const rel = relative(ROOT, file).split(sep).join("/")
-  const isTablePrimitive = file === TABLE_PRIMITIVE
   const lines = readFileSync(file, "utf8").split(/\r?\n/)
   for (const rule of FORBIDDEN) {
-    if (isTablePrimitive && rule.id === "no-raw-table") continue
+    if (rule.exempt?.includes(rel)) continue
     if (rule.files && !rule.files.includes(rel)) continue
     if (rule.exts && !rule.exts.some((ext) => file.endsWith(ext))) continue
     lines.forEach((line, i) => {
@@ -136,6 +175,10 @@ if (updateMode) {
 
 console.log("Проверка дизайн-системы CollegeLMS")
 console.log(`просканировано файлов: ${files.length}`)
+if (updateMode) {
+  console.log(`baseline обновлён: ${findings.length} известных нарушений`)
+  process.exit(0)
+}
 console.log(`известных нарушений (baseline): ${findings.length - fresh.length}`)
 console.log(`новых нарушений: ${fresh.length}`)
 if (resolved.length) console.log(`исчезнуло нарушений: ${resolved.length} (baseline можно обновить)`)
