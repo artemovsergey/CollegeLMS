@@ -555,7 +555,7 @@ export default function LessonViewPage() {
       )}
 
       <div className="rounded-lg border bg-card p-6">
-        <div className="prose max-w-none">
+        <div className="prose prose-narrow">
           <ReactMarkdown>{lesson.content}</ReactMarkdown>
         </div>
       </div>

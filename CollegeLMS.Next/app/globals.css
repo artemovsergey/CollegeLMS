@@ -349,16 +349,67 @@ option:checked {
   @apply border border-border px-3 py-2;
 }
 
-.prose h1,
-.prose h2,
+/* Размеры заголовков — по шкале §4. Раньше здесь задавались только цвет и
+   насыщенность, поэтому заголовок внутри описания занятия или специальности
+   выглядел как основной текст с жирным начертанием. */
+.prose h1 {
+  @apply mt-6 mb-3 text-2xl font-semibold text-fg;
+}
+
+.prose h2 {
+  @apply mt-5 mb-2 text-xl font-semibold text-fg;
+}
+
 .prose h3,
 .prose h4 {
-  @apply text-fg font-semibold;
+  @apply mt-4 mb-2 text-base font-semibold text-fg;
+}
+
+.prose p,
+.prose li {
+  @apply leading-relaxed;
+}
+
+.prose p {
+  @apply mb-3;
 }
 
 .prose ul,
 .prose ol {
-  @apply text-muted-fg;
+  @apply mb-3 pl-5 text-muted-fg;
+}
+
+.prose ul {
+  @apply list-disc;
+}
+
+.prose ol {
+  @apply list-decimal;
+}
+
+.prose blockquote {
+  @apply my-3 border-l-2 border-accent pl-3 italic text-muted-fg;
+}
+
+.prose strong {
+  @apply text-fg;
+}
+
+.prose code {
+  @apply rounded bg-muted px-1 py-0.5 text-sm text-fg;
+}
+
+/* `prose-sm`, `prose-invert` и `max-w-none` — классы плагина
+   `@tailwindcss/typography`, которого в проекте нет: они не генерировали
+   ничего. Блок `.prose` написан вручную, поэтому уменьшенный вариант и
+   «без ограничения ширины» задаются здесь. Тёмная тема не нуждается в
+   инверсии — все цвета выше уже токенные и переключаются сами. */
+.prose-sm {
+  font-size: 0.875rem;
+}
+
+.prose-narrow {
+  max-width: none;
 }
 
 .docs-content h2 {

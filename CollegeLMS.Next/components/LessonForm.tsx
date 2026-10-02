@@ -107,7 +107,7 @@ export default function LessonForm({ courseId, lesson }: LessonFormProps) {
         </div>
         {mode === "preview" ? (
           <div className="min-h-40 max-h-96 overflow-y-auto rounded-md border bg-muted/40 p-4">
-            <div className="prose max-w-none">
+            <div className="prose prose-narrow">
               <ReactMarkdown>{content || "Введите текст для предпросмотра"}</ReactMarkdown>
             </div>
           </div>

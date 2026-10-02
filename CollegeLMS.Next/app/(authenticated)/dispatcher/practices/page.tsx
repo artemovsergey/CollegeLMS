@@ -1671,12 +1671,12 @@ export default function DispatcherPracticesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={deleting}
               onClick={(e) => {
                 e.preventDefault()
                 void handleDelete()
               }}
-              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {deleting ? "Удаление…" : "Удалить"}
             </AlertDialogAction>

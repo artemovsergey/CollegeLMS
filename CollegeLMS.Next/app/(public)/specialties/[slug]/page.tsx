@@ -67,7 +67,7 @@ export default function SpecialtyDetailPage({ params }: { params: { slug: string
         </div>
 
         {/* Description */}
-        <div className="prose prose-sm dark:prose-invert max-w-none mb-10">
+        <div className="prose prose-sm prose-narrow mb-10">
           <SubTitle>О специальности</SubTitle>
           <p className="text-muted-foreground leading-relaxed">{spec.description}</p>
         </div>
