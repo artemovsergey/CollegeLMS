@@ -58,7 +58,7 @@ const FORBIDDEN = [
     // --warning, --destructive, --lesson-*).
     id: "no-raw-palette",
     hint: "палитра Tailwind обходит токены — возьмите семантический токен",
-    exts: [".tsx"],
+    exts: [".tsx", ".ts"],
     test: (line) =>
       /(?:^|[\s"':])(?:bg|text|border|ring|fill|stroke|from|to|via)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]{2,3}\b/.test(
         line,

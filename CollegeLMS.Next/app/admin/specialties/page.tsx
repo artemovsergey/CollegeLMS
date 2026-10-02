@@ -220,7 +220,7 @@ export default function SpecialtiesPage() {
             type="checkbox"
             checked={formIsActive}
             onChange={e => setFormIsActive(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300"
+            className="size-4 rounded border-input"
           />
           <Label htmlFor="isActive" className="text-sm">Активна</Label>
         </div>

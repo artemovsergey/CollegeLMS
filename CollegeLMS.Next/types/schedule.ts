@@ -48,12 +48,18 @@ export const LESSON_TYPE_LABELS: Record<LessonType, string> = {
   None: "Занятие",
 }
 
-export const LESSON_TYPE_STYLES: Record<LessonType, string> = {
-  Lecture: "border-l-blue-500 bg-blue-50/60 dark:bg-blue-950/20",
-  Practice: "border-l-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20",
-  Lab: "border-l-amber-500 bg-amber-50/60 dark:bg-amber-950/20",
-  Exam: "border-l-red-500 bg-red-50/60 dark:bg-red-950/20",
-  None: "border-l-slate-400 bg-slate-50/60 dark:bg-slate-950/20",
+/**
+ * Цвет вида занятия. Набор `--lesson-*` общий для веба, MAX и сводки
+ * диспетчера (§3.5), поэтому цвет берётся токеном, а не палитрой Tailwind.
+ * Раньше здесь был `LESSON_TYPE_STYLES` с собственными оттенками на каждую
+ * тему — мёртвый код, который к тому же обходил семантику токенов.
+ */
+export const LESSON_TYPE_COLORS: Record<LessonType, string> = {
+  Lecture: "var(--lesson-lecture)",
+  Practice: "var(--lesson-practice)",
+  Lab: "var(--lesson-lab)",
+  Exam: "var(--lesson-exam)",
+  None: "var(--lesson-none)",
 }
 
 /** Режим отображения расписания на странице /schedule. */

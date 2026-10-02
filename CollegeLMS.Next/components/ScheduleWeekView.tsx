@@ -26,6 +26,7 @@ import ErrorBanner from "@/components/ErrorBanner"
 import { Button } from "@/components/ui/button"
 import { isEntryNow, mergeDayRows } from "@/lib/schedule-merge"
 import { cn } from "@/lib/utils"
+import { NON_WORKING_TEXT, PRACTICE_CELL } from "@/lib/status-style"
 
 interface ScheduleWeekViewProps {
   week: number
@@ -93,7 +94,7 @@ function DayColumn({
       )}
 
       {day.isNonWorking ? (
-        <p className="text-xs text-amber-700 dark:text-amber-300">
+        <p className={cn("text-xs", NON_WORKING_TEXT)}>
           Не работает: {day.nonWorkingTitle}
         </p>
       ) : day.isSunday && !day.isWorkingDay ? (
@@ -128,7 +129,7 @@ function DayColumn({
                   isNow
                     ? "border-primary bg-primary/[0.06] dark:bg-primary/[0.12]"
                     : isPractice
-                      ? "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20"
+                      ? PRACTICE_CELL
                       : "border-primary/40 bg-muted/30",
                 )}
               >
@@ -136,7 +137,7 @@ function DayColumn({
                   <span
                     className={cn(
                       "font-semibold",
-                      isPractice && "text-emerald-700 dark:text-emerald-300",
+                      isPractice && "text-success",
                     )}
                   >
                     {entry.numberPair}

@@ -6,6 +6,7 @@ import type {
   CorrectionDayEntry,
 } from "@/types/correction"
 import { cn } from "@/lib/utils"
+import { CHANGE_TYPE_STYLE, SELF_STUDY_STYLE } from "@/lib/status-style"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
@@ -21,24 +22,10 @@ const PENDING_META: Record<
   CorrectionChangeType,
   { label: string; className: string }
 > = {
-  Add: {
-    label: "Добавлено",
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  },
-  Remove: {
-    label: "Снято",
-    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-  },
-  Replace: {
-    label: "Замена",
-    className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-  },
-  Move: {
-    label: "Перенос",
-    className:
-      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-  },
+  Add: { label: "Добавлено", className: CHANGE_TYPE_STYLE.Add },
+  Remove: { label: "Снято", className: CHANGE_TYPE_STYLE.Remove },
+  Replace: { label: "Замена", className: CHANGE_TYPE_STYLE.Replace },
+  Move: { label: "Перенос", className: CHANGE_TYPE_STYLE.Move },
 }
 
 interface RemovePairPickerProps {
@@ -134,10 +121,7 @@ export default function RemovePairPicker({
               <span className="flex flex-wrap items-center gap-1.5 font-medium">
                 {entry.numberPair} пара
                 {entry.isSelfStudy && (
-                  <Badge
-                    variant="outline"
-                    className="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
-                  >
+                  <Badge variant="outline" className={SELF_STUDY_STYLE}>
                     Сам.р.
                   </Badge>
                 )}

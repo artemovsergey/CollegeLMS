@@ -26,27 +26,21 @@ import {
   movePairFromNote,
 } from "@/lib/change-tags"
 import { dayLabelFromString } from "@/lib/max-lesson"
+import {
+  CHANGE_KIND_STYLE,
+  SELF_STUDY_BADGE_STYLE,
+} from "@/lib/status-style"
 
 /** Исходов два: добавлено и снято. */
 const CHANGE_KIND_META: Record<
   "Add" | "Remove",
   { label: string; icon: LucideIcon; className: string }
 > = {
-  Add: {
-    label: "Добавлено",
-    icon: Plus,
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  },
-  Remove: {
-    label: "Снято",
-    icon: Minus,
-    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-  },
+  Add: { label: "Добавлено", icon: Plus, className: CHANGE_KIND_STYLE.Add },
+  Remove: { label: "Снято", icon: Minus, className: CHANGE_KIND_STYLE.Remove },
 }
 
-const SELF_STUDY_BADGE =
-  "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+const SELF_STUDY_BADGE = SELF_STUDY_BADGE_STYLE
 
 const DAY_OFFSET: Record<string, number> = {
   Monday: 0,

@@ -5,29 +5,16 @@ import { CircleAlert, Info, MapPin, UserRound } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
 import { cn } from "@/lib/utils"
+import { CHANGE_TYPE_STYLE, SELF_STUDY_STYLE } from "@/lib/status-style"
 
 /** Пар в учебном дне семь — столько и слотов показываем. */
 export const MAX_PAIR = 7
 
 const PENDING_META: Record<string, { label: string; className: string }> = {
-  Add: {
-    label: "в пакете",
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  },
-  Remove: {
-    label: "снимается",
-    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-  },
-  Replace: {
-    label: "заменяется",
-    className: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-  },
-  Move: {
-    label: "переносится",
-    className:
-      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-  },
+  Add: { label: "в пакете", className: CHANGE_TYPE_STYLE.Add },
+  Remove: { label: "снимается", className: CHANGE_TYPE_STYLE.Remove },
+  Replace: { label: "заменяется", className: CHANGE_TYPE_STYLE.Replace },
+  Move: { label: "переносится", className: CHANGE_TYPE_STYLE.Move },
 }
 
 /** Занятия выбранной пары в порядке показа: сначала настоящие, потом пометки. */
@@ -191,7 +178,7 @@ export default function GroupDayCard({
                                 {entry.informational ? (
                                   <Badge
                                     variant="outline"
-                                    className="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+                                    className={SELF_STUDY_STYLE}
                                   >
                                     <Info className="size-3" aria-hidden />
                                     только информация
@@ -200,7 +187,7 @@ export default function GroupDayCard({
                                   entry.isSelfStudy && (
                                     <Badge
                                       variant="outline"
-                                      className="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+                                      className={SELF_STUDY_STYLE}
                                     >
                                       Сам.р.
                                     </Badge>

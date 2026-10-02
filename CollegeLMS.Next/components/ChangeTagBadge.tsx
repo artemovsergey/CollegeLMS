@@ -19,26 +19,23 @@ import {
   showsSelfStudyTag,
 } from "@/lib/change-tags"
 import { cn } from "@/lib/utils"
+import {
+  CHANGE_KIND_STYLE,
+  SELF_STUDY_ICON_STYLE,
+  SELF_STUDY_STYLE,
+} from "@/lib/status-style"
 
 /** Исходов два: добавлено и снято. */
 const CHANGE_META: Record<"Add" | "Remove", { icon: LucideIcon; className: string }> =
   {
-    Add: {
-      icon: Plus,
-      className:
-        "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-    },
-    Remove: {
-      icon: Minus,
-      className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-    },
+    Add: { icon: Plus, className: CHANGE_KIND_STYLE.Add },
+    Remove: { icon: Minus, className: CHANGE_KIND_STYLE.Remove },
   }
 
 const SELF_STUDY_META = {
   icon: BookOpen,
-  iconClass: "text-violet-600 dark:text-violet-400",
-  className:
-    "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
+  iconClass: SELF_STUDY_ICON_STYLE,
+  className: SELF_STUDY_STYLE,
 }
 
 interface ChangeTagBadgeProps {

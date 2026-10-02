@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table"
 import { isEntryNow, mergeDayRows } from "@/lib/schedule-merge"
 import { cn } from "@/lib/utils"
+import { NON_WORKING_TEXT } from "@/lib/status-style"
 
 interface ScheduleSemesterMatrixProps {
   groupId?: string
@@ -48,7 +49,7 @@ function formatDate(iso: string): string {
 function CellContent({ day, week }: { day: ScheduleDayData; week: number }) {
   if (day.isNonWorking) {
     return (
-      <span className="text-[11px] text-amber-700 dark:text-amber-300">
+      <span className={cn("text-[11px]", NON_WORKING_TEXT)}>
         Не работает: {day.nonWorkingTitle}
       </span>
     )

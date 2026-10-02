@@ -145,6 +145,14 @@ const borderPairs = [
   ["border", "card", "nonText"],
 ]
 
+// Самостоятельная работа — такой же статус, как добавление или снятие: на вебе
+// это подпись на плашке 11px, в MAX — текст 11px. Поэтому порог текстовый.
+const selfStudyPairs = [
+  ["self-study", "background", "text"],
+  ["self-study", "card", "text"],
+  ["self-study-foreground", "self-study", "text"],
+]
+
 const PAIRS = {
   root: [
     ["fg", "bg", "text"],
@@ -165,6 +173,7 @@ const PAIRS = {
     ...borderPairs,
     ...lessonPairs("background"),
     ...lessonPairs("card"),
+    ...selfStudyPairs,
   ],
   dark: [
     ["fg", "bg", "text"],
@@ -185,12 +194,15 @@ const PAIRS = {
     ...borderPairs,
     ...lessonPairs("background"),
     ...lessonPairs("card"),
+    ...selfStudyPairs,
   ],
   a11y: [
     ["fg", "bg", "text"],
     ["muted-fg", "muted", "text"],
     ["primary-foreground", "primary", "text"],
     ...lessonPairs("background"),
+    ["self-study", "background", "text"],
+    ["self-study-foreground", "self-study", "text"],
   ],
   maxLight: [
     ["text-primary", "background-surface-ground", "text"],

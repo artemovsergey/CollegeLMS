@@ -16,6 +16,11 @@ import {
   CalendarOff,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  NON_WORKING_BLOCK,
+  PRACTICE_STYLE,
+  practiceBlock,
+} from "@/lib/status-style"
 import { workingDayLabel } from "@/lib/reference"
 
 interface ScheduleLayersProps {
@@ -28,14 +33,11 @@ interface ScheduleLayersProps {
   substituteDayOfWeek?: number | null
 }
 
-const PRACTICE_BADGE: Record<Practice["kind"], string> = {
-  Up: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  Pp: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-}
+const PRACTICE_BADGE: Record<Practice["kind"], string> = PRACTICE_STYLE
 
 const PRACTICE_BORDER: Record<Practice["kind"], string> = {
-  Up: "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/20",
-  Pp: "border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/20",
+  Up: practiceBlock("Up"),
+  Pp: practiceBlock("Pp"),
 }
 
 function formatTime(time: string): string {
@@ -124,7 +126,7 @@ export function PracticePairBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-success",
         className,
       )}
     >
@@ -220,7 +222,10 @@ export default function ScheduleLayers({
       {nonWorkingTitle && (
         <div
           role="status"
-          className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+          className={cn(
+            "flex items-center gap-2 rounded-lg border px-3 py-3 text-sm",
+            NON_WORKING_BLOCK,
+          )}
         >
           <CalendarOff className="size-4 shrink-0" aria-hidden />
           <span>

@@ -36,7 +36,7 @@ import type {
 import type { GroupResponse, Result } from "@/types"
 import { DAYS } from "@/types/schedule"
 import { REPLACE_ARROW_CLASS, changeTagKind } from "@/lib/change-tags"
-import { extractErrorMessage } from "@/lib/utils"
+import { cn, extractErrorMessage } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -59,6 +59,11 @@ import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { CorrectionPositionDialog } from "@/components/CorrectionPositionDialog"
 import { CorrectionFilePreview } from "@/components/CorrectionFilePreview"
 import { CreateBatchDialog } from "@/components/CreateBatchDialog"
+import {
+  BATCH_STATUS_STYLE,
+  CHANGE_KIND_STYLE,
+  noticeBlock,
+} from "@/lib/status-style"
 import EmptyState from "@/components/EmptyState"
 
 const POSITION_PAGE_SIZE = 20
@@ -66,15 +71,8 @@ const POSITION_PAGE_SIZE = 20
 /** Операций две: добавление и снятие. */
 const CHANGE_TYPE_META: Record<"Add" | "Remove", { label: string; className: string }> =
   {
-    Add: {
-      label: "Добавлено",
-      className:
-        "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-    },
-    Remove: {
-      label: "Снято",
-      className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-    },
+    Add: { label: "Добавлено", className: CHANGE_KIND_STYLE.Add },
+    Remove: { label: "Снято", className: CHANGE_KIND_STYLE.Remove },
   }
 
 const ALL_GROUPS = "__all__"
@@ -385,8 +383,8 @@ function plural(count: number, one: string, few: string, many: string): string {
               variant="outline"
               className={
                 batchIsDraft
-                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
-                  : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                  ? BATCH_STATUS_STYLE.Draft
+                  : BATCH_STATUS_STYLE.Applied
               }
             >
               {batchIsDraft ? "Подготовлен" : "Применён"}
@@ -601,7 +599,10 @@ function plural(count: number, one: string, few: string, many: string): string {
         </div>
 
         {batch.status === "Applied" && (
-          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <div className={cn(
+            "flex items-center gap-2 rounded-md border px-4 py-3 text-sm",
+            noticeBlock("success"),
+          )}>
             <CheckCircle className="size-4 shrink-0" aria-hidden />
             <span>
               Применён

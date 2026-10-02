@@ -7,6 +7,7 @@ import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea"
 import ErrorBanner from "@/components/ErrorBanner"
 import LoadingSpinner from "@/components/LoadingSpinner"
@@ -104,18 +105,18 @@ export default function EditCoursePage() {
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="status">Статус</Label>
-          <select
+          <NativeSelect
             id="status"
             value={status}
-            onChange={e => setStatus(e.target.value)}
-            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            onValueChange={setStatus}
+            className="w-full"
           >
-            {statusOptions.map(s => (
-              <option key={s.value} value={s.value}>
+            {statusOptions.map((s) => (
+              <NativeSelectItem key={s.value} value={s.value}>
                 {s.label}
-              </option>
+              </NativeSelectItem>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <div className="flex flex-col gap-2">

@@ -44,6 +44,7 @@ import GroupDayCard, {
 } from "@/components/GroupDayCard"
 import { isPhysicalSelfStudyNote, isSelfStudyNote } from "@/lib/change-tags"
 import { toCorrectionRow } from "@/lib/correction-row"
+import { choiceBlock, noticeBlock } from "@/lib/status-style"
 import {
   SearchableMultiSelect,
   SearchableSelect,
@@ -66,15 +67,13 @@ const OPERATION_CARDS: {
     value: "add",
     label: "Добавить",
     hint: "Новое занятие в выбранную пару",
-    className:
-      "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+    className: choiceBlock("success"),
   },
   {
     value: "remove",
     label: "Снять",
     hint: "Занятие убирается из пары",
-    className:
-      "border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
+    className: choiceBlock("destructive"),
   },
 ]
 
@@ -640,7 +639,10 @@ export function CorrectionPositionDialog({
           {editing && position?.status === "Applied" && (
             <div
               role="alert"
-              className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+              className={cn(
+                  "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
+                  noticeBlock("warning"),
+                )}
             >
               <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
@@ -1003,7 +1005,10 @@ export function CorrectionPositionDialog({
               ) : (
                 <>
                   {informational && slotBusy && (
-                    <p className="flex items-start gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-200">
+                    <p className={cn(
+                        "flex items-start gap-1.5 rounded-md border px-3 py-2 text-xs",
+                        noticeBlock("self-study"),
+                      )}>
                       <CircleAlert
                         className="mt-0.5 size-3.5 shrink-0"
                         aria-hidden

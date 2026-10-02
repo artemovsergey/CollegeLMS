@@ -46,6 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ConfirmDialog } from "@/components/ConfirmDialog"
+import { BATCH_STATUS_STYLE } from "@/lib/status-style"
 import { CreateBatchDialog } from "@/components/CreateBatchDialog"
 import EmptyState from "@/components/EmptyState"
 
@@ -55,16 +56,8 @@ const STATUS_META: Record<
   CorrectionBatchStatus,
   { label: string; className: string }
 > = {
-  Draft: {
-    label: "Подготовлен",
-    className:
-      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-  },
-  Applied: {
-    label: "Применён",
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  },
+  Draft: { label: "Подготовлен", className: BATCH_STATUS_STYLE.Draft },
+  Applied: { label: "Применён", className: BATCH_STATUS_STYLE.Applied },
 }
 
 // Отменённых пакетов не бывает: применённый пакет можно удалить целиком.
@@ -477,7 +470,7 @@ export default function CorrectionBatchList({
                                   onClick={() => setPendingApply(batch)}
                                   aria-label={`Применить пакет за ${formatDate(batch.correctionDate)}`}
                                 >
-                                  <Play className="size-4 text-emerald-600 dark:text-emerald-400" />
+                                  <Play className="size-4 text-success" />
                                 </Button>
                                 <Button
                                   variant="ghost"

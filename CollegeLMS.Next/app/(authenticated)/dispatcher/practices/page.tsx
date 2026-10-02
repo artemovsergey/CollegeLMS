@@ -59,6 +59,7 @@ import EmptyState from "@/components/EmptyState"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import api from "@/lib/api"
 import { cn, extractErrorMessage } from "@/lib/utils"
+import { noticeBlock } from "@/lib/status-style"
 import { formatDate, formatDateRange, toDateInput } from "@/lib/reference"
 import {
   fetchScheduleMeta,
@@ -1521,7 +1522,10 @@ export default function DispatcherPracticesPage() {
                 )}
 
                 {!graphHeaderReady && (
-                  <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                  <div className={cn(
+                      "flex items-start gap-2 rounded-md border p-3 text-xs",
+                      noticeBlock("warning"),
+                    )}>
                     <AlertTriangle
                       className="mt-0.5 size-4 shrink-0"
                       aria-hidden="true"

@@ -32,6 +32,8 @@
   --success-foreground: #ffffff;
   --warning: #b45309;
   --warning-foreground: #ffffff;
+  --self-study: #6d28d9;
+  --self-study-foreground: #ffffff;
   --ring: var(--accent);
   --radius: 0.5rem;
 
@@ -75,6 +77,8 @@
   --success-foreground: #052e16;
   --warning: #fbbf24;
   --warning-foreground: #451a03;
+  --self-study: #c4b5fd;
+  --self-study-foreground: #2e1065;
   --ring: var(--accent);
 
   /* Те же типы занятий в тёмной теме: на тёмной карточке `#1f2937` светлые
@@ -104,6 +108,8 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-self-study: var(--self-study);
+  --color-self-study-foreground: var(--self-study-foreground);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-card-foreground: var(--card-foreground);
@@ -244,6 +250,8 @@ option:checked {
   --success-foreground: #ffffff;
   --warning: #000000;
   --warning-foreground: #ffffff;
+  --self-study: #000000;
+  --self-study-foreground: #ffffff;
   --info: #000000;
   --info-foreground: #ffffff;
   --border: #000000;

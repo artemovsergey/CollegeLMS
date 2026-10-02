@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import DispatcherLiveSection from "@/components/DispatcherLiveSection"
-import { LESSON_TYPE_LABELS, type LessonType } from "@/types/schedule"
+import { LESSON_TYPE_COLORS, LESSON_TYPE_LABELS, type LessonType } from "@/types/schedule"
 
 interface DispatcherEntry {
   groupId: string
@@ -51,13 +51,7 @@ interface DispatcherDashboardResponse {
   teachers: DispatcherTeacherStatus[]
 }
 
-const LESSON_COLORS: Record<LessonType, string> = {
-  Lecture: "var(--lesson-lecture)",
-  Practice: "var(--lesson-practice)",
-  Lab: "var(--lesson-lab)",
-  Exam: "var(--lesson-exam)",
-  None: "var(--lesson-none)",
-}
+
 
 const SEMESTER_START = new Date(2026, 8, 1) // Sep 1 2026
 
@@ -291,7 +285,7 @@ export default function DispatcherDashboardPage() {
                                     left: `${((bar.weeks[0] - weeksRange.min) / totalWeeks) * 100}%`,
                                     width: `${((bar.weeks[bar.weeks.length - 1] - bar.weeks[0] + 1) / totalWeeks) * 100}%`,
                                     minWidth: "6px",
-                                    backgroundColor: LESSON_COLORS[bar.lessonType],
+                                    backgroundColor: LESSON_TYPE_COLORS[bar.lessonType],
                                   }}
                                 />
                               </TooltipTrigger>
@@ -316,10 +310,10 @@ export default function DispatcherDashboardPage() {
 
                 {/* Legend */}
                 <div className="flex items-center gap-4 mt-3 pt-2">
-                  {Object.entries(LESSON_COLORS).map(([type, color]) => (
+                  {(Object.entries(LESSON_TYPE_COLORS) as [LessonType, string][]).map(([type, color]) => (
                     <div key={type} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
-                      {LESSON_TYPE_LABELS[type as LessonType]}
+                      {LESSON_TYPE_LABELS[type]}
                     </div>
                   ))}
                 </div>

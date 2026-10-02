@@ -1,4 +1,4 @@
-import type { LessonType } from "@/types/schedule"
+import { LESSON_TYPE_COLORS, LESSON_TYPE_LABELS, type LessonType } from "@/types/schedule"
 import type { ScheduleResponse } from "@/types/schedule"
 import { isValidDate, parseIsoDate, toDateFromTime } from "@/api/schedule"
 
@@ -51,28 +51,20 @@ export function formatTime(value: string): string {
   return value.slice(0, 5)
 }
 
+/**
+ * Подпись вида занятия для MAX.
+ *
+ * Отличие от веба не в словаре, а в подаче: на вебе пара без вида занятия
+ * подписана «Занятие», а в MAX это метка рядом с предметом, и для `None` её
+ * просто нет — иначе у каждой пары в ленте висело бы лишнее слово. Словарь
+ * при этом общий, иначе подписи разъезжаются между поверхностями.
+ */
 export function lessonTypeLabel(type: LessonType): string {
-  return (
-    {
-      Lecture: "Лекция",
-      Practice: "Практика",
-      Lab: "Лабораторная",
-      Exam: "Экзамен",
-      None: "",
-    }[type] ?? ""
-  )
+  return type === "None" ? "" : LESSON_TYPE_LABELS[type]
 }
 
 export function lessonTypeColor(type: LessonType): string {
-  return (
-    {
-      Lecture: "var(--lesson-lecture)",
-      Practice: "var(--lesson-practice)",
-      Lab: "var(--lesson-lab)",
-      Exam: "var(--lesson-exam)",
-      None: "var(--lesson-none)",
-    }[type] ?? "var(--lesson-none)"
-  )
+  return LESSON_TYPE_COLORS[type] ?? LESSON_TYPE_COLORS.None
 }
 
 export interface CurrentAndNext {

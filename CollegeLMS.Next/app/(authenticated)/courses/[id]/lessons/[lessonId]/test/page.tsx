@@ -11,6 +11,7 @@ import type {
 } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
+import { PASSED_TEXT } from "@/lib/status-style"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import ErrorBanner from "@/components/ErrorBanner"
@@ -183,7 +184,7 @@ export default function LessonTestPage() {
                 </Badge>
               </div>
               <p className="text-sm">
-                Ваш ответ: <span className={r.isCorrect ? "text-emerald-600" : "text-destructive"}>{r.givenAnswer || "—"}</span>
+                Ваш ответ: <span className={r.isCorrect ? PASSED_TEXT : "text-destructive"}>{r.givenAnswer || "—"}</span>
               </p>
               {!r.isCorrect && r.correctAnswer && (
                 <p className="text-sm text-muted-foreground">Правильный ответ: {r.correctAnswer}</p>

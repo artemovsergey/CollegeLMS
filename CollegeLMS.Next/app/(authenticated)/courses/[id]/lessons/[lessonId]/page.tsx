@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/table"
 import FormField from "@/components/FormField"
 import EmptyState from "@/components/EmptyState"
+import { PASSED_TEXT, FAILED_TEXT } from "@/lib/status-style"
 import { ClipboardList, BookOpenText, FileQuestion, Plus } from "lucide-react"
 import {
   AlertDialog,
@@ -515,11 +516,11 @@ export default function LessonViewPage() {
             {studentResult ? (
               <p className="text-sm text-muted-foreground">
                 {studentResult.passed ? (
-                  <span className="text-emerald-600 font-medium">
+                  <span className="font-medium text-success">
                     Пройден: {studentResult.percentage}% ({studentResult.score}/{studentResult.maxScore})
                   </span>
                 ) : (
-                  <span className="text-orange-600 font-medium">
+                  <span className="font-medium text-warning">
                     Не пройден: {studentResult.percentage}% ({studentResult.score}/{studentResult.maxScore})
                   </span>
                 )}
@@ -748,11 +749,11 @@ export default function LessonViewPage() {
                 </div>
                 <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Пройдено</p>
-                  <p className="text-lg font-semibold text-emerald-600">{stats.passedCount}</p>
+                  <p className="text-lg font-semibold text-success">{stats.passedCount}</p>
                 </div>
                 <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Не пройдено</p>
-                  <p className="text-lg font-semibold text-orange-600">{stats.failedCount}</p>
+                  <p className="text-lg font-semibold text-warning">{stats.failedCount}</p>
                 </div>
                 <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Средний балл</p>
