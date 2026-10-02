@@ -28,6 +28,11 @@ const CHANGE_BADGE: Record<
   { label: string; className: string; icon: LucideIcon }
 > = {
   Add: { label: "Добавлено", className: "max-app__badge--add", icon: Plus },
+  // Журнал — единственное место, где видна исходная операция, а не её
+  // результат. Поэтому здесь «Замена» и «Перенос» называются своими словами,
+  // тогда как в паре расписания и в боте это «Добавлено»: для читателя
+  // расписания важно, что пара появилась. Иконка при этом общая с остальными
+  // поверхностями, а цвет — из палитры miniapp, связанной с нашими токенами.
   Replace: { label: "Замена", className: "max-app__badge--replace", icon: Repeat },
   Move: { label: "Перенос", className: "max-app__badge--move", icon: ArrowRightLeft },
   Remove: { label: "Снято", className: "max-app__badge--remove", icon: Minus },
