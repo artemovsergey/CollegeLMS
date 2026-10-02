@@ -221,8 +221,10 @@ public class CorrectionBatchControllerTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task Apply_ValidBatch_SucceedsThenReturnsConflict()
+    public async Task Apply_FullyAppliedBatch_ReturnsBadRequest()
     {
+        // Повторное применение пакета, в котором нет черновиков, отклоняется:
+        // делать нечего, пока позицию не отредактируют или не добавят.
         var (group, teacher) = await SeedGroupAndTeacherAsync();
         SetAuthHeader(GetToken(UserRole.Admin));
         var batchId = await CreateBatchAsync();
@@ -242,7 +244,11 @@ public class CorrectionBatchControllerTests : BaseIntegrationTest
             $"/api/schedule/correction/batches/{batchId}/apply",
             content: null
         );
-        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
+        var secondBody = await DeserializeBodyAsync<Result<CorrectionApplyResult>>(second);
+        Assert.NotNull(secondBody);
+        Assert.False(secondBody!.IsSuccess);
+        Assert.Contains("уже применены", secondBody.ErrorMessage);
     }
 
     [Fact]

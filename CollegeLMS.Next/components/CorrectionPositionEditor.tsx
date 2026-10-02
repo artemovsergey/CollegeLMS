@@ -345,17 +345,33 @@ export default function CorrectionPositionEditor({
   }
 
   const batchIsDraft = batch.status === "Draft"
+/** «1 позицию», «2 позиции», «5 позиций». */
+function plural(count: number, one: string, few: string, many: string): string {
+  const mod10 = count % 10
+  const mod100 = count % 100
+  if (mod10 === 1 && mod100 !== 11) return `${count} ${one}`
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) {
+    return `${count} ${few}`
+  }
+  return `${count} ${many}`
+}
+
   const batchErrors = batch.errors ?? []
   const dateOnly = normalizeDateOnly(batch.correctionDate)
-  const applyDisabled =
-    !batchIsDraft || batch.positionCount === 0 || batchErrors.length > 0
-  const applyHint = !batchIsDraft
-    ? "Пакет уже применён или отменён"
-    : batchErrors.length > 0
+  // Повторное применение пакета выполняет только черновиковые позиции, поэтому
+  // кнопка доступна и у применённого пакета — если в нём есть что применить.
+  const pendingCount = batch.pendingCount ?? 0
+  const applyDisabled = pendingCount === 0 || batchErrors.length > 0
+  const applyHint =
+    batchErrors.length > 0
       ? "Сначала исправьте ошибки пакета"
-      : batch.positionCount === 0
-        ? "В пакете нет позиций"
-        : "Проверьте позиции и примените пакет"
+      : pendingCount === 0
+        ? batchIsDraft
+          ? "В пакете нет позиций"
+          : "Все позиции пакета уже применены"
+        : batchIsDraft
+          ? "Проверьте позиции и примените пакет"
+          : `Применить ещё ${plural(pendingCount, "позицию", "позиции", "позиций")}`
   const hasFilters = groupFilter !== ALL_GROUPS || typeFilter !== ALL_TYPES
 
   return (
@@ -567,18 +583,22 @@ export default function CorrectionPositionEditor({
           </>
         )}
 
-        {batchIsDraft && (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => {
-                setEditing(null)
-                setFormOpen(true)
-              }}
-            >
-              <Plus className="size-4 mr-2" aria-hidden /> Добавить позицию
-            </Button>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => {
+              setEditing(null)
+              setFormOpen(true)
+            }}
+          >
+            <Plus className="size-4 mr-2" aria-hidden /> Добавить позицию
+          </Button>
+          {!batchIsDraft && pendingCount > 0 && (
+            <p className="self-center text-xs text-muted-foreground">
+              Позиция попадёт в расписание по кнопке «Применить». Уже применённые
+              позиции пакета останутся как есть.
+            </p>
+          )}
+        </div>
 
         {batch.status === "Applied" && (
           <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -681,6 +701,10 @@ function PositionRow({
   onDelete,
 }: PositionRowProps) {
   const hasErrors = errors.length > 0
+  // Править можно и применённую позицию — правка вернёт её в черновики. Удалять
+  // применённую нельзя: её изменение уже в расписании, и запись журнала нужна,
+  // чтобы его отменить.
+  const deletable = batchIsDraft || position.status === "Draft"
   return (
     <>
       <TableRow
@@ -717,16 +741,16 @@ function PositionRow({
           {position.note ?? "—"}
         </TableCell>
         <TableCell className="px-3 py-2">
-          {batchIsDraft && (
-            <div className="flex justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onEdit}
-                aria-label={`Редактировать позицию ${position.row}`}
-              >
-                <Pencil className="size-4" />
-              </Button>
+          <div className="flex justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onEdit}
+              aria-label={`Редактировать позицию ${position.row}`}
+            >
+              <Pencil className="size-4" />
+            </Button>
+            {deletable && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -736,8 +760,8 @@ function PositionRow({
               >
                 <Trash2 className="size-4 text-destructive" />
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </TableCell>
       </TableRow>
       {hasErrors && (

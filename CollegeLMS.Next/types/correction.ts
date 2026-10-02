@@ -130,6 +130,8 @@ export interface CorrectionBatch {
   appliedByName: string | null
   appliedAt: string | null
   positionCount: number
+  /** Позиций, ещё не применённых: у применённого пакета появляются после правки. */
+  pendingCount: number
   positions: CorrectionPosition[]
   errors: ScheduleValidationError[]
 }

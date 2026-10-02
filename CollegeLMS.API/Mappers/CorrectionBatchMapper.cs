@@ -1,5 +1,6 @@
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
+using CollegeLMS.API.Entities.Enums;
 
 namespace CollegeLMS.API.Mappers;
 
@@ -43,6 +44,7 @@ public static class CorrectionBatchMapper
             AppliedByUserId = batch.AppliedByUserId,
             AppliedAt = batch.AppliedAt,
             PositionCount = batch.Positions.Count,
+            PendingCount = batch.Positions.Count(p => p.Status == CorrectionPositionStatus.Draft),
             Positions = includePositions
                 ? batch.Positions.OrderBy(p => p.Row).Select(p => p.ToDto()).ToList()
                 : [],

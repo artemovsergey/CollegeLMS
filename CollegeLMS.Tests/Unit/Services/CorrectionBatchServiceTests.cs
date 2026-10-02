@@ -857,7 +857,7 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ApplyAsync_Twice_ReturnsConflict()
+    public async Task ApplyAsync_AppliedBatchWithoutDrafts_Returns400()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
@@ -891,7 +891,8 @@ public class CorrectionBatchServiceTests : IDisposable
             CancellationToken.None
         );
         second.IsSuccess.Should().BeFalse();
-        second.StatusCode.Should().Be(409);
+        second.StatusCode.Should().Be(400);
+        second.ErrorMessage.Should().Contain("уже применены");
     }
 
     [Fact]

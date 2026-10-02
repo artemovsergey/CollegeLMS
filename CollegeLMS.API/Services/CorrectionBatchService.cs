@@ -199,13 +199,14 @@ public class CorrectionBatchService(
                 .FirstOrDefaultAsync(ct);
         }
 
-        if (batch.Status == CorrectionBatchStatus.Draft)
-        {
-            var errors = await engine.ValidateBatchAsync(batch, ct);
-            dto.Errors = errors;
-            foreach (var position in dto.Positions)
-                position.Errors = errors.Where(e => e.Row == position.Row).ToList();
-        }
+        // Ошибки считаются всегда: у применённого пакета они относятся к
+        // черновиковым позициям, которые ещё предстоит применить. Проверка сама
+        // берёт только черновики, поэтому у полностью применённого пакета их не
+        // будет.
+        var errors = await engine.ValidateBatchAsync(batch, ct);
+        dto.Errors = errors;
+        foreach (var position in dto.Positions)
+            position.Errors = errors.Where(e => e.Row == position.Row).ToList();
 
         return Result<CorrectionBatchResponse>.Ok(dto);
     }
@@ -381,9 +382,9 @@ public class CorrectionBatchService(
         if (batch is null)
             return Result<CorrectionPositionResponse>.Fail("Пакет корректировки не найден.", 404);
 
-        if (batch.Status != CorrectionBatchStatus.Draft)
-            return Result<CorrectionPositionResponse>.Fail("Пакет уже применён.", 409);
-
+        // Заглушки на «пакет применён» здесь нет: добавленная позиция получает
+        // статус Draft, и следующее применение выполнит только её — уже
+        // применённые позиции пакета останутся как есть.
         NormalizeRequest(request);
 
         var error = await ValidatePositionAsync(request, ct);
@@ -439,9 +440,6 @@ public class CorrectionBatchService(
         if (batch is null)
             return Result<CorrectionPositionResponse>.Fail("Пакет корректировки не найден.", 404);
 
-        if (batch.Status != CorrectionBatchStatus.Draft)
-            return Result<CorrectionPositionResponse>.Fail("Пакет уже применён.", 409);
-
         var position = await db.CorrectionPositions.FirstOrDefaultAsync(
             p => p.Id == positionId && p.BatchId == batchId,
             ct
@@ -451,9 +449,19 @@ public class CorrectionBatchService(
 
         NormalizeRequest(request);
 
+        // Проверка записи идёт до отката: она не зависит от расписания, а
+        // откат сохраняется сразу. Иначе при неверных данных прежнее изменение
+        // сняли бы, а позиция осталась бы применённой — расписание и журнал
+        // разошлись бы с пакетом.
         var error = await ValidatePositionAsync(request, ct);
         if (error is not null)
             return Result<CorrectionPositionResponse>.Fail(error, 400);
+
+        // Правка уже применённой позиции: прежнее изменение отменяется, а сама
+        // позиция возвращается в Draft, чтобы её выполнило следующее применение.
+        // Отменять надо именно сейчас, а не при применении: иначе проверка новой
+        // версии смотрела бы на расписание, где ещё лежит старая.
+        await RevertAppliedPositionAsync(position, ct);
 
         position.ChangeType = request.ChangeType;
         position.GroupId = request.GroupId;
@@ -469,11 +477,50 @@ public class CorrectionBatchService(
         position.RemovedTeacherName = request.RemovedTeacherName;
         position.RemovedNumberPair = request.RemovedNumberPair;
         position.Note = ResolveNote(request);
+        // Позиция снова черновиковая: её выполнит следующее применение пакета,
+        // и только по ней уйдёт уведомление. HistoryId очищен — прежняя запись
+        // журнала уже отменена.
+        position.Status = CorrectionPositionStatus.Draft;
+        position.HistoryId = null;
         position.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
 
         return Result<CorrectionPositionResponse>.Ok(position.ToDto());
+    }
+
+    /// <summary>
+    /// Отменяет применённое изменение позиции, если оно было. Запись журнала при
+    /// этом удаляется, а расписание возвращается к состоянию до корректировки.
+    /// Если записи уже нет — отменять нечего.
+    /// </summary>
+    private async Task RevertAppliedPositionAsync(CorrectionPosition position, CancellationToken ct)
+    {
+        if (position.Status != CorrectionPositionStatus.Applied || position.HistoryId is null)
+            return;
+
+        var revert = await correctionService.RevertHistoryAsync(position.HistoryId.Value, ct);
+        if (revert.IsSuccess)
+        {
+            logger.LogInformation(
+                "Позиция {PositionId}: прежнее изменение отменено перед правкой — {Message}",
+                position.Id,
+                revert.Data?.Message
+            );
+        }
+        else
+        {
+            // Записи журнала может не быть: её отменили вручную через журнал
+            // изменений. Тогда прежнее изменение уже не действует.
+            logger.LogWarning(
+                "Позиция {PositionId}: не удалось отменить запись журнала {HistoryId}: {Error}",
+                position.Id,
+                position.HistoryId,
+                revert.ErrorMessage
+            );
+        }
+
+        position.HistoryId = null;
     }
 
     public async Task<Result> DeletePositionAsync(
@@ -486,15 +533,21 @@ public class CorrectionBatchService(
         if (batch is null)
             return Result.Fail("Пакет корректировки не найден.", 404);
 
-        if (batch.Status != CorrectionBatchStatus.Draft)
-            return Result.Fail("Пакет уже применён.", 409);
-
         var position = await db.CorrectionPositions.FirstOrDefaultAsync(
             p => p.Id == positionId && p.BatchId == batchId,
             ct
         );
         if (position is null)
             return Result.Fail("Позиция не найдена.", 404);
+
+        // Применённую позицию удалить нельзя: её изменение уже в расписании, а
+        // запись журнала нужна, чтобы его отменить. Отмена делается в журнале
+        // изменений. Черновиковую позицию удалить можно в любом пакете.
+        if (position.Status != CorrectionPositionStatus.Draft)
+            return Result.Fail(
+                "Применённую позицию удалить нельзя — отмените изменение в журнале.",
+                409
+            );
 
         db.CorrectionPositions.Remove(position);
         await db.SaveChangesAsync(ct);
@@ -638,16 +691,25 @@ public class CorrectionBatchService(
         if (batch is null)
             return Result<CorrectionApplyResult>.Fail("Пакет корректировки не найден.", 404);
 
-        if (batch.Status != CorrectionBatchStatus.Draft)
-            return Result<CorrectionApplyResult>.Fail("Пакет уже применён.", 409);
-
+        // Заглушки на «пакет применён» здесь нет: применяются только черновиковые
+        // позиции, уже применённые остаются в базе как есть. Так добавленная или
+        // исправленная позиция доходит до расписания точечно.
         var positions = batch
             .Positions.Where(p => p.Status == CorrectionPositionStatus.Draft)
             .OrderBy(p => p.Row)
             .ToList();
 
         if (positions.Count == 0)
-            return Result<CorrectionApplyResult>.Fail("В пакете нет позиций для применения.", 400);
+            return Result<CorrectionApplyResult>.Fail(
+                batch.Status == CorrectionBatchStatus.Applied
+                    ? "Все позиции пакета уже применены."
+                    : "В пакете нет позиций для применения.",
+                400
+            );
+
+        // Первое ли это применение пакета — от этого зависит, уходит ли картинка
+        // корректировки целиком.
+        var firstApply = batch.AppliedAt is null;
 
         var nonWorking = await FindNonWorkingAsync(batch.CorrectionDate, ct);
         if (nonWorking is not null)
@@ -678,7 +740,10 @@ public class CorrectionBatchService(
             if (outcome.Changes.Count > 0)
                 await maxBot.SendChangesAsync(outcome.Changes, ct);
 
-            await TrySendCorrectionImageAsync(batch, ct);
+            // Картинка показывает пакет целиком, поэтому при повторном применении
+            // она показывала бы и уже сделанное. Отправляем её только при первом.
+            if (firstApply)
+                await TrySendCorrectionImageAsync(batch, ct);
 
             var ids = outcome.Changes.Select(c => c.Id).ToList();
             var saved = await db
