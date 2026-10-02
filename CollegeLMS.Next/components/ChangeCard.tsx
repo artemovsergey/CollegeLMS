@@ -227,6 +227,10 @@ export default function ChangeCard({
               </span>
               <span className="font-medium">{newLesson}</span>
             </span>
+          ) : isRemove ? (
+            // При снятии ничего не вводится, поэтому предмет показываем тот,
+            // который уходит из пары: иначе строка предмета была бы пустой.
+            <span className="font-medium">{removedLesson}</span>
           ) : (
             <span className="font-medium">{newLesson}</span>
           )}
