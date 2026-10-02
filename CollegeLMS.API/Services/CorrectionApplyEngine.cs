@@ -747,7 +747,15 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
 
         // «вм.X»: освобождается занятие преподавателя с предметом замены, и
         // только оно — иначе перенос унёс бы чужую пару.
+        //
+        // Для самостоятельной работы источник искать не обязательно: «сам/р.»
+        // лежит в расписании не всегда (обычно это только пометка в журнале), и
+        // тогда освобождать нечего. Раньше отсутствие источника считалось
+        // ошибкой, и заведомо верная корректировка вида «вм.3 п.сам/р.»
+        // отклонялась с «перенос невозможен». Если же занятие в паре «откуда»
+        // всё-таки есть — переносим его по-прежнему.
         SimulatedEntry? movedSource = null;
+        var selfStudy = IsSelfStudyNote(position.Note);
         if (movePair is { } from)
         {
             movedSource = strictMove
@@ -760,7 +768,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                 )
                 : FindEntry(list, from, position.Subject, teacherId, position.TeacherName);
 
-            if (movedSource is null)
+            if (movedSource is null && !selfStudy)
             {
                 result.Errors.Add(
                     Error(
