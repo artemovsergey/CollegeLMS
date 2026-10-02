@@ -637,6 +637,20 @@ export function CorrectionPositionDialog({
         </DialogHeader>
 
         <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto pr-1">
+          {editing && position?.status === "Applied" && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+            >
+              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span>
+                Позиция уже применена. Сохранение отменит прежнее изменение в
+                расписании, а новое попадёт туда по кнопке «Применить» в редакторе
+                пакета.
+              </span>
+            </div>
+          )}
+
           <Step index={1} title="Операция">
             <div
               className="grid gap-2 sm:grid-cols-2"

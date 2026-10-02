@@ -14,6 +14,13 @@ public class CorrectionBatchResponse
     public string? AppliedByName { get; set; }
     public DateTime? AppliedAt { get; set; }
     public int PositionCount { get; set; }
+
+    /// <summary>
+    /// Позиций, ещё не применённых. У применённого пакета их появляется после
+    /// правки: при следующем применении выполняются только они.
+    /// </summary>
+    public int PendingCount { get; set; }
+
     public List<CorrectionPositionResponse> Positions { get; set; } = [];
     public List<ScheduleValidationError> Errors { get; set; } = [];
 }

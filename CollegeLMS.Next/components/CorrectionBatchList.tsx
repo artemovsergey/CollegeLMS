@@ -101,19 +101,24 @@ function dayLabel(dayOfWeek: number): string {
   return DAYS.find((d) => d.value === dayOfWeek)?.full ?? String(dayOfWeek)
 }
 
+/** Позиций, ещё не применённых: у применённого пакета они появляются после правки. */
+function pendingCount(batch: CorrectionBatch): number {
+  return batch.pendingCount ?? 0
+}
+
 function canApply(batch: CorrectionBatch): boolean {
-  return (
-    batch.status === "Draft" &&
-    batch.positionCount > 0 &&
-    batch.errors.length === 0
-  )
+  // Применённый пакет применяется повторно: выполняются только черновиковые
+  // позиции, уже применённые остаются как есть.
+  return pendingCount(batch) > 0 && batch.errors.length === 0
 }
 
 function applyBlockReason(batch: CorrectionBatch): string | undefined {
-  if (batch.status !== "Draft") return "Пакет уже применён"
-  if (batch.positionCount === 0) return "В пакете нет позиций"
   if (batch.errors.length > 0)
     return `В пакете ${batch.errors.length} ошибок — исправьте их в редакторе`
+  if (pendingCount(batch) === 0)
+    return batch.status === "Draft"
+      ? "В пакете нет позиций"
+      : "Все позиции уже применены"
   return undefined
 }
 
