@@ -478,6 +478,80 @@ public class CorrectionApplyEngineTests : IDisposable
         history.RemovedSubject.Should().Be("Математика");
     }
 
+    /// <summary>
+    /// «вм.3 п. сам/р.» — перенос самостоятельной работы. Её нет в расписании
+    /// (живёт только пометкой в журнале), поэтому источника переноса искать
+    /// нельзя: раньше корректировка отклонялась с «перенос невозможен».
+    /// </summary>
+    [Fact]
+    public async Task ValidateBatchAsync_MoveSelfStudyFromMissingPair_HasNoErrors()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физкультура", 3, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                4,
+                subject: "МДК.05.02",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "МДК.05.02",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
+                removedNumberPair: 3,
+                note: "вм.3 п.сам/р."
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        errors.Should().BeEmpty("самостоятельной работы в расписании нет по определению");
+    }
+
+    /// <summary>
+    /// Перенос самостоятельной работы, когда в паре «откуда» стоит другое
+    /// занятие: трогать его нельзя, ведь переносили пометку, а не эту пару.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBatchAsync_MoveSelfStudy_KeepsUnrelatedLessonInSourcePair()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физкультура", 3, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                4,
+                subject: "МДК.05.02",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "МДК.05.02",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
+                removedNumberPair: 3,
+                note: "вм.3 п.сам/р."
+            )
+        );
+
+        var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        // Пара 3 осталась целой: её занятие к сам.р. отношения не имеет.
+        _db.ScheduleEntries.Should()
+            .ContainSingle(e => e.NumberPair == 3 && e.Subject == "Физкультура")
+            .Which.Weeks.Should()
+            .Contain(TestWeek);
+
+        // Сам.р. осталась пометкой в журнале, в расписание не встала.
+        _db.ScheduleEntries.Should().NotContain(e => e.Subject == "МДК.05.02");
+        outcome.History.Should().ContainSingle();
+    }
+
     [Fact]
     public async Task ExecuteBatchAsync_AddWithReplaceAndMove_RemovesBothPairsAndWritesTwoHistories()
     {
