@@ -601,7 +601,7 @@ export default function DispatcherBellsPage() {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                           onClick={() => removeDateRow(index)}
                           aria-label={`Удалить диапазон дат ${index + 1}`}
                         >
@@ -816,7 +816,7 @@ export default function DispatcherBellsPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setDeleteTarget(activeProfile)}
-                    className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                   >
                     <Trash2 className="size-4" aria-hidden="true" />
                     Удалить профиль

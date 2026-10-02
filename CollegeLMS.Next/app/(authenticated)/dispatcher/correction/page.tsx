@@ -204,7 +204,7 @@ export default function DispatcherCorrectionPage() {
 
             {importResult && (
               <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 grid gap-2">
-                <p className="flex items-center gap-1 text-sm font-semibold text-destructive">
+                <p className="flex items-center gap-1 text-sm font-semibold text-destructive-text">
                   <AlertCircle className="size-3" aria-hidden />
                   Пакет не создан: структурные ошибки ({importResult.errors.length}
                   )

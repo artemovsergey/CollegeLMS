@@ -517,11 +517,11 @@ export default function LessonViewPage() {
             {studentResult ? (
               <p className="text-sm text-muted-foreground">
                 {studentResult.passed ? (
-                  <span className="font-medium text-success">
+                  <span className="font-medium text-success-text">
                     Пройден: {studentResult.percentage}% ({studentResult.score}/{studentResult.maxScore})
                   </span>
                 ) : (
-                  <span className="font-medium text-warning">
+                  <span className="font-medium text-warning-text">
                     Не пройден: {studentResult.percentage}% ({studentResult.score}/{studentResult.maxScore})
                   </span>
                 )}
@@ -568,7 +568,7 @@ export default function LessonViewPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Удаление..." : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -725,8 +725,8 @@ export default function LessonViewPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={() => deleteQuestionId && handleDeleteQuestion(deleteQuestionId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Удалить
             </AlertDialogAction>
@@ -750,11 +750,11 @@ export default function LessonViewPage() {
                 </div>
                 <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Пройдено</p>
-                  <p className="text-lg font-semibold text-success">{stats.passedCount}</p>
+                  <p className="text-lg font-semibold text-success-text">{stats.passedCount}</p>
                 </div>
                 <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Не пройдено</p>
-                  <p className="text-lg font-semibold text-warning">{stats.failedCount}</p>
+                  <p className="text-lg font-semibold text-warning-text">{stats.failedCount}</p>
                 </div>
                 <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Средний балл</p>

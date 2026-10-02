@@ -54,18 +54,18 @@ export default function Footer() {
           {footerColumns.map((col) => (
             <div key={col.title}>
               <h3 className="mb-3 text-sm font-semibold text-primary">{col.title}</h3>
-              <ul className="space-y-1.5">
+              <ul>
                 {col.items.map((item) => (
                   <li key={item.label}>
                     {item.href ? (
                       <Link
                         href={item.href}
-                        className="text-sm text-muted-fg hover:text-primary hover:underline transition-colors duration-200"
+                        className="flex min-h-11 items-center text-sm text-muted-fg hover:text-primary hover:underline transition-colors duration-200"
                       >
                         {item.label}
                       </Link>
                     ) : (
-                      <span className="text-sm text-muted-fg">{item.label}</span>
+                      <span className="flex min-h-11 items-center text-sm text-muted-fg">{item.label}</span>
                     )}
                   </li>
                 ))}
@@ -74,13 +74,16 @@ export default function Footer() {
           ))}
         </div>
 
+        {/* Копирайт и ссылка — вторичный текст, поэтому `--muted-fg`. Стоял
+            `--accent-lighter`, и на подложке `--muted` он давал 3.06:1 —
+            ниже порога 4.5:1 для `text-xs`. */}
         <div className="mt-8 border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-accent-lighter">
+          <p className="text-xs text-muted-fg">
             © {new Date().getFullYear()} ГБПОУ «Ставропольский колледж связи
             имени Героя Советского Союза В.А. Петрова». Все права защищены.
           </p>
-          <div className="flex gap-4 text-xs text-accent-lighter">
-            <Link href="/about" className="hover:text-muted-fg transition-colors">
+          <div className="flex gap-4 text-xs text-muted-fg">
+            <Link href="/about" className="flex min-h-11 items-center hover:text-muted-fg transition-colors">
               Сведения об образовательной организации
             </Link>
           </div>

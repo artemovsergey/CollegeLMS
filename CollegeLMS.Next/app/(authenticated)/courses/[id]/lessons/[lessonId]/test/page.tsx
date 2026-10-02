@@ -185,7 +185,7 @@ export default function LessonTestPage() {
                 </Badge>
               </div>
               <p className="text-sm">
-                Ваш ответ: <span className={r.isCorrect ? PASSED_TEXT : "text-destructive"}>{r.givenAnswer || "—"}</span>
+                Ваш ответ: <span className={r.isCorrect ? PASSED_TEXT : "text-destructive-text"}>{r.givenAnswer || "—"}</span>
               </p>
               {!r.isCorrect && r.correctAnswer && (
                 <p className="text-sm text-muted-foreground">Правильный ответ: {r.correctAnswer}</p>

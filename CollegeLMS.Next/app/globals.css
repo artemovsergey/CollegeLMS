@@ -34,6 +34,15 @@
   --warning-foreground: #ffffff;
   --self-study: #6d28d9;
   --self-study-foreground: #ffffff;
+  /* Цвета статусов как текст. Отдельные от `--destructive`, `--success`,
+     `--warning`, потому что один токен не может быть и заливкой, и текстом на
+     подложке от себя же: белый на `--destructive` проходит, а
+     `--destructive` на `--destructive/10` — нет. В тёмной теме расходится ещё
+     сильнее: для заливки нужен тёмный текст, для подписи на светлой подложке —
+     светлый. */
+  --destructive-text: #b91c1c;
+  --success-text: #166534;
+  --warning-text: #92400e;
   --ring: var(--accent);
   --radius: 0.5rem;
 
@@ -65,8 +74,11 @@
   --accent: #568edd;
   --accent-hover: #6b9de0;
   --accent-foreground: #0f172a;
-  --accent-light: #5b6a90;
-  --accent-lighter: #374151;
+  /* Приглушённый брендовый. В тёмной теме стоял `#5b6a90` — на карточке
+     `#1f2937` это 2.7:1, то есть как цвет текста не годился. Теперь светлеет
+     вместе с темой. */
+  --accent-light: #9aa8c4;
+  --accent-lighter: #828a99;
   --primary: var(--accent);
   --primary-foreground: #0f172a;
   --secondary: #5b6a90;
@@ -79,6 +91,9 @@
   --warning-foreground: #451a03;
   --self-study: #c4b5fd;
   --self-study-foreground: #2e1065;
+  --destructive-text: #f87171;
+  --success-text: #4ade80;
+  --warning-text: #fbbf24;
   --ring: var(--accent);
 
   /* Те же типы занятий в тёмной теме: на тёмной карточке `#1f2937` светлые
@@ -110,6 +125,9 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-self-study: var(--self-study);
   --color-self-study-foreground: var(--self-study-foreground);
+  --color-destructive-text: var(--destructive-text);
+  --color-success-text: var(--success-text);
+  --color-warning-text: var(--warning-text);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-card-foreground: var(--card-foreground);
@@ -252,6 +270,9 @@ option:checked {
   --warning-foreground: #ffffff;
   --self-study: #000000;
   --self-study-foreground: #ffffff;
+  --destructive-text: #000000;
+  --success-text: #000000;
+  --warning-text: #000000;
   --info: #000000;
   --info-foreground: #ffffff;
   --border: #000000;

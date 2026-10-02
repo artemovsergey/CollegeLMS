@@ -105,7 +105,7 @@ export function ErrorState({ message, className, action, inline }: ErrorStatePro
       <div
         role="alert"
         className={cn(
-          "flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive",
+          "flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive-text",
           className,
         )}
       >
@@ -123,8 +123,8 @@ export function ErrorState({ message, className, action, inline }: ErrorStatePro
         className,
       )}
     >
-      <AlertCircle className="size-8 text-destructive" aria-hidden />
-      <p className="max-w-md text-sm text-destructive">{message}</p>
+      <AlertCircle className="size-8 text-destructive-text" aria-hidden />
+      <p className="max-w-md text-sm text-destructive-text">{message}</p>
       {action}
     </div>
   )
@@ -142,7 +142,7 @@ export function RouteErrorState({
 }) {
   return (
     <div className="mx-auto flex max-w-lg flex-col items-center justify-center gap-4 px-4 py-16 text-center">
-      <AlertCircle className="size-12 text-destructive" aria-hidden />
+      <AlertCircle className="size-12 text-destructive-text" aria-hidden />
       <h2 className="text-xl font-semibold">Не удалось загрузить раздел</h2>
       <p className="text-sm text-muted-fg">
         {error.message ||

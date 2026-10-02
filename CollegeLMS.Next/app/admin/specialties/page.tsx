@@ -335,7 +335,7 @@ export default function SpecialtiesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction variant="destructive" onClick={handleDelete}>
               Удалить
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -22,7 +22,7 @@ export default function FormField({ id, label, error, hint, required, showAsteri
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>
         {label}
-        {required && showAsterisk && <span className="text-destructive"> *</span>}
+        {required && showAsterisk && <span className="text-destructive-text"> *</span>}
         {hint && (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
@@ -47,7 +47,7 @@ export default function FormField({ id, label, error, hint, required, showAsteri
       </div>
       {hint && focused && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
       {error && (
-        <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
+        <p id={`${id}-error`} role="alert" className="text-sm text-destructive-text">
           {error}
         </p>
       )}

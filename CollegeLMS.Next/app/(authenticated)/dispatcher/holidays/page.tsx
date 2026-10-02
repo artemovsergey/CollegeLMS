@@ -384,7 +384,7 @@ export default function DispatcherHolidaysPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                               onClick={() => setDeleteTarget(item)}
                               aria-label={`Удалить период «${item.title}»`}
                             >

@@ -258,7 +258,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
         <NativeDialogClose onClick={() => setShowChangePassword(false)} />
         <NativeDialogHeader><NativeDialogTitle>Сменить пароль</NativeDialogTitle></NativeDialogHeader>
         <form onSubmit={handleChangePassword} className="flex flex-col gap-4 p-6">
-          {cpError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{cpError}</p>}
+          {cpError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive-text">{cpError}</p>}
           <div className="flex flex-col gap-2">
             <Label htmlFor="cp-old">Текущий пароль</Label>
             <Input id="cp-old" type="password" required value={cpOldPassword} onChange={e => setCpOldPassword(e.target.value)} className="bg-muted" />

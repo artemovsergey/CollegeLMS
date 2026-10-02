@@ -86,7 +86,7 @@ export function WorkingDayBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-warning/15 font-medium text-warning",
+        "inline-flex items-center gap-1 rounded-full bg-warning/15 font-medium text-warning-text",
         compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-xs",
         className,
       )}
@@ -126,7 +126,7 @@ export function PracticePairBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-success",
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-success-text",
         className,
       )}
     >

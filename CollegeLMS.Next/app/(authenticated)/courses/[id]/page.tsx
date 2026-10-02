@@ -364,7 +364,7 @@ export default function CourseDetailPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemoveGroup} disabled={removeSubmitting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction variant="destructive" onClick={handleRemoveGroup} disabled={removeSubmitting}>
               {removeSubmitting ? "Удаление..." : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>

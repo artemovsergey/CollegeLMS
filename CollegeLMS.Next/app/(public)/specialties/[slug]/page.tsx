@@ -59,7 +59,7 @@ export default function SpecialtyDetailPage({ params }: { params: { slug: string
               <GraduationCap size={14} />
               {spec.form}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-xs font-medium text-success-text">
               <Award size={14} />
               {spec.budget}
             </span>

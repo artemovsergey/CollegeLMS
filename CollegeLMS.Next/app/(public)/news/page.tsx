@@ -91,7 +91,7 @@ export default function NewsListPage() {
               setCategoryFilter(undefined)
               setPage(1)
             }}
- className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+ className={`flex min-h-11 items-center rounded-md px-3 text-sm font-medium transition-colors ${
               !categoryFilter
                 ? "bg-accent text-accent-foreground"
                 : "bg-muted text-primary hover:bg-border"
@@ -106,7 +106,7 @@ export default function NewsListPage() {
                 setCategoryFilter(cat.id)
                 setPage(1)
               }}
- className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+ className={`flex min-h-11 items-center rounded-md px-3 text-sm font-medium transition-colors ${
                 categoryFilter === cat.id
                   ? "bg-accent text-accent-foreground"
                   : "bg-muted text-primary hover:bg-border"
@@ -122,7 +122,10 @@ export default function NewsListPage() {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Поиск..."
- className={cn(FOCUS_RING, "rounded-md border border-border px-3 py-1.5 text-sm outline-none bg-background")}
+ className={cn(
+              FOCUS_RING,
+              "h-11 rounded-md border border-input bg-transparent px-3 text-sm outline-none",
+            )}
           />
           <Button type="submit" size="sm">
             Найти
@@ -132,7 +135,7 @@ export default function NewsListPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="mb-6 rounded-md bg-destructive/10 p-3 text-sm text-destructive-text">
           {error}
         </div>
       )}

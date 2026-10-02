@@ -155,7 +155,7 @@ export default function AdminImportPage() {
           )}
 
           {progress.errors > 0 && (
-            <div className="text-sm text-destructive">
+            <div className="text-sm text-destructive-text">
               Ошибок: {progress.errors}
             </div>
           )}
@@ -167,7 +167,7 @@ export default function AdminImportPage() {
               <p>Новостей пропущено: {progress.result.postsSkipped}</p>
               {progress.result.errors.length > 0 && (
                 <div className="mt-2 flex flex-col gap-1">
-                  <p className="font-medium text-destructive">Ошибки:</p>
+                  <p className="font-medium text-destructive-text">Ошибки:</p>
                   <ul className="list-inside list-disc text-destructive/80">
                     {progress.result.errors.map((err, i) => (
                       <li key={i}>{err}</li>

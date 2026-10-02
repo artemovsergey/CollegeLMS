@@ -18,14 +18,37 @@ import type { LessonKind } from "@/types"
  * что показывать пользователю, здесь — как это выглядит.
  */
 
-/** Плашка на подложке токена: подложка — сам токен на 10% прозрачности. */
-function pill(token: "success" | "destructive" | "warning" | "primary" | "self-study"): string {
-  return `bg-${token}/10 text-${token}`
+/**
+ * Плашка на подложке токена: подложка — сам токен на 10% прозрачности.
+ *
+ * Цвет текста берётся из `-text`-версии токена, а не из самого токена.
+ * Разница не косметическая: `--destructive` подобран так, чтобы белый текст на
+ * его заливке проходил AA, а он сам на подложке `--destructive/10` давал
+ * 4.35:1 — ниже порога. Один токен не может быть и заливкой, и текстом на
+ * подложке от себя же; `-text`-версия существует ровно для подписи.
+ */
+function pill(
+  token: "success" | "destructive" | "warning" | "primary" | "self-study",
+): string {
+  return `bg-${token}/10 ${statusText(token)}`
 }
 
-/** Тот же приём для подложки при заливке текстом по токену. */
-export function tinted(token: "success" | "destructive" | "warning" | "primary" | "self-study") {
-  return `bg-${token}/10 text-${token} border-${token}/30`
+/**
+ * Цвет подписи статуса. У `--primary` собственной `-text`-версии нет: он и
+ * так тёмно-синий на светлом фоне и светло-лазурный на тёмном, что в обоих
+ * случаях проходит порог для текста.
+ */
+function statusText(
+  token: "success" | "destructive" | "warning" | "primary" | "self-study",
+): string {
+  return token === "primary" ? "text-primary" : `text-${token}-text`
+}
+
+/** Плашка с рамкой — для мест, где статус должен читаться как граница. */
+export function tinted(
+  token: "success" | "destructive" | "warning" | "primary",
+): string {
+  return `border-${token}/30 bg-${token}/10 ${statusText(token)}`
 }
 
 /**
@@ -93,20 +116,20 @@ export function practiceBlock(kind: "Up" | "Pp"): string {
 /** Пара под практикой в расписании: рамка акцентная, подложка слабая. */
 export const PRACTICE_CELL = "border-success/50 bg-success/5"
 /** Номер пары под практикой. */
-export const PRACTICE_PAIR_NUMBER = "text-success"
+export const PRACTICE_PAIR_NUMBER = "text-success-text"
 
 /**
  * Нерабочий день и выходной: `--warning` в обоих состояниях. Это
  * предупреждение, а не ошибка, поэтому не `--destructive`.
  */
-export const NON_WORKING_TEXT = "text-warning"
+export const NON_WORKING_TEXT = "text-warning-text"
 export const NON_WORKING_BLOCK =
-  "border-warning/40 bg-warning/10 text-warning"
+  "border-warning/40 bg-warning/10 text-warning-text"
 
 /** Пара снята в пакете корректировок: то же, что снятие, но тише. */
 export const PENDING_CHANGE_TEXT: Record<"Add" | "Remove", string> = {
-  Add: "text-success",
-  Remove: "text-destructive",
+  Add: "text-success-text",
+  Remove: "text-destructive-text",
 }
 
 /**
@@ -138,5 +161,5 @@ export function noticeBlock(
 }
 
 /** Результат теста: пройден и не пройден. */
-export const PASSED_TEXT = "text-success"
-export const FAILED_TEXT = "text-warning"
+export const PASSED_TEXT = "text-success-text"
+export const FAILED_TEXT = "text-warning-text"

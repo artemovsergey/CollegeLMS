@@ -988,8 +988,8 @@ export default function AdminTestingPage() {
             <AlertDialogFooter>
               <AlertDialogCancel>Отмена</AlertDialogCancel>
               <AlertDialogAction
+                variant="destructive"
                 onClick={handleDeleteQuestion}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Удалить
               </AlertDialogAction>
@@ -1011,8 +1011,8 @@ export default function AdminTestingPage() {
             <AlertDialogFooter>
               <AlertDialogCancel>Отмена</AlertDialogCancel>
               <AlertDialogAction
+                variant="destructive"
                 onClick={handleDeleteAssignment}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Удалить
               </AlertDialogAction>
@@ -1129,8 +1129,8 @@ export default function AdminTestingPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={handleDeleteTest}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Удалить
             </AlertDialogAction>

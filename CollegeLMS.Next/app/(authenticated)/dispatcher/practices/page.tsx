@@ -983,7 +983,7 @@ export default function DispatcherPracticesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                                 onClick={() => setDeleteTarget(practice)}
                                 aria-label={`Удалить практику «${practiceName(practice)}»`}
                               >
@@ -1494,7 +1494,7 @@ export default function DispatcherPracticesPage() {
                     </div>
                   </div>
                   {previewFrom && previewTo && previewFrom > previewTo && (
-                    <p className="text-xs text-destructive">
+                    <p className="text-xs text-destructive-text">
                       Дата начала не может быть позже даты окончания.
                     </p>
                   )}
@@ -1502,14 +1502,14 @@ export default function DispatcherPracticesPage() {
 
                 {preview.errors.length > 0 ? (
                   <div className="flex flex-col gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
-                    <p className="flex items-center gap-1.5 text-sm font-medium text-destructive">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-destructive-text">
                       <AlertTriangle className="size-4" aria-hidden="true" />
                       Ошибок: {preview.errors.length}
                     </p>
                     <div className="max-h-40 overflow-y-auto text-xs">
                       <ul className="flex flex-col gap-1">
                         {preview.errors.map((err, i) => (
-                          <li key={i} className="text-destructive">
+                          <li key={i} className="text-destructive-text">
                             {formatGraphError(err)}
                           </li>
                         ))}
@@ -1518,7 +1518,7 @@ export default function DispatcherPracticesPage() {
                   </div>
                 ) : (
                   <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <span className="text-success">Ошибок нет</span> — можно
+                    <span className="text-success-text">Ошибок нет</span> — можно
                     импортировать.
                   </p>
                 )}

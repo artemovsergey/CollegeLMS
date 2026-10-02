@@ -71,7 +71,7 @@ function HomePageContent() {
             </Button>
           </div>
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive-text">{error}</div>
           )}
           {loading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

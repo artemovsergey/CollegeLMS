@@ -341,7 +341,7 @@ export default function DispatcherInsertsPage() {
                           {item.isActive ? (
                             <Badge
                               variant="outline"
-                              className="border-success/40 text-success"
+                              className="border-success/40 text-success-text"
                             >
                               Активно
                             </Badge>
@@ -363,7 +363,7 @@ export default function DispatcherInsertsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                               onClick={() => setDeleteTarget(item)}
                               aria-label={`Удалить событие «${item.title}»`}
                             >

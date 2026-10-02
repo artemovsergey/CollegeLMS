@@ -138,7 +138,7 @@ function DayColumn({
                   <span
                     className={cn(
                       "font-semibold",
-                      isPractice && "text-success",
+                      isPractice && "text-success-text",
                     )}
                   >
                     {entry.numberPair}

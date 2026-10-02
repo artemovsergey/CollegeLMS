@@ -133,7 +133,7 @@ export default function NewsDetailPage() {
   if (error || !news) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <p className="mb-4 text-lg text-destructive">{error ?? "Новость не найдена"}</p>
+        <p className="mb-4 text-lg text-destructive-text">{error ?? "Новость не найдена"}</p>
         <div className="flex justify-center gap-3">
           <Button variant="outline" onClick={() => router.back()}>
             ← Назад

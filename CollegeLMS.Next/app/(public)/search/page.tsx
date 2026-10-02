@@ -1,5 +1,8 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { FOCUS_RING } from "@/lib/focus"
 import { PageTitle, SubTitle } from "@/components/ui/heading"
 import { useState, useEffect, useCallback, useRef, Suspense, type FormEvent } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -164,16 +167,21 @@ function SearchResults() {
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           onKeyDown={handleKeyDown}
           placeholder="Поиск по новостям и страницам..."
-          className="w-full rounded-lg border border-border bg-card px-4 py-2.5 pr-12 text-sm text-primary outline-none transition-colors placeholder:text-muted-foreground focus:border-accent"
+          className={cn(
+            FOCUS_RING,
+            "h-11 w-full rounded-md border border-input bg-transparent px-4 pr-12 text-sm outline-none transition-colors placeholder:text-muted-foreground",
+          )}
           autoFocus
         />
-        <button
+        <Button
           type="submit"
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:text-accent"
+          variant="ghost"
+          size="icon"
+          className="absolute right-0 top-0 text-muted-fg hover:text-accent"
           aria-label="Найти"
         >
-          <SearchIcon className="h-5 w-5" />
-        </button>
+          <SearchIcon className="size-5" />
+        </Button>
 
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-card shadow-lg">
@@ -182,7 +190,7 @@ function SearchResults() {
                 key={`${item.type}-${item.url}-${i}`}
                 type="button"
                 onMouseDown={() => selectSuggestion(item)}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
+                className={`flex min-h-11 w-full items-center gap-3 px-4 text-left text-sm transition-colors ${
                   i === selectedIndex ? "bg-accent/10" : "hover:bg-accent/5"
                 } ${i === 0 ? "rounded-t-lg" : ""} ${i === suggestions.length - 1 ? "rounded-b-lg" : ""}`}
               >
@@ -216,7 +224,7 @@ function SearchResults() {
       )}
 
       {error && (
-        <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive-text">
           {error}
         </div>
       )}

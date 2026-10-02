@@ -731,11 +731,11 @@ export default function SchedulePage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={() => {
                 if (deleteConfirmIds.length > 0)
                   void handleDelete(deleteConfirmIds)
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Удалить
             </AlertDialogAction>

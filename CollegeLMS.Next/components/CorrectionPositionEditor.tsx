@@ -459,7 +459,7 @@ function plural(count: number, one: string, few: string, many: string): string {
             role="alert"
             className="grid gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-4"
           >
-            <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
+            <p className="flex items-center gap-2 text-sm font-semibold text-destructive-text">
               <CircleAlert className="size-4 shrink-0" aria-hidden />
               Ошибки пакета ({batchErrors.length}) — применить нельзя
             </p>
@@ -476,7 +476,7 @@ function plural(count: number, one: string, few: string, many: string): string {
             role="alert"
             className="grid gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-4"
           >
-            <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
+            <p className="flex items-center gap-2 text-sm font-semibold text-destructive-text">
               <CircleAlert className="size-4 shrink-0" aria-hidden />
               Пакет не применён — бэкенд вернул ошибки
             </p>
@@ -729,7 +729,7 @@ function PositionRow({
         </TableCell>
         <TableCell className="px-3 py-2 whitespace-nowrap">
           {position.groupName || (
-            <span className="text-destructive">Группа не указана</span>
+            <span className="text-destructive-text">Группа не указана</span>
           )}
         </TableCell>
         <TableCell className="px-3 py-2 whitespace-nowrap">
@@ -737,7 +737,7 @@ function PositionRow({
           position.changeType !== "Remove" &&
           position.removedNumberPair !== position.numberPair
             ? `${position.removedNumberPair} ${CHANGE_ARROW} ${position.numberPair}`
-            : position.numberPair || <span className="text-destructive">—</span>}
+            : position.numberPair || <span className="text-destructive-text">—</span>}
         </TableCell>
         <TableCell className="px-3 py-2 whitespace-normal">
           {renderTitle(position)}
@@ -763,7 +763,7 @@ function PositionRow({
                 onClick={onDelete}
                 aria-label={`Удалить позицию ${position.row}`}
               >
-                <Trash2 className="size-4 text-destructive" />
+                <Trash2 className="size-4 text-destructive-text" />
               </Button>
             )}
           </div>
@@ -772,7 +772,7 @@ function PositionRow({
       {hasErrors && (
         <TableRow className="bg-destructive/5 hover:bg-destructive/5">
           <TableCell colSpan={7} className="px-3 pt-0 pb-2">
-            <ul className="grid gap-1 text-xs text-destructive">
+            <ul className="grid gap-1 text-xs text-destructive-text">
               {errors.map((error, index) => (
                 <li key={index} className="flex items-start gap-1.5">
                   <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />

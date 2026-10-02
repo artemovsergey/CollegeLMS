@@ -70,7 +70,13 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-primary to-primary/40 p-12">
+      {/* Панель с знаком колледжа. Заливка однотонная, а не с уходом в
+          прозрачность: градиент `to-primary/40` подводил к светлому краю, и
+          белый текст названия колледжа на нём давал контраст около 1:1 — то
+          есть был не виден совсем. Однотонная заливка берёт текст из
+          `--primary-foreground`, который в светлой теме белый (11.36:1), а в
+          тёмной тёмный (5.36:1), то есть следует за темой сам. */}
+      <div className="hidden flex-col items-center justify-center bg-primary p-12 lg:flex">
         <div className="w-full max-w-md">
           <Link href="/">
             <Image
@@ -82,7 +88,7 @@ export default function LoginPage() {
               unoptimized
              data-brand-mark="true"/>
           </Link>
-          <h2 className="mt-8 text-center text-xl font-semibold text-white/90">
+          <h2 className="mt-8 text-center text-xl font-semibold text-primary-foreground">
             Ставропольский колледж связи<br />
             имени Героя Советского Союза В.А. Петрова
           </h2>

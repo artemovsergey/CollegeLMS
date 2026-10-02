@@ -140,6 +140,15 @@ const lessonPairs = (surface) =>
 
 // Граница --border определяет края элементов, поэтому проверяется как
 // нетекстовый элемент (WCAG 1.4.11, 3:1) на обеих поверхностях.
+// Приглушённый брендовый цвет применяется и как подпись, и как подложка.
+// Как подпись — порог текстовый, как подложка и рамка — 3:1 (WCAG 1.4.11).
+const accentSoftPairs = [
+  ["accent-light", "background", "text"],
+  ["accent-light", "card", "text"],
+  ["accent-lighter", "background", "nonText"],
+  ["accent-lighter", "card", "nonText"],
+]
+
 const borderPairs = [
   ["border", "background", "nonText"],
   ["border", "card", "nonText"],
@@ -147,6 +156,16 @@ const borderPairs = [
 
 // Самостоятельная работа — такой же статус, как добавление или снятие: на вебе
 // это подпись на плашке 11px, в MAX — текст 11px. Поэтому порог текстовый.
+// Цвета статусов как текст на своей подложке. Порог текстовый: подпись
+// плашки — 11px, её читают с расстояния. Проверяется на `--background` и
+// `--card`: подложка плашки — это сам токен на 10% прозрачности, то есть по
+// светлоте лежит между ними, поэтому обе проверки вместе ограничивают токен
+// с обеих сторон.
+const statusTextPairs = (surface) =>
+  ["destructive", "success", "warning"].flatMap((name) => [
+    [`${name}-text`, surface, "text"],
+  ])
+
 const selfStudyPairs = [
   ["self-study", "background", "text"],
   ["self-study", "card", "text"],
@@ -174,6 +193,9 @@ const PAIRS = {
     ...lessonPairs("background"),
     ...lessonPairs("card"),
     ...selfStudyPairs,
+    ...statusTextPairs("background"),
+    ...statusTextPairs("muted"),
+    ...accentSoftPairs,
   ],
   dark: [
     ["fg", "bg", "text"],
@@ -195,6 +217,9 @@ const PAIRS = {
     ...lessonPairs("background"),
     ...lessonPairs("card"),
     ...selfStudyPairs,
+    ...statusTextPairs("background"),
+    ...statusTextPairs("card"),
+    ...accentSoftPairs,
   ],
   a11y: [
     ["fg", "bg", "text"],
@@ -203,6 +228,7 @@ const PAIRS = {
     ...lessonPairs("background"),
     ["self-study", "background", "text"],
     ["self-study-foreground", "self-study", "text"],
+    ...statusTextPairs("background"),
   ],
   maxLight: [
     ["text-primary", "background-surface-ground", "text"],

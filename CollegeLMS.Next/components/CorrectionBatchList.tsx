@@ -376,7 +376,7 @@ export default function CorrectionBatchList({
         ) : error ? (
           <div
             role="alert"
-            className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive-text"
           >
             <span className="flex items-center gap-2">
               <CircleAlert className="size-4 shrink-0" aria-hidden />
@@ -470,7 +470,7 @@ export default function CorrectionBatchList({
                                   onClick={() => setPendingApply(batch)}
                                   aria-label={`Применить пакет за ${formatDate(batch.correctionDate)}`}
                                 >
-                                  <Play className="size-4 text-success" />
+                                  <Play className="size-4 text-success-text" />
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -479,7 +479,7 @@ export default function CorrectionBatchList({
                                   onClick={() => setPendingDelete(batch)}
                                   aria-label={`Удалить пакет за ${formatDate(batch.correctionDate)}`}
                                 >
-                                  <Trash2 className="size-4 text-destructive" />
+                                  <Trash2 className="size-4 text-destructive-text" />
                                 </Button>
                               </>
                             )}
@@ -492,7 +492,7 @@ export default function CorrectionBatchList({
                                 onClick={() => setPendingDelete(batch)}
                                 aria-label={`Отменить пакет за ${formatDate(batch.correctionDate)}`}
                               >
-                                <Trash2 className="size-4 text-destructive" />
+                                <Trash2 className="size-4 text-destructive-text" />
                               </Button>
                             )}
                           </div>
@@ -561,7 +561,7 @@ export default function CorrectionBatchList({
                       )}
                       <Button
                         variant="outline"
-                        className="h-11 text-destructive"
+                        className="h-11 text-destructive-text"
                         disabled={busy}
                         onClick={() => setPendingDelete(batch)}
                       >
