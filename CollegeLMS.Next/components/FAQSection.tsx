@@ -1,5 +1,6 @@
 "use client"
 
+import { SectionTitle } from "@/components/ui/heading"
 import { useState } from "react"
 import { ChevronDown } from "lucide-react"
 
@@ -40,7 +41,7 @@ export default function FAQSection() {
   return (
     <section className="py-16">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Часто задаваемые вопросы</h2>
+        <SectionTitle className="mb-8 text-center ">Часто задаваемые вопросы</SectionTitle>
         <div className="space-y-2">
           {faqs.map((faq, i) => (
             <div

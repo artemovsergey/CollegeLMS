@@ -1,5 +1,6 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Copy, Trash2 } from "lucide-react"
@@ -30,6 +31,7 @@ import {
 import { toast } from "sonner"
 import ErrorBanner from "@/components/ErrorBanner"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { PageShell } from "@/components/ui/page-shell"
 
 const statusLabels: Record<string, string> = {
   Active: "Активен",
@@ -105,14 +107,15 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">{isTeacher ? "Мои курсы" : "Курсы"}</h2>
-        {canCreate && (
+    <PageShell
+      density="compact"
+      title={isTeacher ? "Мои курсы" : "Курсы"}
+      actions={
+        <>{canCreate && (
           <Button size="sm" onClick={() => router.push("/courses/new")}>+ Создать</Button>
-        )}
-      </div>
+        )}</>
+      }
+    >
 
       {error && <ErrorBanner message={error} />}
 
@@ -121,7 +124,7 @@ export default function CoursesPage() {
         <LoadingSpinner size="lg" />
       </div>
       ) : courses.length === 0 ? (
-        <p className="text-muted-foreground">Нет курсов</p>
+        <EmptyState message="Нет курсов" className="py-8" />
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>
@@ -233,7 +236,7 @@ export default function CoursesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }
 

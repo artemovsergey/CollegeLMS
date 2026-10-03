@@ -42,7 +42,7 @@ export default function DocsSidebar({
             onClick={() => setMobileOpen(false)}
             className={`block rounded-md px-3 py-1.5 text-sm transition-colors ${
               isActive
-                ? "bg-accent/10 font-medium text-accent"
+                ? "bg-accent/10 font-medium text-accent-text"
                 : "text-muted-foreground hover:bg-muted hover:text-primary"
             }`}
           >

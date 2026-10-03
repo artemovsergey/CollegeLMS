@@ -200,11 +200,11 @@ export default function ScheduleImportDialog({
                 <p className="text-xs text-muted-foreground">Всего записей</p>
               </div>
               <div className="rounded-lg border bg-card p-3">
-                <p className="text-2xl font-bold text-success">{preview.entries.length}</p>
+                <p className="text-2xl font-bold text-success-text">{preview.entries.length}</p>
                 <p className="text-xs text-muted-foreground">Валидных</p>
               </div>
               <div className="rounded-lg border bg-card p-3">
-                <p className={`text-2xl font-bold ${importErrors.length > 0 ? "text-destructive" : "text-success"}`}>
+                <p className={`text-2xl font-bold ${importErrors.length > 0 ? "text-destructive-text" : "text-success-text"}`}>
                   {importErrors.length}
                 </p>
                 <p className="text-xs text-muted-foreground">Ошибок</p>
@@ -213,7 +213,7 @@ export default function ScheduleImportDialog({
 
             {importErrors.length > 0 && (
               <div className="max-h-40 overflow-y-auto rounded-md border p-3 text-xs space-y-2">
-                <p className="font-semibold flex items-center gap-1 text-destructive">
+                <p className="font-semibold flex items-center gap-1 text-destructive-text">
                   <AlertCircle className="size-3" />
                   Ошибки ({importErrors.length})
                 </p>
@@ -243,13 +243,13 @@ export default function ScheduleImportDialog({
 
         {step === "result" && confirmResult && (
           <div className="grid gap-4">
-            <div className="flex items-center gap-2 rounded-md bg-success/10 p-3 text-sm text-success">
+            <div className="flex items-center gap-2 rounded-md bg-success/10 p-3 text-sm text-success-text">
               <CheckCircle className="size-4 shrink-0" />
               Импорт завершён
             </div>
             <p className="text-center text-sm">
               Загружено пар:{" "}
-              <span className="font-semibold text-success">{confirmResult.imported}</span>
+              <span className="font-semibold text-success-text">{confirmResult.imported}</span>
               {" · "}Группы:{" "}
               <span className="font-semibold">{confirmResult.groups}</span>
               {" · "}Преподаватели:{" "}

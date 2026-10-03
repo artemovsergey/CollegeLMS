@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import { useState, useEffect, useCallback } from "react"
 import useEmblaCarousel from "embla-carousel-react"
 import Link from "next/link"
@@ -54,7 +55,7 @@ export default function Carousel() {
     return (
       <div className="mx-auto max-w-7xl">
         <section>
-          <div className="h-[400px] animate-pulse bg-white/5 md:h-[550px]" />
+          <div className="h-[400px] animate-pulse bg-muted md:h-[550px]" />
         </section>
       </div>
     )
@@ -93,9 +94,9 @@ export default function Carousel() {
                        data-brand-mark="true"/>
                     </div>
                     <div className="flex shrink-0 flex-col gap-2 lg:gap-3">
-                      <h2 className="line-clamp-2 text-xl font-bold leading-tight sm:text-2xl md:text-3xl">
+                      <SubTitle className="line-clamp-2 leading-tight">
                         {item.title}
-                      </h2>
+                      </SubTitle>
                       <p className="line-clamp-3 text-sm text-primary-foreground/90">
                         {item.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
                       </p>

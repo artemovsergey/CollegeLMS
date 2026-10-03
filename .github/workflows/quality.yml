@@ -48,5 +48,15 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Гейты дизайн-системы проверяют токены, контраст и согласованность
+      # разметки. Без них в PR проходила регрессия палитры, битый контраст в
+      # тёмной теме и появление второго рецепта фокуса — всё, что §7 называет
+      # обязательно общим для четырёх поверхностей.
+      - name: Design system gate
+        run: npm run check:design-system
+
+      - name: Design system contrast report
+        run: npm run check:design-system:report
+
       - name: Build
         run: npm run build

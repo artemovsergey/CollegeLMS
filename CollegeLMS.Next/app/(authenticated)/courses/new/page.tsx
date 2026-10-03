@@ -7,9 +7,11 @@ import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
+import { PageShell } from "@/components/ui/page-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea"
 
 export default function CreateCoursePage() {
@@ -87,27 +89,26 @@ export default function CreateCoursePage() {
   const teacherOptions = teachers.filter(t => t.id !== (user?.teacherId ?? ""))
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold">Создать курс</h2>
+    <PageShell density="compact" title="Создать курс">
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && <ErrorBanner message={error} />}
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="baseCourse">Создать на основе курса</Label>
-          <select
+          <NativeSelect
             id="baseCourse"
             value={baseCourseId}
-            onChange={e => setBaseCourseId(e.target.value)}
-            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            onValueChange={setBaseCourseId}
+            className="w-full"
           >
-            <option value="">— Пустой курс —</option>
-            {courses.map(c => (
-              <option key={c.id} value={c.id}>
+            <NativeSelectItem value="">— Пустой курс —</NativeSelectItem>
+            {courses.map((c) => (
+              <NativeSelectItem key={c.id} value={c.id}>
                 {c.title}
-              </option>
+              </NativeSelectItem>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -159,6 +160,6 @@ export default function CreateCoursePage() {
           </Button>
         </div>
       </form>
-    </div>
+    </PageShell>
   )
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
 import type { Result, LessonResponse } from "@/types"
@@ -42,7 +43,7 @@ export default function EditLessonPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold">Редактировать занятие</h2>
+      <PageTitle>Редактировать занятие</PageTitle>
       <LessonForm courseId={courseId} lesson={lesson} />
     </div>
   )

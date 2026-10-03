@@ -1,5 +1,7 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
+import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import {
@@ -59,6 +61,7 @@ import EmptyState from "@/components/EmptyState"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import api from "@/lib/api"
 import { cn, extractErrorMessage } from "@/lib/utils"
+import { noticeBlock } from "@/lib/status-style"
 import { formatDate, formatDateRange, toDateInput } from "@/lib/reference"
 import {
   fetchScheduleMeta,
@@ -702,7 +705,7 @@ export default function DispatcherPracticesPage() {
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">Практики</h1>
+          <PageTitle>Практики</PageTitle>
           <p className="text-sm text-muted-foreground">
             Периоды УП и ПП: в это время обычные пары группы заменяются
             карточкой практики. Для УП задаются учебные дни и номера пар.
@@ -712,12 +715,12 @@ export default function DispatcherPracticesPage() {
           <Button
             variant="outline"
             onClick={() => setImportOpen(true)}
-            className="min-h-11 sm:min-h-9"
+           
           >
             <Upload className="size-4" aria-hidden="true" />
             Импорт графика УП
           </Button>
-          <Button onClick={openCreate} className="min-h-11 sm:min-h-9">
+          <Button onClick={openCreate}>
             <Plus className="size-4" aria-hidden="true" />
             Добавить практику
           </Button>
@@ -805,7 +808,7 @@ export default function DispatcherPracticesPage() {
                 ? "Выберите группу, чтобы скачать график УП"
                 : "Скачать график УП выбранной группы в DOCX"
             }
-            className="min-h-11 sm:min-h-9"
+           
           >
             <Download className="size-4" aria-hidden="true" />
             {exporting ? "Формирование…" : "Скачать график УП"}
@@ -815,7 +818,7 @@ export default function DispatcherPracticesPage() {
           <Button
             variant="ghost"
             onClick={resetFilters}
-            className="min-h-11 sm:min-h-9"
+           
           >
             <SearchX className="size-4" aria-hidden="true" />
             Сбросить
@@ -829,7 +832,7 @@ export default function DispatcherPracticesPage() {
           <Button
             variant="outline"
             onClick={() => void load(page)}
-            className="w-fit min-h-11 sm:min-h-9"
+            className="w-fit min-h-11"
           >
             Повторить загрузку
           </Button>
@@ -971,7 +974,7 @@ export default function DispatcherPracticesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-11"
+                               
                                 onClick={() => openEdit(practice)}
                                 aria-label={`Редактировать практику «${practiceName(practice)}»`}
                               >
@@ -980,7 +983,7 @@ export default function DispatcherPracticesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                                 onClick={() => setDeleteTarget(practice)}
                                 aria-label={`Удалить практику «${practiceName(practice)}»`}
                               >
@@ -1366,7 +1369,7 @@ export default function DispatcherPracticesPage() {
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
               className={cn(
-                "flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+"flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors",
                 dragging
                   ? "border-primary bg-primary/[0.06]"
                   : "border-border hover:bg-muted/50",
@@ -1410,7 +1413,7 @@ export default function DispatcherPracticesPage() {
                 type="button"
                 onClick={() => void runPreview()}
                 disabled={!importFile || previewing}
-                className="min-h-11 sm:min-h-9"
+               
               >
                 {previewing ? "Чтение…" : "Проверить документ"}
               </Button>
@@ -1423,7 +1426,7 @@ export default function DispatcherPracticesPage() {
                     setPreview(null)
                     if (fileInputRef.current) fileInputRef.current.value = ""
                   }}
-                  className="min-h-11 sm:min-h-9"
+                 
                 >
                   Убрать файл
                 </Button>
@@ -1491,7 +1494,7 @@ export default function DispatcherPracticesPage() {
                     </div>
                   </div>
                   {previewFrom && previewTo && previewFrom > previewTo && (
-                    <p className="text-xs text-destructive">
+                    <p className="text-xs text-destructive-text">
                       Дата начала не может быть позже даты окончания.
                     </p>
                   )}
@@ -1499,14 +1502,14 @@ export default function DispatcherPracticesPage() {
 
                 {preview.errors.length > 0 ? (
                   <div className="flex flex-col gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
-                    <p className="flex items-center gap-1.5 text-sm font-medium text-destructive">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-destructive-text">
                       <AlertTriangle className="size-4" aria-hidden="true" />
                       Ошибок: {preview.errors.length}
                     </p>
                     <div className="max-h-40 overflow-y-auto text-xs">
                       <ul className="flex flex-col gap-1">
                         {preview.errors.map((err, i) => (
-                          <li key={i} className="text-destructive">
+                          <li key={i} className="text-destructive-text">
                             {formatGraphError(err)}
                           </li>
                         ))}
@@ -1515,13 +1518,16 @@ export default function DispatcherPracticesPage() {
                   </div>
                 ) : (
                   <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <span className="text-success">Ошибок нет</span> — можно
+                    <span className="text-success-text">Ошибок нет</span> — можно
                     импортировать.
                   </p>
                 )}
 
                 {!graphHeaderReady && (
-                  <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                  <div className={cn(
+                      "flex items-start gap-2 rounded-md border p-3 text-xs",
+                      noticeBlock("warning"),
+                    )}>
                     <AlertTriangle
                       className="mt-0.5 size-4 shrink-0"
                       aria-hidden="true"
@@ -1665,12 +1671,12 @@ export default function DispatcherPracticesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={deleting}
               onClick={(e) => {
                 e.preventDefault()
                 void handleDelete()
               }}
-              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {deleting ? "Удаление…" : "Удалить"}
             </AlertDialogAction>

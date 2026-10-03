@@ -1,5 +1,7 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
+import { PageTitle } from "@/components/ui/heading"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
@@ -14,6 +16,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 import type { Result, TeacherResponse } from "@/types"
+import type { CorrectionChangeType } from "@/types/correction"
 import {
   fetchJournal,
   fetchScheduleContext,
@@ -22,6 +25,7 @@ import {
 } from "@/api/schedule"
 import { useAuth } from "@/lib/auth"
 import { cn, extractErrorMessage } from "@/lib/utils"
+import { CHANGE_TYPE_STYLE, SELF_STUDY_STYLE } from "@/lib/status-style"
 import { dayLabelFromInt } from "@/lib/max-lesson"
 import { CAN_MANAGE_ROLES } from "@/lib/constants"
 import api from "@/lib/api"
@@ -32,39 +36,51 @@ import FilterSelect from "@/components/FilterSelect"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
 
-const CHANGE_TYPE_META: Record<
-  string,
-  { label: string; icon: LucideIcon; className: string }
-> = {
-  Add: {
-    label: "Добавлено",
-    icon: Plus,
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  },
-  Remove: {
-    label: "Снято",
-    icon: Minus,
-    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-  },
-  Replace: {
-    label: "Замена",
-    icon: Repeat,
-    className:
-      "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-  },
-  Move: {
-    label: "Перенос",
-    icon: ArrowRightLeft,
-    className:
-      "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-  },
-  SelfStudy: {
-    label: "Сам.р.",
-    icon: BookOpen,
-    className:
-      "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300",
-  },
+/**
+ * Иконка исхода операции. Подпись и оформление — из общего словаря (§8.1),
+ * здесь только форма: у каждой операции своя иконка, и наборы иконок между
+ * поверхностями не обязаны совпадать.
+ */
+const CHANGE_TYPE_ICONS: Record<string, LucideIcon> = {
+  Add: Plus,
+  Remove: Minus,
+  Replace: Repeat,
+  Move: ArrowRightLeft,
+  SelfStudy: BookOpen,
+}
+
+/**
+ * Подпись исхода. Замена и перенос показываются своими словами только здесь —
+ * в паре расписания и в MAX пользователь видит результат, то есть «Добавлено»
+ * (`lib/change-tags.ts`). Это единственное место, где исход операции виден
+ * целиком.
+ */
+const CHANGE_TYPE_LABELS_LOCAL: Record<string, string> = {
+  Add: "Добавлено",
+  Remove: "Снято",
+  Replace: "Замена",
+  Move: "Перенос",
+  SelfStudy: "Сам.р.",
+}
+
+function changeMeta(type: string): {
+  label: string
+  icon: LucideIcon
+  className: string
+} {
+  if (type === "SelfStudy") {
+    return {
+      label: CHANGE_TYPE_LABELS_LOCAL.SelfStudy,
+      icon: CHANGE_TYPE_ICONS.SelfStudy,
+      className: SELF_STUDY_STYLE,
+    }
+  }
+  const changeType = type as CorrectionChangeType
+  return {
+    label: CHANGE_TYPE_LABELS_LOCAL[type] ?? type,
+    icon: CHANGE_TYPE_ICONS[type] ?? Plus,
+    className: CHANGE_TYPE_STYLE[changeType] ?? CHANGE_TYPE_STYLE.Add,
+  }
 }
 
 function formatDate(value: string): string {
@@ -94,11 +110,7 @@ function JournalBadges({ types }: { types: string[] }) {
   return (
     <span className="flex flex-wrap gap-1">
       {types.map((type) => {
-        const meta = CHANGE_TYPE_META[type] ?? {
-          label: type,
-          icon: BookOpen,
-          className: "bg-muted text-muted-foreground",
-        }
+        const meta = changeMeta(type)
         const Icon = meta.icon
         return (
           <Badge key={type} variant="outline" className={meta.className}>
@@ -241,7 +253,7 @@ export default function TeacherJournalPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <BookOpen className="size-5 text-primary" aria-hidden />
-          <h2 className="text-xl font-semibold">Журнал преподавателя</h2>
+          <PageTitle>Журнал преподавателя</PageTitle>
         </div>
         <div className="flex items-center gap-2">
           {journal && (
@@ -368,7 +380,7 @@ export default function TeacherJournalPage() {
                   aria-pressed={active}
                   title={group.groupName}
                   className={cn(
-                    "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+"inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
                     active
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",

@@ -1,5 +1,7 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import { FOCUS_RING } from "@/lib/focus"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Filter, Search, SearchX, X } from "lucide-react"
 import type { Result, TeacherResponse } from "@/types"
@@ -249,7 +251,7 @@ export default function ChangeFilters({
                 onClick={() =>
                   onChange({ groupId: undefined, groupName: undefined })
                 }
-                className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+ className={cn(FOCUS_RING, "inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground")}
                 aria-label="Сбросить группу"
               >
                 <X className="size-4" aria-hidden />
@@ -299,7 +301,7 @@ export default function ChangeFilters({
                           role="option"
                           aria-selected={false}
                           onClick={() => pickGroup(group)}
-                          className="w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+ className={cn(FOCUS_RING, "w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-muted")}
                         >
                           {group.name}
                         </button>

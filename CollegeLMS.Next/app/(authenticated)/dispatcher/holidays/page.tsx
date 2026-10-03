@@ -42,6 +42,7 @@ import Pagination from "@/components/ui/pagination"
 import ErrorBanner from "@/components/ErrorBanner"
 import EmptyState from "@/components/EmptyState"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { PageShell } from "@/components/ui/page-shell"
 import {
   createNonWorkingDay,
   deleteNonWorkingDay,
@@ -207,13 +208,11 @@ export default function DispatcherHolidaysPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Календарь</h1>
-        <p className="text-sm text-muted-foreground">
-          Нерабочие дни отменяют занятия, рабочие — переносят их на выходной.
-        </p>
-      </header>
+    <PageShell
+      density="compact"
+      title="Календарь"
+      description="Нерабочие дни отменяют занятия, рабочие — переносят их на выходной."
+    >
 
       <div
         role="tablist"
@@ -225,7 +224,7 @@ export default function DispatcherHolidaysPage() {
           aria-selected={tab === "nonWorking"}
           variant={tab === "nonWorking" ? "default" : "ghost"}
           onClick={() => setTab("nonWorking")}
-          className="min-h-11 sm:min-h-9"
+         
         >
           Нерабочие дни
         </Button>
@@ -234,7 +233,7 @@ export default function DispatcherHolidaysPage() {
           aria-selected={tab === "working"}
           variant={tab === "working" ? "default" : "ghost"}
           onClick={() => setTab("working")}
-          className="min-h-11 sm:min-h-9"
+         
         >
           Рабочие дни
         </Button>
@@ -272,7 +271,7 @@ export default function DispatcherHolidaysPage() {
         <Button
           variant="outline"
           onClick={applyFilters}
-          className="min-h-11 sm:min-h-9"
+         
         >
           <Filter className="size-4" aria-hidden="true" />
           Применить
@@ -281,7 +280,7 @@ export default function DispatcherHolidaysPage() {
           <Button
             variant="ghost"
             onClick={resetFilters}
-            className="min-h-11 sm:min-h-9"
+           
           >
             <SearchX className="size-4" aria-hidden="true" />
             Сбросить
@@ -289,7 +288,7 @@ export default function DispatcherHolidaysPage() {
         )}
         <Button
           onClick={openCreate}
-          className="min-h-11 sm:ml-auto sm:min-h-9"
+          className="min-h-11 sm:ml-auto"
         >
           <Plus className="size-4" aria-hidden="true" />
           Добавить период
@@ -302,7 +301,7 @@ export default function DispatcherHolidaysPage() {
           <Button
             variant="outline"
             onClick={() => void load(page)}
-            className="w-fit min-h-11 sm:min-h-9"
+            className="w-fit min-h-11"
           >
             Повторить загрузку
           </Button>
@@ -376,7 +375,7 @@ export default function DispatcherHolidaysPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-11"
+                             
                               onClick={() => openEdit(item)}
                               aria-label={`Редактировать период «${item.title}»`}
                             >
@@ -385,7 +384,7 @@ export default function DispatcherHolidaysPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                               onClick={() => setDeleteTarget(item)}
                               aria-label={`Удалить период «${item.title}»`}
                             >
@@ -498,18 +497,18 @@ export default function DispatcherHolidaysPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={deleting}
               onClick={(e) => {
                 e.preventDefault()
                 void handleDelete()
               }}
-              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {deleting ? "Удаление…" : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import type {
@@ -11,6 +12,7 @@ import type {
 } from "@/types"
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
+import { PASSED_TEXT } from "@/lib/status-style"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import ErrorBanner from "@/components/ErrorBanner"
@@ -183,7 +185,7 @@ export default function LessonTestPage() {
                 </Badge>
               </div>
               <p className="text-sm">
-                Ваш ответ: <span className={r.isCorrect ? "text-emerald-600" : "text-destructive"}>{r.givenAnswer || "—"}</span>
+                Ваш ответ: <span className={r.isCorrect ? PASSED_TEXT : "text-destructive-text"}>{r.givenAnswer || "—"}</span>
               </p>
               {!r.isCorrect && r.correctAnswer && (
                 <p className="text-sm text-muted-foreground">Правильный ответ: {r.correctAnswer}</p>
@@ -202,7 +204,7 @@ export default function LessonTestPage() {
           &larr; Назад к занятию
         </Button>
         <div className="rounded-lg border bg-card p-8 flex flex-col items-center gap-4">
-          <h2 className="text-xl font-semibold">Тест по занятию «{lesson?.title ?? ""}»</h2>
+          <PageTitle>Тест по занятию «{lesson?.title ?? ""}»</PageTitle>
           <p className="text-sm text-muted-foreground">
             Отвечайте на вопросы по материалу занятия. После отправки вы увидите результат.
           </p>

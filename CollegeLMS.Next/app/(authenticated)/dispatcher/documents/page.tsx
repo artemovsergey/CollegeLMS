@@ -6,6 +6,7 @@ import {
   FileText,
   Loader2,
 } from "lucide-react"
+import { PageShell } from "@/components/ui/page-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -35,8 +36,7 @@ export default function DispatcherDocumentsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
-      <h2 className="text-xl font-semibold">Документы</h2>
+    <PageShell density="compact" title="Документы">
 
       {loading && <Loader2 className="size-6 animate-spin text-muted-foreground mx-auto py-20" />}
 
@@ -68,6 +68,6 @@ export default function DispatcherDocumentsPage() {
           </Card>
         ))}
       </div>
-    </div>
+    </PageShell>
   )
 }

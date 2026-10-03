@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 import type { ScheduleMonthDay, ScheduleMonthView } from "@/types/schedule"
@@ -20,6 +21,7 @@ import ErrorBanner from "@/components/ErrorBanner"
 import { WorkingDayBadge } from "@/components/ScheduleLayers"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { NON_WORKING_TEXT, PRACTICE_STYLE } from "@/lib/status-style"
 
 interface ScheduleMonthCalendarProps {
   /** Месяц в формате YYYY-MM. */
@@ -33,10 +35,7 @@ interface ScheduleMonthCalendarProps {
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
 
-const PRACTICE_BADGE: Record<PracticeKind, string> = {
-  Up: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  Pp: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-}
+const PRACTICE_BADGE: Record<PracticeKind, string> = PRACTICE_STYLE
 
 function pluralPairs(count: number): string {
   const mod10 = count % 10
@@ -129,7 +128,7 @@ export default function ScheduleMonthCalendar({
           type="button"
           variant="outline"
           size="icon"
-          className="size-11"
+         
           aria-label="Предыдущий месяц"
           onClick={() => shiftMonth(-1)}
         >
@@ -142,7 +141,7 @@ export default function ScheduleMonthCalendar({
           type="button"
           variant="outline"
           size="icon"
-          className="size-11"
+         
           aria-label="Следующий месяц"
           onClick={() => shiftMonth(1)}
         >
@@ -231,7 +230,7 @@ export default function ScheduleMonthCalendar({
                   onClick={() => iso && onDayClick(iso)}
                   aria-label={`Открыть ${dayNumber}: ${dayLabel}`}
                   className={cn(
-                    "flex min-h-[64px] flex-col items-start gap-1 rounded-md border p-1.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:hover:bg-primary/[0.10]",
+"flex min-h-[64px] flex-col items-start gap-1 rounded-md border p-1.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04] dark:hover:bg-primary/[0.10]",
                     isToday &&
                       "border-primary/40 bg-primary/[0.04] ring-1 ring-primary/40 dark:bg-primary/[0.10]",
                     muted && "text-muted-foreground opacity-50",
@@ -249,7 +248,7 @@ export default function ScheduleMonthCalendar({
                   {day.isNonWorking ? (
                     <span
                       title={day.nonWorkingTitle ?? "Нерабочий день"}
-                      className="inline-flex items-center text-amber-700 dark:text-amber-300"
+                      className={cn("inline-flex items-center", NON_WORKING_TEXT)}
                     >
                       <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
                     </span>

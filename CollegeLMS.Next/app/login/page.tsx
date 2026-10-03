@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -10,6 +11,7 @@ import { useAuth } from "@/lib/auth"
 import FormField from "@/components/FormField"
 import FormErrorBanner from "@/components/FormErrorBanner"
 import { Button } from "@/components/ui/button"
+import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import { Input } from "@/components/ui/input"
 import { parseErrors } from "@/lib/errors"
 
@@ -27,6 +29,7 @@ export default function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [quickRole, setQuickRole] = useState("")
   const { login } = useAuth()
   const router = useRouter()
 
@@ -67,7 +70,13 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-primary to-primary/40 p-12">
+      {/* Панель с знаком колледжа. Заливка однотонная, а не с уходом в
+          прозрачность: градиент `to-primary/40` подводил к светлому краю, и
+          белый текст названия колледжа на нём давал контраст около 1:1 — то
+          есть был не виден совсем. Однотонная заливка берёт текст из
+          `--primary-foreground`, который в светлой теме белый (11.36:1), а в
+          тёмной тёмный (5.36:1), то есть следует за темой сам. */}
+      <div className="hidden flex-col items-center justify-center bg-primary p-12 lg:flex">
         <div className="w-full max-w-md">
           <Link href="/">
             <Image
@@ -79,7 +88,7 @@ export default function LoginPage() {
               unoptimized
              data-brand-mark="true"/>
           </Link>
-          <h2 className="mt-8 text-center text-xl font-semibold text-white/90">
+          <h2 className="mt-8 text-center text-xl font-semibold text-primary-foreground">
             Ставропольский колледж связи<br />
             имени Героя Советского Союза В.А. Петрова
           </h2>
@@ -103,28 +112,31 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <h1 className="mb-6 text-2xl font-semibold text-primary text-center">Личный кабинет</h1>
+          <PageTitle className="mb-6 text-center">Личный кабинет</PageTitle>
 
           <div className="mb-6">
-            <select
-              onChange={(e) => {
-                const account = QUICK_LOGINS.find(a => a.role === e.target.value)
+            <NativeSelect
+              value={quickRole}
+              onValueChange={(value) => {
+                const account = QUICK_LOGINS.find((a) => a.role === value)
                 if (account) {
+                  setQuickRole(value)
                   setLoginInput(account.login)
                   setPassword(account.password)
                   setFieldErrors({})
                   setFormError(null)
                 }
               }}
-              defaultValue=""
+              placeholder="Быстрый вход (разработка): выберите роль..."
               aria-label="Быстрый вход (разработка)"
-              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className="w-full"
             >
-              <option value="" disabled>Быстрый вход (разработка): выберите роль...</option>
-              {QUICK_LOGINS.map(a => (
-                <option key={a.role} value={a.role}>{a.label}</option>
+              {QUICK_LOGINS.map((a) => (
+                <NativeSelectItem key={a.role} value={a.role}>
+                  {a.label}
+                </NativeSelectItem>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">

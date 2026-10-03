@@ -82,7 +82,7 @@ export default function FeedbackForm() {
       {status && (
         <div
           className={`rounded-md p-3 text-sm ${
-            status.type === "success" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+            status.type === "success" ? "bg-success/10 text-success-text" : "bg-destructive/10 text-destructive-text"
           }`}
         >
           {status.text}

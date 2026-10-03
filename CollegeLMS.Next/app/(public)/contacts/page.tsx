@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/ui/heading"
 import type { Metadata } from "next"
 import { MapPin, Phone, Mail, Clock } from "lucide-react"
 
@@ -21,7 +22,7 @@ export default function ContactsPage() {
   return (
     <div className="py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h1 className="mb-8 text-3xl font-bold text-fg">Контакты</h1>
+        <PageTitle className="mb-8">Контакты</PageTitle>
 
         <div className="grid gap-8 lg:grid-cols-2">
           <div className="flex min-h-[400px] flex-col justify-start gap-6">

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import ContentRenderer from "@/components/ContentRenderer"
 import Image from "next/image"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 const normalizeUrl = (url: string) =>
   url.replace(/-[0-9]+x[0-9]+(\.[a-z]+)$/, "$1")
@@ -123,7 +125,7 @@ export default function NewsDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+        <LoadingSpinner />
       </div>
     )
   }
@@ -131,7 +133,7 @@ export default function NewsDetailPage() {
   if (error || !news) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <p className="mb-4 text-lg text-destructive">{error ?? "Новость не найдена"}</p>
+        <p className="mb-4 text-lg text-destructive-text">{error ?? "Новость не найдена"}</p>
         <div className="flex justify-center gap-3">
           <Button variant="outline" onClick={() => router.back()}>
             ← Назад
@@ -161,7 +163,7 @@ export default function NewsDetailPage() {
               })}
               {news.categoryName && ` · ${news.categoryName}`}
             </p>
-            <h1 className="text-xl font-bold leading-tight sm:text-2xl">{news.title}</h1>
+            <PageTitle className="text-2xl leading-tight sm:text-3xl">{news.title}</PageTitle>
             {excerpt && <p className="line-clamp-3 text-sm text-primary-foreground/90">{excerpt}</p>}
           </div>
           <button
@@ -190,9 +192,9 @@ export default function NewsDetailPage() {
             })}
             {news.categoryName && ` · ${news.categoryName}`}
           </p>
-          <h1 className="text-2xl font-bold leading-tight text-primary-foreground sm:text-3xl">
+          <PageTitle className="leading-tight text-primary-foreground">
             {news.title}
-          </h1>
+          </PageTitle>
         </div>
       )}
 

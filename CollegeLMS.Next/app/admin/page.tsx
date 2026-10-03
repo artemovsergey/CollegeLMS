@@ -1,5 +1,7 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import type { User, Result, CreateUserRequest, UpdateUserRequest, ChangeRoleRequest } from "@/types"
@@ -232,7 +234,7 @@ export default function UsersPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Пользователи</h2>
+        <PageTitle>Пользователи</PageTitle>
         {isAdmin && (
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>
@@ -300,7 +302,7 @@ export default function UsersPage() {
       {loading ? (
         <LoadingSpinner size="lg" className="py-20" />
       ) : users.length === 0 ? (
-        <p className="text-muted-foreground">Нет пользователей</p>
+        <EmptyState message="Нет пользователей" className="py-8" />
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>
@@ -435,7 +437,7 @@ export default function UsersPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction variant="destructive" onClick={handleDelete}>
               Удалить
             </AlertDialogAction>
           </AlertDialogFooter>

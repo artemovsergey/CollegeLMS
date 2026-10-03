@@ -1,5 +1,7 @@
 "use client"
 
+import EmptyState from "@/components/EmptyState"
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, StudentDashboardResponse, ProfileResponse } from "@/types"
 import type { ScheduleResponse } from "@/types/schedule"
@@ -136,9 +138,9 @@ export default function StudentDashboardPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       {user && (
-        <h2 className="text-xl font-semibold">
+        <PageTitle>
           Здравствуйте, {user.fullName}
-        </h2>
+        </PageTitle>
       )}
 
       {error && <ErrorBanner message={error} />}
@@ -223,7 +225,7 @@ export default function StudentDashboardPage() {
       </div>
 
       {dashboard && dashboard.courses.length === 0 && (
-        <p className="text-muted-foreground">У вас нет активных курсов</p>
+        <EmptyState message="У вас нет активных курсов" className="py-8" />
       )}
 
       {dashboard && dashboard.courses.length > 0 && (

@@ -1,3 +1,4 @@
+import { SectionTitle } from "@/components/ui/heading"
 import { Quote } from "lucide-react"
 
 const graduates = [
@@ -31,7 +32,7 @@ export default function GraduateStoriesSection() {
   return (
     <section className="py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Истории выпускников</h2>
+        <SectionTitle className="mb-8 text-center ">Истории выпускников</SectionTitle>
         <div className="grid gap-6 md:grid-cols-3">
           {graduates.map((g) => (
             <div
@@ -43,7 +44,7 @@ export default function GraduateStoriesSection() {
               </span>
               <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{g.quote}</p>
               <div className="mt-auto flex items-center gap-3 border-t border-border pt-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-sm font-semibold text-accent">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-sm font-semibold text-accent-text">
                   {g.initials}
                 </span>
                 <div>

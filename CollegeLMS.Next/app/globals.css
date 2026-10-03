@@ -1,121 +1,5 @@
 @import "tailwindcss";
 
-.max-schedule {
-  min-height: 100vh;
-  background: var(--max-color-bg-primary, #f2f3f5);
-  color: var(--max-color-text-primary, #111214);
-}
-
-.max-schedule__content {
-  width: min(100%, 720px);
-  margin: 0 auto;
-  padding: 20px 16px 32px;
-}
-
-.max-schedule__hero {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-bottom: 16px;
-}
-
-.max-schedule__brand,
-.max-schedule__week,
-.max-schedule__details,
-.max-schedule__details span {
-  display: flex;
-  align-items: center;
-}
-
-.max-schedule__brand {
-  gap: 12px;
-}
-
-.max-schedule__icon {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border-radius: 14px;
-  color: #fff;
-  background: #3478f6;
-}
-
-.max-schedule__muted {
-  color: var(--max-color-text-secondary, #73777d);
-}
-
-.max-schedule__week {
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 6px 8px;
-  border-radius: 16px;
-  background: var(--max-color-bg-secondary, #fff);
-}
-
-.max-schedule__week-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.max-schedule__days {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 16px;
-}
-
-.max-schedule__state {
-  display: flex;
-  min-height: 180px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 24px;
-  text-align: center;
-}
-
-.max-schedule__pair {
-  display: flex;
-  width: 42px;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  border-left: 3px solid;
-  color: var(--max-color-text-secondary, #73777d);
-}
-
-.max-schedule__pair span {
-  font-size: 11px;
-}
-
-.max-schedule__details {
-  flex-wrap: wrap;
-  gap: 8px 12px;
-}
-
-.max-schedule__details span {
-  gap: 4px;
-}
-
-.max-schedule__type {
-  max-width: 92px;
-  font-size: 11px;
-  text-align: right;
-}
-
-@media (max-width: 420px) {
-  .max-schedule__content {
-    padding-inline: 12px;
-  }
-
-  .max-schedule__type {
-    display: none;
-  }
-}
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -148,6 +32,18 @@
   --success-foreground: #ffffff;
   --warning: #b45309;
   --warning-foreground: #ffffff;
+  --self-study: #6d28d9;
+  --self-study-foreground: #ffffff;
+  /* Цвета статусов как текст. Отдельные от `--destructive`, `--success`,
+     `--warning`, потому что один токен не может быть и заливкой, и текстом на
+     подложке от себя же: белый на `--destructive` проходит, а
+     `--destructive` на `--destructive/10` — нет. В тёмной теме расходится ещё
+     сильнее: для заливки нужен тёмный текст, для подписи на светлой подложке —
+     светлый. */
+  --accent-text: #24386a;
+  --destructive-text: #b91c1c;
+  --success-text: #166534;
+  --warning-text: #92400e;
   --ring: var(--accent);
   --radius: 0.5rem;
 
@@ -179,8 +75,11 @@
   --accent: #568edd;
   --accent-hover: #6b9de0;
   --accent-foreground: #0f172a;
-  --accent-light: #5b6a90;
-  --accent-lighter: #374151;
+  /* Приглушённый брендовый. В тёмной теме стоял `#5b6a90` — на карточке
+     `#1f2937` это 2.7:1, то есть как цвет текста не годился. Теперь светлеет
+     вместе с темой. */
+  --accent-light: #9aa8c4;
+  --accent-lighter: #828a99;
   --primary: var(--accent);
   --primary-foreground: #0f172a;
   --secondary: #5b6a90;
@@ -191,6 +90,15 @@
   --success-foreground: #052e16;
   --warning: #fbbf24;
   --warning-foreground: #451a03;
+  --self-study: #c4b5fd;
+  --self-study-foreground: #2e1065;
+  /* Брендовый как текст на собственной подложке `--accent/10`. Отдельный
+     токен по той же причине, что и `--*-text` у статусов: `--accent` в тёмной
+     теме — светло-лазурный и на своей подложке даёт 3.84:1. */
+  --accent-text: #8fb4ef;
+  --destructive-text: #f87171;
+  --success-text: #4ade80;
+  --warning-text: #fbbf24;
   --ring: var(--accent);
 
   /* Те же типы занятий в тёмной теме: на тёмной карточке `#1f2937` светлые
@@ -220,6 +128,12 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-self-study: var(--self-study);
+  --color-self-study-foreground: var(--self-study-foreground);
+  --color-accent-text: var(--accent-text);
+  --color-destructive-text: var(--destructive-text);
+  --color-success-text: var(--success-text);
+  --color-warning-text: var(--warning-text);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-card-foreground: var(--card-foreground);
@@ -360,6 +274,12 @@ option:checked {
   --success-foreground: #ffffff;
   --warning: #000000;
   --warning-foreground: #ffffff;
+  --self-study: #000000;
+  --self-study-foreground: #ffffff;
+  --accent-text: #000000;
+  --destructive-text: #000000;
+  --success-text: #000000;
+  --warning-text: #000000;
   --info: #000000;
   --info-foreground: #ffffff;
   --border: #000000;
@@ -457,16 +377,67 @@ option:checked {
   @apply border border-border px-3 py-2;
 }
 
-.prose h1,
-.prose h2,
+/* Размеры заголовков — по шкале §4. Раньше здесь задавались только цвет и
+   насыщенность, поэтому заголовок внутри описания занятия или специальности
+   выглядел как основной текст с жирным начертанием. */
+.prose h1 {
+  @apply mt-6 mb-3 text-2xl font-semibold text-fg;
+}
+
+.prose h2 {
+  @apply mt-5 mb-2 text-xl font-semibold text-fg;
+}
+
 .prose h3,
 .prose h4 {
-  @apply text-fg font-semibold;
+  @apply mt-4 mb-2 text-base font-semibold text-fg;
+}
+
+.prose p,
+.prose li {
+  @apply leading-relaxed;
+}
+
+.prose p {
+  @apply mb-3;
 }
 
 .prose ul,
 .prose ol {
-  @apply text-muted-fg;
+  @apply mb-3 pl-5 text-muted-fg;
+}
+
+.prose ul {
+  @apply list-disc;
+}
+
+.prose ol {
+  @apply list-decimal;
+}
+
+.prose blockquote {
+  @apply my-3 border-l-2 border-accent pl-3 italic text-muted-fg;
+}
+
+.prose strong {
+  @apply text-fg;
+}
+
+.prose code {
+  @apply rounded bg-muted px-1 py-0.5 text-sm text-fg;
+}
+
+/* `prose-sm`, `prose-invert` и `max-w-none` — классы плагина
+   `@tailwindcss/typography`, которого в проекте нет: они не генерировали
+   ничего. Блок `.prose` написан вручную, поэтому уменьшенный вариант и
+   «без ограничения ширины» задаются здесь. Тёмная тема не нуждается в
+   инверсии — все цвета выше уже токенные и переключаются сами. */
+.prose-sm {
+  font-size: 0.875rem;
+}
+
+.prose-narrow {
+  max-width: none;
 }
 
 .docs-content h2 {
@@ -475,8 +446,8 @@ option:checked {
   margin-top: 2rem;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid hsl(var(--border));
-  color: hsl(var(--fg));
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
 }
 
 .docs-content h3 {
@@ -484,13 +455,13 @@ option:checked {
   font-weight: 600;
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
-  color: hsl(var(--fg));
+  color: var(--fg);
 }
 
 .docs-content p {
   margin-bottom: 1rem;
   line-height: 1.75;
-  color: hsl(var(--fg));
+  color: var(--fg);
   overflow-wrap: anywhere;
 }
 
@@ -498,7 +469,7 @@ option:checked {
 .docs-content ol {
   margin-bottom: 1rem;
   padding-left: 1.5rem;
-  color: hsl(var(--fg));
+  color: var(--fg);
 }
 
 .docs-content li {
@@ -514,23 +485,23 @@ option:checked {
 }
 
 .docs-content th {
-  background-color: hsl(var(--muted));
+  background-color: var(--muted);
   font-weight: 600;
   text-align: left;
   padding: 0.75rem 1rem;
-  border: 1px solid hsl(var(--border));
-  color: hsl(var(--fg));
+  border: 1px solid var(--border);
+  color: var(--fg);
 }
 
 .docs-content td {
   padding: 0.75rem 1rem;
-  border: 1px solid hsl(var(--border));
-  color: hsl(var(--fg));
+  border: 1px solid var(--border);
+  color: var(--fg);
   overflow-wrap: anywhere;
 }
 
 .docs-content a {
-  color: hsl(var(--accent));
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -540,11 +511,11 @@ option:checked {
 }
 
 .docs-content blockquote {
-  background: hsl(var(--muted));
+  background: var(--muted);
   border-radius: 0.5rem;
   padding: 1rem 1.25rem;
   margin: 1rem 0;
-  color: hsl(var(--muted-fg));
+  color: var(--muted-fg);
   font-style: italic;
 }
 
@@ -557,13 +528,13 @@ option:checked {
 
 .docs-content hr {
   border: none;
-  border-top: 1px solid hsl(var(--border));
+  border-top: 1px solid var(--border);
   margin: 2rem 0;
 }
 
 .docs-content details {
   margin-bottom: 1rem;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
 }
@@ -571,7 +542,7 @@ option:checked {
 .docs-content summary {
   font-weight: 600;
   cursor: pointer;
-  color: hsl(var(--fg));
+  color: var(--fg);
 }
 
 .docs-content .gallery {
@@ -591,18 +562,18 @@ option:checked {
   height: auto;
   object-fit: cover;
   margin: 0;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid var(--border);
 }
 
 .docs-content .gallery-caption {
   margin-top: 0.375rem;
   font-size: 0.8125rem;
-  color: hsl(var(--muted-fg));
+  color: var(--muted-fg);
 }
 
 .docs-content {
   font-size: 1rem;
-  color: hsl(var(--fg));
+  color: var(--fg);
 }
 
 .docs-content h4 {
@@ -610,7 +581,7 @@ option:checked {
   font-weight: 600;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
-  color: hsl(var(--fg));
+  color: var(--fg);
 }
 
 .docs-content .wp-caption,
@@ -623,7 +594,7 @@ option:checked {
   margin-top: 0.5rem;
   text-align: center;
   font-size: 0.8125rem;
-  color: hsl(var(--muted-fg));
+  color: var(--muted-fg);
 }
 
 .docs-content iframe {
@@ -637,8 +608,8 @@ option:checked {
   margin: 0.25rem 0.5rem 0.25rem 0;
   padding: 0.625rem 1.25rem;
   border-radius: 0.5rem;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: var(--primary);
+  color: var(--primary-foreground);
   font-weight: 600;
   transition: opacity 0.15s ease;
   overflow-wrap: anywhere;

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState } from "react"
 import type { Result, FeedbackListItemDto } from "@/types"
 import api from "@/lib/api"
@@ -64,7 +65,7 @@ export default function AdminFeedbackPage() {
   return (
     <div className="flex flex-col gap-6 p-6 mx-auto max-w-5xl">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Обратная связь</h2>
+        <PageTitle>Обратная связь</PageTitle>
         <Badge variant="secondary">{items.length} {items.length === 1 ? "сообщение" : (items.length >= 2 && items.length <= 4 ? "сообщения" : "сообщений")}</Badge>
       </div>
 

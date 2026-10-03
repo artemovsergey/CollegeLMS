@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
@@ -52,6 +53,7 @@ import {
 } from "@/components/ui/table"
 import FormField from "@/components/FormField"
 import EmptyState from "@/components/EmptyState"
+import { PASSED_TEXT, FAILED_TEXT } from "@/lib/status-style"
 import { ClipboardList, BookOpenText, FileQuestion, Plus } from "lucide-react"
 import {
   AlertDialog,
@@ -382,9 +384,9 @@ export default function LessonViewPage() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1 min-w-0">
-          <h2 className="text-xl font-semibold">
+          <PageTitle>
             {lesson.order}. {lesson.title}
-          </h2>
+          </PageTitle>
           <Badge variant={LESSON_KIND_VARIANTS[lesson.kind] ?? "outline"} className="w-fit">
             {LESSON_KIND_LABELS[lesson.kind] ?? lesson.kind}
           </Badge>
@@ -515,11 +517,11 @@ export default function LessonViewPage() {
             {studentResult ? (
               <p className="text-sm text-muted-foreground">
                 {studentResult.passed ? (
-                  <span className="text-emerald-600 font-medium">
+                  <span className="font-medium text-success-text">
                     Пройден: {studentResult.percentage}% ({studentResult.score}/{studentResult.maxScore})
                   </span>
                 ) : (
-                  <span className="text-orange-600 font-medium">
+                  <span className="font-medium text-warning-text">
                     Не пройден: {studentResult.percentage}% ({studentResult.score}/{studentResult.maxScore})
                   </span>
                 )}
@@ -553,7 +555,7 @@ export default function LessonViewPage() {
       )}
 
       <div className="rounded-lg border bg-card p-6">
-        <div className="prose max-w-none">
+        <div className="prose prose-narrow">
           <ReactMarkdown>{lesson.content}</ReactMarkdown>
         </div>
       </div>
@@ -566,7 +568,7 @@ export default function LessonViewPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Удаление..." : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -723,8 +725,8 @@ export default function LessonViewPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={() => deleteQuestionId && handleDeleteQuestion(deleteQuestionId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Удалить
             </AlertDialogAction>
@@ -748,11 +750,11 @@ export default function LessonViewPage() {
                 </div>
                 <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Пройдено</p>
-                  <p className="text-lg font-semibold text-emerald-600">{stats.passedCount}</p>
+                  <p className="text-lg font-semibold text-success-text">{stats.passedCount}</p>
                 </div>
                 <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Не пройдено</p>
-                  <p className="text-lg font-semibold text-orange-600">{stats.failedCount}</p>
+                  <p className="text-lg font-semibold text-warning-text">{stats.failedCount}</p>
                 </div>
                 <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs text-muted-foreground">Средний балл</p>

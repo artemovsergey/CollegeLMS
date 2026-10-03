@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import type { Result, SpecialtyResponse, CreateSpecialtyRequest, UpdateSpecialtyRequest } from "@/types"
 import api from "@/lib/api"
@@ -220,7 +221,7 @@ export default function SpecialtiesPage() {
             type="checkbox"
             checked={formIsActive}
             onChange={e => setFormIsActive(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300"
+            className="size-4 rounded border-input"
           />
           <Label htmlFor="isActive" className="text-sm">Активна</Label>
         </div>
@@ -237,7 +238,7 @@ export default function SpecialtiesPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Специальности</h2>
+        <PageTitle>Специальности</PageTitle>
         {isAdmin && (
           <Dialog open={showCreate} onOpenChange={open => { if (open) resetForm(); setShowCreate(open) }}>
             <DialogTrigger asChild>
@@ -334,7 +335,7 @@ export default function SpecialtiesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction variant="destructive" onClick={handleDelete}>
               Удалить
             </AlertDialogAction>
           </AlertDialogFooter>

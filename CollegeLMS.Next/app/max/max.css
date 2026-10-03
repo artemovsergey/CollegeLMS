@@ -4,6 +4,23 @@
      app/globals.css: app/max — вложенный layout, поэтому :root доступен
      внутри .max-app, а тёмная схема приходит классом .dark на <html>.
      Прямых литералов цвета здесь быть не должно — это проверяет гейт. */
+
+  /* Шрифт. MaxUI объявляет `--family-base` на своих собственных классах
+     платформы (`SF Pro Text` на iOS, `Roboto` на Android), а не на :root,
+     поэтому объявление всегда выигрывало у нас: на одном экране рядом
+     оказывались Inter из наших классов и системный шрифт из примитивов
+     MaxUI. §4 требует один шрифт на продукт, поэтому переопределяем здесь
+     тем же приёмом, которым переопределяются цвета и радиусы. */
+  --family-base: var(--font-sans);
+  --font: var(--font-sans);
+
+  /* §6.1: цель касания не меньше 44×44. Примитивы MaxUI на размере `small`
+     дают 40px — ниже порога, а `small` используется в 17 местах: кнопки
+     «Сегодня», «Повторить», «Ещё», стрелки дня, звёздочки избранного.
+     Один переопределяющий размер — дешевле, чем двадцать `size="medium"`,
+     который раздул бы и ленту, и нижние кнопки. */
+  --height-button-small: 44px;
+  --height-input-small: 44px;
   --background-surface-ground: var(--background);
   --background-surface-card: var(--card);
   --background-surface-secondary: var(--muted);
@@ -75,10 +92,37 @@
   --color-tint-positive: color-mix(in srgb, var(--text-positive) 15%, var(--background-surface-card));
   --color-tint-negative: color-mix(in srgb, var(--text-negative) 15%, var(--background-surface-card));
   --color-tint-attention: color-mix(in srgb, var(--background-accent-attention-primary) 18%, var(--background-surface-card));
-  --color-tint-violet: color-mix(in srgb, var(--accent) 15%, var(--background-surface-card));
+  /* Самостоятельная работа — тот же токен, что на вебе. Раньше тут стоял
+     `color-mix` от `--accent`, то есть фиолетовый оттенок получался из
+     брендового синего, и на вебе для того же состояния был отдельный
+     класс палитры Tailwind. */
+  --color-tint-violet: color-mix(in srgb, var(--self-study) 15%, var(--background-surface-card));
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-fg);
+}
+
+/* Цели касания. §6.1 требует не меньше 44×44.
+
+   Примитивы MaxUI задают размеры литералами в сгенерированных классах
+   (`.Button_size_small__…{height:40px}`), переменных за ними нет. Поэтому
+   правило ловит класс по подстроке имени, а не по хешу: `Button_size_small`
+   переживёт пересборку библиотеки, хеш — нет. Селектор тот же, что и у
+   палитры выше, — `.max-app [class*=…]`, потому что класс примитива лежит
+   внутри `.max-app`.
+
+   `size="medium"` дал бы 52px и раздул ленту и нижние кнопки, поэтому размер
+   оставлен прежним, а высота доведена до порога. */
+.max-app [class*="Button_size_small"],
+.max-app [class*="IconButton_size_small"],
+.max-app [class*="Input_size_medium"],
+.max-app [class*="Input_size_small"] {
+  height: 44px;
+  min-height: 44px;
+}
+
+.max-app [class*="IconButton_size_small"] {
+  width: 44px;
 }
 
 /* Отдельный блок тёмной схемы не нужен: все переменные выше ссылаются на
@@ -89,6 +133,11 @@
   max-width: 560px;
   margin-inline: auto;
   min-height: 100vh;
+  /* Высота таб-бара — 56px плюс нижний вырез экрана. Раньше под низ
+     подставлялся жёсткий `pb-20` (80px) из Tailwind, то есть на телефоне
+     с вырезом последние ~10px контента уходили под таб-бар. Резерв считается
+     из тех же величин, что и сам таб-бар, поэтому не расходится с ним. */
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
 }
 
 .max-app__tabbar {
@@ -123,21 +172,6 @@
 
 .max-app__tab--active {
   color: var(--color-primary);
-}
-
-.max-app__tab--authed {
-  position: relative;
-}
-
-.max-app__tab--authed::after {
-  content: "";
-  position: absolute;
-  top: 8px;
-  right: calc(50% - 18px);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--success);
 }
 
 .max-app__tab-label {
@@ -186,60 +220,6 @@
 
 .max-app__state-icon {
   color: var(--color-text-faint);
-}
-
-.max-app__switch {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.max-app__switch input {
-  width: 44px;
-  height: 24px;
-  appearance: none;
-  border-radius: 999px;
-  background: var(--background-button-secondary);
-  position: relative;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.max-app__switch input::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--background-accent-contrast);
-  transition: transform 0.15s ease;
-}
-
-.max-app__switch input:checked {
-  background: var(--color-primary);
-}
-
-.max-app__switch input:checked::after {
-  transform: translateX(20px);
-}
-
-.max-app__week-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.max-app__week-nav span {
-  min-width: 96px;
-  text-align: center;
-}
-
-.max-app__days-row {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
 }
 
 .max-app__search-wrap {
@@ -305,40 +285,9 @@
   background: var(--color-tint-primary);
 }
 
-.max-app__change-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--background-accent-attention-primary);
-}
-
-.max-app__time-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.max-app__filters-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .max-app__note {
   font-size: 13px;
   color: var(--color-text-muted);
-}
-
-.max-app__success-box {
-  padding: 12px;
-  background: var(--color-tint-positive);
-  border: 1px solid color-mix(in srgb, var(--text-positive) 45%, transparent);
-  color: var(--text-positive);
-  border-radius: 12px;
-  font-size: 14px;
 }
 
 .max-app__login-prompt {
@@ -402,6 +351,7 @@
   border-radius: 10px;
   border: 1px solid transparent;
   background: var(--color-surface-subtle);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
@@ -552,6 +502,8 @@
   font: inherit;
   font-size: 13px;
   font-weight: 600;
+  /* §6.1: цель касания не меньше 44×44. Переключатель вида был около 27px. */
+  min-height: 44px;
   padding: 6px 10px;
   border-radius: 8px;
   color: var(--color-text-muted);
@@ -764,13 +716,6 @@
   justify-content: flex-end;
 }
 
-.max-app__sheet-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: auto;
-}
-
 .max-app__confirm-error {
   display: flex;
   align-items: flex-start;
@@ -805,7 +750,7 @@
 }
 
 .max-app__date-input {
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 12px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
@@ -832,7 +777,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 12px;
   border: 1px solid var(--color-border);
   border-radius: 999px;

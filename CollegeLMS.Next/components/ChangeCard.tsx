@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import Link from "next/link"
 import type { LucideIcon } from "lucide-react"
 import {
@@ -26,27 +27,22 @@ import {
   movePairFromNote,
 } from "@/lib/change-tags"
 import { dayLabelFromString } from "@/lib/max-lesson"
+import { CHANGE_ARROW } from "@/lib/change-tags"
+import {
+  CHANGE_KIND_STYLE,
+  SELF_STUDY_BADGE_STYLE,
+} from "@/lib/status-style"
 
 /** Исходов два: добавлено и снято. */
 const CHANGE_KIND_META: Record<
   "Add" | "Remove",
   { label: string; icon: LucideIcon; className: string }
 > = {
-  Add: {
-    label: "Добавлено",
-    icon: Plus,
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-  },
-  Remove: {
-    label: "Снято",
-    icon: Minus,
-    className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-  },
+  Add: { label: "Добавлено", icon: Plus, className: CHANGE_KIND_STYLE.Add },
+  Remove: { label: "Снято", icon: Minus, className: CHANGE_KIND_STYLE.Remove },
 }
 
-const SELF_STUDY_BADGE =
-  "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"
+const SELF_STUDY_BADGE = SELF_STUDY_BADGE_STYLE
 
 const DAY_OFFSET: Record<string, number> = {
   Monday: 0,
@@ -144,7 +140,7 @@ export default function ChangeCard({
   const dayHref = buildDayHref(item, date, dayIndex)
   const pairLabel =
     movedFrom != null && movedFrom !== item.numberPair
-      ? `пара ${movedFrom} → ${item.numberPair}`
+      ? `пара ${movedFrom} ${CHANGE_ARROW} ${item.numberPair}`
       : `пара ${item.numberPair}`
 
   // Преподаватель снимаемого занятия — из Removed*, иначе в «вместо» стоял бы
@@ -223,7 +219,7 @@ export default function ChangeCard({
             <span className="flex flex-wrap items-center gap-1.5">
               <span className="text-muted-foreground">{removedLesson}</span>
               <span className={REPLACE_ARROW_CLASS} aria-hidden>
-                {"=>"}
+                {CHANGE_ARROW}
               </span>
               <span className="font-medium">{newLesson}</span>
             </span>
@@ -264,7 +260,7 @@ export default function ChangeCard({
           </span>
           <Link
             href={dayHref}
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded"
+ className={cn(FOCUS_RING, "inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline rounded")}
           >
             Открыть день расписания
           </Link>

@@ -55,7 +55,7 @@ export default function WeekNavigation({
         type="button"
         variant="outline"
         size="icon"
-        className="size-11"
+       
         aria-label="Предыдущая неделя"
         onClick={() => onChange(Math.max(1, currentWeek - 1))}
         disabled={currentWeek <= 1}
@@ -76,7 +76,7 @@ export default function WeekNavigation({
         type="button"
         variant="outline"
         size="icon"
-        className="size-11"
+       
         aria-label="Следующая неделя"
         onClick={() => onChange(Math.min(totalWeeks, currentWeek + 1))}
         disabled={currentWeek >= totalWeeks}

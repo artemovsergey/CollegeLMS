@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import type { Result, CourseResponse, LessonResponse, MaterialResponse, CourseGroupResponse, GroupResponse } from "@/types"
@@ -211,7 +212,7 @@ export default function CourseDetailPage() {
 
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-semibold">{course.title}</h2>
+          <PageTitle>{course.title}</PageTitle>
           <p className="text-sm text-muted-foreground">
             {course.teacherName} &middot; {course.groupNames}
           </p>
@@ -363,7 +364,7 @@ export default function CourseDetailPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemoveGroup} disabled={removeSubmitting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction variant="destructive" onClick={handleRemoveGroup} disabled={removeSubmitting}>
               {removeSubmitting ? "Удаление..." : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>

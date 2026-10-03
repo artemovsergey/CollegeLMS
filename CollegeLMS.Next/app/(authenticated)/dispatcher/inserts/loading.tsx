@@ -1,5 +1,5 @@
-import ReferenceLoading from "@/components/ReferenceLoading"
+import { RouteLoading } from "@/components/states"
 
-export default function InsertsLoading() {
-  return <ReferenceLoading title="События" />
+export default function Loading() {
+  return <RouteLoading title="Раздел" />
 }

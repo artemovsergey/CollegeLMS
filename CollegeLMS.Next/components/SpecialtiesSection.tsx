@@ -1,5 +1,8 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import { FOCUS_RING } from "@/lib/focus"
+import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { specialties } from "@/data/specialties"
@@ -9,7 +12,7 @@ export default function SpecialtiesSection() {
     <section className="py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-12 text-center">
-          <h2 className="mb-3 text-3xl font-bold text-fg">Специальности</h2>
+          <SectionTitle className="mb-3">Специальности</SectionTitle>
           <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             Выберите свою будущую профессию среди востребованных направлений подготовки
           </p>
@@ -28,10 +31,10 @@ export default function SpecialtiesSection() {
               <div className="flex flex-1 flex-col p-6">
                 {/* Badge + Icon row */}
                 <div className="mb-4 flex items-start justify-between">
-                  <span className="inline-flex items-center rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">
+                  <span className="inline-flex items-center rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent-text">
                     СПО
                   </span>
-                  <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent transition-colors">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent-text transition-colors">
                     <s.icon size={24} />
                   </span>
                 </div>
@@ -66,7 +69,7 @@ export default function SpecialtiesSection() {
 
                 {/* Button */}
                 <div className="flex items-center gap-1 text-sm font-medium text-accent">
-                  <span className="rounded focus-visible:outline-none">Подробнее</span>
+ <span className={cn(FOCUS_RING, "rounded")}>Подробнее</span>
                   <ArrowRight size={15} />
                 </div>
               </div>

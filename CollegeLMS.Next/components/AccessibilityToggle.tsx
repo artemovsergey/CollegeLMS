@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Eye } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function AccessibilityToggle() {
   const [isActive, setIsActive] = useState(false)
@@ -28,14 +29,15 @@ export default function AccessibilityToggle() {
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={toggle}
-      className={`rounded-md p-2 transition-colors hover:bg-muted ${
-        isActive ? "bg-muted text-accent" : "text-muted-foreground"
-      }`}
+      className={isActive ? "bg-muted text-accent" : undefined}
       aria-label="Версия для слабовидящих"
+      aria-pressed={isActive}
     >
       <Eye size={18} />
-    </button>
+    </Button>
   )
 }

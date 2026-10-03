@@ -269,7 +269,7 @@ export default function ManualCorrectionForm() {
                       aria-label="Удалить строку"
                       onClick={() => setRows((current) => current.filter((_, rowIndex) => rowIndex !== index))}
                     >
-                      <Trash2 className="size-4 text-destructive" />
+                      <Trash2 className="size-4 text-destructive-text" />
                     </Button>
                   </TableCell>
                 </TableRow>

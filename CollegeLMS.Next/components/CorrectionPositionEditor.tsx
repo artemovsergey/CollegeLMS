@@ -35,8 +35,12 @@ import type {
 } from "@/types/correction"
 import type { GroupResponse, Result } from "@/types"
 import { DAYS } from "@/types/schedule"
-import { REPLACE_ARROW_CLASS, changeTagKind } from "@/lib/change-tags"
-import { extractErrorMessage } from "@/lib/utils"
+import {
+  CHANGE_ARROW,
+  REPLACE_ARROW_CLASS,
+  changeTagKind,
+} from "@/lib/change-tags"
+import { cn, extractErrorMessage } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -59,6 +63,11 @@ import { ConfirmDialog } from "@/components/ConfirmDialog"
 import { CorrectionPositionDialog } from "@/components/CorrectionPositionDialog"
 import { CorrectionFilePreview } from "@/components/CorrectionFilePreview"
 import { CreateBatchDialog } from "@/components/CreateBatchDialog"
+import {
+  BATCH_STATUS_STYLE,
+  CHANGE_KIND_STYLE,
+  noticeBlock,
+} from "@/lib/status-style"
 import EmptyState from "@/components/EmptyState"
 
 const POSITION_PAGE_SIZE = 20
@@ -66,15 +75,8 @@ const POSITION_PAGE_SIZE = 20
 /** Операций две: добавление и снятие. */
 const CHANGE_TYPE_META: Record<"Add" | "Remove", { label: string; className: string }> =
   {
-    Add: {
-      label: "Добавлено",
-      className:
-        "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300",
-    },
-    Remove: {
-      label: "Снято",
-      className: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-    },
+    Add: { label: "Добавлено", className: CHANGE_KIND_STYLE.Add },
+    Remove: { label: "Снято", className: CHANGE_KIND_STYLE.Remove },
   }
 
 const ALL_GROUPS = "__all__"
@@ -142,7 +144,7 @@ function renderTitle(position: CorrectionPosition) {
           {lessonLine(position.removedSubject, position.removedTeacherName)}
         </span>
         <span aria-hidden className={REPLACE_ARROW_CLASS}>
-          {"=>"}
+          {CHANGE_ARROW}
         </span>
         <span className="font-medium">{to}</span>
       </span>
@@ -385,8 +387,8 @@ function plural(count: number, one: string, few: string, many: string): string {
               variant="outline"
               className={
                 batchIsDraft
-                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
-                  : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                  ? BATCH_STATUS_STYLE.Draft
+                  : BATCH_STATUS_STYLE.Applied
               }
             >
               {batchIsDraft ? "Подготовлен" : "Применён"}
@@ -457,7 +459,7 @@ function plural(count: number, one: string, few: string, many: string): string {
             role="alert"
             className="grid gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-4"
           >
-            <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
+            <p className="flex items-center gap-2 text-sm font-semibold text-destructive-text">
               <CircleAlert className="size-4 shrink-0" aria-hidden />
               Ошибки пакета ({batchErrors.length}) — применить нельзя
             </p>
@@ -474,7 +476,7 @@ function plural(count: number, one: string, few: string, many: string): string {
             role="alert"
             className="grid gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-4"
           >
-            <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
+            <p className="flex items-center gap-2 text-sm font-semibold text-destructive-text">
               <CircleAlert className="size-4 shrink-0" aria-hidden />
               Пакет не применён — бэкенд вернул ошибки
             </p>
@@ -601,7 +603,10 @@ function plural(count: number, one: string, few: string, many: string): string {
         </div>
 
         {batch.status === "Applied" && (
-          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <div className={cn(
+            "flex items-center gap-2 rounded-md border px-4 py-3 text-sm",
+            noticeBlock("success"),
+          )}>
             <CheckCircle className="size-4 shrink-0" aria-hidden />
             <span>
               Применён
@@ -724,15 +729,15 @@ function PositionRow({
         </TableCell>
         <TableCell className="px-3 py-2 whitespace-nowrap">
           {position.groupName || (
-            <span className="text-destructive">Группа не указана</span>
+            <span className="text-destructive-text">Группа не указана</span>
           )}
         </TableCell>
         <TableCell className="px-3 py-2 whitespace-nowrap">
           {position.removedNumberPair != null &&
           position.changeType !== "Remove" &&
           position.removedNumberPair !== position.numberPair
-            ? `${position.removedNumberPair} → ${position.numberPair}`
-            : position.numberPair || <span className="text-destructive">—</span>}
+            ? `${position.removedNumberPair} ${CHANGE_ARROW} ${position.numberPair}`
+            : position.numberPair || <span className="text-destructive-text">—</span>}
         </TableCell>
         <TableCell className="px-3 py-2 whitespace-normal">
           {renderTitle(position)}
@@ -758,7 +763,7 @@ function PositionRow({
                 onClick={onDelete}
                 aria-label={`Удалить позицию ${position.row}`}
               >
-                <Trash2 className="size-4 text-destructive" />
+                <Trash2 className="size-4 text-destructive-text" />
               </Button>
             )}
           </div>
@@ -767,7 +772,7 @@ function PositionRow({
       {hasErrors && (
         <TableRow className="bg-destructive/5 hover:bg-destructive/5">
           <TableCell colSpan={7} className="px-3 pt-0 pb-2">
-            <ul className="grid gap-1 text-xs text-destructive">
+            <ul className="grid gap-1 text-xs text-destructive-text">
               {errors.map((error, index) => (
                 <li key={index} className="flex items-start gap-1.5">
                   <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />

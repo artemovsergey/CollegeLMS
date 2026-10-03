@@ -1,5 +1,9 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import { FOCUS_RING } from "@/lib/focus"
+import EmptyState from "@/components/EmptyState"
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import type { Result, NewsResponse, NewsCategoryResponse, PagedResponse } from "@/types"
@@ -7,6 +11,7 @@ import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import Pagination from "@/components/ui/pagination"
+import LoadingSpinner from "@/components/LoadingSpinner"
 
 const ITEMS_PER_PAGE = 12
 
@@ -72,7 +77,7 @@ export default function NewsListPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-primary">Новости</h1>
+        <PageTitle>Новости</PageTitle>
         <p className="mt-1 text-sm text-muted-foreground">
           Последние события и объявления колледжа
         </p>
@@ -86,7 +91,7 @@ export default function NewsListPage() {
               setCategoryFilter(undefined)
               setPage(1)
             }}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+ className={`flex min-h-11 items-center rounded-md px-3 text-sm font-medium transition-colors ${
               !categoryFilter
                 ? "bg-accent text-accent-foreground"
                 : "bg-muted text-primary hover:bg-border"
@@ -101,7 +106,7 @@ export default function NewsListPage() {
                 setCategoryFilter(cat.id)
                 setPage(1)
               }}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+ className={`flex min-h-11 items-center rounded-md px-3 text-sm font-medium transition-colors ${
                 categoryFilter === cat.id
                   ? "bg-accent text-accent-foreground"
                   : "bg-muted text-primary hover:bg-border"
@@ -111,15 +116,21 @@ export default function NewsListPage() {
             </button>
           ))}
         </div>
-        <form onSubmit={handleSearch} className="flex gap-2">
+        <form onSubmit={handleSearch} className="flex min-w-0 gap-2">
           <input
             type="text"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Поиск..."
-            className="rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 bg-background"
+ className={cn(
+              FOCUS_RING,
+              /* `min-w-0` обязателен: во flex-строке поле не сжимается ниже своего
+                 содержимого и выдавливает кнопку «Найти» за правый край на
+                 320px. */
+              "h-11 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-sm outline-none",
+            )}
           />
-          <Button type="submit" size="sm">
+          <Button type="submit">
             Найти
           </Button>
         </form>
@@ -127,7 +138,7 @@ export default function NewsListPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="mb-6 rounded-md bg-destructive/10 p-3 text-sm text-destructive-text">
           {error}
         </div>
       )}
@@ -135,11 +146,11 @@ export default function NewsListPage() {
       {/* Loading */}
       {loading ? (
           <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+          <LoadingSpinner />
         </div>
       ) : news.length === 0 ? (
         <div className="py-20 text-center">
-          <p className="text-muted-foreground">Новостей пока нет</p>
+          <EmptyState message="Новостей пока нет" className="border-0 py-8" />
         </div>
       ) : (
         <>

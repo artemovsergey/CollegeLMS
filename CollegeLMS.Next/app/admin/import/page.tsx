@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useState, useEffect } from "react"
 import type { Result, ImportProgressDto } from "@/types"
 import api from "@/lib/api"
@@ -90,7 +91,7 @@ export default function AdminImportPage() {
   return (
     <div className="flex flex-col gap-6 p-6 mx-auto max-w-3xl">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Импорт данных</h2>
+        <PageTitle>Импорт данных</PageTitle>
       </div>
 
       <p className="text-sm text-muted-foreground">
@@ -154,7 +155,7 @@ export default function AdminImportPage() {
           )}
 
           {progress.errors > 0 && (
-            <div className="text-sm text-destructive">
+            <div className="text-sm text-destructive-text">
               Ошибок: {progress.errors}
             </div>
           )}
@@ -166,7 +167,7 @@ export default function AdminImportPage() {
               <p>Новостей пропущено: {progress.result.postsSkipped}</p>
               {progress.result.errors.length > 0 && (
                 <div className="mt-2 flex flex-col gap-1">
-                  <p className="font-medium text-destructive">Ошибки:</p>
+                  <p className="font-medium text-destructive-text">Ошибки:</p>
                   <ul className="list-inside list-disc text-destructive/80">
                     {progress.result.errors.map((err, i) => (
                       <li key={i}>{err}</li>

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle, SubTitle, SectionTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import type { Result, CourseProgressResponse } from "@/types"
@@ -93,7 +94,7 @@ export default function CourseProgressPage() {
         &larr; Назад к курсу
       </Button>
 
-      <h1 className="text-xl font-semibold">{progress.courseTitle}</h1>
+      <PageTitle>{progress.courseTitle}</PageTitle>
 
       <div className="grid grid-cols-2 gap-4">
         <Card>

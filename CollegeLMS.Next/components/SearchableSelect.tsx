@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { Check, ChevronDown, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -124,7 +125,7 @@ export function SearchableSelect({
         onClick={() => setOpen((current) => !current)}
         className={cn(
           "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 text-left text-sm shadow-xs transition-[color,box-shadow] outline-none",
-          "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+"focus-visible:border-ring",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "dark:bg-input/30",
           open && "border-ring ring-[3px] ring-ring/50",
@@ -299,7 +300,7 @@ export function SearchableMultiSelect({
         onClick={() => setOpen((current) => !current)}
         className={cn(
           "flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-left text-sm shadow-xs transition-[color,box-shadow] outline-none",
-          "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+"focus-visible:border-ring",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "dark:bg-input/30",
           open && "border-ring ring-[3px] ring-ring/50",

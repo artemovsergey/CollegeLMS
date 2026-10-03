@@ -1,5 +1,6 @@
 "use client"
 
+import { CHANGE_ARROW } from "@/lib/change-tags"
 import { useState } from "react"
 import { AlertCircle, ListChecks, XCircle } from "lucide-react"
 
@@ -76,7 +77,7 @@ export function CorrectionPreviewDialog({
             {errors.map((message, index) => (
               <li
                 key={index}
-                className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive"
+                className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive-text"
               >
                 <XCircle className="mt-0.5 size-4 shrink-0" />
                 <span>{message}</span>
@@ -104,7 +105,7 @@ export function CorrectionPreviewDialog({
                         }`
                       : entry.changeType === "Remove"
                         ? `Снимается: ${entry.removedSubject ?? "—"}`
-                        : `Снимается: ${entry.removedSubject ?? "—"} → Вводится: ${entry.subject ?? "—"}`}
+                        : `Снимается: ${entry.removedSubject ?? "—"} ${CHANGE_ARROW} Вводится: ${entry.subject ?? "—"}`}
                     {entry.note ? ` · ${entry.note}` : ""}
                   </div>
                 </li>
@@ -112,7 +113,7 @@ export function CorrectionPreviewDialog({
             </ul>
 
             {applyError && (
-              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive-text">
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
                 <span>{applyError}</span>
               </div>

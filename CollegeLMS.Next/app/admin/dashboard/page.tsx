@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import {
@@ -73,7 +74,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 mx-auto max-w-5xl">
-      <h2 className="text-xl font-semibold">Панель администратора</h2>
+      <PageTitle>Панель администратора</PageTitle>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(card => (

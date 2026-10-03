@@ -32,6 +32,19 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
   const [cpSubmitting, setCpSubmitting] = useState(false)
   const pathname = usePathname()
   const { user, logout } = useAuth()
+
+  // Escape закрывает шторку. Без этого единственный способ выйти из меню —
+  // мышь: ни фокус не уходил внутрь, ни с клавиатуры закрыть было нечем.
+  useEffect(() => {
+    if (!menuOpen && !profileOpen) return
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return
+      setMenuOpen(false)
+      setProfileOpen(false)
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [menuOpen, profileOpen])
   // Embed-режим (?embed=1): прячем шапку CRM, чтобы страницу можно было
   // показать в телефонной рамке превью мини-приложения.
   const [embed, setEmbed] = useState(false)
@@ -85,21 +98,25 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
         <header className="sticky top-0 z-30 border-b border-border bg-bg">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setMenuOpen(true)}
-              className="rounded-md p-2 text-muted-fg hover:bg-muted transition-colors"
+              className="text-muted-fg"
               aria-label="Меню"
             >
               <Menu size={20} />
-            </button>
+            </Button>
             <Link href={homeByRole[user?.roles?.[0] ?? ""] ?? "/my/dashboard"} className="ml-2 flex items-center">
               <span className="text-sm font-semibold text-fg leading-tight">Колледж связи</span>
             </Link>
           </div>
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon-lg"
             onClick={() => setProfileOpen(true)}
-            className="flex items-center gap-2 rounded-md p-1.5 text-sm font-medium text-muted-fg hover:bg-muted transition-colors"
+            className="text-sm font-medium text-muted-fg"
             aria-label="Профиль"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent overflow-hidden">
@@ -110,7 +127,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                 initials
               )}
             </span>
-          </button>
+          </Button>
         </div>
       </header>
       )}
@@ -119,12 +136,23 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
       {menuOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/30" onClick={() => setMenuOpen(false)} />
-          <aside className="relative z-50 flex w-64 flex-col bg-card border-r border-border shadow-lg">
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Навигация"
+            className="relative z-50 flex max-w-[85vw] flex-col border-r border-border bg-card shadow-lg"
+          >
             <div className="flex h-14 items-center justify-between border-b border-border px-4">
               <span className="text-sm font-semibold text-fg">Навигация</span>
-              <button onClick={() => setMenuOpen(false)} className="rounded-md p-1.5 text-muted-fg hover:bg-muted transition-colors" aria-label="Закрыть">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMenuOpen(false)}
+                className="text-muted-fg"
+                aria-label="Закрыть меню"
+              >
                 <X size={18} />
-              </button>
+              </Button>
             </div>
             <nav className="flex-1 overflow-y-auto p-3 space-y-4">
               {menuSections.map((section) => (
@@ -137,7 +165,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                         href={item.href}
                         onClick={() => setMenuOpen(false)}
                         className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive(item.href)
-                            ? "bg-accent/10 text-accent"
+                            ? "bg-accent/10 text-accent-text"
                             : "text-muted-fg hover:bg-muted hover:text-fg"
                           }`}
                       >
@@ -157,12 +185,23 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
       {profileOpen && (
         <div className="fixed inset-0 z-40 flex justify-end">
           <div className="absolute inset-0 bg-black/30" onClick={() => setProfileOpen(false)} />
-          <aside className="relative z-50 flex w-72 flex-col bg-card border-l border-border shadow-lg">
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Профиль"
+            className="relative z-50 flex max-w-[85vw] flex-col border-l border-border bg-card shadow-lg"
+          >
             <div className="flex h-14 items-center justify-between border-b border-border px-4">
               <span className="text-sm font-semibold text-fg">Профиль</span>
-              <button onClick={() => setProfileOpen(false)} className="rounded-md p-1.5 text-muted-fg hover:bg-muted transition-colors" aria-label="Закрыть">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setProfileOpen(false)}
+                className="text-muted-fg"
+                aria-label="Закрыть профиль"
+              >
                 <X size={18} />
-              </button>
+              </Button>
             </div>
             <div className="p-4">
               <div className="flex flex-col items-center text-center mb-6">
@@ -191,21 +230,23 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                   <User size={16} />
                   Профиль
                 </Link>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => { setShowChangePassword(true) }}
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-fg hover:bg-muted hover:text-fg transition-colors"
+                  className="h-11 w-full justify-start gap-3 px-3 text-sm font-medium text-muted-fg hover:text-fg sm:h-9"
                 >
-                  <Lock size={16} />
+                  <Lock size={16} aria-hidden />
                   Сменить пароль
-                </button>
+                </Button>
                 <hr className="border-border" />
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => { logout() }}
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-fg hover:bg-muted hover:text-fg transition-colors"
+                  className="h-11 w-full justify-start gap-3 px-3 text-sm font-medium text-muted-fg hover:text-fg sm:h-9"
                 >
-                  <LogOut size={16} />
+                  <LogOut size={16} aria-hidden />
                   Выйти
-                </button>
+                </Button>
               </div>
             </div>
           </aside>
@@ -217,7 +258,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
         <NativeDialogClose onClick={() => setShowChangePassword(false)} />
         <NativeDialogHeader><NativeDialogTitle>Сменить пароль</NativeDialogTitle></NativeDialogHeader>
         <form onSubmit={handleChangePassword} className="flex flex-col gap-4 p-6">
-          {cpError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{cpError}</p>}
+          {cpError && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive-text">{cpError}</p>}
           <div className="flex flex-col gap-2">
             <Label htmlFor="cp-old">Текущий пароль</Label>
             <Input id="cp-old" type="password" required value={cpOldPassword} onChange={e => setCpOldPassword(e.target.value)} className="bg-muted" />

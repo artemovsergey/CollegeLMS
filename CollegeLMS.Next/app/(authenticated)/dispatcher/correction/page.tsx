@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle } from "@/components/ui/heading"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
 import type { LucideIcon } from "lucide-react"
@@ -113,7 +114,7 @@ export default function DispatcherCorrectionPage() {
   return (
     <div className="flex flex-col gap-6 p-6 mx-auto max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Корректировка расписания</h2>
+        <PageTitle>Корректировка расписания</PageTitle>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
@@ -203,7 +204,7 @@ export default function DispatcherCorrectionPage() {
 
             {importResult && (
               <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 grid gap-2">
-                <p className="flex items-center gap-1 text-sm font-semibold text-destructive">
+                <p className="flex items-center gap-1 text-sm font-semibold text-destructive-text">
                   <AlertCircle className="size-3" aria-hidden />
                   Пакет не создан: структурные ошибки ({importResult.errors.length}
                   )

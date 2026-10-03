@@ -1,5 +1,6 @@
 "use client"
 
+import { PageTitle, SubTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
@@ -13,6 +14,7 @@ import type {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { NativeSelect, NativeSelectItem } from "@/components/ui/native-select"
 import { toast } from "sonner"
 import { Save, ArrowLeft } from "lucide-react"
 
@@ -137,12 +139,12 @@ export default function ProfilePage() {
         Назад
       </button>
 
-      <h1 className="mb-6 text-2xl font-semibold text-primary">Мой профиль</h1>
+      <PageTitle className="mb-6">Мой профиль</PageTitle>
 
       <div className="mb-8 rounded-lg border border-border bg-card p-6">
-        <h2 className="mb-4 text-lg font-medium text-foreground">
+        <SubTitle className="mb-4">
           Основные данные
-        </h2>
+        </SubTitle>
         <div className="space-y-4">
           {user?.role !== "Student" && (
             <div className="flex items-center gap-4">
@@ -199,9 +201,9 @@ export default function ProfilePage() {
 
       {profile.teacherData && (
         <div className="mb-8 rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-4 text-lg font-medium text-foreground">
+          <SubTitle className="mb-4">
             Данные преподавателя
-          </h2>
+          </SubTitle>
           <div className="space-y-4">
             <div>
               <Label htmlFor="cyclicalCommission">Цикловая комиссия</Label>
@@ -209,17 +211,19 @@ export default function ProfilePage() {
             </div>
             <div>
               <Label htmlFor="category">Категория</Label>
-              <select
+              <NativeSelect
                 id="category"
                 value={category}
-                onChange={e => setCategory(e.target.value as TeacherCategory | "")}
-                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                onValueChange={(value) =>
+                  setCategory(value as TeacherCategory | "")
+                }
+                className="w-full"
               >
-                <option value="">Не выбрана</option>
-                <option value="None">Без категории</option>
-                <option value="First">Первая</option>
-                <option value="Higher">Высшая</option>
-              </select>
+                <NativeSelectItem value="">Не выбрана</NativeSelectItem>
+                <NativeSelectItem value="None">Без категории</NativeSelectItem>
+                <NativeSelectItem value="First">Первая</NativeSelectItem>
+                <NativeSelectItem value="Higher">Высшая</NativeSelectItem>
+              </NativeSelect>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Должность</span>
@@ -233,9 +237,9 @@ export default function ProfilePage() {
 
       {profile.studentData && (
         <div className="mb-8 rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-4 text-lg font-medium text-foreground">
+          <SubTitle className="mb-4">
             Данные студента
-          </h2>
+          </SubTitle>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Группа</span>

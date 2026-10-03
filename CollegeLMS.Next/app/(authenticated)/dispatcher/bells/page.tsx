@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import ErrorBanner from "@/components/ErrorBanner"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { PageShell } from "@/components/ui/page-shell"
 import {
   createBellProfile,
   deleteBellProfile,
@@ -404,25 +405,20 @@ export default function DispatcherBellsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-semibold">Звонки</h1>
+      <PageShell density="compact" title="Звонки">
         <div role="status" aria-label="Загрузка профилей звонков">
           <LoadingSpinner size="lg" className="py-24" />
         </div>
-      </div>
+      </PageShell>
     )
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Звонки</h1>
-        <p className="text-sm text-muted-foreground">
-          Профили звонков для расписания, экспорта и бота. Профиль выбирается по
-          дате, затем по дню недели, иначе применяется профиль по умолчанию.
-        </p>
-      </header>
-
+    <PageShell
+      density="compact"
+      title="Звонки"
+      description="Профили звонков для расписания, экспорта и бота. Профиль выбирается по дате, затем по дню недели, иначе применяется профиль по умолчанию."
+    >
       {loadError && (
         <>
           <ErrorBanner message={loadError} className="justify-between" />
@@ -453,7 +449,7 @@ export default function DispatcherBellsPage() {
                   aria-selected={active}
                   variant={active ? "default" : "outline"}
                   onClick={() => applyProfile(profile)}
-                  className="min-h-11 sm:min-h-9"
+                 
                 >
                   {profile.name}
                   {profile.isDefault && (
@@ -476,7 +472,7 @@ export default function DispatcherBellsPage() {
               aria-selected={isCreating}
               variant={isCreating ? "default" : "outline"}
               onClick={startCreate}
-              className="min-h-11 sm:min-h-9"
+             
             >
               <Plus className="size-4" aria-hidden="true" />
               Новый профиль
@@ -605,7 +601,7 @@ export default function DispatcherBellsPage() {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                           onClick={() => removeDateRow(index)}
                           aria-label={`Удалить диапазон дат ${index + 1}`}
                         >
@@ -617,7 +613,7 @@ export default function DispatcherBellsPage() {
                       type="button"
                       variant="outline"
                       onClick={addDateRow}
-                      className="w-fit min-h-11 sm:min-h-9"
+                      className="w-fit min-h-11"
                     >
                       <CalendarPlus className="size-4" aria-hidden="true" />
                       Добавить диапазон
@@ -820,7 +816,7 @@ export default function DispatcherBellsPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setDeleteTarget(activeProfile)}
-                    className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive sm:min-h-9"
+                    className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                   >
                     <Trash2 className="size-4" aria-hidden="true" />
                     Удалить профиль
@@ -829,7 +825,7 @@ export default function DispatcherBellsPage() {
                 <Button
                   onClick={() => void handleSave()}
                   disabled={saving}
-                  className="min-w-44 min-h-11 sm:min-h-9"
+                  className="min-w-44 min-h-11"
                 >
                   {saving ? (
                     <>
@@ -867,18 +863,18 @@ export default function DispatcherBellsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={deleting}
               onClick={(e) => {
                 e.preventDefault()
                 void handleDelete()
               }}
-              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {deleting ? "Удаление…" : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }

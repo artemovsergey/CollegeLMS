@@ -1,5 +1,8 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+import { FOCUS_RING } from "@/lib/focus"
+import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import type { Result, GroupResponse, TeacherResponse } from "@/types"
@@ -479,7 +482,7 @@ export default function SchedulePage() {
     <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-4 p-6">
       <div className="flex items-center gap-2">
         <CalendarDays className="size-5 text-primary" aria-hidden />
-        <h2 className="text-xl font-semibold">Расписание</h2>
+        <PageTitle>Расписание</PageTitle>
       </div>
 
       <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -699,7 +702,7 @@ export default function SchedulePage() {
                   setSlotParts(null)
                   handleEdit(sub)
                 }}
-                className="rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+ className={cn(FOCUS_RING, "rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted")}
               >
                 <span className="block font-medium">
                   {sub.room || "без аудитории"}
@@ -731,11 +734,11 @@ export default function SchedulePage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={() => {
                 if (deleteConfirmIds.length > 0)
                   void handleDelete(deleteConfirmIds)
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Удалить
             </AlertDialogAction>

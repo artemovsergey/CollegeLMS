@@ -5,6 +5,8 @@ import { FileSpreadsheet } from "lucide-react"
 import type { CorrectionBatch, CorrectionPosition } from "@/types/correction"
 import type { CorrectionRowPreview } from "@/lib/correction-row"
 import { toCorrectionRow } from "@/lib/correction-row"
+import { cn } from "@/lib/utils"
+import { noticeBlock } from "@/lib/status-style"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
@@ -158,7 +160,10 @@ export function CorrectionFilePreview({
         {/* Пара «откуда» при переносе живёт только в примечании «вм.X» —
             напоминаем её под таблицей, чтобы перенос читался однозначно. */}
         {movedRows.length > 0 && (
-          <ul className="grid gap-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <ul className={cn(
+              "grid gap-1 rounded-md border px-3 py-2 text-xs",
+              noticeBlock("warning"),
+            )}>
             {movedRows.map((row, index) => (
               <li key={index}>
                 Строка {index + 1}: перенос — освобождается пара {row.movedFrom!.pair} ({" "}

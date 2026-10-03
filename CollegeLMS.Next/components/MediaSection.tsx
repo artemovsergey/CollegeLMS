@@ -1,5 +1,6 @@
 "use client"
 
+import { SectionTitle } from "@/components/ui/heading"
 import { useState } from "react"
 import { Play, Calendar, Clock, Tv, X } from "lucide-react"
 import Image from "next/image"
@@ -13,14 +14,18 @@ export default function MediaSection() {
   return (
     <section className="py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Колледж в СМИ</h2>
+        <SectionTitle className="mb-8 text-center ">Колледж в СМИ</SectionTitle>
 
         <div className="mx-auto max-w-2xl">
           <button
             onClick={() => setOpen(true)}
-            className="group flex w-full gap-5 rounded-lg border border-border bg-card p-5 text-left transition-colors duration-200 hover:border-accent/30"
+            /* Превью занимает 160px и не сжимается. В один ряд с текстом на 320px
+               набор не помещался: 160 + 20 + текст выдавливал карточку за
+               край на 38px, и страница прокручивалась по горизонтали.
+               Поэтому в столбец, а в ряд — от `sm`. */
+            className="group flex w-full flex-col gap-4 rounded-lg border border-border bg-card p-5 text-left transition-colors duration-200 hover:border-accent/30 sm:flex-row sm:gap-5"
           >
-            <div className="relative flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+            <div className="relative flex h-40 w-full shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted sm:h-24 sm:w-40">
               <Image
                 src={THUMB_URL}
                 alt="Превью видео"

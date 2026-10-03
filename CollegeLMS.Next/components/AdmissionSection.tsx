@@ -1,3 +1,4 @@
+import { SectionTitle } from "@/components/ui/heading"
 import { CalendarDays, MapPin, Phone, Building, ShieldCheck, Bed } from "lucide-react"
 
 const items = [
@@ -37,7 +38,7 @@ export default function AdmissionSection() {
   return (
     <section className="py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-2xl font-semibold text-primary">Приёмная кампания 2026</h2>
+        <SectionTitle className="mb-8 text-center ">Приёмная кампания 2026</SectionTitle>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (

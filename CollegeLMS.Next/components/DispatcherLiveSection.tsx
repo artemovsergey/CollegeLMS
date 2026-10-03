@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { useCallback, useEffect, useState, type ReactNode } from "react"
 import {
   Activity,
@@ -48,7 +49,7 @@ const COUNT_TILES: {
     bar: "bg-muted-foreground/50",
     value: "text-muted-foreground",
   },
-  { key: "waiting", label: "Ожидание", bar: "bg-warning", value: "text-warning" },
+  { key: "waiting", label: "Ожидание", bar: "bg-warning", value: "text-warning-text" },
 ]
 
 function todayIso(): string {
@@ -193,7 +194,12 @@ function EntityTile({
 
       {entity.entries.length > 0 && (
         <details className="mt-3 border-t border-border pt-2">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center text-xs font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-9">
+ <summary
+            className={cn(
+              FOCUS_RING,
+              "flex min-h-11 cursor-pointer list-none items-center text-xs font-medium text-muted-foreground",
+            )}
+          >
             Занятия: {entity.entries.length}
           </summary>
           <ul className="flex flex-col pt-1">
@@ -342,7 +348,7 @@ export default function DispatcherLiveSection() {
           <Button
             variant="outline"
             onClick={() => setDate((value) => shiftIsoDate(value, -1))}
-            className="min-h-11 sm:min-h-9"
+           
           >
             <ChevronLeft className="size-4" aria-hidden="true" />
             День назад
@@ -350,14 +356,14 @@ export default function DispatcherLiveSection() {
           <Button
             variant="outline"
             onClick={() => setDate(todayIso())}
-            className="min-h-11 sm:min-h-9"
+           
           >
             Сегодня
           </Button>
           <Button
             variant="outline"
             onClick={() => setDate((value) => shiftIsoDate(value, 1))}
-            className="min-h-11 sm:min-h-9"
+           
           >
             День вперёд
             <ChevronRight className="size-4" aria-hidden="true" />
@@ -367,7 +373,7 @@ export default function DispatcherLiveSection() {
             onClick={() => void load("silent")}
             disabled={refreshing}
             aria-busy={refreshing}
-            className="min-h-11 sm:ml-auto sm:min-h-9"
+            className="min-h-11 sm:ml-auto"
           >
             <RefreshCw
               className={cn("size-4", refreshing && "animate-spin motion-reduce:animate-none")}
@@ -388,7 +394,7 @@ export default function DispatcherLiveSection() {
       {data?.isNonWorking && (
         <div
           role="status"
-          className="flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning"
+          className="flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning-text"
         >
           <CalendarOff className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <div className="flex flex-col gap-1">
@@ -416,13 +422,13 @@ export default function DispatcherLiveSection() {
       {error && (
         <div
           role="alert"
-          className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+          className="flex flex-wrap items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive-text"
         >
           <span className="flex-1">{error}</span>
           <Button
             variant="outline"
             onClick={() => void load("silent")}
-            className="min-h-11 border-destructive/40 bg-transparent text-destructive hover:bg-destructive/10 hover:text-destructive sm:min-h-9"
+            className="min-h-11 border-destructive/40 bg-transparent text-destructive hover:bg-destructive/10 hover:text-destructive-text"
           >
             <RefreshCw className="size-4" aria-hidden="true" />
             Повторить

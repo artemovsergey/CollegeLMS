@@ -1,5 +1,6 @@
 "use client"
 
+import { FOCUS_RING } from "@/lib/focus"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
@@ -44,6 +45,7 @@ import GroupDayCard, {
 } from "@/components/GroupDayCard"
 import { isPhysicalSelfStudyNote, isSelfStudyNote } from "@/lib/change-tags"
 import { toCorrectionRow } from "@/lib/correction-row"
+import { choiceBlock, noticeBlock } from "@/lib/status-style"
 import {
   SearchableMultiSelect,
   SearchableSelect,
@@ -66,15 +68,13 @@ const OPERATION_CARDS: {
     value: "add",
     label: "Добавить",
     hint: "Новое занятие в выбранную пару",
-    className:
-      "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+    className: choiceBlock("success"),
   },
   {
     value: "remove",
     label: "Снять",
     hint: "Занятие убирается из пары",
-    className:
-      "border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200",
+    className: choiceBlock("destructive"),
   },
 ]
 
@@ -640,7 +640,10 @@ export function CorrectionPositionDialog({
           {editing && position?.status === "Applied" && (
             <div
               role="alert"
-              className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+              className={cn(
+                  "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
+                  noticeBlock("warning"),
+                )}
             >
               <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
@@ -676,7 +679,7 @@ export function CorrectionPositionDialog({
                   }
                   className={cn(
                     "rounded-md border px-3 py-2 text-left transition-colors",
-                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
                     draft.operation === card.value
                       ? card.className
                       : "border-input bg-background hover:bg-muted",
@@ -732,7 +735,7 @@ export function CorrectionPositionDialog({
               {loadError && (
                 <div
                   role="alert"
-                  className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+                  className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive-text"
                 >
                   <CircleAlert className="size-4 shrink-0" aria-hidden />
                   <span>{loadError}</span>
@@ -949,7 +952,7 @@ export function CorrectionPositionDialog({
                           }
                           className={cn(
                             "rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                            "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
                             "disabled:cursor-not-allowed disabled:opacity-50",
                             selected
                               ? "border-primary bg-primary/10"
@@ -1003,7 +1006,10 @@ export function CorrectionPositionDialog({
               ) : (
                 <>
                   {informational && slotBusy && (
-                    <p className="flex items-start gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-200">
+                    <p className={cn(
+                        "flex items-start gap-1.5 rounded-md border px-3 py-2 text-xs",
+                        noticeBlock("self-study"),
+                      )}>
                       <CircleAlert
                         className="mt-0.5 size-3.5 shrink-0"
                         aria-hidden
@@ -1246,7 +1252,7 @@ function ToggleChip({
       onClick={onToggle}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors",
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-input bg-background text-muted-foreground hover:bg-muted",
@@ -1278,7 +1284,7 @@ function Choice({
       onClick={onSelect}
       className={cn(
         "rounded-md border px-3 py-2 text-left transition-colors",
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+"",
         selected
           ? "border-primary bg-primary/10"
           : "border-input bg-background hover:bg-muted",

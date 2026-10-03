@@ -51,6 +51,7 @@ import {
 import ErrorBanner from "@/components/ErrorBanner"
 import EmptyState from "@/components/EmptyState"
 import LoadingSpinner from "@/components/LoadingSpinner"
+import { PageShell } from "@/components/ui/page-shell"
 import {
   createInsert,
   deleteInsert,
@@ -197,20 +198,17 @@ export default function DispatcherInsertsPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">События</h1>
-          <p className="text-sm text-muted-foreground">
-            Специальные мероприятия дня («Разговор о важном», классный час) —
-            отдельной строкой, без номера пары.
-          </p>
-        </div>
-        <Button onClick={openCreate} className="min-h-11 sm:min-h-9">
+    <PageShell
+      density="compact"
+      title="События"
+      description="Специальные мероприятия дня («Разговор о важном», классный час) — отдельной строкой, без номера пары."
+      actions={
+        <Button onClick={openCreate}>
           <Plus className="size-4" aria-hidden="true" />
           Добавить событие
         </Button>
-      </header>
+      }
+    >
 
       <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border bg-card p-4">
         <div className="flex flex-col gap-1.5">
@@ -255,7 +253,7 @@ export default function DispatcherInsertsPage() {
           <Button
             variant="outline"
             onClick={() => void load()}
-            className="w-fit min-h-11 sm:min-h-9"
+            className="w-fit min-h-11"
           >
             Повторить загрузку
           </Button>
@@ -343,7 +341,7 @@ export default function DispatcherInsertsPage() {
                           {item.isActive ? (
                             <Badge
                               variant="outline"
-                              className="border-success/40 text-success"
+                              className="border-success/40 text-success-text"
                             >
                               Активно
                             </Badge>
@@ -356,7 +354,7 @@ export default function DispatcherInsertsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-11"
+                             
                               onClick={() => openEdit(item)}
                               aria-label={`Редактировать событие «${item.title}»`}
                             >
@@ -365,7 +363,7 @@ export default function DispatcherInsertsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive-text"
                               onClick={() => setDeleteTarget(item)}
                               aria-label={`Удалить событие «${item.title}»`}
                             >
@@ -504,18 +502,18 @@ export default function DispatcherInsertsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={deleting}
               onClick={(e) => {
                 e.preventDefault()
                 void handleDelete()
               }}
-              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {deleting ? "Удаление…" : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   )
 }

@@ -77,6 +77,12 @@ export default function Header() {
   const navSections = siteNavigation.filter(s => s.inHeader !== false)
 
   return (
+    /* Шапка — полоса бренда на `--accent`. В тёмной теме `--accent`
+       становится светло-лазурной, поэтому белый текст на ней падал до
+       2.16:1. Весь текст и подложки наведения берутся из
+       `--accent-foreground`, который в светлой теме белый (11.36:1), а в
+       тёмной тёмный (5.36:1), то есть следует за темой сам. Вторичные строки
+       дают 90% непрозрачности: 70% дали бы 4.03:1 — ниже порога. */
     <header className="sticky top-0 z-50 bg-accent">
       <div className="flex flex-col">
         {/* Row 1: Top bar — hides on scroll; height is animated together with the
@@ -96,25 +102,25 @@ export default function Header() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center h-7 w-7 rounded text-white/60 hover:text-white transition-colors"
+                    className="flex items-center justify-center h-7 w-7 rounded text-accent-foreground/90 hover:text-accent-foreground transition-colors"
                     aria-label={link.label}
                   >
                     <SocialIcon icon={link.icon} className="h-4 w-4" />
                   </a>
                 ))}
               </div>
-              <span className="mx-1 hidden text-white/20 sm:inline">|</span>
-              <Link href="/contacts" className="hidden text-xs text-white/70 hover:text-white transition-colors sm:inline">Контакты</Link>
+              <span className="mx-1 hidden text-accent-foreground/20 sm:inline">|</span>
+              <Link href="/contacts" className="hidden text-xs text-accent-foreground/90 hover:text-accent-foreground transition-colors sm:inline">Контакты</Link>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
-              <Link href="/search" className="flex items-center justify-center h-8 w-8 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-label="Поиск"><Search size={16} /></Link>
-              <div className="flex items-center gap-1.5 [&_button]:flex [&_button]:h-8 [&_button]:w-8 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-md [&_button]:text-white/80 [&_button]:transition-colors [&_button]:hover:bg-white/10 [&_button]:hover:text-white">
+              <Link href="/search" className="flex size-11 items-center justify-center rounded-md text-accent-foreground/90 hover:text-accent-foreground hover:bg-accent-foreground/10 transition-colors sm:size-9" aria-label="Поиск"><Search size={16} /></Link>
+              <div className="flex items-center gap-1.5 [&_button]:flex [&_button]:size-11 sm:[&_button]:size-9 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-md [&_button]:text-accent-foreground/90 [&_button]:transition-colors [&_button]:hover:bg-accent-foreground/10 [&_button]:hover:text-accent-foreground">
                 <AccessibilityToggle />
                 <ThemeToggle />
               </div>
               <Link
                 href="/login"
-                className="ml-1 inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-white/20 px-2.5 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition-colors"
+                className="ml-1 inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-accent-foreground/20 px-2.5 text-sm font-medium text-accent-foreground/90 hover:bg-accent-foreground/10 hover:text-accent-foreground transition-colors"
               >
                 <LogIn size={14} />
                 <span className="hidden sm:inline">Войти</span>
@@ -125,10 +131,10 @@ export default function Header() {
         </div>
 
         {/* Row 2: Logo text + Navigation */}
-        <div className="flex items-center justify-between border-b border-white/10 px-4 lg:px-6">
+        <div className="flex items-center justify-between border-b border-accent-foreground/10 px-4 lg:px-6">
           <Link href="/" className="flex min-w-0 flex-1 flex-col py-3 leading-tight">
-            <span className="text-base sm:text-lg font-bold text-white">Ставропольский колледж связи</span>
-            <span className="text-[10px] sm:text-xs text-white/60">имени Героя Советского Союза В.А. Петрова</span>
+            <span className="text-base sm:text-lg font-bold text-accent-foreground">Ставропольский колледж связи</span>
+            <span className="text-[10px] sm:text-xs text-accent-foreground/90">имени Героя Советского Союза В.А. Петрова</span>
           </Link>
 
           <nav className="hidden lg:flex items-center justify-center gap-0.5" aria-label="Главное меню">
@@ -155,7 +161,7 @@ export default function Header() {
                     onClick={() => setOpenMenu(null)}
                     aria-expanded={hasSubs ? isOpen : undefined}
                     aria-haspopup={hasSubs ? "true" : undefined}
-                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors rounded-md"
+                    className="flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium text-accent-foreground/90 transition-colors hover:text-accent-foreground"
                   >
                     {section.title}
                     {hasSubs && (
@@ -169,13 +175,13 @@ export default function Header() {
                         isOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
                       }`}
                     >
-                      <div className="overflow-hidden rounded-lg border border-border bg-white shadow-xl">
+                      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xl">
                         {section.subsections.map((sub) => (
                           <Link
                             key={sub.slug}
                             href={sub.href}
                             onClick={() => setOpenMenu(null)}
-                            className="block border-b border-border/50 px-4 py-2.5 text-sm text-fg transition-colors last:border-b-0 hover:bg-muted hover:text-primary"
+                            className="flex min-h-11 items-center border-b border-border/50 px-4 text-sm text-fg transition-colors last:border-b-0 hover:bg-muted hover:text-primary"
                           >
                             {sub.title}
                           </Link>
@@ -191,7 +197,7 @@ export default function Header() {
           <div className="flex shrink-0 items-center justify-end gap-2">
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden rounded-md p-2 text-white/80 hover:bg-white/10"
+              className="flex size-11 items-center justify-center rounded-md text-accent-foreground/90 hover:bg-accent-foreground/10 lg:hidden"
               aria-label={mobileOpen ? "Закрыть меню" : "Меню"}
               aria-expanded={mobileOpen}
             >
@@ -210,7 +216,7 @@ export default function Header() {
         }`}
       >
         <div className="min-h-0 overflow-hidden">
-        <div className="border-b border-white/10 bg-accent px-4 pb-4 pt-2">
+        <div className="border-b border-accent-foreground/10 bg-accent px-4 pb-4 pt-2">
           <nav className="flex flex-col gap-1">
             {navSections.map((section) => {
               const hasSubs = section.subsections.length > 0
@@ -220,7 +226,7 @@ export default function Header() {
                   <div className="flex items-center justify-between gap-2">
                     <Link
                       href={section.href}
-                      className="block flex-1 px-3 py-2 text-sm font-medium text-white/80 rounded-md hover:bg-white/10"
+                      className="flex min-h-11 flex-1 items-center rounded-md px-3 text-sm font-medium text-accent-foreground/90 hover:bg-accent-foreground/10"
                       onClick={() => {
                         setMobileOpen(false)
                         setOpenMobileSection(null)
@@ -231,7 +237,7 @@ export default function Header() {
                     {hasSubs && (
                       <button
                         onClick={() => setOpenMobileSection(isOpen ? null : section.slug)}
-                        className="rounded-md p-2 text-white/80 hover:bg-white/10"
+                        className="rounded-md p-2 text-accent-foreground/90 hover:bg-accent-foreground/10"
                         aria-label={`Показать подпункты раздела ${section.title}`}
                         aria-expanded={isOpen}
                       >
@@ -241,7 +247,7 @@ export default function Header() {
                   </div>
                   {hasSubs && (
                     <div className={`transition-[max-height,opacity] duration-200 ease-out ${isOpen ? "opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
-                      <div className="ml-4 border-l border-white/20 pl-3">
+                      <div className="ml-4 border-l border-accent-foreground/20 pl-3">
                         {section.subsections.map((sub) => (
                           <Link
                             key={sub.slug}
@@ -250,7 +256,7 @@ export default function Header() {
                               setMobileOpen(false)
                               setOpenMobileSection(null)
                             }}
-                            className="block px-3 py-1.5 text-sm text-white/70 rounded-md hover:bg-white/10 hover:text-white"
+                            className="block px-3 py-1.5 text-sm text-accent-foreground/90 rounded-md hover:bg-accent-foreground/10 hover:text-accent-foreground"
                           >
                             {sub.title}
                           </Link>

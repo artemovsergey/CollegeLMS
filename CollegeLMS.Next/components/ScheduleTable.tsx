@@ -21,6 +21,7 @@ import {
 } from "@/components/ScheduleLayers"
 import { isEntryNow, mergeDayRows, type DayRow } from "@/lib/schedule-merge"
 import { cn } from "@/lib/utils"
+import { PRACTICE_CELL, PRACTICE_PAIR_NUMBER } from "@/lib/status-style"
 
 interface ScheduleCardsProps {
   entries: ScheduleResponse[]
@@ -165,7 +166,7 @@ export default function ScheduleCards({
               isCurrent
                 ? "border-primary bg-primary/[0.06] dark:bg-primary/[0.12]"
                 : isPractice
-                  ? "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20"
+                  ? PRACTICE_CELL
                   : "border-t-transparent",
             )}
           >
@@ -174,7 +175,7 @@ export default function ScheduleCards({
                 className={cn(
                   "text-lg font-bold leading-none",
                   isPractice
-                    ? "text-emerald-600 dark:text-emerald-400"
+                    ? PRACTICE_PAIR_NUMBER
                     : "text-primary",
                 )}
               >
