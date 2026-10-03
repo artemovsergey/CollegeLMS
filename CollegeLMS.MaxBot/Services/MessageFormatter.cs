@@ -1,6 +1,6 @@
 using CollegeLMS.MaxBot.Clients;
-using CollegeLMS.Shared;
 using CollegeLMS.MaxBot.Models;
+using CollegeLMS.Shared;
 
 namespace CollegeLMS.MaxBot.Services;
 

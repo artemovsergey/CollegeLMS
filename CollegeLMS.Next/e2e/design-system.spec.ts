@@ -189,7 +189,12 @@ test.describe("контраст текста", () => {
   for (const surface of SURFACES) {
     for (const theme of ["light", "dark"] as const) {
       test(`${surface.name}: ${theme}`, async ({ page }) => {
-        await page.goto(surface.path)
+        // Страница поиска обращается к API при монтировании, и в режиме
+        // разработки первая компиляция уходит за стандартные 30 секунд
+        // навигации. Ждём DOM, а не сеть: контраст проверяется у уже
+        // отрисованного текста.
+        await page.goto(surface.path, { waitUntil: "domcontentloaded" })
+        await page.waitForTimeout(500)
         await page.evaluate((t) => {
           localStorage.setItem("theme", t)
           document.documentElement.classList.toggle("dark", t === "dark")

@@ -1,6 +1,6 @@
+using CollegeLMS.Shared;
 using FluentAssertions;
 using Xunit;
-using CollegeLMS.Shared;
 
 namespace CollegeLMS.MaxBot.Tests;
 

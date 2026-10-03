@@ -42,10 +42,15 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
   const pages = getPages()
 
   return (
-    <div className="mt-10 flex items-center justify-center gap-2">
+    /* Ряд номеров не помещался на 320px и давал прокрутку по горизонтали,
+       поэтому переносится. Кнопки страниц — примитив Button: свой у примитива
+       был отдельный рецепт кольца фокуса и размер 32px, ниже порога §6.1. */
+    <nav
+      aria-label="Постраничная навигация"
+      className="mt-10 flex flex-wrap items-center justify-center gap-2"
+    >
       <Button
         variant="outline"
-        size="sm"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
       >
@@ -57,27 +62,24 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
             ...
           </span>
         ) : (
-          <button
+          <Button
             key={p}
+            variant={p === page ? "default" : "ghost"}
+            size="icon"
+            aria-current={p === page ? "page" : undefined}
             onClick={() => onPageChange(p)}
-            className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-              p === page
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
           >
             {p}
-          </button>
+          </Button>
         )
       )}
       <Button
         variant="outline"
-        size="sm"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
       >
-        Вперед →
+        Вперёд →
       </Button>
-    </div>
+    </nav>
   )
 }

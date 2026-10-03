@@ -44,7 +44,7 @@ export default function GraduateStoriesSection() {
               </span>
               <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{g.quote}</p>
               <div className="mt-auto flex items-center gap-3 border-t border-border pt-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-sm font-semibold text-accent">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-sm font-semibold text-accent-text">
                   {g.initials}
                 </span>
                 <div>

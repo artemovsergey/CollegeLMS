@@ -35,12 +35,12 @@ export default function SpecialtyDetailPage({ params }: { params: { slug: string
 
         {/* Hero section */}
         <div className="mb-10">
-          <span className="inline-flex items-center rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent mb-4">
+          <span className="inline-flex items-center rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent-text mb-4">
             {spec.code}
           </span>
 
           <div className="flex items-start gap-5 mb-4">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent-text">
               <Icon size={32} />
             </span>
             <div>
@@ -51,7 +51,7 @@ export default function SpecialtyDetailPage({ params }: { params: { slug: string
 
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mt-4">
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent-text">
               <Clock size={14} />
               {spec.durationShort}
             </span>

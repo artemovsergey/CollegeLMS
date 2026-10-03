@@ -191,13 +191,13 @@ function SearchResults() {
                 type="button"
                 onMouseDown={() => selectSuggestion(item)}
                 className={`flex min-h-11 w-full items-center gap-3 px-4 text-left text-sm transition-colors ${
-                  i === selectedIndex ? "bg-accent/10" : "hover:bg-accent/5"
+                  i === selectedIndex ? "bg-accent/10 text-accent-text" : "hover:bg-accent/5"
                 } ${i === 0 ? "rounded-t-lg" : ""} ${i === suggestions.length - 1 ? "rounded-b-lg" : ""}`}
               >
                 <span
                   className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
                     item.type === "news"
-                      ? "bg-accent/10 text-accent"
+                      ? "bg-accent/10 text-accent-text"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -249,7 +249,7 @@ function SearchResults() {
                   <span
                     className={`rounded px-2 py-0.5 text-xs font-medium ${
                       item.type === "news"
-                        ? "bg-accent/10 text-accent"
+                        ? "bg-accent/10 text-accent-text"
                         : "bg-muted text-muted-foreground"
                     }`}
                   >

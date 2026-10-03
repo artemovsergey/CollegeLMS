@@ -33,8 +33,8 @@ export default function SpecialtiesPage() {
 
                 <div className="flex flex-1 flex-col p-6">
                   <div className="mb-4 flex items-start justify-between">
-                    <span className="inline-flex items-center rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent">СПО</span>
-                    <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent transition-colors">
+                    <span className="inline-flex items-center rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-accent-text">СПО</span>
+                    <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent-text transition-colors">
                       <Icon size={24} />
                     </span>
                   </div>

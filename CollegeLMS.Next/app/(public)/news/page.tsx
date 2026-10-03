@@ -116,7 +116,7 @@ export default function NewsListPage() {
             </button>
           ))}
         </div>
-        <form onSubmit={handleSearch} className="flex gap-2">
+        <form onSubmit={handleSearch} className="flex min-w-0 gap-2">
           <input
             type="text"
             value={searchInput}
@@ -124,10 +124,13 @@ export default function NewsListPage() {
             placeholder="Поиск..."
  className={cn(
               FOCUS_RING,
-              "h-11 rounded-md border border-input bg-transparent px-3 text-sm outline-none",
+              /* `min-w-0` обязателен: во flex-строке поле не сжимается ниже своего
+                 содержимого и выдавливает кнопку «Найти» за правый край на
+                 320px. */
+              "h-11 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-sm outline-none",
             )}
           />
-          <Button type="submit" size="sm">
+          <Button type="submit">
             Найти
           </Button>
         </form>

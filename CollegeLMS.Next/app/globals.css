@@ -40,6 +40,7 @@
      `--destructive` на `--destructive/10` — нет. В тёмной теме расходится ещё
      сильнее: для заливки нужен тёмный текст, для подписи на светлой подложке —
      светлый. */
+  --accent-text: #24386a;
   --destructive-text: #b91c1c;
   --success-text: #166534;
   --warning-text: #92400e;
@@ -91,6 +92,10 @@
   --warning-foreground: #451a03;
   --self-study: #c4b5fd;
   --self-study-foreground: #2e1065;
+  /* Брендовый как текст на собственной подложке `--accent/10`. Отдельный
+     токен по той же причине, что и `--*-text` у статусов: `--accent` в тёмной
+     теме — светло-лазурный и на своей подложке даёт 3.84:1. */
+  --accent-text: #8fb4ef;
   --destructive-text: #f87171;
   --success-text: #4ade80;
   --warning-text: #fbbf24;
@@ -125,6 +130,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-self-study: var(--self-study);
   --color-self-study-foreground: var(--self-study-foreground);
+  --color-accent-text: var(--accent-text);
   --color-destructive-text: var(--destructive-text);
   --color-success-text: var(--success-text);
   --color-warning-text: var(--warning-text);
@@ -270,6 +276,7 @@ option:checked {
   --warning-foreground: #ffffff;
   --self-study: #000000;
   --self-study-foreground: #ffffff;
+  --accent-text: #000000;
   --destructive-text: #000000;
   --success-text: #000000;
   --warning-text: #000000;

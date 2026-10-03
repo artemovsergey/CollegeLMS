@@ -150,7 +150,7 @@ public class CorrectionImageService
             && position.RemovedSubject is not null
         )
         {
-            return $"{from} {ChangeArrow} {position.NumberPair}";
+            return $"{from} {ChangeVocabulary.ChangeArrow} {position.NumberPair}";
         }
 
         return position.NumberPair.ToString();

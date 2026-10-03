@@ -162,7 +162,7 @@ const borderPairs = [
 // светлоте лежит между ними, поэтому обе проверки вместе ограничивают токен
 // с обеих сторон.
 const statusTextPairs = (surface) =>
-  ["destructive", "success", "warning"].flatMap((name) => [
+  ["accent", "destructive", "success", "warning"].flatMap((name) => [
     [`${name}-text`, surface, "text"],
   ])
 

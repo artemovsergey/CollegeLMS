@@ -165,7 +165,7 @@ export default function AuthenticatedShell({ children, menuSections }: Authentic
                         href={item.href}
                         onClick={() => setMenuOpen(false)}
                         className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive(item.href)
-                            ? "bg-accent/10 text-accent"
+                            ? "bg-accent/10 text-accent-text"
                             : "text-muted-fg hover:bg-muted hover:text-fg"
                           }`}
                       >
