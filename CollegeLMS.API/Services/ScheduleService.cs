@@ -90,7 +90,11 @@ public class ScheduleService(
             .Select(s =>
             {
                 var dto = s.ToDto(
-                    changeTagsBySlot.GetValueOrDefault((s.GroupId, s.DayOfWeek, s.NumberPair))
+                    ScheduleChangeTags.ForPair(
+                        changeTagsBySlot.GetValueOrDefault((s.GroupId, s.DayOfWeek, s.NumberPair)),
+                        s.Subject,
+                        s.Teacher?.User?.FullName
+                    )
                 );
                 if (bellByDay[s.DayOfWeek].TryGetValue(s.NumberPair, out var time))
                 {

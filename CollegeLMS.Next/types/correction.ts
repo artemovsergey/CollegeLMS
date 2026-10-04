@@ -77,6 +77,9 @@ export interface CorrectionRevertResult {
 export interface ChangeTag {
   changeType: CorrectionChangeType
   week: number
+  /** Предмет и преподаватель пары, к которой относится изменение. */
+  subject: string | null
+  teacherName: string | null
   removedNumberPair: number | null
   removedSubject: string | null
   removedTeacherName: string | null
