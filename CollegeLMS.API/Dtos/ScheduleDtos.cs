@@ -36,6 +36,15 @@ public class ChangeTag
 {
     public ScheduleChangeType ChangeType { get; set; }
     public int Week { get; set; }
+
+    /// <summary>
+    /// Предмет и преподаватель пары, к которой относится изменение. В одной
+    /// паре могут стоять две пары параллельно, и без них бейдж нельзя отнести к
+    /// своей паре — он достанется соседней, которую не трогали.
+    /// </summary>
+    public string? Subject { get; set; }
+
+    public string? TeacherName { get; set; }
     public int? RemovedNumberPair { get; set; }
     public string? RemovedSubject { get; set; }
     public string? RemovedTeacherName { get; set; }

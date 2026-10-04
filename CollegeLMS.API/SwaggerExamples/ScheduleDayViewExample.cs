@@ -48,7 +48,13 @@ public static class ScheduleDayViewExample
                         LessonType = "Lecture",
                         ChangeTags =
                         [
-                            new ChangeTag { ChangeType = ScheduleChangeType.Add, Week = 1 },
+                            new ChangeTag
+                            {
+                                ChangeType = ScheduleChangeType.Add,
+                                Week = 1,
+                                Subject = "Основы программирования",
+                                TeacherName = "Иванов Иван Иванович",
+                            },
                         ],
                     },
                     new ScheduleResponse

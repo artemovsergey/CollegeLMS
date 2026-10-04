@@ -28,8 +28,11 @@ public record ChangeTag
 {
     public string ChangeType { get; init; } = "";
     public int Week { get; init; }
+    public string? Subject { get; init; }
+    public string? TeacherName { get; init; }
     public int? RemovedNumberPair { get; init; }
     public string? RemovedSubject { get; init; }
+    public string? RemovedTeacherName { get; init; }
     public string? Note { get; init; }
 }
 

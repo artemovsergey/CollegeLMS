@@ -49,6 +49,15 @@ public class ScheduleViewServiceTests : IDisposable
         DayOfWeek day,
         int numberPair,
         params int[] weeks
+    ) => await SeedSubjectEntryAsync(groupId, teacherId, day, numberPair, null, weeks);
+
+    private async Task SeedSubjectEntryAsync(
+        Guid groupId,
+        Guid? teacherId,
+        DayOfWeek day,
+        int numberPair,
+        string? subject,
+        params int[] weeks
     )
     {
         var entry = ScheduleEntryFixture.CreateFaker().Generate();
@@ -58,6 +67,8 @@ public class ScheduleViewServiceTests : IDisposable
         entry.Teacher = null;
         entry.DayOfWeek = day;
         entry.NumberPair = numberPair;
+        if (subject is not null)
+            entry.Subject = subject;
         entry.Weeks = weeks.ToList();
         entry.StartTime = new TimeSpan(8, 30, 0);
         entry.EndTime = new TimeSpan(9, 50, 0);
@@ -179,7 +190,10 @@ public class ScheduleViewServiceTests : IDisposable
         int numberPair,
         int week,
         ScheduleChangeType type,
-        string? note = null
+        string? note = null,
+        string? subject = null,
+        Guid? teacherId = null,
+        string? removedSubject = null
     )
     {
         var utcNow = DateTime.UtcNow;
@@ -194,7 +208,9 @@ public class ScheduleViewServiceTests : IDisposable
                 DayOfWeek = day,
                 NumberPair = numberPair,
                 Week = week,
-                Subject = "Математика",
+                Subject = subject ?? "Математика",
+                TeacherId = teacherId,
+                RemovedSubject = removedSubject,
                 Note = note,
                 CreatedAt = utcNow,
                 UpdatedAt = utcNow,
@@ -420,8 +436,16 @@ public class ScheduleViewServiceTests : IDisposable
     {
         var (group, teacher) = await SeedGroupAndTeacherAsync();
         var date = Monday1.AddDays(1);
-        await SeedEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 1, 1, 2);
-        await SeedHistoryAsync(group.Id, date.DayOfWeek, 1, 1, ScheduleChangeType.Add);
+        await SeedSubjectEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 1, "Математика", 1, 2);
+        await SeedHistoryAsync(
+            group.Id,
+            date.DayOfWeek,
+            1,
+            1,
+            ScheduleChangeType.Add,
+            subject: "Математика",
+            teacherId: teacher.Id
+        );
         _bells.TimeMap[1] = (new TimeSpan(10, 0, 0), new TimeSpan(11, 20, 0));
 
         var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
@@ -433,6 +457,78 @@ public class ScheduleViewServiceTests : IDisposable
             .Data.Entries[0]
             .ChangeTags.Should()
             .ContainSingle(t => t.ChangeType == ScheduleChangeType.Add);
+    }
+
+    [Fact]
+    public async Task GetDayAsync_ParallelPairInSlot_ChangeTagStaysOnChangedPair()
+    {
+        // В одной паре могут стоять две пары параллельно. Бейдж «Добавлено»
+        // относится к добавленной паре, а не ко всему слоту: иначе пара из
+        // базового расписания тоже выглядит добавленной.
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        var week = StudyWeek.WeekOf(date);
+        await SeedSubjectEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 3, "МДК.01.02", week);
+        await SeedSubjectEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 3, "Ин.язык", week);
+        await SeedHistoryAsync(
+            group.Id,
+            date.DayOfWeek,
+            3,
+            week,
+            ScheduleChangeType.Add,
+            subject: "Ин.язык",
+            teacherId: teacher.Id
+        );
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result.Data!.Entries.Should().HaveCount(2);
+        result
+            .Data.Entries.Should()
+            .ContainSingle(e => e.Subject == "Ин.язык")
+            .Which.ChangeTags.Should()
+            .ContainSingle();
+        result
+            .Data.Entries.Should()
+            .ContainSingle(e => e.Subject == "МДК.01.02")
+            .Which.ChangeTags.Should()
+            .BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetDayAsync_ReplacementInSlotWithParallelPair_TagStaysOnNewPair()
+    {
+        // Замена в слоте, где уже стоит пара параллельно: «Добавлено» достаётся
+        // новой паре, соседняя из базы остаётся без бейджа.
+        var (group, teacher) = await SeedGroupAndTeacherAsync();
+        var date = Monday1.AddDays(1);
+        var week = StudyWeek.WeekOf(date);
+        await SeedSubjectEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 4, "МДК.02.02", week);
+        await SeedSubjectEntryAsync(group.Id, teacher.Id, date.DayOfWeek, 4, "МДК.04.01", week);
+        await SeedHistoryAsync(
+            group.Id,
+            date.DayOfWeek,
+            4,
+            week,
+            ScheduleChangeType.Add,
+            subject: "МДК.04.01",
+            teacherId: teacher.Id,
+            removedSubject: "ОБПиЗР"
+        );
+
+        var result = await _sut.GetDayAsync(group.Id, null, null, date, CancellationToken.None);
+
+        result.Data!.Entries.Should().HaveCount(2);
+        result
+            .Data.Entries.Should()
+            .ContainSingle(e => e.Subject == "МДК.04.01")
+            .Which.ChangeTags.Should()
+            .ContainSingle();
+        result
+            .Data.Entries.Should()
+            .ContainSingle(e => e.Subject == "МДК.02.02")
+            .Which.ChangeTags.Should()
+            .BeEmpty();
     }
 
     [Fact]

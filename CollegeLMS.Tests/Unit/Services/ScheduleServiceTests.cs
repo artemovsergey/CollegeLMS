@@ -180,6 +180,121 @@ public class ScheduleServiceTests : IDisposable
             .BeEquivalentTo([1, 2, 3, 4, 5, 6, 7, 8]);
     }
 
+    [Fact]
+    public async Task GetAllAsync_ParallelPairInSlot_ChangeTagStaysOnChangedPair()
+    {
+        // Две пары параллельно в одной паре: бейдж «Добавлено» достаётся той,
+        // которую добавили корректировкой, а не соседней из базового расписания.
+        var utcNow = DateTime.UtcNow;
+        var group = new Group
+        {
+            Id = Guid.NewGuid(),
+            Name = "ИП 245",
+            Course = 2,
+        };
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = $"{Guid.NewGuid():N}@collegelms.ru",
+            FullName = "Артемов С.В.",
+            PasswordHash = "hash",
+            Role = UserRole.Teacher,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+        };
+        var teacher = new Teacher
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            CyclicalCommission = "ЦК",
+            Position = "Преподаватель",
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+            User = user,
+        };
+        _db.Groups.Add(group);
+        _db.Teachers.Add(teacher);
+        _db.ScheduleEntries.AddRange(
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "МДК.01.02",
+                Room = "202л",
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 4,
+                Weeks = [6],
+                StartTime = new TimeSpan(12, 0, 0),
+                EndTime = new TimeSpan(13, 20, 0),
+                LessonType = LessonType.Lecture,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            },
+            new ScheduleEntry
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                Subject = "Ин.язык",
+                Room = string.Empty,
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 4,
+                Weeks = [6],
+                StartTime = new TimeSpan(12, 0, 0),
+                EndTime = new TimeSpan(13, 20, 0),
+                LessonType = LessonType.Lecture,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        _db.ScheduleHistory.Add(
+            new ScheduleHistory
+            {
+                Id = Guid.NewGuid(),
+                ChangeType = ScheduleChangeType.Add,
+                GroupId = group.Id,
+                TeacherId = teacher.Id,
+                DayOfWeek = DayOfWeek.Monday,
+                NumberPair = 4,
+                Week = 6,
+                Subject = "Ин.язык",
+                AppliedAt = utcNow,
+                AppliedByUserId = Guid.NewGuid(),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GetAllAsync(
+            group.Id,
+            null,
+            null,
+            DayOfWeek.Monday,
+            null,
+            6,
+            null,
+            null,
+            null,
+            null,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Items.Should().HaveCount(2);
+        result
+            .Data.Items.Should()
+            .ContainSingle(i => i.Subject == "Ин.язык")
+            .Which.ChangeTags.Should()
+            .ContainSingle();
+        result
+            .Data.Items.Should()
+            .ContainSingle(i => i.Subject == "МДК.01.02")
+            .Which.ChangeTags.Should()
+            .BeEmpty();
+    }
+
     private async Task<(Guid GroupId, Guid? TeacherId)> SeedInformationalAsync(
         string note = "сам.р.",
         string subject = "Математика"

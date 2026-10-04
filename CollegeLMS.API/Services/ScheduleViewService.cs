@@ -617,7 +617,9 @@ public class ScheduleViewService(
                     .ChangeTags.GetValueOrDefault((e.GroupId, e.DayOfWeek, e.NumberPair))
                     ?.Where(t => t.Week == week)
                     .ToList();
-                var dto = e.ToDto(tags);
+                var dto = e.ToDto(
+                    ScheduleChangeTags.ForPair(tags, e.Subject, e.Teacher?.User?.FullName)
+                );
                 if (times.TryGetValue(e.NumberPair, out var time))
                 {
                     dto.StartTime = time.Start;

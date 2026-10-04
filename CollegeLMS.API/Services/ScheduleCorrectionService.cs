@@ -1233,6 +1233,8 @@ public class ScheduleCorrectionService(
                         {
                             ChangeType = h.ChangeType,
                             Week = h.Week,
+                            Subject = h.Subject,
+                            TeacherName = h.Teacher?.User?.FullName,
                             RemovedNumberPair = h.RemovedNumberPair,
                             RemovedSubject = h.RemovedSubject,
                             Note = h.Note,
@@ -1261,7 +1263,11 @@ public class ScheduleCorrectionService(
                     IsSelfStudy = e.IsSelfStudy,
                     Informational = e.Informational,
                     PendingChangeType = ParseChangeType(e.PendingChangeType),
-                    ChangeTags = tagsByPair.GetValueOrDefault(e.NumberPair, []),
+                    ChangeTags = ScheduleChangeTags.ForPair(
+                        tagsByPair.GetValueOrDefault(e.NumberPair),
+                        e.Subject,
+                        e.TeacherName
+                    ),
                 })
                 .ToList(),
         };
