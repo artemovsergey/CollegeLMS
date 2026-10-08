@@ -37,8 +37,14 @@ function toRow(position: CorrectionPosition): CorrectionRowPreview {
   })
 }
 
-/** Оформление как в выгрузке: Times New Roman, рамка, центрирование. */
-const CELL = "border border-foreground/40 px-1.5 py-1 text-center align-middle"
+/**
+ * Оформление как в выгрузке: Times New Roman, рамка, центрирование.
+ * Перенос по словам обязателен: без него длинный предмет или два
+ * преподавателя через слеш вылезают за границу ячейки и наезжают на
+ * соседнюю колонку — таблица HTML сама текст не рвёт.
+ */
+const CELL =
+  "border border-foreground/40 px-1.5 py-1 text-center align-middle break-words"
 const HEAD_CELL = `${CELL} font-bold`
 const TITLE = "px-2 py-0.5 text-center text-[13px] font-bold leading-tight"
 
