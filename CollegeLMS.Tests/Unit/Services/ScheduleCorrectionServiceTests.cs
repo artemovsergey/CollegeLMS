@@ -1660,6 +1660,139 @@ public class ScheduleCorrectionServiceTests : IDisposable
         sheet.LastRowUsed()!.RowNumber().Should().Be(7);
     }
 
+    // --- FILE-3: содержимое ячейки не должно обрезаться по высоте строки ---
+
+    [Fact]
+    public async Task ExportManualAsync_GrowsRowForTwoTeachersInOneSubject()
+    {
+        EnsureCorrectionTemplate();
+
+        var result = await _sut.ExportManualAsync(
+            new ManualCorrectionExportRequest
+            {
+                CorrectionDate = new DateTime(2026, 9, 10),
+                Rows =
+                [
+                    new ManualCorrectionRow
+                    {
+                        GroupName = "ПО-262",
+                        AddedSubject = "Информационные технологии",
+                        AddedTeacherName = "Кривцова С.Н./Степаненко А.В.",
+                        NumberPair = 2,
+                    },
+                ],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var sheet = workbook.Worksheet(1);
+
+        // ФИО не должны переноситься, а текст — обрезаться по краю ячейки.
+        sheet
+            .Cell(7, 5)
+            .GetString()
+            .Should()
+            .Be("Кривцова С.Н./Степаненко А.В.", "сокращать ФИО нельзя");
+        sheet.Row(7).Height.Should().BeGreaterThan(15.75, "строка должна вырасти");
+    }
+
+    [Fact]
+    public async Task ExportManualAsync_GrowsRowForLongSubject()
+    {
+        EnsureCorrectionTemplate();
+
+        const string longSubject = "Информационные технологии в профессиональной деятельности";
+
+        var result = await _sut.ExportManualAsync(
+            new ManualCorrectionExportRequest
+            {
+                CorrectionDate = new DateTime(2026, 9, 10),
+                Rows =
+                [
+                    new ManualCorrectionRow
+                    {
+                        GroupName = "ПО-262",
+                        AddedSubject = longSubject,
+                        AddedTeacherName = "Марченко И.А.",
+                        NumberPair = 1,
+                    },
+                    // Соседняя короткая позиция остаётся в одну строку.
+                    new ManualCorrectionRow
+                    {
+                        GroupName = "ПО-262",
+                        AddedSubject = "Физика",
+                        AddedTeacherName = "Марченко И.А.",
+                        NumberPair = 2,
+                    },
+                ],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var sheet = workbook.Worksheet(1);
+
+        sheet.Cell(7, 4).GetString().Should().Be(longSubject, "предмет не режем");
+        sheet.Row(7).Height.Should().BeGreaterThan(15.75);
+        sheet.Row(8).Height.Should().Be(15.75, "короткая позиция не растёт");
+    }
+
+    [Fact]
+    public async Task ExportManualAsync_ShortensOnlyTextLongerThanSixLines()
+    {
+        EnsureCorrectionTemplate();
+
+        var result = await _sut.ExportManualAsync(
+            new ManualCorrectionExportRequest
+            {
+                CorrectionDate = new DateTime(2026, 9, 10),
+                Rows =
+                [
+                    new ManualCorrectionRow
+                    {
+                        GroupName = "ПО-262",
+                        AddedSubject = "Математика",
+                        AddedTeacherName = "Марченко И.А.",
+                        NumberPair = 1,
+                        Note = string.Join(
+                            ' ',
+                            "Перенос пары",
+                            "в",
+                            "четвёртую",
+                            "вместо",
+                            "третьей",
+                            "по",
+                            "указанию",
+                            "заведующего",
+                            "отделением",
+                            "в связи",
+                            "с болезнью",
+                            "преподавателя"
+                        ),
+                    },
+                ],
+            },
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+
+        using var workbook = new XLWorkbook(new MemoryStream(result.Data!.Content));
+        var sheet = workbook.Worksheet(1);
+
+        var note = sheet.Cell(7, 7).GetString();
+        note.Should().EndWith("…", "длинное примечание помечается многоточием");
+        note.Should().StartWith("Перенос", "режем по границе слова");
+        sheet.Row(7).Height.Should().Be(6 * 15.75, "строка не выше шести строк");
+        // Соседние ячейки той же позиции не трогаем.
+        sheet.Cell(7, 4).GetString().Should().Be("Математика");
+    }
+
     // --- Справочники для пошаговой формы ---
 
     [Fact]

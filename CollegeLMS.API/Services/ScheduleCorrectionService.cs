@@ -26,6 +26,45 @@ public class ScheduleCorrectionService(
     /// <summary>Последний столбец таблицы корректировки: A..G.</summary>
     private const int LastColumn = 7;
 
+    /// <summary>Высота строки позиции, когда текст помещается в одну строку.</summary>
+    private const double LineHeight = 15.75;
+
+    /// <summary>
+    /// Сколько строк текста ячейка показывает, прежде чем текст сокращается.
+    /// Шесть строк с запасом перекрывают любое настоящее примечание, а лимит
+    /// нужен, чтобы одно слово в примечании не растянуло лист на полстраницы.
+    /// </summary>
+    private const int MaxLinesPerCell = 6;
+
+    /// <summary>Многоточие в обрезанном тексте.</summary>
+    private const string Ellipsis = "…";
+
+    /// <summary>
+    /// Запас к оценке ширины текста. Excel меряет колонку в знаках шрифта книги
+    /// (Times New Roman 11), а позиции набраны кеглем 12, но соотношение ширины
+    /// буквы к знаку от кегля не зависит — масштабировать нечего. Запас нужен
+    /// на несовершенство метрики: лучше лишняя строка высоты, чем обрезанный
+    /// по краю ячейки текст.
+    /// </summary>
+    private const double WidthMargin = 1.05;
+
+    /// <summary>
+    /// Внутренний отступ ячейки в знаках колонки: пять пикселей при знаке в
+    /// семь пикселей. ClosedXML его из ширины вычитывает, а перенос текста в
+    /// Excel идёт по ширине целиком — без этой поправки длинный предмет
+    /// считался на строку длиннее, чем помещается на самом деле.
+    /// </summary>
+    private const double CellPaddingUnits = 0.71;
+
+    /// <summary>Ширина пробела в знаках колонки.</summary>
+    private const double SpaceUnits = 0.55 * WidthMargin;
+
+    /// <summary>Широкие прописные: М Ш Щ Ж Ф Ю Ы Э Д Ц — заметно шире цифры.</summary>
+    private const string WideUpper = "МШЩЖФЮЫЭДЦ";
+
+    /// <summary>Те же буквы в нижнем регистре.</summary>
+    private const string WideLower = "мшщжфюыэдц";
+
     private static bool IsSelfStudyNote(string? note) => CorrectionNotes.IsSelfStudy(note);
 
     /// <summary>Есть ли на дату рабочий день (override) — разрешает корректировку на выходной.</summary>
@@ -170,15 +209,29 @@ public class ScheduleCorrectionService(
         body.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         body.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         body.Style.Alignment.WrapText = true;
+
+        EnsureColumnWidths(sheet);
+
+        // Ширины колонок известны только здесь, а высота строки считается по
+        // ним — поэтому подгонка идёт после ширин, а не до.
         for (var row = FirstDataRow; row <= lastRow; row++)
-            sheet.Row(row).Height = 15.75;
+            FitRowToContent(sheet, row);
 
         var table = sheet.Range(5, 1, lastRow, LastColumn);
         table.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
         table.Style.Border.InsideBorderColor = XLColor.Black;
         table.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
         table.Style.Border.OutsideBorderColor = XLColor.Black;
+    }
 
+    /// <summary>
+    /// Ширины колонок из шаблона — это утверждённая форма документа, поэтому
+    /// берём их оттуда и только заполняем пробелы: колонке, которой в шаблоне
+    /// ширина не задана, остаётся ширина по умолчанию, и часть названия
+    /// предмета уезжает за границу ячейки.
+    /// </summary>
+    private static void EnsureColumnWidths(IXLWorksheet sheet)
+    {
         if (sheet.Column(1).Width < 6)
             sheet.Column(1).Width = 10;
         if (sheet.Column(2).Width < 10)
@@ -193,6 +246,166 @@ public class ScheduleCorrectionService(
             sheet.Column(6).Width = 6;
         if (sheet.Column(7).Width < 10)
             sheet.Column(7).Width = 14.14;
+    }
+
+    /// <summary>
+    /// Растягивает строку позиции под её содержимое.
+    /// <para>
+    /// Заданная явно высота отключает автоподбор строки в Excel, поэтому при
+    /// включённом переносе длинный предмет или два преподавателя через слеш
+    /// оставались в первой строке, а остальное молча обрезалось. Считаем, сколько
+    /// строк займёт каждая ячейка, и растим строку целиком.
+    /// </para>
+    /// </summary>
+    private static void FitRowToContent(IXLWorksheet sheet, int row)
+    {
+        var lines = 1;
+
+        for (var column = 1; column <= LastColumn; column++)
+        {
+            var cell = sheet.Cell(row, column);
+            var text = cell.GetString();
+            if (string.IsNullOrWhiteSpace(text))
+                continue;
+
+            var columnWidth = sheet.Column(column).Width + CellPaddingUnits;
+            var cellLines = CountLines(text, columnWidth);
+
+            if (cellLines > MaxLinesPerCell)
+            {
+                // Дальше предела не растём: текст ужимается по границе слов и
+                // помечается многоточием, потому что обрыв внутри ФИО или
+                // названия предмета читается хуже, чем целые слова.
+                text = ShortenToLines(text, columnWidth, MaxLinesPerCell);
+                cell.Value = text;
+                cellLines = MaxLinesPerCell;
+            }
+
+            lines = Math.Max(lines, cellLines);
+        }
+
+        sheet.Row(row).Height = lines * LineHeight;
+    }
+
+    /// <summary>
+    /// Сколько строк займёт текст в ячейке шириной <paramref name="columnUnits"/>
+    /// знаков. Перенос повторяет excelовский: по словам, а слово длиннее ячейки —
+    /// по буквам. Оценка слегка завышена, и это лучше, чем недобор: лишняя
+    /// строка высоты не мешает, а обрезанный текст не виден вовсе.
+    /// </summary>
+    private static int CountLines(string text, double columnUnits)
+    {
+        if (string.IsNullOrWhiteSpace(text) || columnUnits <= 0)
+            return 1;
+
+        var lines = 0;
+
+        // Перенос строки внутри ячейки — тоже строка, поэтому текст режется
+        // на абзацы и каждый считается отдельно.
+        foreach (var paragraph in text.Split('\n'))
+        {
+            var paragraphLines = 1;
+            var used = 0.0;
+
+            foreach (var word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var units = Measure(word);
+                var gap = used > 0 ? SpaceUnits : 0;
+
+                if (used + gap + units <= columnUnits)
+                {
+                    used += gap + units;
+                    continue;
+                }
+
+                if (used > 0)
+                    paragraphLines++;
+
+                while (units > columnUnits)
+                {
+                    paragraphLines++;
+                    units -= columnUnits;
+                }
+
+                used = units;
+            }
+
+            lines += paragraphLines;
+        }
+
+        return lines;
+    }
+
+    /// <summary>
+    /// Сокращает текст до <paramref name="maxLines"/> строк ячейки: режет по
+    /// границе слова и ставит многоточие. Длину подбираем перебором и каждый раз
+    /// проверяем переносом: обрезка посимвольно не годится, слова ведь ложатся
+    /// в строки не вплотную.
+    /// </summary>
+    private static string ShortenToLines(string text, double columnUnits, int maxLines)
+    {
+        for (var length = text.Length; length > 0; length = LastSpaceBefore(text, length))
+        {
+            var cut = text[..length].TrimEnd();
+            if (cut.Length < text.Length && CountLines(cut + Ellipsis, columnUnits) <= maxLines)
+                return cut + Ellipsis;
+        }
+
+        // Целых слов не поместилось ни одного — режем по буквам, но ячейка
+        // не должна остаться пустой.
+        for (var length = text.Length - 1; length > 0; length--)
+        {
+            var cut = text[..length].TrimEnd();
+            if (CountLines(cut + Ellipsis, columnUnits) <= maxLines)
+                return cut + Ellipsis;
+        }
+
+        return Ellipsis;
+    }
+
+    /// <summary>Позиция последнего пробела перед <paramref name="length"/>, иначе 0.</summary>
+    private static int LastSpaceBefore(string text, int length)
+    {
+        for (var index = Math.Min(length, text.Length) - 1; index >= 0; index--)
+            if (text[index] == ' ')
+                return index;
+
+        return 0;
+    }
+
+    /// <summary>Ширина текста в знаках колонки.</summary>
+    private static double Measure(string text)
+    {
+        var units = 0.0;
+        foreach (var ch in text)
+            units += CharUnits(ch);
+
+        return units * WidthMargin;
+    }
+
+    /// <summary>
+    /// Ширина символа в знаках колонки, где знак — ширина цифры. Приближение
+    /// по Times New Roman: прописные и «широкие» буквы занимают заметно больше
+    /// места, чем строчные. Наивный подсчёт символов ширину ФИО и названий
+    /// предметов недооценивал, строка выходила ниже нужной, а текст всё равно
+    /// обрезался.
+    /// </summary>
+    private static double CharUnits(char ch)
+    {
+        if (ch is ' ' or '.' or ',' or ':' or ';' or '-' or '(' or ')' or '/' or '…')
+            return ch is '…' ? 1.0 : 0.55;
+        if (char.IsDigit(ch) || ch == '№')
+            return ch == '№' ? 1.45 : 1.0;
+        if (WideUpper.Contains(ch))
+            return 1.8;
+        if (WideLower.Contains(ch))
+            return 1.4;
+        if (char.IsUpper(ch))
+            return 1.35;
+        if (char.IsLetter(ch))
+            return 0.92;
+
+        return 0.55;
     }
 
     private static readonly Regex DatePattern = new(
