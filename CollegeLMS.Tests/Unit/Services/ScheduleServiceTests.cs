@@ -1423,7 +1423,20 @@ public class ScheduleServiceTests : IDisposable
         };
         _db.Teachers.Add(teacher);
 
-        // Проведённое занятие: Вторник 2-й недели => 08.09.2026 (не позже сегодняшнего дня).
+        // Дата занятия считается от фиксированного начала семестра, поэтому
+        // номера недель зашивать нельзя: «будущая» пара недели 6 после 6 октября
+        // оказалась в прошлом, и тест ронял сборку. Недели берём от сегодняшнего
+        // дня — неделя назад гарантированно проведена, неделя через полторы нет.
+        var today = DateTime.UtcNow.Date;
+        var mondayOfWeek1 = StudyWeek.MondayOf(StudyWeek.SemesterStart);
+        var pastWeek = StudyWeek.WeekOf(today.AddDays(-7));
+        var futureWeek = StudyWeek.WeekOf(today.AddDays(9));
+
+        // Семестр кончился: будущих пар в журнале не бывает, проверять нечего.
+        if (futureWeek > StudyWeek.TotalWeeks)
+            return;
+
+        // Проведённое занятие: вторник недели назад (не позже сегодняшнего дня).
         _db.ScheduleEntries.Add(
             new ScheduleEntry
             {
@@ -1436,13 +1449,13 @@ public class ScheduleServiceTests : IDisposable
                 NumberPair = 1,
                 StartTime = new TimeSpan(9, 0, 0),
                 EndTime = new TimeSpan(10, 30, 0),
-                Weeks = new List<int> { 2 },
+                Weeks = new List<int> { pastWeek },
                 LessonType = LessonType.Lecture,
                 CreatedAt = utcNow,
                 UpdatedAt = utcNow,
             }
         );
-        // Будущее занятие: Вторник 6-й недели => 05.10.2026 (должно быть пропущено).
+        // Будущее занятие: вторник недели через полторы (должно быть пропущено).
         _db.ScheduleEntries.Add(
             new ScheduleEntry
             {
@@ -1455,7 +1468,7 @@ public class ScheduleServiceTests : IDisposable
                 NumberPair = 1,
                 StartTime = new TimeSpan(9, 0, 0),
                 EndTime = new TimeSpan(10, 30, 0),
-                Weeks = new List<int> { 6 },
+                Weeks = new List<int> { futureWeek },
                 LessonType = LessonType.Lecture,
                 CreatedAt = utcNow,
                 UpdatedAt = utcNow,
@@ -1471,7 +1484,7 @@ public class ScheduleServiceTests : IDisposable
         result.Data.Subjects.Should().NotContain(s => s.Subject == "Литература");
         var item = result.Data.Subjects.Single().Items.Should().ContainSingle().Subject;
         item.DayOfWeek.Should().Be((int)DayOfWeek.Tuesday);
-        item.Date.Should().Be(new DateTime(2026, 9, 8));
+        item.Date.Should().Be(mondayOfWeek1.AddDays(((pastWeek - 1) * 7) + 1));
         item.NumberPairs.Should().BeEquivalentTo([1]);
     }
 
