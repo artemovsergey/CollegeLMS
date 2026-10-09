@@ -69,6 +69,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<PracticeNotifier>(
 
 builder.Services.AddScoped<ChangeNotifier>();
 builder.Services.AddScoped<CorrectionImageSender>();
+builder.Services.AddScoped<TeacherGreetingSender>();
 builder.Services.AddScoped<InternalProfileService>();
 builder.Services.AddScoped<InternalSelectionService>();
 
@@ -219,6 +220,81 @@ app.MapPost(
         {
             logger.LogError(ex, "Сбой обработки /notify/correction-image");
             return Results.Ok(new { sent = false });
+        }
+    }
+);
+
+// Персональное поздравление преподавателям, установившим бота.
+// multipart/form-data: file (PNG, имя greeting.png) и text (markdown).
+// Guard как у внутренних endpoint — fail-closed: пустой MaxBot:InternalSecret
+// не должен открывать рассылку всем, кто дотянется до порта.
+app.MapPost(
+    "/notify/teacher-greeting",
+    async (
+        HttpRequest request,
+        IServiceProvider services,
+        IOptions<MaxBotOptions> options,
+        CancellationToken ct
+    ) =>
+    {
+        var provided = request.Headers["X-Internal-Secret"].ToString();
+        if (string.IsNullOrWhiteSpace(options.Value.InternalSecret))
+            return Results.Unauthorized();
+        if (!WebhookSecretValidator.IsValid(options.Value.InternalSecret, provided))
+            return Results.Unauthorized();
+
+        using var scope = services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        try
+        {
+            if (!request.HasFormContentType)
+                return Results.BadRequest(
+                    new { sent = false, error = "Ожидается multipart/form-data." }
+                );
+
+            var form = await request.ReadFormAsync(ct);
+            var file = form.Files.GetFiles("file").FirstOrDefault();
+            var text = form["text"].ToString();
+
+            if (file is null || file.Length == 0)
+            {
+                logger.LogWarning("POST /notify/teacher-greeting: файл отсутствует или пуст");
+                return Results.BadRequest(new { sent = false, error = "Файл не приложен." });
+            }
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                logger.LogWarning("POST /notify/teacher-greeting: текст пуст");
+                return Results.BadRequest(new { sent = false, error = "Текст пуст." });
+            }
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream, ct);
+
+            var sender = scope.ServiceProvider.GetRequiredService<TeacherGreetingSender>();
+            var report = await sender.SendAsync(stream.ToArray(), text, ct);
+
+            return Results.Ok(
+                new
+                {
+                    sent = report.Sent,
+                    recipients = report.Recipients,
+                    failed = report.Failed,
+                }
+            );
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Сбой обработки /notify/teacher-greeting");
+            return Results.Ok(
+                new
+                {
+                    sent = false,
+                    recipients = 0,
+                    failed = 0,
+                }
+            );
         }
     }
 );
