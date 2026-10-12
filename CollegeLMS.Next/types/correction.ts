@@ -117,6 +117,12 @@ export interface CorrectionPosition {
   removedTeacherName: string | null
   removedNumberPair: number | null
   note: string | null
+  /**
+   * Перенос ли позиция: вводимое занятие само уезжает из пары «откуда», слот
+   * ввода не трогается. Признак считает сервер — тем же правилом, что и файл
+   * диспетчера, поэтому графа «снимается» в предпросмотре и в XLS совпадает.
+   */
+  isPureMove: boolean
   status: CorrectionPositionStatus
   historyId: string | null
   errors: ScheduleValidationError[]

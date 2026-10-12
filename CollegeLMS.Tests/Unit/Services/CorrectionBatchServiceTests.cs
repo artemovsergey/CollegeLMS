@@ -1073,6 +1073,82 @@ public class CorrectionBatchServiceTests : IDisposable
         // вводимое занятие, пары ввода он не касается.
         position.RemovedSubject.Should().Be("Математика");
         position.RemovedNumberPair.Should().Be(4);
+
+        // Признак переноса едет в DTO: по нему предпросмотр оставляет графу
+        // «снимается» пустой, поэтому он должен совпадать с правилом файла.
+        position.IsPureMove.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ImportAsync_MoveWithDifferentSubjectSpelling_IsStillPureMove()
+    {
+        // Перенос, у которого предмет в колонке «снимается» записан иначе, чем
+        // вводимый: «ОБПиЗР» против «ОБП и ЗР». Это одно и то же занятие —
+        // так его и видит сервер, — поэтому перенос остаётся переносом и графа
+        // «снимается» пустая. Раньше предпросмотр сравнивал предметы на клиенте
+        // и здесь показывал занятие, которого в файле нет.
+        var group = await SeedGroupAsync();
+
+        using var stream = BuildWorkbook(
+            "Корректировка на 11.09.2026 г.",
+            ws =>
+            {
+                ws.Cell(7, 1).Value = group.Name;
+                ws.Cell(7, 2).Value = "ОБПиЗР";
+                ws.Cell(7, 3).Value = "Марченко И.А.";
+                ws.Cell(7, 4).Value = "ОБП и ЗР";
+                ws.Cell(7, 5).Value = "Марченко И.А.";
+                ws.Cell(7, 6).Value = 2;
+                ws.Cell(7, 7).Value = "вм.4 п.";
+            }
+        );
+
+        var imported = await _sut.ImportAsync(stream, Guid.NewGuid(), CancellationToken.None);
+        imported.IsSuccess.Should().BeTrue();
+
+        var position = imported.Data!.Positions.Should().ContainSingle().Subject;
+        position.IsPureMove.Should().BeTrue();
+
+        var exported = await _sut.ExportAsync(imported.Data.BatchId!.Value, CancellationToken.None);
+        exported.IsSuccess.Should().BeTrue();
+
+        using var book = new XLWorkbook(new MemoryStream(exported.Data!.Content));
+        var sheet = book.Worksheet(1);
+        sheet
+            .Cell(7, 2)
+            .GetString()
+            .Trim()
+            .Should()
+            .BeEmpty("«ОБПиЗР» и «ОБП и ЗР» — один предмет, значит это перенос");
+        sheet.Cell(7, 7).GetString().Trim().Should().Be("вм.4 п.");
+    }
+
+    [Fact]
+    public async Task ImportAsync_ReplaceWithMove_IsNotPureMove()
+    {
+        // Замена с переносом снимает прежнее занятие выбранной пары, поэтому
+        // признак переноса ложный и графа «снимается» остаётся заполненной.
+        var group = await SeedGroupAsync();
+
+        using var stream = BuildWorkbook(
+            "Корректировка на 11.09.2026 г.",
+            ws =>
+            {
+                ws.Cell(7, 1).Value = group.Name;
+                ws.Cell(7, 2).Value = "Физика";
+                ws.Cell(7, 3).Value = "Иванов И.И.";
+                ws.Cell(7, 4).Value = "Математика";
+                ws.Cell(7, 5).Value = "Марченко И.А.";
+                ws.Cell(7, 6).Value = 2;
+                ws.Cell(7, 7).Value = "вм.4 п.";
+            }
+        );
+
+        var imported = await _sut.ImportAsync(stream, Guid.NewGuid(), CancellationToken.None);
+        imported.IsSuccess.Should().BeTrue();
+
+        var position = imported.Data!.Positions.Should().ContainSingle().Subject;
+        position.IsPureMove.Should().BeFalse();
     }
 
     [Fact]

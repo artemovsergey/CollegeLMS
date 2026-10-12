@@ -34,6 +34,7 @@ function toRow(position: CorrectionPosition): CorrectionRowPreview {
     removedTeacherName: position.removedTeacherName,
     removedNumberPair: position.removedNumberPair,
     note: position.note,
+    isPureMove: position.isPureMove,
   })
 }
 
