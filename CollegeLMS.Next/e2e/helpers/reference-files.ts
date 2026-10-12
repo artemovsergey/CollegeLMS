@@ -143,14 +143,11 @@ export function expectedRow(plan: PositionPlan): string[] {
           ? `вм.${plan.fromPair} п.`
           : ""
 
+  // Перенос ничего не снимает: вводимое занятие само уезжает из пары «откуда»,
+  // а номер этой пары живёт в примечании. Колонка «снимается» пустая — так же,
+  // как в эталонных файлах диспетчера.
   const removed: [string, string] =
-    plan.kind === "replace"
-      ? [plan.removedSubject, plan.removedTeacherName]
-      : // У переноса в колонке «снимается» стоит освобождаемое занятие — оно же
-        // вводимое, а номер пары «откуда» живёт в примечании.
-        plan.kind === "move"
-        ? [plan.subject, plan.teacher]
-        : ["", ""]
+    plan.kind === "replace" ? [plan.removedSubject, plan.removedTeacherName] : ["", ""]
 
   return [
     plan.group,

@@ -1021,12 +1021,11 @@ public class CorrectionBatchServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ExportAsync_Move_FillsRemovedColumnsWithFreedLesson()
+    public async Task ExportAsync_Move_LeavesRemovedColumnsEmpty()
     {
-        // Перенос в файле диспетчера несёт только примечание «вм.X», и колонка
-        // «снимается» выглядит незаполненной. В выгрузке занятие, которое
-        // освобождает пару «откуда», должно быть видно — иначе по файлу не
-        // понять, что именно переносится.
+        // Перенос ничего не снимает: вводимое занятие само уезжает из пары
+        // «вм.X», а выбранная пара не трогается. Поэтому колонка «снимается» в
+        // файле пустая — пара «откуда» живёт в примечании «вм.X».
         var group = await SeedGroupAsync();
 
         using var stream = BuildWorkbook(
@@ -1053,14 +1052,12 @@ public class CorrectionBatchServiceTests : IDisposable
         using var book = new XLWorkbook(new MemoryStream(exported.Data!.Content));
         var sheet = book.Worksheet(1);
 
-        sheet.Cell(7, 2).GetString().Trim().Should().Be("Математика");
-        sheet.Cell(7, 3).GetString().Trim().Should().Be("Марченко И.А.");
+        sheet.Cell(7, 2).GetString().Trim().Should().BeEmpty("перенос ничего не снимает");
+        sheet.Cell(7, 3).GetString().Trim().Should().BeEmpty("перенос ничего не снимает");
         sheet.Cell(7, 4).GetString().Trim().Should().Be("Математика");
         sheet.Cell(7, 7).GetString().Trim().Should().Be("вм.4 п.");
 
-        // Выгруженный файл должен импортироваться обратно тем же переносом:
-        // заполненная «снимается» — это то же вводимое занятие, а не замена
-        // занятия в паре ввода.
+        // Выгруженный файл должен импортироваться обратно тем же переносом.
         var reimported = await _sut.ImportAsync(
             new MemoryStream(exported.Data!.Content),
             Guid.NewGuid(),
@@ -1072,8 +1069,49 @@ public class CorrectionBatchServiceTests : IDisposable
         var position = reimported.Data.Positions[0];
         position.ChangeType.Should().Be(ScheduleChangeType.Add);
         position.Subject.Should().Be("Математика");
+        // Перенос восстанавливается по примечанию «вм.4»: снимается само
+        // вводимое занятие, пары ввода он не касается.
         position.RemovedSubject.Should().Be("Математика");
         position.RemovedNumberPair.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task ExportAsync_ReplaceWithMove_KeepsRemovedColumnsFilled()
+    {
+        // Замена с переносом — не чистый перенос: в выбранной паре стоит чужое
+        // занятие, и его действительно снимают. Колонка «снимается» заполнена.
+        var group = await SeedGroupAsync();
+
+        using var stream = BuildWorkbook(
+            "Корректировка на 11.09.2026 г.",
+            ws =>
+            {
+                ws.Cell(7, 1).Value = group.Name;
+                ws.Cell(7, 2).Value = "Физика";
+                ws.Cell(7, 3).Value = "Иванов И.И.";
+                ws.Cell(7, 4).Value = "Математика";
+                ws.Cell(7, 5).Value = "Марченко И.А.";
+                ws.Cell(7, 6).Value = 2;
+                ws.Cell(7, 7).Value = "вм.4 п.";
+            }
+        );
+
+        var imported = await _sut.ImportAsync(stream, Guid.NewGuid(), CancellationToken.None);
+        imported.IsSuccess.Should().BeTrue();
+
+        var exported = await _sut.ExportAsync(
+            imported.Data!.BatchId!.Value,
+            CancellationToken.None
+        );
+        exported.IsSuccess.Should().BeTrue();
+
+        using var book = new XLWorkbook(new MemoryStream(exported.Data!.Content));
+        var sheet = book.Worksheet(1);
+
+        sheet.Cell(7, 2).GetString().Trim().Should().Be("Физика");
+        sheet.Cell(7, 3).GetString().Trim().Should().Be("Иванов И.И.");
+        sheet.Cell(7, 4).GetString().Trim().Should().Be("Математика");
+        sheet.Cell(7, 7).GetString().Trim().Should().Be("вм.4 п.");
     }
 
     [Fact]

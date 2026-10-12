@@ -868,34 +868,36 @@ public class CorrectionBatchService(
     }
 
     /// <summary>
-    /// Строка файла корректировки для позиции. И замена, и перенос пишутся двумя
-    /// колонками: у переноса вводимое занятие само освобождает пару «откуда», но
-    /// диспетчеру нужно видеть в файле, какое именно занятие и с кем уходит —
-    /// иначе колонка «снимается» выглядит незаполненной. Пара «откуда»
-    /// остаётся в примечании «вм.X», отдельной колонки для неё в формате нет.
+    /// Строка файла корректировки для позиции. Колонку «снимается» заполняет
+    /// только то, что действительно снимается: у снятия — сам предмет, у
+    /// замены — то, что стоит в выбранной паре, у замены с переносом — и то и
+    /// другое.
+    ///
+    /// У чистого переноса (вводимое занятие уезжает из пары «вм.X», слот ввода
+    /// не трогается) колонка остаётся пустой: ничего не снимается, занятие
+    /// просто меняет пару. Пара «откуда» живёт в примечании «вм.X» — так же,
+    /// как в файле диспетчера, из которого позиция и пришла.
     /// </summary>
     private static ManualCorrectionRow ToManualRow(CorrectionPosition p)
     {
         var note = p.Note;
         if (
             p.ChangeType == ScheduleChangeType.Add
-            && p.RemovedNumberPair.HasValue
-            && p.RemovedNumberPair != p.NumberPair
+            && CorrectionMoves.FromPair(p) is { } from
             && note is null
         )
         {
-            note = $"вм.{p.RemovedNumberPair}";
+            note = $"вм.{from}";
         }
 
         var isRemove = p.ChangeType == ScheduleChangeType.Remove;
+        var isMove = CorrectionMoves.IsPureMove(p);
 
         return new ManualCorrectionRow
         {
             GroupName = p.GroupName,
-            // Снимаемое занятие пишем всегда: у снятия это сам предмет, у
-            // замены — то, что стоит в паре, у переноса — освобождаемое занятие.
-            RemovedSubject = p.RemovedSubject,
-            RemovedTeacherName = p.RemovedTeacherName,
+            RemovedSubject = isMove ? null : p.RemovedSubject,
+            RemovedTeacherName = isMove ? null : p.RemovedTeacherName,
             AddedSubject = isRemove ? null : p.Subject,
             AddedTeacherName = isRemove ? null : p.TeacherName,
             NumberPair = p.NumberPair,

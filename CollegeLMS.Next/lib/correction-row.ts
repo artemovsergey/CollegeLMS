@@ -52,10 +52,39 @@ export function shortTeacherName(value: string | null | undefined): string {
     .join("/")
 }
 
-function sameLesson(left: string | null | undefined, right: string | null | undefined) {
+/**
+ * Одинаковый текст: регистр и лишние пробелы не учитываются. Так «Рахимова
+ * А.Л.» и «рахимова а.л.» — один преподаватель.
+ */
+function sameText(left: string | null | undefined, right: string | null | undefined) {
   const normalize = (value: string | null | undefined) =>
     (value ?? "").trim().toLowerCase().replace(/\s+/g, " ")
   return normalize(left) === normalize(right)
+}
+
+/** Пара «откуда» при переносе: `RemovedNumberPair`, если он отличается от пары ввода. */
+function movePairOf(input: CorrectionRowInput): number | null {
+  return input.removedNumberPair != null && input.removedNumberPair !== input.numberPair
+    ? input.removedNumberPair
+    : null
+}
+
+/**
+ * Чистый перенос: в `removed*` лежит само вводимое занятие, и пара «откуда» от
+ * него отличается. Снимать нечего — занятие просто меняет пару, поэтому графа
+ * «снимается» остаётся пустой, а пара «откуда» живёт в примечании «вм.X».
+ *
+ * Отличить перенос от замены с переносом (где снимается ещё и прежнее занятие
+ * выбранной пары) можно только сравнением снимаемого с вводимым.
+ */
+function isPureMove(input: CorrectionRowInput): boolean {
+  return (
+    input.changeType !== "Remove" &&
+    movePairOf(input) != null &&
+    input.removedSubject != null &&
+    sameText(input.removedSubject, input.subject) &&
+    sameText(input.removedTeacherName, input.teacherName)
+  )
 }
 
 /**
@@ -65,27 +94,19 @@ function sameLesson(left: string | null | undefined, right: string | null | unde
  */
 export function toCorrectionRow(input: CorrectionRowInput): CorrectionRowPreview {
   const isRemove = input.changeType === "Remove"
-  const isMove =
-    !isRemove &&
-    input.removedSubject != null &&
-    sameLesson(input.removedSubject, input.subject)
+  const isMove = isPureMove(input)
+  const movePair = movePairOf(input)
 
-  const note =
-    input.note ??
-    (input.removedNumberPair != null && input.removedNumberPair !== input.numberPair
-      ? `вм.${input.removedNumberPair}`
-      : "")
+  const note = input.note ?? (movePair != null ? `вм.${movePair}` : "")
 
-  // При переносе снимается само вводимое занятие, но диспетчеру в файле и в
-  // предпросмотре нужно видеть его в колонке «снимается» — пара «откуда»
-  // остаётся в примечании «вм.X».
   // Освобождаемая пара «откуда»: из неё уходит вводимое занятие, поэтому в
   // подсказке оно и называется — даже когда снимается ещё и прежнее занятие
-  // выбранной пары (замена с переносом).
+  // выбранной пары (замена с переносом). Это подсказка рядом с таблицей, а не
+  // содержимое ячейки: в графе «снимается» при переносе по-прежнему пусто.
   const movedFrom =
-    input.removedNumberPair != null && input.removedNumberPair !== input.numberPair
+    movePair != null
       ? {
-          pair: input.removedNumberPair,
+          pair: movePair,
           lesson: [input.subject, shortTeacherName(input.teacherName)]
             .filter(Boolean)
             .join(" "),
@@ -94,8 +115,8 @@ export function toCorrectionRow(input: CorrectionRowInput): CorrectionRowPreview
 
   return {
     groupName: input.groupName,
-    removedSubject: input.removedSubject ?? "",
-    removedTeacher: shortTeacherName(input.removedTeacherName),
+    removedSubject: isMove ? "" : (input.removedSubject ?? ""),
+    removedTeacher: isMove ? "" : shortTeacherName(input.removedTeacherName),
     addedSubject: isRemove ? "" : (input.subject ?? ""),
     addedTeacher: isRemove ? "" : shortTeacherName(input.teacherName),
     numberPair: input.numberPair,
