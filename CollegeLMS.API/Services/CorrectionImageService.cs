@@ -144,11 +144,7 @@ public class CorrectionImageService
 
     private static string PairLabel(CorrectionPosition position)
     {
-        if (
-            position.RemovedNumberPair is { } from
-            && from != position.NumberPair
-            && position.RemovedSubject is not null
-        )
+        if (CorrectionMoves.FromPair(position) is { } from)
         {
             return $"{from} {ChangeVocabulary.ChangeArrow} {position.NumberPair}";
         }
@@ -156,32 +152,20 @@ public class CorrectionImageService
         return position.NumberPair.ToString();
     }
 
-    private static (string Removed, string Added) Describe(CorrectionPosition position)
+    internal static (string Removed, string Added) Describe(CorrectionPosition position)
     {
         var isRemove = position.ChangeType == ScheduleChangeType.Remove;
 
-        // При переносе снимается само вводимое занятие из пары «откуда»: в файле
-        // для этого хватает примечания «вм.X», а в картинке колонка «снимается»
-        // иначе выглядела бы пустой — показываем занятие с номером пары.
-        var isMove =
-            !isRemove
-            && position.RemovedSubject is not null
-            && SameLesson(position.RemovedSubject, position.Subject)
-            && SameTeacher(position, position.TeacherId, position.TeacherName);
-
+        // При чистом переносе снимать нечего: вводимое занятие само уезжает из
+        // пары «откуда», а пара ввода не трогается. Колонка «снимается» остаётся
+        // пустой — как в файле, из которого позиция и пришла. Пара «откуда» и
+        // так видна в колонке «пара» как «откуда => куда».
         var removed =
-            isRemove
+            CorrectionMoves.IsPureMove(position) ? "—"
+            : isRemove
                 ? Combine(
                     position.RemovedSubject ?? position.Subject,
                     position.RemovedTeacherName ?? position.TeacherName
-                )
-            : isMove
-                ? Combine(
-                    position.RemovedSubject,
-                    position.RemovedTeacherName,
-                    position.RemovedNumberPair is { } from && from != position.NumberPair
-                        ? $"(с пары {from})"
-                        : null
                 )
             : Combine(position.RemovedSubject, position.RemovedTeacherName);
 
@@ -190,31 +174,13 @@ public class CorrectionImageService
         return (removed, added);
     }
 
-    private static bool SameLesson(string? left, string? right) =>
-        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
-
-    private static bool SameTeacher(
-        CorrectionPosition position,
-        Guid? teacherId,
-        string? teacherName
-    ) =>
-        position.RemovedTeacherId.HasValue && teacherId.HasValue
-            ? position.RemovedTeacherId == teacherId
-            : string.Equals(
-                position.RemovedTeacherName?.Trim(),
-                teacherName?.Trim(),
-                StringComparison.OrdinalIgnoreCase
-            );
-
-    private static string Combine(string? subject, string? teacher, string? suffix = null)
+    private static string Combine(string? subject, string? teacher)
     {
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(subject))
             parts.Add(subject);
         if (!string.IsNullOrWhiteSpace(teacher))
             parts.Add(teacher);
-        if (!string.IsNullOrWhiteSpace(suffix))
-            parts.Add(suffix);
 
         return parts.Count == 0 ? "—" : string.Join("\n", parts);
     }

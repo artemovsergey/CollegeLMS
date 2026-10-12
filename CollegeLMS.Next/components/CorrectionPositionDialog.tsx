@@ -1099,17 +1099,12 @@ export function CorrectionPositionDialog({
             <PreviewCell label="Группа" value={preview.groupName} />
             <PreviewCell
               label="Снимается"
-              // Чистый перенос: в колонке «снимается» стоит вводимое занятие,
-              // а номер освобождаемой пары живёт в примечании «вм.X», поэтому он и
-              // подписан здесь. Во всех остальных случаях ячейка повторяет файл
-              // ровно — никаких дописываний про перенос.
-              value={
-                preview.movedFrom && preview.removedSubject === preview.addedSubject
-                  ? `пара ${preview.movedFrom.pair} — ${preview.movedFrom.lesson}`
-                  : [preview.removedSubject, preview.removedTeacher]
-                      .filter(Boolean)
-                      .join(" ")
-              }
+              // Ячейка повторяет файл ровно: у чистого переноса занятие само
+              // переезжает из пары «вм.X», поэтому в колонке пусто, а пара
+              // «откуда» видна в примечании и в подсказке под таблицей.
+              value={[preview.removedSubject, preview.removedTeacher]
+                .filter(Boolean)
+                .join(" ")}
             />
             <PreviewCell
               label="Вводится"
@@ -1221,8 +1216,8 @@ function PreviewCell({ label, value }: { label: string; value: string }) {
     <div className="grid gap-0.5">
       <dt className="text-muted-foreground">{label}</dt>
       <dd
-        // Значения короткие, но «пара N — Предмет Преподаватель» в тесной
-        // колонке обрезался многоточием и читался как «преподаватель не указан» —
+        // Значения короткие, но «Предмет Преподаватель» в тесной колонке
+        // обрезался многоточием и читался как «преподаватель не указан» —
         // поэтому переносим, а не режем.
         className={cn("break-words font-medium", !value && "text-muted-foreground")}
         title={value || undefined}

@@ -68,4 +68,43 @@ public class CorrectionImageServiceTests
         png.Should().NotBeEmpty();
         png.Take(4).Should().Equal(0x89, 0x50, 0x4E, 0x47);
     }
+
+    /// <summary>
+    /// Перенос ничего не снимает: вводимое занятие уезжает из пары «откуда», а
+    /// пара ввода не трогается. В колонке «снимается» пусто — так же, как в
+    /// файле корректировки.
+    /// </summary>
+    [Fact]
+    public void Describe_Move_HasEmptyRemovedColumn()
+    {
+        var batch = BuildBatch();
+        var position = batch.Positions.Single();
+        position.ChangeType = ScheduleChangeType.Add;
+        position.RemovedSubject = position.Subject;
+        position.RemovedTeacherName = position.TeacherName;
+        position.RemovedNumberPair = 4;
+
+        var (removed, added) = CorrectionImageService.Describe(position);
+
+        removed.Should().Be("—", "перенос ничего не снимает");
+        added.Should().Contain("Математика");
+    }
+
+    /// <summary>
+    /// Замена с переносом снимает прежнее занятие выбранной пары — колонка
+    /// «снимается» заполнена.
+    /// </summary>
+    [Fact]
+    public void Describe_ReplaceWithMove_KeepsRemovedLesson()
+    {
+        var batch = BuildBatch();
+        var position = batch.Positions.Single();
+        position.ChangeType = ScheduleChangeType.Add;
+        position.RemovedNumberPair = 4;
+
+        var (removed, added) = CorrectionImageService.Describe(position);
+
+        removed.Should().Contain("Физика").And.Contain("Иванов И.И.");
+        added.Should().Contain("Математика");
+    }
 }
