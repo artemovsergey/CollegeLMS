@@ -31,6 +31,15 @@ export interface CorrectionRowInput {
   removedTeacherName: string | null
   removedNumberPair: number | null
   note: string | null
+  /**
+   * Перенос ли позиция — признак с сервера (`isPureMove` в DTO позиции).
+   *
+   * Считать его здесь нельзя: сравнение предмета у клиента сводилось к
+   * регистру и пробелам, а у сервера — к ключу предмета, где «ОБП и ЗР» и
+   * «ОБПиЗР» это одно. Из-за этого предпросмотр показывал занятие в графе
+   * «снимается» там, где файл её оставлял пустой.
+   */
+  isPureMove: boolean
 }
 
 /** Преподаватель так же, как в файле: «Иванов И.И.». */
@@ -52,39 +61,11 @@ export function shortTeacherName(value: string | null | undefined): string {
     .join("/")
 }
 
-/**
- * Одинаковый текст: регистр и лишние пробелы не учитываются. Так «Рахимова
- * А.Л.» и «рахимова а.л.» — один преподаватель.
- */
-function sameText(left: string | null | undefined, right: string | null | undefined) {
-  const normalize = (value: string | null | undefined) =>
-    (value ?? "").trim().toLowerCase().replace(/\s+/g, " ")
-  return normalize(left) === normalize(right)
-}
-
 /** Пара «откуда» при переносе: `RemovedNumberPair`, если он отличается от пары ввода. */
 function movePairOf(input: CorrectionRowInput): number | null {
   return input.removedNumberPair != null && input.removedNumberPair !== input.numberPair
     ? input.removedNumberPair
     : null
-}
-
-/**
- * Чистый перенос: в `removed*` лежит само вводимое занятие, и пара «откуда» от
- * него отличается. Снимать нечего — занятие просто меняет пару, поэтому графа
- * «снимается» остаётся пустой, а пара «откуда» живёт в примечании «вм.X».
- *
- * Отличить перенос от замены с переносом (где снимается ещё и прежнее занятие
- * выбранной пары) можно только сравнением снимаемого с вводимым.
- */
-function isPureMove(input: CorrectionRowInput): boolean {
-  return (
-    input.changeType !== "Remove" &&
-    movePairOf(input) != null &&
-    input.removedSubject != null &&
-    sameText(input.removedSubject, input.subject) &&
-    sameText(input.removedTeacherName, input.teacherName)
-  )
 }
 
 /**
@@ -94,7 +75,6 @@ function isPureMove(input: CorrectionRowInput): boolean {
  */
 export function toCorrectionRow(input: CorrectionRowInput): CorrectionRowPreview {
   const isRemove = input.changeType === "Remove"
-  const isMove = isPureMove(input)
   const movePair = movePairOf(input)
 
   const note = input.note ?? (movePair != null ? `вм.${movePair}` : "")
@@ -115,8 +95,9 @@ export function toCorrectionRow(input: CorrectionRowInput): CorrectionRowPreview
 
   return {
     groupName: input.groupName,
-    removedSubject: isMove ? "" : (input.removedSubject ?? ""),
-    removedTeacher: isMove ? "" : shortTeacherName(input.removedTeacherName),
+    // Перенос ничего не снимает — графы «снимается» пустые, как в файле.
+    removedSubject: input.isPureMove ? "" : (input.removedSubject ?? ""),
+    removedTeacher: input.isPureMove ? "" : shortTeacherName(input.removedTeacherName),
     addedSubject: isRemove ? "" : (input.subject ?? ""),
     addedTeacher: isRemove ? "" : shortTeacherName(input.teacherName),
     numberPair: input.numberPair,

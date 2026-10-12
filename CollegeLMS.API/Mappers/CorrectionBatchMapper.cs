@@ -1,6 +1,7 @@
 using CollegeLMS.API.Dtos;
 using CollegeLMS.API.Entities;
 using CollegeLMS.API.Entities.Enums;
+using CollegeLMS.API.Services;
 
 namespace CollegeLMS.API.Mappers;
 
@@ -27,6 +28,8 @@ public static class CorrectionBatchMapper
             Note = position.Note,
             Status = position.Status,
             HistoryId = position.HistoryId,
+            // Правило переноса одно на файл, PNG и предпросмотр — см. CorrectionMoves.
+            IsPureMove = CorrectionMoves.IsPureMove(position),
         };
 
     public static CorrectionBatchResponse ToDto(

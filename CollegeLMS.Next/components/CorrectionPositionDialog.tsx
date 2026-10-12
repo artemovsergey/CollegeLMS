@@ -142,23 +142,6 @@ function emptyDraft(): Draft {
 }
 
 /** «Рахимова А.Л.» и «рахимова а.л.» — один и тот же преподаватель. */
-/**
- * Снимаемое занятие — то же самое, что вводимое? Так помечается чистый перенос:
- * в паре «вм.X» сейчас стоит именно то занятие, которое вводится в другую пару.
- */
-function isIncomingLesson(
-  removedSubject: string,
-  removedTeacherName: string | null | undefined,
-  position: CorrectionPosition
-): boolean {
-  return (
-    sameSubject(removedSubject, position.subject ?? "") &&
-    (!removedTeacherName ||
-      !position.teacherName ||
-      sameTeacherName(removedTeacherName, position.teacherName))
-  )
-}
-
 function sameTeacherName(a: string, b: string): boolean {
   const normalize = (value: string) =>
     value.replace(/\s+/g, " ").trim().toLowerCase().replace(/ё/g, "е")
@@ -223,10 +206,9 @@ function draftFromPosition(position: CorrectionPosition): Draft {
   // чистом переносе снимается само вводимое занятие из пары «вм.X», поэтому
   // слот остаётся нетронутым. Замена с переносом отличается только снимаемым:
   // в паре стоит прежнее занятие, а «вм.X» освобождает ещё и пару «откуда».
+  // Признак переноса считает сервер — тем же правилом, что и файл диспетчера.
   const replacesSlot =
-    !isRemove
-    && position.removedSubject != null
-    && !isIncomingLesson(position.removedSubject, position.removedTeacherName, position)
+    !isRemove && position.removedSubject != null && !position.isPureMove
 
   return {
     operation: isRemove ? "remove" : "add",
@@ -513,12 +495,16 @@ export function CorrectionPositionDialog({
     return parts.length > 0 ? parts.join(" ") : null
   }, [draft.note, draft.removeMark, draft.selfStudy, draft.moveFrom])
 
+  // Что именно снимается: занятие выбранной пары (снятие и замена) либо
+  // вводимое занятие из пары «вм.X» (перенос). Обе операции — это Add и
+  // Remove, а замена и перенос получаются из этих двух полей.
+  const slotRemoved = isRemove || draft.slotMode === "replace" ? draft.source : null
+  const moveRemoved =
+    !isRemove && !slotRemoved && draft.moveFrom != null ? fromEntry : null
+
   // Обе операции — это Add и Remove. Замена и перенос получаются из полей
   // позиции: снимаемое занятие в выбранной паре и пара «откуда».
   const payload = useMemo<CreateCorrectionPosition>(() => {
-    const slotRemoved = isRemove || draft.slotMode === "replace" ? draft.source : null
-    const moveRemoved =
-      !isRemove && !slotRemoved && draft.moveFrom != null ? fromEntry : null
     const teacherNames = draft.teacherIds
       .map((id) => teachers.find((teacher) => teacher.id === id)?.fullName)
       .filter((name): name is string => Boolean(name))
@@ -546,10 +532,26 @@ export function CorrectionPositionDialog({
       removedNumberPair: isRemove ? (draft.source?.numberPair ?? null) : draft.moveFrom,
       note,
     }
-  }, [buildNote, draft, fromEntry, group?.name, isRemove, teachers])
+  }, [buildNote, draft, group?.name, isRemove, moveRemoved, slotRemoved, teachers])
 
-  /** Строка позиции в том виде, в каком она уйдёт в файл и в уведомление. */
-  const preview = useMemo(() => toCorrectionRow(payload), [payload])
+  /**
+   * Строка позиции в том виде, в каком она уйдёт в файл и в уведомление.
+   *
+   * Признак переноса у ещё не сохранённой позиции считаем здесь — из полей
+   * формы, а не сравнением текста. Перенос — это когда снимаемое занятие взято
+   * из пары «вм.X» (moveRemoved), а слот ввода не трогается. Занятие в паре
+   * «откуда» — это и есть вводимое: «вм.X» предлагает только пары с тем же
+   * преподавателем и предметом, что вводится. У сохранённой позиции тот же
+   * признак приходит с сервера — тем же правилом, что и файл диспетчера.
+   */
+  const preview = useMemo(
+    () =>
+      toCorrectionRow({
+        ...payload,
+        isPureMove: !isRemove && !draft.source && moveRemoved != null,
+      }),
+    [draft.source, isRemove, moveRemoved, payload],
+  )
 
   const handleSubmit = async () => {
     if (blockedReason) {
