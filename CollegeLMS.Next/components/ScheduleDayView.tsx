@@ -38,6 +38,12 @@ interface ScheduleDayViewProps {
     entry: ScheduleResponse,
     subEntries: ScheduleResponse[],
   ) => void
+  /** Карточка журнала по паре — см. `ScheduleTable`. */
+  onOpenJournal?: (entry: ScheduleResponse) => void
+  journalOwnTeacherId?: string | null
+  journalAnyTeacher?: boolean
+  onOpenGroup?: (entry: ScheduleResponse) => void
+  onOpenTeacher?: (entry: ScheduleResponse) => void
 }
 
 function formatDayMonth(iso: string): string {
@@ -60,6 +66,11 @@ export default function ScheduleDayView({
   onEntryClick,
   onSlotEditClick,
   onSlotDeleteClick,
+  onOpenJournal,
+  journalOwnTeacherId,
+  journalAnyTeacher,
+  onOpenGroup,
+  onOpenTeacher,
 }: ScheduleDayViewProps) {
   const [data, setData] = useState<ScheduleDayData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -149,6 +160,11 @@ export default function ScheduleDayView({
               onEntryClick={onEntryClick}
               onSlotEditClick={onSlotEditClick}
               onSlotDeleteClick={onSlotDeleteClick}
+              onOpenJournal={onOpenJournal}
+              journalOwnTeacherId={journalOwnTeacherId}
+              journalAnyTeacher={journalAnyTeacher}
+              onOpenGroup={onOpenGroup}
+              onOpenTeacher={onOpenTeacher}
             />
           )}
         </div>

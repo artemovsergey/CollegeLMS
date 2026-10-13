@@ -346,3 +346,212 @@ test.describe("Расписание: группа в карточке дня", (
     await expect(cards.getByText("ТМ-1", { exact: true })).toHaveCount(0)
   })
 })
+
+test.describe("Расписание: из пары — в журнал и в расписание цели", () => {
+  const GROUPS = [
+    { id: "g-1", name: "ТМ-1" },
+    { id: "g-2", name: "ТМ-2" },
+  ]
+  const TEACHERS = [
+    { id: TEACHER_ID, fullName: "Иванов И. И." },
+    { id: "t-2", fullName: "Петров П. П." },
+  ]
+
+  const JOURNAL = {
+    isSuccess: true,
+    data: {
+      teacherId: TEACHER_ID,
+      teacherName: "Иванов И. И.",
+      subjects: [
+        {
+          groupId: "g-1",
+          groupName: "ТМ-1",
+          subject: "Математика",
+          pairCount: 1,
+          items: [
+            {
+              week: 4,
+              dayOfWeek: 1,
+              date: "2026-09-21T00:00:00Z",
+              numberPairs: [1],
+              changeTypes: [],
+            },
+          ],
+        },
+      ],
+      totalPairCount: 1,
+    },
+    errorMessage: null,
+    statusCode: 200,
+  }
+
+  const WEEK_VIEW_WITH_PAIRS = {
+    isSuccess: true,
+    data: {
+      week: 4,
+      weekStart: "2026-09-21T00:00:00Z",
+      days: [
+        {
+          date: "2026-09-21T00:00:00Z",
+          week: 4,
+          dayOfWeek: 1,
+          isSunday: false,
+          isNonWorking: false,
+          nonWorkingTitle: null,
+          practices: [],
+          inserts: [],
+          entries: [dayEntry("g-1", "ТМ-1", TEACHER_ID, "Иванов И. И.")],
+        },
+      ],
+    },
+    errorMessage: null,
+    statusCode: 200,
+  }
+
+  async function setup(
+    page: import("@playwright/test").Page,
+    context: unknown,
+  ) {
+    await page.addInitScript(() => {
+      localStorage.setItem("token", "test-jwt-token")
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: "u1",
+          email: "teacher@collegelms.ru",
+          fullName: "Иванов И. И.",
+          roles: ["Teacher"],
+        }),
+      )
+    })
+
+    await page.route(
+      (url) => url.pathname.startsWith("/api/schedule"),
+      (route) => {
+        const requestUrl = route.request().url()
+        if (requestUrl.includes("/meta")) return route.fulfill(json(META))
+        if (requestUrl.includes("/context")) return route.fulfill(json(context))
+        if (requestUrl.includes("/journal")) return route.fulfill(json(JOURNAL))
+        if (requestUrl.includes("view=calendar"))
+          return route.fulfill(json(MONTH_VIEW))
+        if (requestUrl.includes("view=day")) return route.fulfill(json(DAY_VIEW))
+        return route.fulfill(json(WEEK_VIEW_WITH_PAIRS))
+      },
+    )
+    await page.route("**/api/groups**", (route) =>
+      route.fulfill(
+        json({
+          isSuccess: true,
+          data: GROUPS,
+          errorMessage: null,
+          statusCode: 200,
+        }),
+      ),
+    )
+    await page.route("**/api/teachers**", (route) =>
+      route.fulfill(
+        json({
+          isSuccess: true,
+          data: TEACHERS,
+          errorMessage: null,
+          statusCode: 200,
+        }),
+      ),
+    )
+  }
+
+  const TEACHER_CONTEXT = {
+    isSuccess: true,
+    data: {
+      role: "Teacher",
+      groupId: null,
+      groupName: null,
+      teacherId: TEACHER_ID,
+      teacherName: "Иванов И. И.",
+    },
+    errorMessage: null,
+    statusCode: 200,
+  }
+
+  test("Кнопка журнала в карточке пары открывает карточку группы и предмета", async ({
+    page,
+  }) => {
+    await setup(page, TEACHER_CONTEXT)
+
+    await page.goto("/schedule?view=day&date=2026-09-21&teacherId=t-1", {
+      waitUntil: "networkidle",
+    })
+
+    await page
+      .getByRole("button", { name: "Журнал: ТМ-1 · Математика" })
+      .first()
+      .click()
+
+    await expect(page).toHaveURL(/\/teacher\/journal\?/)
+    const url = new URL(page.url())
+    expect(url.searchParams.get("teacherId")).toBe(TEACHER_ID)
+    expect(url.searchParams.get("groupId")).toBe("g-1")
+    expect(url.searchParams.get("subject")).toBe("Математика")
+    // Карточка пары открылась сразу, без выбора группы и предмета руками.
+    await expect(page.getByRole("combobox", { name: "Группа" })).toHaveValue("g-1")
+    await expect(
+      page.getByRole("button", { name: /Математика/ }),
+    ).toHaveAttribute("aria-pressed", "true")
+    await expect(page.getByRole("heading", { name: "Математика" })).toBeVisible()
+  })
+
+  test("Журнал в карточке есть только у своих пар", async ({ page }) => {
+    await setup(page, {
+      isSuccess: true,
+      data: {
+        role: "Teacher",
+        groupId: null,
+        groupName: null,
+        teacherId: "t-9",
+        teacherName: "Другой И. И.",
+      },
+      errorMessage: null,
+      statusCode: 200,
+    })
+
+    await page.goto("/schedule?view=day&date=2026-09-21&teacherId=t-9", {
+      waitUntil: "networkidle",
+    })
+
+    // Преподаватель видит только свой журнал, поэтому чужие пары без кнопки.
+    await expect(
+      page.getByRole("button", { name: /^Журнал:/ }),
+    ).toHaveCount(0)
+  })
+
+  test("Имя группы в паре открывает расписание этой группы", async ({
+    page,
+  }) => {
+    await setup(page, TEACHER_CONTEXT)
+
+    await page.goto("/schedule?view=day&date=2026-09-21&teacherId=t-1", {
+      waitUntil: "networkidle",
+    })
+
+    await page.getByRole("button", { name: "Расписание группы ТМ-1" }).first().click()
+
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("groupId"))
+      .toBe("g-1")
+  })
+
+  test("В недельном виде клик по паре открывает её журнал", async ({
+    page,
+  }) => {
+    await setup(page, TEACHER_CONTEXT)
+
+    await page.goto("/schedule?view=week&week=4&teacherId=t-1", {
+      waitUntil: "networkidle",
+    })
+
+    await page.getByRole("button", { name: "Журнал: ТМ-1 · Математика" }).click()
+
+    await expect(page).toHaveURL(/\/teacher\/journal\?/)
+    expect(new URL(page.url()).searchParams.get("subject")).toBe("Математика")
+  })
+})

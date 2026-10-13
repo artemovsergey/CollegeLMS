@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Radio, RefreshCw } from "lucide-react"
 import type {
   ScheduleDayView as ScheduleDayData,
+  ScheduleResponse,
   ScheduleWeekView as ScheduleWeekData,
 } from "@/types/schedule"
 import { DAYS } from "@/types/schedule"
@@ -22,6 +23,7 @@ import {
   practicePairName,
 } from "@/components/ScheduleLayers"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
+import { TARGET_LINK_CLASS } from "@/components/ScheduleTable"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import ErrorBanner from "@/components/ErrorBanner"
 import { Button } from "@/components/ui/button"
@@ -35,6 +37,12 @@ interface ScheduleWeekViewProps {
   teacherId?: string
   refreshKey?: number
   onDayClick: (date: string) => void
+  /** Карточка журнала по паре — см. `ScheduleTable`. */
+  onOpenJournal?: (entry: ScheduleResponse) => void
+  journalOwnTeacherId?: string | null
+  journalAnyTeacher?: boolean
+  onOpenGroup?: (entry: ScheduleResponse) => void
+  onOpenTeacher?: (entry: ScheduleResponse) => void
 }
 
 function formatDate(d: Date): string {
@@ -53,12 +61,22 @@ function DayColumn({
   week,
   teacherView,
   onOpen,
+  onOpenJournal,
+  journalOwnTeacherId,
+  journalAnyTeacher,
+  onOpenGroup,
+  onOpenTeacher,
 }: {
   day: ScheduleDayData
   week: number
   /** Преподаватель выбран фильтром — значит, группу в карточке не повторяем. */
   teacherView: boolean
   onOpen: (date: string) => void
+  onOpenJournal?: (entry: ScheduleResponse) => void
+  journalOwnTeacherId?: string | null
+  journalAnyTeacher?: boolean
+  onOpenGroup?: (entry: ScheduleResponse) => void
+  onOpenTeacher?: (entry: ScheduleResponse) => void
 }) {
   const iso = normalizeDateOnly(day.date)
   const info = DAYS.find((d) => d.value === day.dayOfWeek)
@@ -121,10 +139,41 @@ function DayColumn({
             const isNow = isToday && isEntryNow(entry, day.dayOfWeek, week)
             const isPractice = entry.lessonType === "Practice"
             const practicePair = practicePairName(entry)
+            // Журнал открывает тот, у кого есть к нему доступ: свой —
+            // преподавателю, чужой — админу и диспетчеру.
+            const canJournal =
+              Boolean(onOpenJournal) &&
+              Boolean(entry.teacherId) &&
+              (journalAnyTeacher || entry.teacherId === journalOwnTeacherId)
+            const journalLabel = `Журнал: ${entry.groupName} · ${entry.subject}`
 
             return (
               <div
                 key={entry.id}
+                role={canJournal ? "button" : undefined}
+                tabIndex={canJournal ? 0 : undefined}
+                aria-label={canJournal ? journalLabel : undefined}
+                title={canJournal ? journalLabel : undefined}
+                onClick={
+                  canJournal
+                    ? (event) => {
+                        // День открывается кликом по колонке, а пара уводит в
+                        // свой журнал — колонке этот клик не достаётся.
+                        event.stopPropagation()
+                        onOpenJournal?.(entry)
+                      }
+                    : undefined
+                }
+                onKeyDown={
+                  canJournal
+                    ? (event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return
+                        event.preventDefault()
+                        event.stopPropagation()
+                        onOpenJournal?.(entry)
+                      }
+                    : undefined
+                }
                 className={cn(
                   "rounded-md border-l-2 px-2 py-1.5 text-xs",
                   isNow
@@ -132,6 +181,7 @@ function DayColumn({
                     : isPractice
                       ? PRACTICE_CELL
                       : "border-primary/40 bg-muted/30",
+                  canJournal && "cursor-pointer hover:border-primary",
                 )}
               >
                 <div className="flex items-center gap-1.5">
@@ -162,18 +212,52 @@ function DayColumn({
                 {/* Группа нужна преподавателю: у него в неделе несколько групп,
                     иначе непонятно, чья это пара. В виде по группе она уже
                     выбрана фильтром — повторять её текстом незачем. */}
-                {teacherView && (
-                  <p className="mt-0.5 truncate font-medium text-foreground">
-                    {entry.groupName}
-                  </p>
-                )}
+                {teacherView &&
+                  (onOpenGroup ? (
+                    <button
+                      type="button"
+                      className={cn(
+                        FOCUS_RING,
+                        TARGET_LINK_CLASS,
+                        "mt-0.5 min-w-0 max-w-full truncate font-medium text-foreground",
+                      )}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onOpenGroup(entry)
+                      }}
+                      aria-label={`Расписание группы ${entry.groupName}`}
+                    >
+                      {entry.groupName}
+                    </button>
+                  ) : (
+                    <p className="mt-0.5 truncate font-medium text-foreground">
+                      {entry.groupName}
+                    </p>
+                  ))}
                 {/* Преподавателя в его собственном виде повторять незачем —
                     он уже выбран в фильтре. Группе он, наоборот, нужен. */}
                 <p className="mt-0.5 truncate text-muted-foreground">
                   {entry.room}
-                  {!teacherView && entry.teacherName
-                    ? ` · ${entry.teacherName}`
-                    : ""}
+                  {!teacherView && entry.teacherName ? (
+                    entry.teacherId && onOpenTeacher ? (
+                      <>
+                        {" · "}
+                        <button
+                          type="button"
+                          className={cn(FOCUS_RING, TARGET_LINK_CLASS)}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onOpenTeacher(entry)
+                          }}
+                          aria-label={`Расписание преподавателя ${entry.teacherName}`}
+                        >
+                          {entry.teacherName}
+                        </button>
+                      </>
+                    ) : (
+                      ` · ${entry.teacherName}`
+                    )
+                  ) : null}
                 </p>
                 {isNow && (
                   <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-medium text-primary">
@@ -202,6 +286,11 @@ export default function ScheduleWeekView({
   teacherId,
   refreshKey,
   onDayClick,
+  onOpenJournal,
+  journalOwnTeacherId,
+  journalAnyTeacher,
+  onOpenGroup,
+  onOpenTeacher,
 }: ScheduleWeekViewProps) {
   const [data, setData] = useState<ScheduleWeekData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -291,6 +380,11 @@ export default function ScheduleWeekView({
               week={data.week}
               teacherView={Boolean(teacherId)}
               onOpen={onDayClick}
+              onOpenJournal={onOpenJournal}
+              journalOwnTeacherId={journalOwnTeacherId}
+              journalAnyTeacher={journalAnyTeacher}
+              onOpenGroup={onOpenGroup}
+              onOpenTeacher={onOpenTeacher}
             />
           ))}
         </div>

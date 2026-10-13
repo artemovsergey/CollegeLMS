@@ -2,7 +2,7 @@
 
 import { FOCUS_RING } from "@/lib/focus"
 import { PageTitle } from "@/components/ui/heading"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
 import {
@@ -23,6 +23,11 @@ import {
   type JournalResponse,
   type JournalSubjectGroup,
 } from "@/api/schedule"
+import {
+  journalCardKey,
+  parseJournalLink,
+  type JournalLink,
+} from "@/lib/journal"
 import { useAuth } from "@/lib/auth"
 import { cn, extractErrorMessage } from "@/lib/utils"
 import { CHANGE_TYPE_STYLE, SELF_STUDY_STYLE } from "@/lib/status-style"
@@ -100,11 +105,6 @@ function formatPairs(numbers: number[]): string {
   return `Пары ${numbers.join(", ")}`
 }
 
-// Карточка журнала — пара «группа + предмет», поэтому ключ составной.
-function journalCardKey(group: Pick<JournalSubjectGroup, "groupId" | "subject">): string {
-  return `${group.groupId}::${group.subject}`
-}
-
 function JournalBadges({ types }: { types: string[] }) {
   if (types.length === 0) return null
   return (
@@ -138,9 +138,24 @@ export default function TeacherJournalPage() {
   const [subjectKey, setSubjectKey] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Ссылка из карточки пары: пара — это «группа + предмет», поэтому сразу
+  // открывается нужная карточка. В ref, чтобы не перезапускать загрузку.
+  const linkedRef = useRef<JournalLink>({})
+  // Список групп нужен один раз: с фильтром сервер отдаёт только выбранную группу.
+  const groupsRequestedRef = useRef(false)
 
   const roles = user?.roles ?? []
   const canPickTeacher = roles.some((role) => CAN_MANAGE_ROLES.includes(role))
+
+  // Разбор URL: журнал открыт с карточки пары — ?teacherId=&groupId=&subject=
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const link = parseJournalLink(window.location.search)
+    if (!link.teacherId && !link.groupId) return
+    linkedRef.current = link
+    if (link.teacherId) setSelectedTeacherId(link.teacherId)
+    if (link.groupId) setSelectedGroupId(link.groupId)
+  }, [])
 
   useEffect(() => {
     if (!authLoading && !token) router.push("/login")
@@ -200,10 +215,30 @@ export default function TeacherJournalPage() {
       const data = res.data
       setJournal(data)
       // Опции фильтра по группе строим только по полному ответу.
-      if (!selectedGroupId) setAllGroups(data.subjects)
+      if (!selectedGroupId) {
+        setAllGroups(data.subjects)
+      } else if (!groupsRequestedRef.current) {
+        groupsRequestedRef.current = true
+        const full = await fetchJournal(effectiveTeacherId)
+        if (full.isSuccess && full.data) setAllGroups(full.data.subjects)
+      }
       setSubjectKey((prev) => {
         const keys = data.subjects.map(journalCardKey)
         if (prev && keys.includes(prev)) return prev
+        // Предмет из ссылки приоритетнее первого попавшегося: это карточка
+        // той самой пары, по которой пришли.
+        const link = linkedRef.current
+        const target = link.subject
+          ? (link.groupId
+              ? data.subjects.find(
+                  (group) =>
+                    group.groupId === link.groupId &&
+                    group.subject === link.subject,
+                )
+              : data.subjects.find((group) => group.subject === link.subject))
+          : null
+        const targetKey = target ? journalCardKey(target) : null
+        if (targetKey && keys.includes(targetKey)) return targetKey
         return keys[0] ?? null
       })
     } catch (err) {
