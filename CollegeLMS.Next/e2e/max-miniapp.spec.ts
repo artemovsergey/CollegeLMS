@@ -996,4 +996,107 @@ test.describe("MAX mini-app", () => {
 
     await expect(page).toHaveURL(/\/max\//)
   })
+
+  test("Расписание: клик по паре открывает журнал группы и предмета", async ({
+    page,
+  }) => {
+    await loginMaxProfile(page, {
+      maxUserId: 2,
+      role: "Teacher",
+      groupId: null,
+      groupName: null,
+      teacherId: "t1",
+      teacherName: "Петренко В.Б.",
+    })
+    await page.route("**/api/schedule/journal**", (route) =>
+      route.fulfill(
+        inlineJson(
+          ok({
+            teacherId: "t1",
+            teacherName: "Петренко В.Б.",
+            subjects: [
+              {
+                groupId: "g1",
+                groupName: "ПО262",
+                subject: "Математика",
+                pairCount: 1,
+                items: [
+                  {
+                    week: 2,
+                    dayOfWeek: 1,
+                    date: "2026-09-07T00:00:00",
+                    numberPairs: [1],
+                    changeTypes: [],
+                  },
+                ],
+              },
+            ],
+            totalPairCount: 1,
+          }),
+        ),
+      ),
+    )
+
+    await page.goto("/max/schedule?route=today&groupId=g1", {
+      waitUntil: "networkidle",
+    })
+    await page
+      .getByRole("button", { name: "Журнал: ПО262 · Математика" })
+      .click()
+
+    // Пара = «группа + предмет» — ровно то, из чего собрана карточка журнала.
+    await expect(page).toHaveURL(/\/max\/journal\?/)
+    const url = new URL(page.url())
+    expect(url.searchParams.get("teacherId")).toBe("t1")
+    expect(url.searchParams.get("groupId")).toBe("g1")
+    expect(url.searchParams.get("subject")).toBe("Математика")
+    await expect(page.getByText("ПО262 · Математика")).toBeVisible()
+  })
+
+  test("Расписание: пара чужого преподавателя не открывает журнал", async ({
+    page,
+  }) => {
+    await loginMaxProfile(page, {
+      maxUserId: 2,
+      role: "Teacher",
+      groupId: null,
+      groupName: null,
+      teacherId: "t9",
+      teacherName: "Другой И. И.",
+    })
+
+    await page.goto("/max/schedule?route=today&groupId=g1", {
+      waitUntil: "networkidle",
+    })
+
+    // Свой журнал преподаватель видит только по своим парам: у пары другой
+    // преподаватель, нажать её нельзя — иначе запрос упрётся в 403.
+    await expect(
+      page.getByRole("button", { name: "Журнал: ПО262 · Математика" }),
+    ).toHaveCount(0)
+  })
+
+  test("Расписание: имя группы в паре — ссылка на расписание группы", async ({
+    page,
+  }) => {
+    await loginMaxProfile(page, {
+      maxUserId: 2,
+      role: "Teacher",
+      groupId: null,
+      groupName: null,
+      teacherId: "t1",
+      teacherName: "Петренко В.Б.",
+    })
+
+    await page.goto("/max/schedule?route=today&teacherId=t1", {
+      waitUntil: "networkidle",
+    })
+    await page.getByRole("button", { name: "ПО262", exact: true }).click()
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => localStorage.getItem("max-view-context")),
+      )
+      .toContain("g1")
+  })
 })

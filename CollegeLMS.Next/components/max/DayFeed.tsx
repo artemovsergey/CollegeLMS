@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { BellRing, CalendarCheck, CalendarOff, Clock3 } from "lucide-react"
 import { CellList, CellSimple, Typography } from "@maxhub/max-ui"
 import type { ScheduleResponse } from "@/types/schedule"
@@ -18,7 +19,8 @@ import {
 } from "@/lib/max-lesson"
 import { workingDayLabel } from "@/lib/reference"
 import { toDateFromTime } from "@/api/schedule"
-import { useMaxContext } from "@/lib/max-context"
+import { useMaxContext, type ViewContext } from "@/lib/max-context"
+import { journalHref } from "@/lib/journal"
 import ChangeBadge from "@/components/max/ChangeBadge"
 
 export default function DayFeed({
@@ -48,7 +50,8 @@ export default function DayFeed({
   header?: React.ReactNode
   today?: boolean
 }) {
-  const { viewContext } = useMaxContext()
+  const { viewContext, profile, setViewContext } = useMaxContext()
+  const router = useRouter()
 
   const sorted = [...entries].sort((a, b) => a.numberPair - b.numberPair)
   const now = new Date()
@@ -61,6 +64,31 @@ export default function DayFeed({
     : undefined
 
   const isTeacherContext = Boolean(viewContext.teacherId)
+  // Журнал доступен преподавателю и только по его собственным парам: свой
+  // чужой запрос бэкенд не пропустит (Teacher видит лишь свой журнал).
+  const ownTeacherId = profile?.role === "Teacher" ? profile.teacherId : null
+
+  // Ссылка на контрагента пары: у преподавателя — группа, у студента —
+  // преподаватель. По ней расписание открывается уже по этой цели.
+  const counterpartContext = (
+    entry: ScheduleResponse,
+  ): ViewContext | null => {
+    if (isTeacherContext) {
+      if (!entry.groupId) return null
+      return { groupId: entry.groupId, groupName: entry.groupName }
+    }
+    if (!entry.teacherId) return null
+    return {
+      teacherId: entry.teacherId,
+      teacherName: entry.teacherName ?? undefined,
+    }
+  }
+
+  const openCounterpart = (target: ViewContext) => {
+    router.push("/max/schedule")
+    setViewContext(target)
+  }
+
   const hasLayers =
     isNonWorking ||
     isSunday ||
@@ -173,12 +201,45 @@ export default function DayFeed({
             const counterpart = isTeacherContext
               ? entry.groupName
               : entry.teacherName
+            const counterpartTarget = counterpartContext(entry)
+            // Клик по паре открывает её карточку журнала: пара — это ровно
+            // «группа + предмет», то есть и есть карточка журнала.
+            const journalUrl =
+              ownTeacherId && entry.teacherId === ownTeacherId
+                ? journalHref("/max/journal", entry)
+                : ""
+            const cellClassName = [
+              isCurrent ? "max-schedule__cell--current" : "",
+              journalUrl ? "max-schedule__cell--link" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")
             return (
               <CellSimple
                 key={entry.id}
                 separator
-                className={isCurrent ? "max-schedule__cell--current" : undefined}
+                className={cellClassName || undefined}
                 title={entry.subject}
+                role={journalUrl ? "button" : undefined}
+                tabIndex={journalUrl ? 0 : undefined}
+                aria-label={
+                  journalUrl
+                    ? `Журнал: ${entry.groupName} · ${entry.subject}`
+                    : undefined
+                }
+                showChevron={Boolean(journalUrl)}
+                onClick={
+                  journalUrl ? () => router.push(journalUrl) : undefined
+                }
+                onKeyDown={
+                  journalUrl
+                    ? (event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return
+                        event.preventDefault()
+                        router.push(journalUrl)
+                      }
+                    : undefined
+                }
                 before={
                   <div
                     className={`max-schedule__pair${isCurrent ? " max-schedule__pair--current" : ""}`}
@@ -192,8 +253,26 @@ export default function DayFeed({
                     <span className="max-schedule__subtitle">
                       <Clock3 size={14} aria-hidden />{" "}
                       {formatTime(entry.startTime)} – {formatTime(entry.endTime)}
-                      {counterpart ? ` · ${counterpart}` : ""}
-                      {entry.room ? ` · ${entry.room}` : ""}
+                      {counterpart ? (
+                        <span>
+                          {" · "}
+                          {counterpartTarget ? (
+                            <button
+                              type="button"
+                              className="max-schedule__link"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                openCounterpart(counterpartTarget)
+                              }}
+                            >
+                              {counterpart}
+                            </button>
+                          ) : (
+                            counterpart
+                          )}
+                        </span>
+                      ) : null}
+                      {entry.room ? <span>{" · "}{entry.room}</span> : null}
                     </span>
                     {entry.practiceName &&
                     entry.practiceName.trim() !== entry.subject.trim() ? (

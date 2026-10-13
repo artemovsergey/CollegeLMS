@@ -3,6 +3,7 @@
 import type { ScheduleResponse } from "@/types/schedule"
 import type { ScheduleInsert } from "@/api/inserts"
 import {
+  BookOpen,
   Clock,
   MapPin,
   GraduationCap,
@@ -19,6 +20,7 @@ import {
   PracticePairBadge,
   practicePairName,
 } from "@/components/ScheduleLayers"
+import { FOCUS_RING } from "@/lib/focus"
 import { isEntryNow, mergeDayRows, type DayRow } from "@/lib/schedule-merge"
 import { cn } from "@/lib/utils"
 import { PRACTICE_CELL, PRACTICE_PAIR_NUMBER } from "@/lib/status-style"
@@ -46,6 +48,18 @@ interface ScheduleCardsProps {
   ) => void
   /** Удаление слота целиком: при подгруппах удаляются все записи слота. */
   onSlotDeleteClick?: (entry: ScheduleResponse, subEntries: ScheduleResponse[]) => void
+  /**
+   * Карточка журнала по паре: пара — это ровно «группа + предмет», то есть и
+   * есть карточка журнала. Задаётся, когда у пользователя есть доступ к журналу.
+   */
+  onOpenJournal?: (entry: ScheduleResponse) => void
+  /** Преподаватель, чей журнал открывается: у Teacher — только свой. */
+  journalOwnTeacherId?: string | null
+  /** Admin/Dispatcher видят журнал любого преподавателя. */
+  journalAnyTeacher?: boolean
+  /** Быстрый переход к расписанию группы или преподавателя этой пары. */
+  onOpenGroup?: (entry: ScheduleResponse) => void
+  onOpenTeacher?: (entry: ScheduleResponse) => void
 }
 
 function formatTime(time: string) {
@@ -97,6 +111,13 @@ function isCurrentlyHappening(
   return isEntryNow(entry, new Date().getDay(), currentWeek)
 }
 
+/**
+ * Имя группы или преподавателя в карточке — ссылка на их расписание:
+ * из пары удобно уйти в расписание этой цели, не возвращаясь к фильтру.
+ */
+export const TARGET_LINK_CLASS =
+  "flex items-center gap-1 rounded text-left transition-colors hover:text-foreground hover:underline underline-offset-2"
+
 export default function ScheduleCards({
   entries,
   inserts,
@@ -107,6 +128,11 @@ export default function ScheduleCards({
   onEntryClick,
   onSlotEditClick,
   onSlotDeleteClick,
+  onOpenJournal,
+  journalOwnTeacherId,
+  journalAnyTeacher = false,
+  onOpenGroup,
+  onOpenTeacher,
 }: ScheduleCardsProps) {
   const filteredEntries = selectedDay
     ? entries.filter((e) => e.dayOfWeek === selectedDay)
@@ -157,6 +183,12 @@ export default function ScheduleCards({
         const title = sameSubject
           ? subEntries[0].subject
           : `${subEntries.length} занятия`
+        // Журнал открывает тот, у кого есть к нему доступ: свой — преподавателю,
+        // чужой — админу и диспетчеру.
+        const canJournal =
+          Boolean(onOpenJournal) &&
+          Boolean(entry.teacherId) &&
+          (journalAnyTeacher || entry.teacherId === journalOwnTeacherId)
 
         return (
           <div
@@ -214,23 +246,45 @@ export default function ScheduleCards({
                         {entry.room}
                       </span>
                     )}
-                    {!alreadyInFilter(entry.teacherName, filterTeacherName) && (
-                      <span className="flex items-center gap-1">
-                        <GraduationCap className="size-3 shrink-0" />
-                        {entry.teacherName}
-                      </span>
-                    )}
+                    {!alreadyInFilter(entry.teacherName, filterTeacherName) &&
+                      (entry.teacherId && onOpenTeacher ? (
+                        <button
+                          type="button"
+                          className={cn(FOCUS_RING, TARGET_LINK_CLASS)}
+                          onClick={() => onOpenTeacher(entry)}
+                          aria-label={`Расписание преподавателя ${entry.teacherName}`}
+                        >
+                          <GraduationCap className="size-3 shrink-0" aria-hidden />
+                          {entry.teacherName}
+                        </button>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <GraduationCap className="size-3 shrink-0" />
+                          {entry.teacherName}
+                        </span>
+                      ))}
                   </>
                 )}
                 {/* Группу и преподавателя не повторяем, если они уже стоят
                     в выбранном фильтре — иначе каждая пара начинается
                     с одного и того же текста. */}
-                {!alreadyInFilter(entry.groupName, filterGroupName) && (
-                  <span className="flex items-center gap-1">
-                    <Users className="size-3 shrink-0" />
-                    {entry.groupName}
-                  </span>
-                )}
+                {!alreadyInFilter(entry.groupName, filterGroupName) &&
+                  (onOpenGroup ? (
+                    <button
+                      type="button"
+                      className={cn(FOCUS_RING, TARGET_LINK_CLASS)}
+                      onClick={() => onOpenGroup(entry)}
+                      aria-label={`Расписание группы ${entry.groupName}`}
+                    >
+                      <Users className="size-3 shrink-0" aria-hidden />
+                      {entry.groupName}
+                    </button>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <Users className="size-3 shrink-0" />
+                      {entry.groupName}
+                    </span>
+                  ))}
               </div>
               {entry.weeks && entry.weeks.length > 0 && (
                 <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -266,17 +320,48 @@ export default function ScheduleCards({
                         </span>
                       )}
                       {sub.teacherName &&
-                        !alreadyInFilter(sub.teacherName, filterTeacherName) && (
+                        !alreadyInFilter(sub.teacherName, filterTeacherName) &&
+                        (sub.teacherId && onOpenTeacher ? (
+                          <button
+                            type="button"
+                            className={cn(FOCUS_RING, TARGET_LINK_CLASS)}
+                            onClick={() => onOpenTeacher(sub)}
+                            aria-label={`Расписание преподавателя ${sub.teacherName}`}
+                          >
+                            <GraduationCap
+                              className="size-3 shrink-0"
+                              aria-hidden
+                            />
+                            {sub.teacherName}
+                          </button>
+                        ) : (
                           <span className="inline-flex items-center gap-1">
                             <GraduationCap className="size-3 shrink-0" aria-hidden />
                             {sub.teacherName}
                           </span>
-                        )}
+                        ))}
                     </li>
                   ))}
                 </ul>
               )}
             </div>
+
+            {/* Журнал — не правка, а переход, поэтому кнопка всегда на виду:
+                прятать её под наведение значило бы спрятать саму возможность. */}
+            {canJournal && (
+              <div className="flex shrink-0 items-start">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Журнал: ${entry.groupName} · ${entry.subject}`}
+                  title="Журнал группы и предмета"
+                  className="relative size-8 text-muted-foreground after:absolute after:-inset-1.5 hover:bg-primary/[0.08] hover:text-primary dark:hover:bg-primary/[0.12]"
+                  onClick={() => onOpenJournal?.(entry)}
+                >
+                  <BookOpen className="size-3.5" aria-hidden />
+                </Button>
+              </div>
+            )}
 
             {hasActions && (
               <div className="flex shrink-0 items-start gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100">

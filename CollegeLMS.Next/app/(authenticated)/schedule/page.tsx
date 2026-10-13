@@ -56,6 +56,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { CAN_MANAGE_ROLES } from "@/lib/constants"
+import { journalHref } from "@/lib/journal"
 import LoadingSpinner from "@/components/LoadingSpinner"
 import { CalendarDays, Download, Filter, SearchX, Upload } from "lucide-react"
 import { toast } from "sonner"
@@ -475,6 +476,25 @@ export default function SchedulePage() {
     }
   }
 
+  /** Пара — это ровно «группа + предмет», то есть карточка журнала. */
+  const handleOpenJournal = (entry: ScheduleResponse) => {
+    const href = journalHref("/teacher/journal", entry)
+    if (href) router.push(href)
+  }
+
+  /** Ссылка на контрагента пары: расписание открывается сразу по этой цели. */
+  const handleOpenGroup = (entry: ScheduleResponse) => {
+    if (!entry.groupId) return
+    setSelectedGroupId(entry.groupId)
+    setSelectedTeacherId("")
+  }
+
+  const handleOpenTeacher = (entry: ScheduleResponse) => {
+    if (!entry.teacherId) return
+    setSelectedTeacherId(entry.teacherId)
+    setSelectedGroupId("")
+  }
+
   if (authLoading) return <LoadingSpinner className="min-h-screen" />
   if (!token) return null
 
@@ -625,6 +645,13 @@ export default function SchedulePage() {
               onEntryClick={canManage ? handleEdit : undefined}
               onSlotEditClick={canManage ? handleSlotEdit : undefined}
               onSlotDeleteClick={canManage ? handleSlotDelete : undefined}
+              onOpenJournal={
+                canManage || defaultTeacherId ? handleOpenJournal : undefined
+              }
+              journalAnyTeacher={canManage}
+              journalOwnTeacherId={defaultTeacherId || null}
+              onOpenGroup={handleOpenGroup}
+              onOpenTeacher={handleOpenTeacher}
             />
           )}
 
@@ -635,6 +662,13 @@ export default function SchedulePage() {
               teacherId={selectedTeacherId || undefined}
               refreshKey={refreshKey}
               onDayClick={handleDayOpen}
+              onOpenJournal={
+                canManage || defaultTeacherId ? handleOpenJournal : undefined
+              }
+              journalAnyTeacher={canManage}
+              journalOwnTeacherId={defaultTeacherId || null}
+              onOpenGroup={handleOpenGroup}
+              onOpenTeacher={handleOpenTeacher}
             />
           )}
 

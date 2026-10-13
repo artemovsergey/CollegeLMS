@@ -368,6 +368,29 @@
   background: var(--color-tint-primary);
 }
 
+/* Пара, открывающая карточку журнала: приём тот же, что у кликабельных
+   ячеек MAX, но без чужой разметки — вкладку и карточку красит сам список. */
+.max-schedule__cell--link {
+  cursor: pointer;
+}
+
+.max-schedule__cell--link:active {
+  opacity: 0.85;
+}
+
+/* Ссылка на контрагента пары (группа у преподавателя, преподаватель у
+   студента): расписание открывается сразу по этой цели. */
+.max-schedule__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--text-themed);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
 .max-schedule__subtitle {
   display: inline-flex;
   align-items: center;

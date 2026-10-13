@@ -273,7 +273,19 @@ export default function ScheduleView() {
     setSelectedWeek(meta.currentWeek)
   }
 
-  const contextName = viewContext.groupName ?? viewContext.teacherName ?? null
+  // Ссылка из бота приносит только идентификатор цели, без имени: тогда берём
+  // имя из самих пар. «Выбор не задан» определяется по идентификатору, а не по
+  // имени, иначе расписание без пар выглядело бы как пустое приглашение.
+  const firstEntry =
+    dayData?.entries[0] ??
+    weekData?.days.find((day) => day.entries.length > 0)?.entries[0]
+  const hasContext = Boolean(viewContext.groupId ?? viewContext.teacherId)
+  const contextName =
+    viewContext.groupName ??
+    viewContext.teacherName ??
+    (viewContext.groupId
+      ? (firstEntry?.groupName ?? null)
+      : (firstEntry?.teacherName ?? null))
 
   // Пользователь смотрит расписание выбора, который ещё не сохранён в боте.
   const viewIsUnsaved =
@@ -428,7 +440,7 @@ export default function ScheduleView() {
           </div>
         ) : error ? (
           <ScheduleError message={error} onRetry={() => void load()} />
-        ) : !contextName ? (
+        ) : !hasContext ? (
           <div className="max-app__login-prompt">
             <CalendarDays size={32} className="max-app__state-icon" aria-hidden />
             <Typography.Title>Выберите расписание</Typography.Title>
@@ -474,7 +486,7 @@ export default function ScheduleView() {
           <ScheduleEmpty />
         )}
 
-        {contextName ? (
+        {hasContext ? (
           <Button
             variant="secondary"
             stretched
