@@ -332,14 +332,6 @@
   min-width: 0;
 }
 
-.max-app__favorite {
-  color: var(--color-text-faint);
-}
-
-.max-app__favorite--on {
-  color: var(--warning);
-}
-
 /* Пара в расписании */
 .max-schedule__pair {
   display: flex;

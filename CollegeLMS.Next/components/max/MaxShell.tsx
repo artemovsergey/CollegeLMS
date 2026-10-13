@@ -2,13 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { CalendarDays, Star, History, BookOpen } from "lucide-react"
+import { CalendarDays, History, BookOpen } from "lucide-react"
 import type { ReactNode } from "react"
 import { useMaxContext } from "@/lib/max-context"
 
 const BASE_TABS = [
   { href: "/max/schedule", label: "Расписание", icon: CalendarDays },
-  { href: "/max/favorites", label: "Избранное", icon: Star },
   { href: "/max/changes", label: "Изменения", icon: History },
 ]
 
