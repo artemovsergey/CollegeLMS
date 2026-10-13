@@ -12,9 +12,18 @@
 ## Ветки
 
 - `master` — только проверенное и задеплоенное. Любая новая работа (дизайн-система, фичи, правки UI/UX) ведётся в **отдельной ветке**: `git checkout -b fix/{краткое-имя}` или `feat/{...}`.
-- Ветка создаётся **до** первого изменения файла. Прямые коммиты в `master` запрещены, кроме случая, когда пользователь явно попросил.
-- После завершения: коммит в ветку → проверка (build, гейты, e2e, визуальный осмотр) → отдельный запрос на merge/push.
-- Исключение: `AGENTS.md`, конфигурация агентов и `docs/superpowers/**` можно править в своей ветке, но коммит в `master` — только по явному запросу.
+- Ветка создаётся **до** первого изменения файла. Прямые коммиты в `master` запрещены.
+- **Порядок завершения работы обязательный и без отдельного согласования:**
+  коммит в ветку → проверка (build, гейты, e2e) → merge ветки в `master` →
+  `git push origin master`. Дальше срабатывает CI/CD: push в `master`
+  запускает `.github/workflows/deploy.yml` — quality-гейты, сборка образов и
+  на сервере `git reset --hard origin/master` с пересборкой контейнеров.
+  Merge и push не ждут разрешения пользователя: без них работа остаётся
+  только в ветке и на сервер не попадает.
+- Согласовывать отдельно нужно только то, что **ломает деплой**: миграции БД,
+  смена переменных окружения, правки `docker-compose.yml` и workflow.
+- Исключение по срокам: если сервер или CI лежат, работа не ждёт — коммит и
+  merge делаются, а push повторяется после восстановления.
 
 ## Команды
 
@@ -27,6 +36,7 @@
 | Frontend | `cd CollegeLMS.Next && npm run dev` / `npm run build` |
 | Гейты дизайн-системы | `cd CollegeLMS.Next && npm run check:design-system` (отчёт — `npm run check:design-system:report`) |
 | E2E (затронутый спек) | `cd CollegeLMS.Next && npx playwright test {spec}` |
+| Merge в master + деплой | `git checkout master && git merge {ветка} && git push origin master` |
 | Формат | `dotnet csharpier format .` (проверка — `dotnet csharpier check .`) |
 
 ## Прод и стенд
@@ -37,3 +47,5 @@
 - Playwright по стенду — с `baseURL: http://localhost` (через loadbalancer). Напрямую на `:3000` пути `/api/*` отдают 404, а `next dev` поднимается на 3001 и без CORS не логинится.
 - Перед сборкой Next на `/` нужно минимум 3 ГБ — это порог деплоя. Место чаще всего съедает не Docker, а архив systemd: `sudo journalctl --disk-usage`, чистка `sudo journalctl --vacuum-size=300M` (лимит `SystemMaxUse=300M` уже прописан в `/etc/systemd/journald.conf`).
 - Логи контейнеров после деплоя: `docker compose --profile max-bot logs api --tail 50`.
+- Ручной `docker compose` из рабочего каталога после merge не нужен: деплой
+  приезжает сам через CI/CD и пересобирает контейнеры в прод-каталоге.
