@@ -2177,14 +2177,14 @@ public class ScheduleCorrectionServiceTests : IDisposable
     }
 
     /// <summary>
-    /// «вм.X п.сам/р.» — перенос с пометкой самостоятельной работы: пара сама
-    /// не встаёт, но занятие из «вм.X» снимается по-настоящему. Откат такой
-    /// записи обязан вернуть освобождённое занятие — иначе правка позиции или
-    /// отмена в журнале молча убирали пару из расписания навсегда (случай
-    /// «ИП 232, МДК.02.01, пара 3, неделя 6»).
+    /// «вм.X п.сам/р.» — перенос с пометкой самостоятельной работы: пара уехала
+    /// в новую, а из «откуда» её убрали. Откат обязан вернуть пару в «откуда» и
+    /// убрать из новой — иначе правка позиции или отмена в журнале молча убирали
+    /// пару из расписания навсегда (случай «ИП 232, МДК.02.01, пара 3,
+    /// неделя 6»).
     /// </summary>
     [Fact]
-    public async Task RevertHistoryAsync_InformationalMove_ReturnsFreedPairToItsNumber()
+    public async Task RevertHistoryAsync_MoveWithSelfStudyNote_PutsPairBackToSource()
     {
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
@@ -2208,8 +2208,9 @@ public class ScheduleCorrectionServiceTests : IDisposable
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
-        // Пара «откуда» осталась в базе, но без этой недели: пара ушла в сам.р.
+        // Пара «куда» стоит, в «откуда» недели 6 нет.
         await SeedEntryAsync(group.Id, teacher.Id, "Математика", 3, [1, 2]);
+        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 5, [6]);
         _db.ScheduleHistory.Add(history);
         await _db.SaveChangesAsync();
 
@@ -2220,11 +2221,11 @@ public class ScheduleCorrectionServiceTests : IDisposable
         _db.ScheduleHistory.Should().BeEmpty();
 
         var entries = await _db.ScheduleEntries.ToListAsync(CancellationToken.None);
-        entries.Should().ContainSingle();
-        entries[0].NumberPair.Should().Be(3);
-        entries[0].Subject.Should().Be("Математика");
-        entries[0].Room.Should().Be("303");
-        entries[0].Weeks.Should().BeEquivalentTo([1, 2, 6]);
+        var source = entries.Should().ContainSingle(e => e.NumberPair == 3).Subject;
+        source.Subject.Should().Be("Математика");
+        source.Room.Should().Be("303");
+        source.Weeks.Should().BeEquivalentTo([1, 2, 6]);
+        entries.Should().NotContain(e => e.NumberPair == 5 && e.Weeks.Contains(6));
     }
 
     /// <summary>

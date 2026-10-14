@@ -415,9 +415,16 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                         && !(movePair.HasValue && IsIncomingLesson(position, teacherId));
 
                     // «сам.р» без «+»: сама пара в базу не встаёт — она нужна
-                    // только как пометка. С ней можно совмещать замену и
-                    // перенос: они снимают занятия, а пара остаётся пометкой.
+                    // только как пометка. С ней можно совмещать замену: занятие
+                    // слота снимается, а вместо него остаётся пометка.
                     var informational = CorrectionNotes.IsInformational(position.Note);
+
+                    // «вм.X п.сам/р.» — исключение: пара не новая, она перенесена
+                    // из «откуда», поэтому в расписании она остаётся, просто с
+                    // бейджем самостоятельной работы. Без этого перенос с пометкой
+                    // уносил пару из «откуда» и не ставил её никуда: в группе на
+                    // этот день не оставалось ничего.
+                    var informationalOnly = informational && !movePair.HasValue;
 
                     var entry = new SimulatedEntry
                     {
@@ -452,7 +459,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                             movePair,
                             freesSlot,
                             strictMove: true,
-                            addEntry: !informational,
+                            addEntry: !informationalOnly,
                             execute,
                             utcNow,
                             correctionDate,
@@ -464,7 +471,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                         break;
                     }
 
-                    if (informational)
+                    if (informationalOnly)
                     {
                         result.InformationalEntries.Add(entry);
 
