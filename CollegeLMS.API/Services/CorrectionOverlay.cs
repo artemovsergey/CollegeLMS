@@ -101,6 +101,31 @@ internal sealed class CorrectionOverlay
         );
     }
 
+    /// <summary>
+    /// Помечает снятой всю составную пару — в слоте один предмет ведут несколько
+    /// преподавателей («Ин.язык(1и2)»), и снятие убирает её у всех. Иначе
+    /// следующая строка файла увидела бы вторую половину и предложила занять
+    /// уже освобождённый слот.
+    /// </summary>
+    public static void MarkRemoved(List<CorrectionOverlaySlot> slots, CorrectionOverlaySlot target)
+    {
+        var key = ScheduleImportService.SubjectLookupKey(target.Subject);
+        foreach (
+            var slot in slots.Where(s =>
+                !s.Removed
+                && s.NumberPair == target.NumberPair
+                && string.Equals(
+                    ScheduleImportService.SubjectLookupKey(s.Subject),
+                    key,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+        )
+        {
+            slot.Removed = true;
+        }
+    }
+
     public static void Add(
         List<CorrectionOverlaySlot> slots,
         int numberPair,

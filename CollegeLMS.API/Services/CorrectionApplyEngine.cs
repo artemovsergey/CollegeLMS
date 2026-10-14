@@ -549,57 +549,86 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                         continue;
                     }
 
+                    // Составная пара: в слоте один предмет ведут несколько
+                    // преподавателей («Ин.язык(1и2)» — Рахимова и Сорокина).
+                    // Снимается пара целиком: снять только «своего» преподавателя
+                    // нельзя, иначе вторая половина остаётся в расписании и
+                    // студенты по-прежнему видят пару.
+                    var removals = CompositePair(list, target);
+
                     if (IsSelfStudyNote(position.Note))
                     {
-                        target.IsSelfStudy = true;
-                        target.Note = position.Note;
-                        target.PendingChangeType = nameof(ScheduleChangeType.Remove);
-                        if (execute && target.Entity is not null)
-                            target.Entity.UpdatedAt = utcNow;
+                        foreach (var item in removals)
+                        {
+                            item.IsSelfStudy = true;
+                            item.Note = position.Note;
+                            item.PendingChangeType = nameof(ScheduleChangeType.Remove);
+                            if (execute && item.Entity is not null)
+                                item.Entity.UpdatedAt = utcNow;
+                        }
                     }
                     else
                     {
-                        target.Removed = true;
-                        target.PendingChangeType = nameof(ScheduleChangeType.Remove);
-                        if (execute && target.Entity is not null)
-                            RemoveWeekOrDelete(target.Entity, position.Week, utcNow);
+                        foreach (var item in removals)
+                        {
+                            item.Removed = true;
+                            item.PendingChangeType = nameof(ScheduleChangeType.Remove);
+                            if (execute && item.Entity is not null)
+                                RemoveWeekOrDelete(item.Entity, position.Week, utcNow);
+                        }
                     }
 
                     if (execute)
                     {
-                        var history = BuildHistory(
-                            position,
-                            ScheduleChangeType.Remove,
-                            target.Subject,
-                            target.TeacherId,
-                            target.Room,
-                            target.NumberPair,
-                            null,
-                            null,
-                            null,
-                            null,
-                            utcNow,
-                            appliedByUserId
-                        );
-                        ApplyHistory(position, history, result);
+                        // По записи на каждого преподавателя составной пары: иначе
+                        // второй в журнале не появится и уведомления он не получит.
+                        var isFirst = true;
+                        foreach (var item in removals)
+                        {
+                            var history = BuildHistory(
+                                position,
+                                ScheduleChangeType.Remove,
+                                item.Subject,
+                                item.TeacherId,
+                                item.Room,
+                                item.NumberPair,
+                                null,
+                                null,
+                                null,
+                                null,
+                                utcNow,
+                                appliedByUserId
+                            );
 
-                        result.Changes.Add(
-                            new ScheduleChangeDto
+                            if (isFirst)
                             {
-                                Id = history.Id,
-                                ChangeType = nameof(ScheduleChangeType.Remove),
-                                GroupId = group.Id,
-                                GroupName = group.Name,
-                                TeacherId = target.TeacherId,
-                                TeacherName = target.TeacherName,
-                                DayOfWeek = position.DayOfWeek,
-                                Week = position.Week,
-                                NumberPair = target.NumberPair,
-                                Subject = target.Subject,
-                                Note = position.Note,
-                                CorrectionDate = correctionDate,
+                                ApplyHistory(position, history, result);
+                                isFirst = false;
                             }
-                        );
+                            else
+                            {
+                                db.ScheduleHistory.Add(history);
+                                result.History.Add(history);
+                            }
+
+                            result.Changes.Add(
+                                new ScheduleChangeDto
+                                {
+                                    Id = history.Id,
+                                    ChangeType = nameof(ScheduleChangeType.Remove),
+                                    GroupId = group.Id,
+                                    GroupName = group.Name,
+                                    TeacherId = item.TeacherId,
+                                    TeacherName = item.TeacherName,
+                                    DayOfWeek = position.DayOfWeek,
+                                    Week = position.Week,
+                                    NumberPair = item.NumberPair,
+                                    Subject = item.Subject,
+                                    Note = position.Note,
+                                    CorrectionDate = correctionDate,
+                                }
+                            );
+                        }
                     }
                     break;
                 }
@@ -1012,6 +1041,28 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             CreatedAt = utcNow,
             UpdatedAt = utcNow,
         };
+
+    /// <summary>
+    /// Составная пара: все ещё не снятые занятия того же предмета в той же
+    /// паре. Иностранный язык на паре часто ведут двое, и снимается он целиком.
+    /// </summary>
+    private static List<SimulatedEntry> CompositePair(
+        List<SimulatedEntry> list,
+        SimulatedEntry target
+    )
+    {
+        var key = ScheduleImportService.SubjectLookupKey(target.Subject);
+        return list.Where(e =>
+                !e.Removed
+                && e.NumberPair == target.NumberPair
+                && string.Equals(
+                    ScheduleImportService.SubjectLookupKey(e.Subject),
+                    key,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            .ToList();
+    }
 
     private static SimulatedEntry? FindEntry(
         List<SimulatedEntry> list,

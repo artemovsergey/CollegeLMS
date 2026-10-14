@@ -832,8 +832,9 @@ public class ScheduleCorrectionService(
                 }
                 else
                 {
-                    // Занятие снимается: следующие строки уже его не увидят.
-                    target.Removed = true;
+                    // Занятие снимается: следующие строки уже его не увидят. Составная
+                    // пара уходит целиком — так же, как её снимет применение.
+                    CorrectionOverlay.MarkRemoved(slots, target);
                     rowEntries.Add(
                         new CorrectionPreviewEntry
                         {
@@ -1374,8 +1375,7 @@ public class ScheduleCorrectionService(
                 try
                 {
                     var applied = await ApplyEntryAsync(entry, appliedByUserId, correctionDate, ct);
-                    if (applied.Change is not null)
-                        changes.Add(applied.Change);
+                    changes.AddRange(applied.Changes);
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -1734,7 +1734,14 @@ public class ScheduleCorrectionService(
         );
     }
 
-    private record AppliedEntry(ScheduleHistory History, ScheduleChangeDto? Change);
+    /// <summary>
+    /// Результат применения одной записи. Составная пара снимается по записи
+    /// на каждого преподавателя, поэтому изменений может быть несколько.
+    /// </summary>
+    private sealed record AppliedEntry(
+        List<ScheduleHistory> Histories,
+        List<ScheduleChangeDto> Changes
+    );
 
     private async Task<List<string>> ValidateEntriesAsync(
         List<CorrectionPreviewEntry> entries,
@@ -1881,7 +1888,7 @@ public class ScheduleCorrectionService(
                     CorrectionDate = correctionDate,
                 };
 
-                return new AppliedEntry(history, change);
+                return new AppliedEntry([history], [change]);
             }
 
             case ScheduleChangeType.Remove:
@@ -1908,57 +1915,88 @@ public class ScheduleCorrectionService(
                         $"Занятие на {day} {entry.Week}-й неделе, пара {entry.NumberPair} не найдено."
                     );
 
-                // «сам.р.» при снятии: пара остаётся в расписании, неделя не удаляется.
-                // Участвует в учебном процессе, студенты видят бейдж и могут не приходить.
-                if (!IsSelfStudyNote(entry.Note))
+                // Составная пара: в слоте предмет ведут несколько преподавателей
+                // («Ин.язык(1и2)»). Снимается пара целиком — иначе вторая половина
+                // остаётся в расписании и пара видна студентам по-прежнему.
+                var targets = new List<ScheduleEntry> { target };
+                if (!string.IsNullOrEmpty(entry.RemovedSubject))
                 {
-                    target.Weeks = target.Weeks.Where(w => w != entry.Week).ToList();
-                    if (target.Weeks.Count == 0)
-                        db.ScheduleEntries.Remove(target);
+                    var normalized = ScheduleImportService.NormalizeSubject(entry.RemovedSubject);
+                    var sameSlot = await db
+                        .ScheduleEntries.Include(e => e.Teacher!)
+                            .ThenInclude(t => t.User)
+                        .Where(e =>
+                            e.GroupId == group.Id
+                            && e.DayOfWeek == day
+                            && e.NumberPair == entry.NumberPair
+                            && e.Weeks.Contains(entry.Week)
+                            && e.Subject == normalized
+                        )
+                        .ToListAsync(ct);
+                    if (sameSlot.Count > 1)
+                        targets = sameSlot;
+                }
+
+                var histories = new List<ScheduleHistory>();
+                var changes = new List<ScheduleChangeDto>();
+
+                foreach (var item in targets)
+                {
+                    // «сам.р.» при снятии: пара остаётся в расписании, неделя не удаляется.
+                    // Участвует в учебном процессе, студенты видят бейдж и могут не приходить.
+                    if (!IsSelfStudyNote(entry.Note))
+                    {
+                        item.Weeks = item.Weeks.Where(w => w != entry.Week).ToList();
+                        if (item.Weeks.Count == 0)
+                            db.ScheduleEntries.Remove(item);
+                        else
+                            item.UpdatedAt = utcNow;
+                    }
                     else
-                        target.UpdatedAt = utcNow;
+                    {
+                        item.UpdatedAt = utcNow;
+                    }
+
+                    var history = new ScheduleHistory
+                    {
+                        Id = Guid.NewGuid(),
+                        ChangeType = ScheduleChangeType.Remove,
+                        AppliedAt = utcNow,
+                        AppliedByUserId = appliedByUserId,
+                        GroupId = group.Id,
+                        TeacherId = item.TeacherId,
+                        Subject = item.Subject,
+                        Room = item.Room,
+                        DayOfWeek = day,
+                        NumberPair = item.NumberPair,
+                        Week = entry.Week,
+                        Note = entry.Note,
+                        CreatedAt = utcNow,
+                        UpdatedAt = utcNow,
+                    };
+                    db.ScheduleHistory.Add(history);
+                    histories.Add(history);
+
+                    changes.Add(
+                        new ScheduleChangeDto
+                        {
+                            Id = history.Id,
+                            ChangeType = "Remove",
+                            GroupId = group.Id,
+                            GroupName = group.Name,
+                            TeacherId = item.TeacherId,
+                            TeacherName = item.Teacher?.User?.FullName ?? entry.RemovedTeacherName,
+                            DayOfWeek = entry.DayOfWeek,
+                            Week = entry.Week,
+                            NumberPair = item.NumberPair,
+                            Subject = item.Subject,
+                            Note = entry.Note,
+                            CorrectionDate = correctionDate,
+                        }
+                    );
                 }
-                else
-                {
-                    target.UpdatedAt = utcNow;
-                }
 
-                var history = new ScheduleHistory
-                {
-                    Id = Guid.NewGuid(),
-                    ChangeType = ScheduleChangeType.Remove,
-                    AppliedAt = utcNow,
-                    AppliedByUserId = appliedByUserId,
-                    GroupId = group.Id,
-                    TeacherId = target.TeacherId,
-                    Subject = target.Subject,
-                    Room = target.Room,
-                    DayOfWeek = day,
-                    NumberPair = target.NumberPair,
-                    Week = entry.Week,
-                    Note = entry.Note,
-                    CreatedAt = utcNow,
-                    UpdatedAt = utcNow,
-                };
-                db.ScheduleHistory.Add(history);
-
-                var change = new ScheduleChangeDto
-                {
-                    Id = history.Id,
-                    ChangeType = "Remove",
-                    GroupId = group.Id,
-                    GroupName = group.Name,
-                    TeacherId = target.TeacherId,
-                    TeacherName = entry.RemovedTeacherName,
-                    DayOfWeek = entry.DayOfWeek,
-                    Week = entry.Week,
-                    NumberPair = target.NumberPair,
-                    Subject = target.Subject,
-                    Note = entry.Note,
-                    CorrectionDate = correctionDate,
-                };
-
-                return new AppliedEntry(history, change);
+                return new AppliedEntry(histories, changes);
             }
 
             case ScheduleChangeType.Replace:
@@ -2034,7 +2072,7 @@ public class ScheduleCorrectionService(
                     CorrectionDate = correctionDate,
                 };
 
-                return new AppliedEntry(history, change);
+                return new AppliedEntry([history], [change]);
             }
 
             default:
@@ -2208,6 +2246,12 @@ public class ScheduleCorrectionService(
                     utcNow,
                     ct
                 );
+
+                // Составная пара снимается по записи на каждого преподавателя,
+                // но откат любой из этих записей возвращает пару целиком: иначе
+                // откат первой половины оставил бы вторую снятой.
+                await RestoreCompositePairAsync(history, group, utcNow, ct);
+
                 if (restored)
                     message =
                         $"Занятие «{history.Subject}» на {dayName} {history.Week}-й неделе возвращено в пару {history.NumberPair}.";
@@ -2328,6 +2372,86 @@ public class ScheduleCorrectionService(
                 && e.Subject == normalized,
             ct
         );
+    }
+
+    /// <summary>
+    /// Возвращает неделю остальным преподавателям составной пары: снятие
+    /// убирает её у всех, значит и откат возвращает всем. Повторный вызов для
+    /// уже возвращённой половины ничего не делает.
+    ///
+    /// Берутся обе половины: та, что ещё стоит в расписании, и та, чью запись
+    /// снятие удалило целиком — про неё остались только записи журнала той же
+    /// корректировки.
+    /// </summary>
+    private async Task RestoreCompositePairAsync(
+        ScheduleHistory history,
+        Group group,
+        DateTime utcNow,
+        CancellationToken ct
+    )
+    {
+        var normalized = ScheduleImportService.NormalizeSubject(history.Subject);
+        if (normalized.Length == 0)
+            return;
+
+        var siblings = await db
+            .ScheduleEntries.Where(e =>
+                e.GroupId == group.Id
+                && e.DayOfWeek == history.DayOfWeek
+                && e.NumberPair == history.NumberPair
+                && e.Subject == normalized
+                && (history.TeacherId == null || e.TeacherId != history.TeacherId)
+            )
+            .ToListAsync(ct);
+
+        foreach (var sibling in siblings)
+        {
+            if (sibling.Weeks.Contains(history.Week))
+                continue;
+
+            await RestoreWeekAsync(
+                group.Id,
+                history.DayOfWeek,
+                history.NumberPair,
+                normalized,
+                sibling.TeacherId,
+                sibling.Room,
+                history.Week,
+                utcNow,
+                ct
+            );
+        }
+
+        if (history.BatchId is not { } batchId)
+            return;
+
+        var others = await db
+            .ScheduleHistory.AsNoTracking()
+            .Where(h =>
+                h.BatchId == batchId
+                && h.Id != history.Id
+                && h.ChangeType == ScheduleChangeType.Remove
+                && h.GroupId == group.Id
+                && h.DayOfWeek == history.DayOfWeek
+                && h.NumberPair == history.NumberPair
+                && h.Week == history.Week
+                && h.Subject == normalized
+                && (history.TeacherId == null || h.TeacherId != history.TeacherId)
+            )
+            .ToListAsync(ct);
+
+        foreach (var other in others)
+            await RestoreWeekAsync(
+                group.Id,
+                history.DayOfWeek,
+                history.NumberPair,
+                normalized,
+                other.TeacherId,
+                other.Room,
+                history.Week,
+                utcNow,
+                ct
+            );
     }
 
     /// <summary>
