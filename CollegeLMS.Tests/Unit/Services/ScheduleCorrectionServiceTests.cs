@@ -676,6 +676,50 @@ public class ScheduleCorrectionServiceTests : IDisposable
         history.AppliedByUserId.Should().Be(appliedBy);
     }
 
+    /// <summary>
+    /// Ручной путь (файл → предпросмотр → подтверждение) снимает составную пару
+    /// у всех преподавателей так же, как пакетный.
+    /// </summary>
+    [Fact]
+    public async Task ConfirmAsync_RemoveOfSharedPair_RemovesBothTeachers()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Рахимова А.Л.", "first@collegelms.ru");
+        var second = await SeedTeacherAsync("Сорокина Н.Б.", "second@collegelms.ru");
+        await SeedEntryAsync(group.Id, first.Id, "Ин.язык", 4, [2]);
+        await SeedEntryAsync(group.Id, second.Id, "Ин.язык", 4, [2]);
+
+        var result = await _sut.ConfirmAsync(
+            new CorrectionConfirmRequest
+            {
+                Entries =
+                [
+                    new CorrectionPreviewEntry
+                    {
+                        GroupId = group.Id,
+                        ChangeType = ScheduleChangeType.Remove,
+                        DayOfWeek = 2,
+                        Week = 2,
+                        NumberPair = 4,
+                        RemovedSubject = "Ин.язык",
+                        RemovedTeacherId = first.Id,
+                        RemovedTeacherName = "Рахимова А.Л.",
+                        Note = "снять",
+                    },
+                ],
+            },
+            "shared-pair-key",
+            Guid.NewGuid(),
+            CancellationToken.None
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        _db.ScheduleEntries.Should().BeEmpty();
+        _db.ScheduleHistory.Should().HaveCount(2);
+        _db.ScheduleHistory.Should().Contain(h => h.TeacherId == first.Id);
+        _db.ScheduleHistory.Should().Contain(h => h.TeacherId == second.Id);
+    }
+
     [Fact]
     public async Task ConfirmAsync_AddWithSelfStudyNote_IsAccepted()
     {
@@ -2264,6 +2308,107 @@ public class ScheduleCorrectionServiceTests : IDisposable
         entries[0].Weeks.Should().BeEquivalentTo([3]);
     }
 
+    /// <summary>
+    /// Откат снятия составной пары возвращает неделю обоим преподавателям,
+    /// даже если откатывают запись одного из них.
+    /// </summary>
+    [Fact]
+    public async Task RevertHistoryAsync_RemoveOfSharedPair_RestoresBothTeachers()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Рахимова А.Л.", "first@collegelms.ru");
+        var second = await SeedTeacherAsync("Сорокина Н.Б.", "second@collegelms.ru");
+        var history = new ScheduleHistory
+        {
+            Id = Guid.NewGuid(),
+            ChangeType = ScheduleChangeType.Remove,
+            AppliedAt = DateTime.UtcNow,
+            AppliedByUserId = Guid.NewGuid(),
+            GroupId = group.Id,
+            TeacherId = first.Id,
+            Subject = "Ин.язык",
+            DayOfWeek = DayOfWeek.Tuesday,
+            NumberPair = 4,
+            Week = 3,
+            Note = "снять",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        await SeedEntryAsync(group.Id, first.Id, "Ин.язык", 4, [1]);
+        await SeedEntryAsync(group.Id, second.Id, "Ин.язык", 4, [1]);
+        _db.ScheduleHistory.Add(history);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RevertHistoryAsync(history.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var entries = await _db.ScheduleEntries.ToListAsync(CancellationToken.None);
+        entries.Should().HaveCount(2);
+        entries.Should().OnlyContain(e => e.Weeks.Contains(3));
+    }
+
+    /// <summary>
+    /// Если пара стояла только на этой неделе, снятие удаляет обе половины
+    /// целиком — про вторую остаётся только запись журнала той же корректировки,
+    /// и откат должен поднять пару заново.
+    /// </summary>
+    [Fact]
+    public async Task RevertHistoryAsync_RemoveOfSharedPairRecreatedPair_RestoresBothTeachers()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Рахимова А.Л.", "first@collegelms.ru");
+        var second = await SeedTeacherAsync("Сорокина Н.Б.", "second@collegelms.ru");
+        var batchId = Guid.NewGuid();
+        var history = new ScheduleHistory
+        {
+            Id = Guid.NewGuid(),
+            ChangeType = ScheduleChangeType.Remove,
+            AppliedAt = DateTime.UtcNow,
+            AppliedByUserId = Guid.NewGuid(),
+            GroupId = group.Id,
+            TeacherId = first.Id,
+            Subject = "Ин.язык",
+            Room = "302",
+            DayOfWeek = DayOfWeek.Tuesday,
+            NumberPair = 4,
+            Week = 3,
+            Note = "снять",
+            BatchId = batchId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        var twin = new ScheduleHistory
+        {
+            Id = Guid.NewGuid(),
+            ChangeType = ScheduleChangeType.Remove,
+            AppliedAt = DateTime.UtcNow,
+            AppliedByUserId = Guid.NewGuid(),
+            GroupId = group.Id,
+            TeacherId = second.Id,
+            Subject = "Ин.язык",
+            Room = "413",
+            DayOfWeek = DayOfWeek.Tuesday,
+            NumberPair = 4,
+            Week = 3,
+            Note = "снять",
+            BatchId = batchId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        // Снятие удалило обе пары: недель больше не осталось.
+        _db.ScheduleHistory.AddRange([history, twin]);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RevertHistoryAsync(history.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var entries = await _db.ScheduleEntries.ToListAsync(CancellationToken.None);
+        entries.Should().HaveCount(2);
+        entries.Should().OnlyContain(e => e.NumberPair == 4 && e.Weeks.Contains(3));
+        entries.Should().Contain(e => e.TeacherId == first.Id);
+        entries.Should().Contain(e => e.TeacherId == second.Id);
+    }
+
     [Fact]
     public async Task RevertHistoryAsync_SelfStudyOnlyRemovesTheJournalRow()
     {
@@ -2412,6 +2557,45 @@ public class ScheduleCorrectionServiceTests : IDisposable
             replace.Should().NotBeNull();
             replace!.RemovedSubject.Should().Be("Математика");
             replace.Subject.Should().Be("Физика");
+        }
+    }
+
+    /// <summary>
+    /// Снятие составной пары убирает её из наложения целиком: следующая строка
+    /// файла не должна видеть второго преподавателя в уже освобождённом слоте.
+    /// </summary>
+    [Fact]
+    public async Task PreviewAsync_RemoveOfSharedPair_HidesBothTeachers()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Рахимова А.Л.", "first@collegelms.ru");
+        var second = await SeedTeacherAsync("Сорокина Н.Б.", "second@collegelms.ru");
+        await SeedEntryAsync(group.Id, first.Id, "Ин.язык", 4, [2]);
+        await SeedEntryAsync(group.Id, second.Id, "Ин.язык", 4, [2]);
+
+        var (stream, _) = BuildWorkbook(ws =>
+        {
+            ws.Cell(7, 1).Value = group.Name;
+            ws.Cell(7, 2).Value = "Ин.язык";
+            ws.Cell(7, 3).Value = "Рахимова/Сорокина";
+            ws.Cell(7, 6).Value = 4;
+            ws.Cell(7, 7).Value = "снять";
+            ws.Cell(8, 1).Value = group.Name;
+            ws.Cell(8, 2).Value = "Ин.язык";
+            ws.Cell(8, 3).Value = "Сорокина Н.Б.";
+            ws.Cell(8, 6).Value = 4;
+        });
+
+        using (stream)
+        {
+            var result = await _sut.PreviewAsync(stream, CancellationToken.None);
+
+            result.IsSuccess.Should().BeTrue();
+            result
+                .Data!.Errors.Should()
+                .ContainSingle(e =>
+                    e.Level == "logic" && e.Message.Contains("Строка 8", StringComparison.Ordinal)
+                );
         }
     }
 

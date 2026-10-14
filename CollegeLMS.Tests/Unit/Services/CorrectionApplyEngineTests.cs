@@ -604,6 +604,113 @@ public class CorrectionApplyEngineTests : IDisposable
     /// идут по порядку, поэтому вторая ищет источник в паре, куда только что
     /// встала первая, — и обязана найти там своё занятие, а не первое попавшееся.
     /// </summary>
+    /// <summary>
+    /// Составная пара: в слоте предмет ведут двое («Ин.язык(1и2)»). Снятие
+    /// убирает пару у обоих, иначе вторая половина остаётся в расписании и
+    /// студенты видят пару по-прежнему.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBatchAsync_RemoveSharedPair_RemovesBothTeachers()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Рахимова А.Л.");
+        var second = await SeedTeacherAsync("Сорокина Н.Б.");
+        await SeedEntryAsync(group.Id, first.Id, "Ин.язык", 4, TestWeek);
+        await SeedEntryAsync(group.Id, second.Id, "Ин.язык", 4, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Remove,
+                4,
+                removedSubject: "Ин.язык",
+                removedTeacherId: first.Id,
+                removedTeacherName: first.User.FullName,
+                note: "снять"
+            )
+        );
+
+        var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        _db.ScheduleEntries.Should().BeEmpty();
+
+        // По записи на каждого: иначе второй в журнале не будет и уведомления не получит.
+        _db.ScheduleHistory.Should().HaveCount(2);
+        _db.ScheduleHistory.Should().Contain(h => h.TeacherId == first.Id);
+        _db.ScheduleHistory.Should().Contain(h => h.TeacherId == second.Id);
+        outcome.Changes.Should().HaveCount(2);
+    }
+
+    /// <summary>
+    /// Второй предмет в том же слоте — не часть составной пары: снятие иностранного
+    /// языка его не трогает.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBatchAsync_RemoveSharedPair_KeepsOtherSubjectInSameSlot()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Рахимова А.Л.");
+        var second = await SeedTeacherAsync("Сорокина Н.Б.");
+        var other = await SeedTeacherAsync("Индык А.И.");
+        await SeedEntryAsync(group.Id, first.Id, "Ин.язык", 4, TestWeek);
+        await SeedEntryAsync(group.Id, second.Id, "Ин.язык", 4, TestWeek);
+        await SeedEntryAsync(group.Id, other.Id, "ОПиФГ", 4, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Remove,
+                4,
+                removedSubject: "Ин.язык",
+                removedTeacherId: first.Id,
+                removedTeacherName: first.User.FullName,
+                note: "снять"
+            )
+        );
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.Subject.Should().Be("ОПиФГ");
+        entry.TeacherId.Should().Be(other.Id);
+        entry.Weeks.Should().Contain(TestWeek);
+    }
+
+    /// <summary>
+    /// Снятие составной пары с пометкой «сам.р.»: неделя остаётся в расписании у
+    /// обоих, обе половины получают бейдж самостоятельной работы.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBatchAsync_RemoveSharedPairWithSelfStudy_KeepsBothLessons()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Рахимова А.Л.");
+        var second = await SeedTeacherAsync("Сорокина Н.Б.");
+        await SeedEntryAsync(group.Id, first.Id, "Ин.язык", 4, TestWeek);
+        await SeedEntryAsync(group.Id, second.Id, "Ин.язык", 4, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Remove,
+                4,
+                removedSubject: "Ин.язык",
+                removedTeacherId: first.Id,
+                removedTeacherName: first.User.FullName,
+                note: "сам.р."
+            )
+        );
+
+        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        _db.ScheduleEntries.Should().HaveCount(2);
+        _db.ScheduleEntries.Should().OnlyContain(e => e.Weeks.Contains(TestWeek));
+        _db.ScheduleHistory.Should().HaveCount(2);
+    }
+
     [Fact]
     public async Task ExecuteBatchAsync_SwapTwoPairsInOneBatch_KeepsBothLessons()
     {
