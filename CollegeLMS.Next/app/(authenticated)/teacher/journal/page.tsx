@@ -11,7 +11,6 @@ import {
   Minus,
   Repeat,
   ArrowRightLeft,
-  CalendarDays,
   Inbox,
   RefreshCw,
 } from "lucide-react"
@@ -24,7 +23,10 @@ import {
   type JournalSubjectGroup,
 } from "@/api/schedule"
 import {
+  formatPairs,
   journalCardKey,
+  journalDateLabel,
+  journalDateParts,
   parseJournalLink,
   type JournalLink,
 } from "@/lib/journal"
@@ -88,21 +90,28 @@ function changeMeta(type: string): {
   }
 }
 
-function formatDate(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  })
-}
-
-// Номера пар дня: подряд идущие пары должны быть видны, а не прятаться за счётчиком.
-function formatPairs(numbers: number[]): string {
-  if (numbers.length === 0) return "Пар нет"
-  if (numbers.length === 1) return `Пара ${numbers[0]}`
-  return `Пары ${numbers.join(", ")}`
+/**
+ * Плитка даты занятия.
+ *
+ * Число дня — единственное, что в строке журнала действительно значимо:
+ * список за месяц читается сверху вниз и именно по нему. Поэтому число
+ * набрано крупно и основным цветом, а месяц уходит под него подписью.
+ * День недели, номер недели и номера пар живут рядом в одну
+ * второстепенную строку — их достаточно различить, а не выделять.
+ */
+function JournalDayTile({ date }: { date: string }) {
+  const { day, month } = journalDateParts(date)
+  return (
+    <span className="flex w-10 shrink-0 flex-col items-center leading-none">
+      <span className="sr-only">{journalDateLabel(date)}</span>
+      <span aria-hidden className="text-2xl font-semibold tabular-nums">
+        {day || "—"}
+      </span>
+      <span aria-hidden className="mt-1 text-xs text-muted-foreground">
+        {month}
+      </span>
+    </span>
+  )
 }
 
 function JournalBadges({ types }: { types: string[] }) {
@@ -446,19 +455,16 @@ export default function TeacherJournalPage() {
                   {items.map((entry) => (
                     <li
                       key={`${entry.week}:${entry.dayOfWeek}`}
-                      className="flex flex-wrap items-center justify-between gap-2 py-3"
+                      className="flex items-center gap-3 py-3"
                     >
-                      <div className="flex flex-col gap-1">
-                        <span className="flex items-center gap-2 text-sm font-medium">
-                          <CalendarDays className="size-3.5 text-muted-foreground" aria-hidden />
-                          {dayLabelFromInt(entry.dayOfWeek)}, {formatDate(entry.date)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          Неделя {entry.week}
+                      <JournalDayTile date={entry.date} />
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <span className="text-sm text-muted-foreground">
+                          {dayLabelFromInt(entry.dayOfWeek)} · Неделя {entry.week}
                         </span>
                         <JournalBadges types={entry.changeTypes ?? []} />
                       </div>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="shrink-0 text-sm text-muted-foreground">
                         {formatPairs(entry.numberPairs)}
                       </span>
                     </li>
