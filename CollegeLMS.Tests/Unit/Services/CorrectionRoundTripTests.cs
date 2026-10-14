@@ -128,7 +128,6 @@ public class CorrectionRoundTripTests : IDisposable
     private static string NormalizeSubject(string text) =>
         text.Length == 0 ? text : ScheduleImportService.NormalizeSubject(text);
 
-
     private static string FindRepositoryPath(string relativePath)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

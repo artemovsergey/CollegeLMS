@@ -1156,7 +1156,6 @@ public class ScheduleCorrectionServiceTests : IDisposable
 
     // --- UC-SCH-27: экспорт FILE-3 ---
 
-
     [Fact]
     public async Task ExportManualAsync_UsesCorrectionDateInFileName()
     {
