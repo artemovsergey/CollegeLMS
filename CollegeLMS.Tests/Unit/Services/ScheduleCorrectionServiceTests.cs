@@ -1156,37 +1156,11 @@ public class ScheduleCorrectionServiceTests : IDisposable
 
     // --- UC-SCH-27: экспорт FILE-3 ---
 
-    private static void EnsureCorrectionTemplate()
-    {
-        var relativeDir = Path.GetFullPath(
-            Path.Combine(Directory.GetCurrentDirectory(), "..", "import", "schedule")
-        );
-        var target = Path.Combine(relativeDir, "Корректировка.xlsx");
-        if (File.Exists(target))
-            return;
-
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "import", "schedule", "Корректировка.xlsx");
-            if (File.Exists(candidate))
-            {
-                Directory.CreateDirectory(relativeDir);
-                File.Copy(candidate, target, overwrite: true);
-                return;
-            }
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException(
-            "Шаблон «Корректировка.xlsx» не найден для теста экспорта."
-        );
-    }
 
     [Fact]
     public async Task ExportManualAsync_UsesCorrectionDateInFileName()
     {
-        EnsureCorrectionTemplate();
+        CorrectionTemplateFixture.Ensure();
 
         var result = await _sut.ExportManualAsync(
             new ManualCorrectionExportRequest
@@ -1216,7 +1190,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     [Fact]
     public async Task ExportManualAsync_ShortensTeacherNameToInitials()
     {
-        EnsureCorrectionTemplate();
+        CorrectionTemplateFixture.Ensure();
 
         var result = await _sut.ExportManualAsync(
             new ManualCorrectionExportRequest
@@ -1572,7 +1546,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     [Fact]
     public async Task ExportManualAsync_StylesEveryDataRowNotJustTemplateOnes()
     {
-        EnsureCorrectionTemplate();
+        CorrectionTemplateFixture.Ensure();
 
         var result = await _sut.ExportManualAsync(
             new ManualCorrectionExportRequest
@@ -1624,7 +1598,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     [Fact]
     public async Task ExportManualAsync_DropsTemplateSampleRows()
     {
-        EnsureCorrectionTemplate();
+        CorrectionTemplateFixture.Ensure();
 
         var result = await _sut.ExportManualAsync(
             new ManualCorrectionExportRequest
@@ -1665,7 +1639,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     [Fact]
     public async Task ExportManualAsync_GrowsRowForTwoTeachersInOneSubject()
     {
-        EnsureCorrectionTemplate();
+        CorrectionTemplateFixture.Ensure();
 
         var result = await _sut.ExportManualAsync(
             new ManualCorrectionExportRequest
@@ -1702,7 +1676,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     [Fact]
     public async Task ExportManualAsync_GrowsRowForLongSubject()
     {
-        EnsureCorrectionTemplate();
+        CorrectionTemplateFixture.Ensure();
 
         const string longSubject = "Информационные технологии в профессиональной деятельности";
 
@@ -1745,7 +1719,7 @@ public class ScheduleCorrectionServiceTests : IDisposable
     [Fact]
     public async Task ExportManualAsync_ShortensOnlyTextLongerThanSixLines()
     {
-        EnsureCorrectionTemplate();
+        CorrectionTemplateFixture.Ensure();
 
         var result = await _sut.ExportManualAsync(
             new ManualCorrectionExportRequest
