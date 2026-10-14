@@ -51,7 +51,7 @@ public class CorrectionRoundTripTests : IDisposable
     [MemberData(nameof(CorrectionFiles))]
     public async Task CorrectionFile_RoundTrip_ExportedFileMatchesSource(string fileName)
     {
-        EnsureCorrectionTemplate();
+        CorrectionTemplateFixture.Ensure();
         var path = FindRepositoryPath(
             Path.Combine("import", "schedule", "Корректировки", fileName)
         );
@@ -128,36 +128,6 @@ public class CorrectionRoundTripTests : IDisposable
     private static string NormalizeSubject(string text) =>
         text.Length == 0 ? text : ScheduleImportService.NormalizeSubject(text);
 
-    private static void EnsureCorrectionTemplate()
-    {
-        var relativeDir = Path.GetFullPath(
-            Path.Combine(Directory.GetCurrentDirectory(), "..", "import", "schedule")
-        );
-        var target = Path.Combine(relativeDir, "Корректировка.xlsx");
-        if (File.Exists(target))
-            return;
-
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            var candidate = Path.Combine(
-                directory.FullName,
-                "import",
-                "schedule",
-                "Корректировка.xlsx"
-            );
-            if (File.Exists(candidate))
-            {
-                Directory.CreateDirectory(relativeDir);
-                File.Copy(candidate, target, true);
-                return;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new FileNotFoundException("Шаблон «Корректировка.xlsx» не найден.");
-    }
 
     private static string FindRepositoryPath(string relativePath)
     {

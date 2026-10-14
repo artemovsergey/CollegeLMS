@@ -1043,6 +1043,8 @@ public class CorrectionBatchServiceTests : IDisposable
         var imported = await _sut.ImportAsync(stream, Guid.NewGuid(), CancellationToken.None);
         imported.IsSuccess.Should().BeTrue();
 
+        CorrectionTemplateFixture.Ensure();
+
         var exported = await _sut.ExportAsync(
             imported.Data!.BatchId!.Value,
             CancellationToken.None
@@ -1109,6 +1111,8 @@ public class CorrectionBatchServiceTests : IDisposable
         var position = imported.Data!.Positions.Should().ContainSingle().Subject;
         position.IsPureMove.Should().BeTrue();
 
+        CorrectionTemplateFixture.Ensure();
+
         var exported = await _sut.ExportAsync(imported.Data.BatchId!.Value, CancellationToken.None);
         exported.IsSuccess.Should().BeTrue();
 
@@ -1174,6 +1178,8 @@ public class CorrectionBatchServiceTests : IDisposable
 
         var imported = await _sut.ImportAsync(stream, Guid.NewGuid(), CancellationToken.None);
         imported.IsSuccess.Should().BeTrue();
+
+        CorrectionTemplateFixture.Ensure();
 
         var exported = await _sut.ExportAsync(
             imported.Data!.BatchId!.Value,
