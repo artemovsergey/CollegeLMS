@@ -599,6 +599,131 @@ public class CorrectionApplyEngineTests : IDisposable
             );
     }
 
+    /// <summary>
+    /// Обмен парами двумя строками одного пакета: «5 → 3» и «3 → 5». Строки
+    /// идут по порядку, поэтому вторая ищет источник в паре, куда только что
+    /// встала первая, — и обязана найти там своё занятие, а не первое попавшееся.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBatchAsync_SwapTwoPairsInOneBatch_KeepsBothLessons()
+    {
+        var group = await SeedGroupAsync();
+        var nikolaenko = await SeedTeacherAsync("Николаенко К.С.");
+        var lukyanova = await SeedTeacherAsync("Лукьянова С.П.");
+        await SeedEntryAsync(group.Id, nikolaenko.Id, "Web-прогр.", 5, TestWeek);
+        await SeedEntryAsync(group.Id, lukyanova.Id, "МДК.02.01", 3, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                3,
+                subject: "Web-прогр.",
+                teacherId: nikolaenko.Id,
+                teacherName: nikolaenko.User.FullName,
+                removedSubject: "Web-прогр.",
+                removedTeacherId: nikolaenko.Id,
+                removedTeacherName: nikolaenko.User.FullName,
+                removedNumberPair: 5,
+                note: "вм.5 п."
+            ),
+            Pos(
+                2,
+                ScheduleChangeType.Add,
+                5,
+                subject: "МДК.02.01",
+                teacherId: lukyanova.Id,
+                teacherName: lukyanova.User.FullName,
+                removedSubject: "МДК.02.01",
+                removedTeacherId: lukyanova.Id,
+                removedTeacherName: lukyanova.User.FullName,
+                removedNumberPair: 3,
+                note: "вм.3 п."
+            )
+        );
+
+        var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        outcome.History.Should().HaveCount(2);
+
+        var entries = _db
+            .ScheduleEntries.Where(e => e.Weeks.Contains(TestWeek))
+            .OrderBy(e => e.NumberPair)
+            .ToList();
+        entries.Should().HaveCount(2);
+        entries[0].NumberPair.Should().Be(3);
+        entries[0].Subject.Should().Be("Web-прогр.");
+        entries[0].TeacherId.Should().Be(nikolaenko.Id);
+        entries[1].NumberPair.Should().Be(5);
+        entries[1].Subject.Should().Be("МДК.02.01");
+        entries[1].TeacherId.Should().Be(lukyanova.Id);
+
+        _db.ScheduleHistory.Should()
+            .ContainSingle(h => h.NumberPair == 3 && h.RemovedNumberPair == 5);
+        _db.ScheduleHistory.Should()
+            .ContainSingle(h => h.NumberPair == 5 && h.RemovedNumberPair == 3);
+    }
+
+    /// <summary>
+    /// Обмен парами одного преподавателя: обе строки трогают слоты, которые
+    /// в начале пакета заняты были его же занятиями.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBatchAsync_SwapTwoPairsOfOneTeacher_KeepsBothLessons()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        await SeedEntryAsync(group.Id, teacher.Id, "Физика", 3, 1, TestWeek);
+        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 5, 1, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                5,
+                subject: "Физика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "Физика",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
+                removedNumberPair: 3,
+                note: "вм.3 п."
+            ),
+            Pos(
+                2,
+                ScheduleChangeType.Add,
+                3,
+                subject: "Математика",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "Математика",
+                removedTeacherId: teacher.Id,
+                removedTeacherName: teacher.User.FullName,
+                removedNumberPair: 5,
+                note: "вм.5 п."
+            )
+        );
+
+        var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        outcome.History.Should().HaveCount(2);
+
+        var entries = _db
+            .ScheduleEntries.Where(e => e.Weeks.Contains(TestWeek))
+            .OrderBy(e => e.NumberPair)
+            .ToList();
+        entries.Should().HaveCount(2);
+        entries[0].NumberPair.Should().Be(3);
+        entries[0].Subject.Should().Be("Математика");
+        entries[0].Weeks.Should().Contain(TestWeek);
+        entries[1].NumberPair.Should().Be(5);
+        entries[1].Subject.Should().Be("Физика");
+        entries[1].Weeks.Should().Contain(TestWeek);
+    }
+
     [Fact]
     public async Task ExecuteBatchAsync_LegacyMovePosition_StillFreesSourcePair()
     {
