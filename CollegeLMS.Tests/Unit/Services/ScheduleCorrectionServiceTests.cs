@@ -2132,6 +2132,101 @@ public class ScheduleCorrectionServiceTests : IDisposable
         _db.ScheduleHistory.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// «вм.X п.сам/р.» — перенос с пометкой самостоятельной работы: пара сама
+    /// не встаёт, но занятие из «вм.X» снимается по-настоящему. Откат такой
+    /// записи обязан вернуть освобождённое занятие — иначе правка позиции или
+    /// отмена в журнале молча убирали пару из расписания навсегда (случай
+    /// «ИП 232, МДК.02.01, пара 3, неделя 6»).
+    /// </summary>
+    [Fact]
+    public async Task RevertHistoryAsync_InformationalMove_ReturnsFreedPairToItsNumber()
+    {
+        var group = await SeedGroupAsync();
+        var teacher = await SeedTeacherAsync();
+        var history = new ScheduleHistory
+        {
+            Id = Guid.NewGuid(),
+            ChangeType = ScheduleChangeType.Add,
+            AppliedAt = DateTime.UtcNow,
+            AppliedByUserId = Guid.NewGuid(),
+            GroupId = group.Id,
+            TeacherId = teacher.Id,
+            Subject = "Математика",
+            DayOfWeek = DayOfWeek.Tuesday,
+            NumberPair = 5,
+            Week = 6,
+            Note = "вм.3 п.сам/р.",
+            RemovedSubject = "Математика",
+            RemovedTeacherId = teacher.Id,
+            RemovedRoom = "303",
+            RemovedNumberPair = 3,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        // Пара «откуда» осталась в базе, но без этой недели: пара ушла в сам.р.
+        await SeedEntryAsync(group.Id, teacher.Id, "Математика", 3, [1, 2]);
+        _db.ScheduleHistory.Add(history);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RevertHistoryAsync(history.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ScheduleChanged.Should().BeTrue();
+        _db.ScheduleHistory.Should().BeEmpty();
+
+        var entries = await _db.ScheduleEntries.ToListAsync(CancellationToken.None);
+        entries.Should().ContainSingle();
+        entries[0].NumberPair.Should().Be(3);
+        entries[0].Subject.Should().Be("Математика");
+        entries[0].Room.Should().Be("303");
+        entries[0].Weeks.Should().BeEquivalentTo([1, 2, 6]);
+    }
+
+    /// <summary>
+    /// Тот же случай с заменой: «сам.р.» снимает занятие слота, но сама пара
+    /// не встаёт — откат возвращает снятое занятие в слот.
+    /// </summary>
+    [Fact]
+    public async Task RevertHistoryAsync_InformationalReplace_ReturnsFreedSlotLesson()
+    {
+        var group = await SeedGroupAsync();
+        var oldTeacher = await SeedTeacherAsync("Иванов И.И.", "old@collegelms.ru");
+        var newTeacher = await SeedTeacherAsync("Петров П.П.", "new@collegelms.ru");
+        var history = new ScheduleHistory
+        {
+            Id = Guid.NewGuid(),
+            ChangeType = ScheduleChangeType.Add,
+            AppliedAt = DateTime.UtcNow,
+            AppliedByUserId = Guid.NewGuid(),
+            GroupId = group.Id,
+            TeacherId = newTeacher.Id,
+            Subject = "Математика",
+            DayOfWeek = DayOfWeek.Tuesday,
+            NumberPair = 3,
+            Week = 6,
+            Note = "п.сам/р.",
+            RemovedSubject = "Физика",
+            RemovedTeacherId = oldTeacher.Id,
+            RemovedRoom = "303",
+            RemovedNumberPair = 3,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        await SeedEntryAsync(group.Id, oldTeacher.Id, "Физика", 3, [1, 2]);
+        _db.ScheduleHistory.Add(history);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.RevertHistoryAsync(history.Id, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var entries = await _db.ScheduleEntries.ToListAsync(CancellationToken.None);
+        entries.Should().ContainSingle();
+        entries[0].Subject.Should().Be("Физика");
+        entries[0].TeacherId.Should().Be(oldTeacher.Id);
+        entries[0].Weeks.Should().BeEquivalentTo([1, 2, 6]);
+    }
+
     [Fact]
     public async Task RevertHistoryAsync_MoveReturnsPairToTheOriginalNumber()
     {
