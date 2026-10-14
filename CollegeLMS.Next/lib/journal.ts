@@ -7,6 +7,8 @@
  * и мини-аппа MAX (`/max/journal`) — отличается только адрес.
  */
 
+import { isValidDate, parseIsoDate } from "@/api/schedule"
+
 /** Карточка журнала — пара «группа + предмет», поэтому ключ составной. */
 export function journalCardKey(group: {
   groupId: string
@@ -41,6 +43,54 @@ export interface JournalLink {
   teacherId?: string
   groupId?: string
   subject?: string
+}
+
+/** Число и месяц даты занятия — по частям, а не одной строкой «01.09». */
+export interface JournalDateParts {
+  day: string
+  month: string
+}
+
+/**
+ * Число и месяц даты занятия.
+ *
+ * Разбирается через `parseIsoDate`, а не `new Date`: бэкенд отдаёт метку
+ * времени с `Z`, и в отрицательном смещении такая дата съезжала на день
+ * назад. Пустые части — на случай мусора в deep-link, тогда строка
+ * собирается из одной подписи «—».
+ */
+export function journalDateParts(value: string): JournalDateParts {
+  const date = parseIsoDate(value)
+  if (!isValidDate(date)) return { day: "", month: "" }
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return { day: pad(date.getDate()), month: pad(date.getMonth() + 1) }
+}
+
+/**
+ * Дата словами — текстом для программы чтения с экрана.
+ *
+ * Плитка даты показывает число и месяц по отдельности, и без этой подписи
+ * они читались бы как два несвязанных числа.
+ */
+export function journalDateLabel(value: string): string {
+  const date = parseIsoDate(value)
+  if (!isValidDate(date)) return ""
+  return date.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+}
+
+/**
+ * Номера пар дня: подряд идущие пары должны быть видны номерами, а не
+ * прятаться за счётчиком. Словарь общий для веба и MAX — строка журнала
+ * одна и та же, различается только подача.
+ */
+export function formatPairs(numbers: number[]): string {
+  if (numbers.length === 0) return "Пар нет"
+  if (numbers.length === 1) return `Пара ${numbers[0]}`
+  return `Пары ${numbers.join(", ")}`
 }
 
 /** Разбирает query-ссылку на журнал (из веба или из мини-аппа MAX). */

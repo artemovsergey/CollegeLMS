@@ -816,6 +816,51 @@
   margin-top: 4px;
 }
 
+/* Строка журнала: значимо только число дня.
+   Примитив `CellSimple` по умолчанию набирает заголовок ячейки крупно и с
+   весом 500 — для журнала это ровно тот элемент, который выравнивается по
+   верху, поэтому подзаголовок ячейки приглушается до вторичного текста.
+   Селектор с `.max-app` — как у остальных переопределений MaxUI в этом
+   файле: класс примитива лежит внутри `.max-app`, иначе правило оказалось
+   бы одной специфичности с ним и зависело от порядка подключения. */
+.max-app__journal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 36px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.max-app__journal-day-num {
+  font-size: var(--size-headline-large);
+  font-weight: 600;
+  color: var(--color-fg);
+}
+
+.max-app__journal-day-month {
+  font-size: var(--size-caption-2);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.max-app .max-app__journal-meta {
+  font-size: var(--size-title-small);
+  font-weight: 400;
+  line-height: var(--height-title-small);
+  letter-spacing: var(--letter-spacing-title-small);
+  color: var(--color-text-muted);
+}
+
+.max-app__journal-pairs {
+  font-size: var(--size-title-small);
+  line-height: var(--height-title-small);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .max-schedule__subtitle-wrap {
   display: flex;
   flex-direction: column;

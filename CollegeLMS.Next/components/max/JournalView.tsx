@@ -20,7 +20,13 @@ import {
 import { fetchJournal } from "@/api/schedule"
 import type { JournalResponse, JournalSubjectGroup } from "@/api/schedule"
 import { useMaxContext } from "@/lib/max-context"
-import { journalCardKey, parseJournalLink } from "@/lib/journal"
+import {
+  formatPairs,
+  journalCardKey,
+  journalDateLabel,
+  journalDateParts,
+  parseJournalLink,
+} from "@/lib/journal"
 import { dayLabelFromInt } from "@/lib/max-lesson"
 import ScheduleError from "@/components/max/ScheduleError"
 import ScheduleEmpty from "@/components/max/ScheduleEmpty"
@@ -45,17 +51,28 @@ const CHANGE_BADGE: Record<
   },
 }
 
-function formatDate(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })
-}
-
-// Номера пар дня: подряд идущие пары должны быть видны, а не прятаться за счётчиком.
-function formatPairs(numbers: number[]): string {
-  if (numbers.length === 0) return "Пар нет"
-  if (numbers.length === 1) return `Пара ${numbers[0]}`
-  return `Пары ${numbers.join(", ")}`
+/**
+ * Плитка даты занятия.
+ *
+ * Число дня — единственное, что в строке журнала действительно значимо:
+ * список за месяц читается сверху вниз и именно по нему. Поэтому число
+ * набрано крупно и основным цветом, а месяц уходит под него подписью.
+ * День недели, номер недели и номера пар живут рядом в одну
+ * второстепенную строку — их достаточно различить, а не выделять.
+ */
+function JournalDayTile({ date }: { date: string }) {
+  const { day, month } = journalDateParts(date)
+  return (
+    <span className="max-app__journal-day">
+      <span className="sr-only">{journalDateLabel(date)}</span>
+      <span className="max-app__journal-day-num" aria-hidden>
+        {day || "—"}
+      </span>
+      <span className="max-app__journal-day-month" aria-hidden>
+        {month}
+      </span>
+    </span>
+  )
 }
 
 function JournalBadges({ types }: { types: string[] }) {
@@ -298,17 +315,14 @@ export default function JournalView() {
                   <CellSimple
                     key={`${subjectGroup.subject}:${entry.week}:${entry.dayOfWeek}`}
                     separator
-                    title={`Неделя ${entry.week} · ${dayLabelFromInt(entry.dayOfWeek)}`}
-                    subtitle={
-                      <span className="max-schedule__subtitle-wrap">
-                        <span className="max-app__note">
-                          {formatDate(entry.date)}
-                        </span>
-                        <JournalBadges types={entry.changeTypes ?? []} />
-                      </span>
-                    }
+                    before={<JournalDayTile date={entry.date} />}
+                    innerClassNames={{ title: "max-app__journal-meta" }}
+                    title={`${dayLabelFromInt(entry.dayOfWeek)} · Неделя ${entry.week}`}
+                    subtitle={<JournalBadges types={entry.changeTypes ?? []} />}
                     after={
-                      <Typography.Body>{formatPairs(entry.numberPairs)}</Typography.Body>
+                      <span className="max-app__journal-pairs">
+                        {formatPairs(entry.numberPairs)}
+                      </span>
                     }
                   />
                 ))}
