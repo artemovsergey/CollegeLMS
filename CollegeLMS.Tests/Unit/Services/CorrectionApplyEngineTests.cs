@@ -512,8 +512,9 @@ public class CorrectionApplyEngineTests : IDisposable
     }
 
     /// <summary>
-    /// Перенос самостоятельной работы, когда в паре «откуда» стоит другое
-    /// занятие: трогать его нельзя, ведь переносили пометку, а не эту пару.
+    /// Перенос с пометкой самостоятельной работы, когда в паре «откуда» стоит
+    /// другое занятие: трогать его нельзя, ведь переносили другое занятие. Пара
+    /// «куда» встаёт с бейджем — она не новая, она перенесённая.
     /// </summary>
     [Fact]
     public async Task ExecuteBatchAsync_MoveSelfStudy_KeepsUnrelatedLessonInSourcePair()
@@ -541,14 +542,14 @@ public class CorrectionApplyEngineTests : IDisposable
         var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
         await _db.SaveChangesAsync();
 
-        // Пара 3 осталась целой: её занятие к сам.р. отношения не имеет.
+        // Пара 3 осталась целой: её занятие к переносу отношения не имеет.
         _db.ScheduleEntries.Should()
             .ContainSingle(e => e.NumberPair == 3 && e.Subject == "Физкультура")
             .Which.Weeks.Should()
             .Contain(TestWeek);
 
-        // Сам.р. осталась пометкой в журнале, в расписание не встала.
-        _db.ScheduleEntries.Should().NotContain(e => e.Subject == "МДК.05.02");
+        // Пара «куда» осталась в расписании с пометкой самостоятельной работы.
+        _db.ScheduleEntries.Should().ContainSingle(e => e.NumberPair == 4);
         outcome.History.Should().ContainSingle();
     }
 
@@ -936,10 +937,12 @@ public class CorrectionApplyEngineTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteBatchAsync_InformationalNoteWithMovePair_FreesSourcePair()
+    public async Task ExecuteBatchAsync_InformationalNoteWithMovePair_MovesThePair()
     {
-        // «сам.р» вместе с «вм.X»: освобождается пара «откуда», а в выбранную
-        // пара не встаёт — только пометка.
+        // «вм.X п.сам/р.»: пара не новая, она перенесена из «откуда», поэтому
+        // остаётся в расписании — с бейджем самостоятельной работы. Раньше она
+        // уносилась из «откуда» и не вставала никуда, и в группе на этот день
+        // не оставалось ничего.
         var group = await SeedGroupAsync();
         var teacher = await SeedTeacherAsync();
         await SeedEntryAsync(group.Id, teacher.Id, "Математика", 5, TestWeek);
@@ -960,16 +963,33 @@ public class CorrectionApplyEngineTests : IDisposable
             )
         );
 
-        await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
         await _db.SaveChangesAsync();
 
-        _db.ScheduleEntries.Should().BeEmpty();
+        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
+        entry.NumberPair.Should().Be(3);
+        entry.Subject.Should().Be("Математика");
+        entry.Weeks.Should().Contain(TestWeek);
 
         var history = _db.ScheduleHistory.Should().ContainSingle().Subject;
         history.ChangeType.Should().Be(ScheduleChangeType.Add);
         history.NumberPair.Should().Be(3);
         history.RemovedNumberPair.Should().Be(5);
         history.RemovedSubject.Should().Be("Математика");
+        // Бейдж «Сам.р.» в карточке дня и в журнале берётся из примечания.
+        history.Note.Should().Be("сам.р. вм.5 п.");
+
+        // Пара «куда» видна в карточке дня как обычная пара, а не как пометка.
+        var effective = await _sut.BuildEffectiveEntriesAsync(
+            group.Id,
+            DayOfWeek.Tuesday,
+            TestWeek,
+            batch.Id,
+            CancellationToken.None
+        );
+        var moved = effective.Should().ContainSingle(e => e.NumberPair == 3).Subject;
+        moved.Informational.Should().BeFalse();
+        outcome.Changes.Should().ContainSingle();
     }
 
     [Fact]
