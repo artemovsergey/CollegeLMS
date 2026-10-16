@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import type { Result, LessonResponse } from "@/types"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -108,7 +109,9 @@ export default function LessonForm({ courseId, lesson }: LessonFormProps) {
         {mode === "preview" ? (
           <div className="min-h-40 max-h-96 overflow-y-auto rounded-md border bg-muted/40 p-4">
             <div className="prose prose-narrow">
-              <ReactMarkdown>{content || "Введите текст для предпросмотра"}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {content || "Введите текст для предпросмотра"}
+              </ReactMarkdown>
             </div>
           </div>
         ) : (

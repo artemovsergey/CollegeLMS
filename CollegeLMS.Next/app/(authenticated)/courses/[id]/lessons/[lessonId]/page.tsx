@@ -4,6 +4,7 @@ import { PageTitle } from "@/components/ui/heading"
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import type {
   Result,
   LessonResponse,
@@ -556,7 +557,7 @@ export default function LessonViewPage() {
 
       <div className="rounded-lg border bg-card p-6">
         <div className="prose prose-narrow">
-          <ReactMarkdown>{lesson.content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
         </div>
       </div>
 
