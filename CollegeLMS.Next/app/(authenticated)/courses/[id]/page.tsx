@@ -7,6 +7,7 @@ import type { Result, CourseResponse, LessonResponse, MaterialResponse, CourseGr
 import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
+import { Container } from "@/components/ui/page-shell"
 import { Badge } from "@/components/ui/badge"
 import { roleLabels, roleVariants } from "@/lib/constants"
 import ErrorBanner from "@/components/ErrorBanner"
@@ -199,16 +200,16 @@ export default function CourseDetailPage() {
   )
   if (error) {
     return (
-      <div className="flex flex-col gap-4 p-6 max-w-5xl mx-auto">
+      <Container density="comfortable" className="flex flex-col gap-4 py-6">
         <ErrorBanner message={error} />
         <Button variant="ghost" onClick={() => router.push("/courses")}>Назад к курсам</Button>
-      </div>
+      </Container>
     )
   }
   if (!course) return null
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
+    <Container density="comfortable" className="flex flex-col gap-6 py-6">
 
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-1">
@@ -370,6 +371,6 @@ export default function CourseDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Container>
   )
 }

@@ -22,6 +22,7 @@ import api from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { parseErrors } from "@/lib/errors"
 import { Button } from "@/components/ui/button"
+import { Container } from "@/components/ui/page-shell"
 import { Badge } from "@/components/ui/badge"
 import ErrorBanner from "@/components/ErrorBanner"
 import LoadingSpinner from "@/components/LoadingSpinner"
@@ -368,16 +369,16 @@ export default function LessonViewPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col gap-4 p-6 max-w-3xl mx-auto">
+      <Container density="comfortable" className="flex flex-col gap-4 py-6">
         <ErrorBanner message={error} />
         <Button variant="ghost" onClick={() => router.push(`/courses/${courseId}`)}>Назад к курсу</Button>
-      </div>
+      </Container>
     )
   }
   if (!lesson) return null
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
+    <Container density="comfortable" className="flex flex-col gap-6 py-6">
 
       <Button variant="ghost" size="sm" className="self-start" onClick={() => router.push(`/courses/${courseId}`)}>
         &larr; Назад к курсу
@@ -804,6 +805,6 @@ export default function LessonViewPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </Container>
   )
 }
