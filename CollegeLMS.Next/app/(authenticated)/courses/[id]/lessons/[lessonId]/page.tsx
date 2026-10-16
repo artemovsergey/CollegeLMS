@@ -557,7 +557,7 @@ export default function LessonViewPage() {
       )}
 
       <div className="rounded-lg border bg-card p-6">
-        <div className="prose prose-narrow">
+        <div className="prose prose-narrow prose-lesson">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
         </div>
       </div>

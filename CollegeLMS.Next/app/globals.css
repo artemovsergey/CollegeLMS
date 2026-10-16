@@ -356,6 +356,13 @@ option:checked {
   @apply rounded-lg max-h-96 w-full object-cover my-4;
 }
 
+/* Лекции: скриншоты телефонов вертикальные, а `object-cover` в `.prose img`
+   срезает такой снимок до полосы в 384px — в лекции остаётся только верх
+   экрана. Поэтому картинка вписывается по высоте целиком и по центру. */
+.prose-lesson img {
+  @apply mx-auto max-h-[70vh] w-auto max-w-full object-contain;
+}
+
 .prose a {
   @apply text-accent no-underline hover:underline;
 }
