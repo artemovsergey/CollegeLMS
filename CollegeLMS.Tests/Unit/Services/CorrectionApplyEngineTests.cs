@@ -1301,12 +1301,12 @@ public class CorrectionApplyEngineTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteBatchAsync_SlashTeacher_ResolvesFirstKnownTeacher()
+    public async Task ExecuteBatchAsync_SlashTeacher_CreatesEntryForEachTeacher()
     {
         var group = await SeedGroupAsync();
         var removedTeacher = await SeedTeacherAsync("Кобзаренко Л.Н.");
         var firstVariantTeacher = await SeedTeacherAsync("Кривцова С.Н.");
-        await SeedTeacherAsync("Степаненко А.В.");
+        var secondVariantTeacher = await SeedTeacherAsync("Степаненко А.В.");
         await SeedEntryAsync(group.Id, removedTeacher.Id, "ЭкономОтр.", 4, TestWeek);
         var batch = await SeedBatchAsync(
             group,
@@ -1329,7 +1329,96 @@ public class CorrectionApplyEngineTests : IDisposable
         await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
         await _db.SaveChangesAsync();
 
-        var entry = _db.ScheduleEntries.Should().ContainSingle().Subject;
-        entry.TeacherId.Should().Be(firstVariantTeacher.Id);
+        var entries = _db.ScheduleEntries.Where(e => e.NumberPair == 4).ToList();
+        entries.Should().HaveCount(2);
+        entries
+            .Select(e => e.TeacherId)
+            .Should()
+            .BeEquivalentTo([firstVariantTeacher.Id, secondVariantTeacher.Id]);
+        _db.ScheduleHistory.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task ExecuteBatchAsync_AddSlashTeacher_CreatesEntryForEachTeacher()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Кривцова С.Н.");
+        var second = await SeedTeacherAsync("Степаненко А.В.");
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                1,
+                subject: "Ин.язык",
+                teacherId: first.Id,
+                teacherName: $"{first.User.FullName}/{second.User.FullName}"
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        errors.Should().BeEmpty();
+
+        var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        var entries = _db.ScheduleEntries.Where(e => e.NumberPair == 1).ToList();
+        entries.Should().HaveCount(2);
+        entries.Select(e => e.TeacherId).Should().BeEquivalentTo([first.Id, second.Id]);
+        entries.Should().OnlyContain(e => e.Subject == "Ин.язык");
+
+        outcome.History.Should().HaveCount(2);
+        outcome.Changes.Should().HaveCount(2);
+        _db.ScheduleHistory.Should().HaveCount(2);
+    }
+
+    /// <summary>
+    /// Перенос составной пары: «вм.5» с парой Кривцова/Степаненко убирает обе
+    /// половины из старого слота и создаёт обе в новом — иначе вторая остаётся на
+    /// старом месте, а в журнале не появляется.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBatchAsync_MoveSlashTeacher_MovesBothTeachers()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Кривцова С.Н.");
+        var second = await SeedTeacherAsync("Степаненко А.В.");
+        await SeedEntryAsync(group.Id, first.Id, "Ин.язык", 5, TestWeek);
+        await SeedEntryAsync(group.Id, second.Id, "Ин.язык", 5, TestWeek);
+        var teacherName = $"{first.User.FullName}/{second.User.FullName}";
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                1,
+                subject: "Ин.язык",
+                teacherId: first.Id,
+                teacherName: teacherName,
+                removedSubject: "Ин.язык",
+                removedTeacherId: first.Id,
+                removedTeacherName: teacherName,
+                removedNumberPair: 5,
+                note: "вм.5 п."
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        errors.Should().BeEmpty();
+
+        var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        _db.ScheduleEntries.Where(e => e.NumberPair == 5).Should().BeEmpty();
+
+        var moved = _db.ScheduleEntries.Where(e => e.NumberPair == 1).ToList();
+        moved.Should().HaveCount(2);
+        moved.Select(e => e.TeacherId).Should().BeEquivalentTo([first.Id, second.Id]);
+
+        outcome.History.Should().HaveCount(2);
+        outcome.History.Should().OnlyContain(h => h.NumberPair == 1 && h.RemovedNumberPair == 5);
+        outcome.Changes.Should().HaveCount(2);
     }
 }

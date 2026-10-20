@@ -385,6 +385,13 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             }
 
             var teacherName = ResolveTeacherName(teacherId, position.TeacherName, teachersById);
+            var incomingTeachers = ResolveIncomingTeachers(
+                teacherId,
+                position.TeacherName,
+                teachersByName,
+                teachersBySurname,
+                teachersById
+            );
             var removedTeacherName = ResolveTeacherName(
                 removedTeacherId,
                 position.RemovedTeacherName,
@@ -426,24 +433,26 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                     // этот день не оставалось ничего.
                     var informationalOnly = informational && !movePair.HasValue;
 
-                    var entry = new SimulatedEntry
-                    {
-                        GroupId = group.Id,
-                        GroupName = group.Name,
-                        DayOfWeek = day,
-                        Week = position.Week,
-                        NumberPair = position.NumberPair,
-                        Subject = ScheduleImportService.NormalizeSubject(
-                            position.Subject ?? string.Empty
-                        ),
-                        Room = string.Empty,
-                        TeacherId = teacherId,
-                        TeacherName = teacherName,
-                        Note = position.Note,
-                        IsSelfStudy = IsSelfStudyNote(position.Note),
-                        Informational = informational,
-                        PendingChangeType = nameof(ScheduleChangeType.Add),
-                    };
+                    var addEntries = incomingTeachers
+                        .Select(t => new SimulatedEntry
+                        {
+                            GroupId = group.Id,
+                            GroupName = group.Name,
+                            DayOfWeek = day,
+                            Week = position.Week,
+                            NumberPair = position.NumberPair,
+                            Subject = ScheduleImportService.NormalizeSubject(
+                                position.Subject ?? string.Empty
+                            ),
+                            Room = string.Empty,
+                            TeacherId = t.Id,
+                            TeacherName = t.Name,
+                            Note = position.Note,
+                            IsSelfStudy = IsSelfStudyNote(position.Note),
+                            Informational = informational,
+                            PendingChangeType = nameof(ScheduleChangeType.Add),
+                        })
+                        .ToList();
 
                     if (freesSlot || movePair.HasValue)
                     {
@@ -459,28 +468,27 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                             movePair,
                             freesSlot,
                             strictMove: true,
+                            addEntries: addEntries,
                             addEntry: !informationalOnly,
                             execute,
                             utcNow,
                             correctionDate,
                             appliedByUserId,
                             bellByDay,
-                            result,
-                            entry
+                            result
                         );
                         break;
                     }
 
                     if (informationalOnly)
                     {
-                        result.InformationalEntries.Add(entry);
+                        result.InformationalEntries.AddRange(addEntries);
 
                         if (execute)
-                            AddInformationalChange(
+                            AddInformationalChanges(
                                 position,
                                 group,
-                                entry,
-                                teacherId,
+                                addEntries,
                                 utcNow,
                                 correctionDate,
                                 appliedByUserId,
@@ -490,47 +498,52 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                         break;
                     }
 
-                    list.Add(entry);
+                    list.AddRange(addEntries);
 
                     if (execute)
                     {
-                        var entity = CreateEntity(entry, utcNow, bellByDay);
-                        entry.Entity = entity;
-                        db.ScheduleEntries.Add(entity);
+                        var isFirst = true;
+                        foreach (var entry in addEntries)
+                        {
+                            var entity = CreateEntity(entry, utcNow, bellByDay);
+                            entry.Entity = entity;
+                            db.ScheduleEntries.Add(entity);
 
-                        var history = BuildHistory(
-                            position,
-                            ScheduleChangeType.Add,
-                            entry.Subject,
-                            teacherId,
-                            entity.Room,
-                            entry.NumberPair,
-                            null,
-                            null,
-                            null,
-                            null,
-                            utcNow,
-                            appliedByUserId
-                        );
-                        ApplyHistory(position, history, result);
+                            var history = BuildHistory(
+                                position,
+                                ScheduleChangeType.Add,
+                                entry.Subject,
+                                entry.TeacherId,
+                                entity.Room,
+                                entry.NumberPair,
+                                null,
+                                null,
+                                null,
+                                null,
+                                utcNow,
+                                appliedByUserId
+                            );
+                            ApplyOrAppendHistory(position, history, isFirst, result);
+                            isFirst = false;
 
-                        result.Changes.Add(
-                            new ScheduleChangeDto
-                            {
-                                Id = history.Id,
-                                ChangeType = nameof(ScheduleChangeType.Add),
-                                GroupId = group.Id,
-                                GroupName = group.Name,
-                                TeacherId = teacherId,
-                                TeacherName = teacherName,
-                                DayOfWeek = position.DayOfWeek,
-                                Week = position.Week,
-                                NumberPair = entry.NumberPair,
-                                Subject = entry.Subject,
-                                Note = position.Note,
-                                CorrectionDate = correctionDate,
-                            }
-                        );
+                            result.Changes.Add(
+                                new ScheduleChangeDto
+                                {
+                                    Id = history.Id,
+                                    ChangeType = nameof(ScheduleChangeType.Add),
+                                    GroupId = group.Id,
+                                    GroupName = group.Name,
+                                    TeacherId = entry.TeacherId,
+                                    TeacherName = entry.TeacherName,
+                                    DayOfWeek = position.DayOfWeek,
+                                    Week = position.Week,
+                                    NumberPair = entry.NumberPair,
+                                    Subject = entry.Subject,
+                                    Note = position.Note,
+                                    CorrectionDate = correctionDate,
+                                }
+                            );
+                        }
                     }
                     break;
                 }
@@ -654,6 +667,26 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                             ? oldPair
                         : (int?)null;
 
+                    var addEntries = incomingTeachers
+                        .Select(t => new SimulatedEntry
+                        {
+                            GroupId = group.Id,
+                            GroupName = group.Name,
+                            DayOfWeek = day,
+                            Week = position.Week,
+                            NumberPair = position.NumberPair,
+                            Subject = ScheduleImportService.NormalizeSubject(
+                                position.Subject ?? string.Empty
+                            ),
+                            Room = string.Empty,
+                            TeacherId = t.Id,
+                            TeacherName = t.Name,
+                            Note = position.Note,
+                            IsSelfStudy = IsSelfStudyNote(position.Note),
+                            PendingChangeType = nameof(ScheduleChangeType.Add),
+                        })
+                        .ToList();
+
                     ApplyAddWithFrees(
                         position,
                         group,
@@ -666,14 +699,14 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                         legacyMovePair,
                         freesSlot: !isMove,
                         strictMove: false,
+                        addEntries: addEntries,
                         addEntry: true,
                         execute,
                         utcNow,
                         correctionDate,
                         appliedByUserId,
                         bellByDay,
-                        result,
-                        entry: null
+                        result
                     );
                     break;
                 }
@@ -726,14 +759,14 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
         int? movePair,
         bool freesSlot,
         bool strictMove,
+        IReadOnlyList<SimulatedEntry> addEntries,
         bool addEntry,
         bool execute,
         DateTime utcNow,
         DateTime? correctionDate,
         Guid appliedByUserId,
         Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>> bellByDay,
-        SimulationResult result,
-        SimulatedEntry? entry
+        SimulationResult result
     )
     {
         SimulatedEntry? slotSource = null;
@@ -804,6 +837,17 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                 )
                 : FindEntry(list, from, position.Subject, teacherId, position.TeacherName);
 
+            // Составная пара: если первая половина в паре «откуда» не нашлась,
+            // ищем занятие по любому из преподавателей через слеш.
+            if (
+                movedSource is null
+                && addEntries.Count > 1
+                && !string.IsNullOrWhiteSpace(position.TeacherName)
+            )
+                movedSource = strictMove
+                    ? FindStrictEntry(list, from, position.Subject, null, position.TeacherName)
+                    : FindEntry(list, from, position.Subject, null, position.TeacherName);
+
             if (movedSource is null && !selfStudy)
             {
                 result.Errors.Add(
@@ -819,109 +863,158 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             }
         }
 
-        if (slotSource is not null)
+        // Составная пара снимается целиком: в паре «откуда» у каждого
+        // преподавателя своя половина занятия.
+        var slotSources = slotSource is null ? [] : CompositePair(list, slotSource);
+        var movedSources = movedSource is null ? [] : CompositePair(list, movedSource);
+
+        foreach (var item in slotSources)
         {
-            slotSource.Removed = true;
-            slotSource.PendingChangeType = nameof(ScheduleChangeType.Add);
-            if (execute && slotSource.Entity is not null)
-                RemoveWeekOrDelete(slotSource.Entity, position.Week, utcNow);
+            item.Removed = true;
+            item.PendingChangeType = nameof(ScheduleChangeType.Add);
+            if (execute && item.Entity is not null)
+                RemoveWeekOrDelete(item.Entity, position.Week, utcNow);
         }
 
-        if (movedSource is not null)
+        foreach (var item in movedSources)
         {
-            movedSource.Removed = true;
-            movedSource.PendingChangeType = nameof(ScheduleChangeType.Remove);
-            if (execute && movedSource.Entity is not null)
-                RemoveWeekOrDelete(movedSource.Entity, position.Week, utcNow);
+            item.Removed = true;
+            item.PendingChangeType = nameof(ScheduleChangeType.Remove);
+            if (execute && item.Entity is not null)
+                RemoveWeekOrDelete(item.Entity, position.Week, utcNow);
         }
-
-        entry ??= new SimulatedEntry
-        {
-            GroupId = group.Id,
-            GroupName = group.Name,
-            DayOfWeek = day,
-            Week = position.Week,
-            NumberPair = position.NumberPair,
-            Subject = ScheduleImportService.NormalizeSubject(position.Subject ?? string.Empty),
-            Room = string.Empty,
-            TeacherId = teacherId,
-            TeacherName = teacherName,
-            Note = position.Note,
-            IsSelfStudy = IsSelfStudyNote(position.Note),
-            PendingChangeType = nameof(ScheduleChangeType.Add),
-        };
 
         // Пара «только для информирования» в расписание не встаёт: показываем
         // её пометкой, но снимаемые занятия (замена, перенос) при этом
         // освобождаются по-настоящему.
         if (addEntry)
-            list.Add(entry);
+            list.AddRange(addEntries);
         else
-            result.InformationalEntries.Add(entry);
+            result.InformationalEntries.AddRange(addEntries);
 
         if (!execute)
             return;
 
-        ScheduleEntry? entity = null;
-        if (addEntry)
+        var isFirst = true;
+        foreach (var entry in addEntries)
         {
-            entity = CreateEntity(entry, utcNow, bellByDay);
-            entry.Entity = entity;
-            db.ScheduleEntries.Add(entity);
+            ScheduleEntry? entity = null;
+            if (addEntry)
+            {
+                entity = CreateEntity(entry, utcNow, bellByDay);
+                entry.Entity = entity;
+                db.ScheduleEntries.Add(entity);
+            }
+
+            // В журнал идёт запись «добавлено» на каждого преподавателя: что
+            // снято в паре назначения и откуда пришёл перенос — её поля Removed*.
+            var freed =
+                MatchFreedSource(slotSources, entry) ?? MatchFreedSource(movedSources, entry);
+            var history = BuildHistory(
+                position,
+                ScheduleChangeType.Add,
+                entry.Subject,
+                entry.TeacherId,
+                entity?.Room ?? string.Empty,
+                entry.NumberPair,
+                freed?.Subject,
+                freed?.TeacherId,
+                freed?.Room,
+                freed?.NumberPair,
+                utcNow,
+                appliedByUserId
+            );
+            ApplyOrAppendHistory(position, history, isFirst, result);
+            isFirst = false;
+
+            result.Changes.Add(
+                new ScheduleChangeDto
+                {
+                    Id = history.Id,
+                    ChangeType = nameof(ScheduleChangeType.Add),
+                    GroupId = group.Id,
+                    GroupName = group.Name,
+                    TeacherId = entry.TeacherId,
+                    TeacherName = entry.TeacherName,
+                    DayOfWeek = position.DayOfWeek,
+                    Week = position.Week,
+                    NumberPair = entry.NumberPair,
+                    Subject = entry.Subject,
+                    Note = position.Note,
+                    RemovedSubject = freed?.Subject,
+                    RemovedTeacherName = freed?.TeacherName,
+                    RemovedNumberPair = freed?.NumberPair,
+                    CorrectionDate = correctionDate,
+                }
+            );
         }
 
-        // В журнал идёт одна запись «добавлено»: что снято в паре назначения и
-        // откуда пришёл перенос — её поля Removed*.
-        var freed = slotSource ?? movedSource;
-        var history = BuildHistory(
-            position,
-            ScheduleChangeType.Add,
-            entry.Subject,
-            teacherId,
-            entity?.Room ?? string.Empty,
-            entry.NumberPair,
-            freed?.Subject,
-            freed?.TeacherId,
-            freed?.Room,
-            freed?.NumberPair,
-            utcNow,
-            appliedByUserId
-        );
-        ApplyHistory(position, history, result);
-
-        result.Changes.Add(
-            new ScheduleChangeDto
-            {
-                Id = history.Id,
-                ChangeType = nameof(ScheduleChangeType.Add),
-                GroupId = group.Id,
-                GroupName = group.Name,
-                TeacherId = teacherId,
-                TeacherName = teacherName,
-                DayOfWeek = position.DayOfWeek,
-                Week = position.Week,
-                NumberPair = entry.NumberPair,
-                Subject = entry.Subject,
-                Note = position.Note,
-                RemovedSubject = freed?.Subject,
-                RemovedTeacherName = freed?.TeacherName,
-                RemovedNumberPair = freed?.NumberPair,
-                CorrectionDate = correctionDate,
-            }
-        );
-
-        // Замена с переносом даёт вторую запись: занятие уходит из пары
-        // «откуда». При простом переносе хватает первой — в ней уже записано,
-        // что освободилось.
-        if (movedSource is not null && slotSource is not null)
+        // Замена с переносом даёт вторую запись на каждого преподавателя
+        // пары «откуда»: занятие уходит из старого слота. При простом переносе
+        // хватает записей «добавлено» — в них уже записано, что освободилось.
+        if (movedSources.Count > 0 && slotSources.Count > 0)
         {
-            var removeHistory = BuildHistory(
+            foreach (var moved in movedSources)
+            {
+                var removeHistory = BuildHistory(
+                    position,
+                    ScheduleChangeType.Remove,
+                    moved.Subject,
+                    moved.TeacherId,
+                    moved.Room,
+                    moved.NumberPair,
+                    null,
+                    null,
+                    null,
+                    null,
+                    utcNow,
+                    appliedByUserId
+                );
+                db.ScheduleHistory.Add(removeHistory);
+                result.History.Add(removeHistory);
+
+                result.Changes.Add(
+                    new ScheduleChangeDto
+                    {
+                        Id = removeHistory.Id,
+                        ChangeType = nameof(ScheduleChangeType.Remove),
+                        GroupId = group.Id,
+                        GroupName = group.Name,
+                        TeacherId = moved.TeacherId,
+                        TeacherName = moved.TeacherName,
+                        DayOfWeek = position.DayOfWeek,
+                        Week = position.Week,
+                        NumberPair = moved.NumberPair,
+                        Subject = moved.Subject,
+                        Note = position.Note,
+                        CorrectionDate = correctionDate,
+                    }
+                );
+            }
+        }
+    }
+
+    /// <summary>Запись журнала и уведомление для пары «только для информирования».</summary>
+    private void AddInformationalChanges(
+        CorrectionPosition position,
+        Group group,
+        IReadOnlyList<SimulatedEntry> entries,
+        DateTime utcNow,
+        DateTime? correctionDate,
+        Guid appliedByUserId,
+        SimulationResult result
+    )
+    {
+        var isFirst = true;
+        foreach (var entry in entries)
+        {
+            var history = BuildHistory(
                 position,
-                ScheduleChangeType.Remove,
-                movedSource.Subject,
-                movedSource.TeacherId,
-                movedSource.Room,
-                movedSource.NumberPair,
+                ScheduleChangeType.Add,
+                entry.Subject,
+                entry.TeacherId,
+                entry.Room,
+                entry.NumberPair,
                 null,
                 null,
                 null,
@@ -929,74 +1022,27 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                 utcNow,
                 appliedByUserId
             );
-            db.ScheduleHistory.Add(removeHistory);
-            result.History.Add(removeHistory);
+            ApplyOrAppendHistory(position, history, isFirst, result);
+            isFirst = false;
 
             result.Changes.Add(
                 new ScheduleChangeDto
                 {
-                    Id = removeHistory.Id,
-                    ChangeType = nameof(ScheduleChangeType.Remove),
+                    Id = history.Id,
+                    ChangeType = nameof(ScheduleChangeType.Add),
                     GroupId = group.Id,
                     GroupName = group.Name,
-                    TeacherId = movedSource.TeacherId,
-                    TeacherName = movedSource.TeacherName,
+                    TeacherId = entry.TeacherId,
+                    TeacherName = entry.TeacherName,
                     DayOfWeek = position.DayOfWeek,
                     Week = position.Week,
-                    NumberPair = movedSource.NumberPair,
-                    Subject = movedSource.Subject,
+                    NumberPair = entry.NumberPair,
+                    Subject = entry.Subject,
                     Note = position.Note,
                     CorrectionDate = correctionDate,
                 }
             );
         }
-    }
-
-    /// <summary>Запись журнала и уведомление для пары «только для информирования».</summary>
-    private void AddInformationalChange(
-        CorrectionPosition position,
-        Group group,
-        SimulatedEntry entry,
-        Guid? teacherId,
-        DateTime utcNow,
-        DateTime? correctionDate,
-        Guid appliedByUserId,
-        SimulationResult result
-    )
-    {
-        var history = BuildHistory(
-            position,
-            ScheduleChangeType.Add,
-            entry.Subject,
-            teacherId,
-            entry.Room,
-            entry.NumberPair,
-            null,
-            null,
-            null,
-            null,
-            utcNow,
-            appliedByUserId
-        );
-        ApplyHistory(position, history, result);
-
-        result.Changes.Add(
-            new ScheduleChangeDto
-            {
-                Id = history.Id,
-                ChangeType = nameof(ScheduleChangeType.Add),
-                GroupId = group.Id,
-                GroupName = group.Name,
-                TeacherId = teacherId,
-                TeacherName = entry.TeacherName,
-                DayOfWeek = position.DayOfWeek,
-                Week = position.Week,
-                NumberPair = entry.NumberPair,
-                Subject = entry.Subject,
-                Note = position.Note,
-                CorrectionDate = correctionDate,
-            }
-        );
     }
 
     private void ApplyHistory(
@@ -1010,6 +1056,27 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
         position.Status = CorrectionPositionStatus.Applied;
         position.HistoryId = history.Id;
         position.UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Первая запись журнала позиции — та, по которой позиция откатывается;
+    /// остальные (составная пара) добавляются в журнал и ленту как обычные.
+    /// </summary>
+    private void ApplyOrAppendHistory(
+        CorrectionPosition position,
+        ScheduleHistory history,
+        bool isFirst,
+        SimulationResult result
+    )
+    {
+        if (isFirst)
+        {
+            ApplyHistory(position, history, result);
+            return;
+        }
+
+        db.ScheduleHistory.Add(history);
+        result.History.Add(history);
     }
 
     private static ScheduleHistory BuildHistory(
@@ -1070,6 +1137,18 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             )
             .ToList();
     }
+
+    /// <summary>
+    /// Снятая половина составной пары для конкретного преподавателя: сначала
+    /// совпадение по TeacherId, иначе первая свободная.
+    /// </summary>
+    private static SimulatedEntry? MatchFreedSource(
+        IReadOnlyList<SimulatedEntry> sources,
+        SimulatedEntry entry
+    ) =>
+        sources.FirstOrDefault(s =>
+            entry.TeacherId.HasValue && s.TeacherId == entry.TeacherId.Value
+        ) ?? sources.FirstOrDefault();
 
     private static SimulatedEntry? FindEntry(
         List<SimulatedEntry> list,
@@ -1170,6 +1249,57 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             ? null
             : ScheduleImportService.NormalizeTeacherName(fallbackName);
     }
+
+    /// <summary>
+    /// Все преподаватели вводимого занятия: «Кривцова/Степаненко» — две записи,
+    /// чтобы пара появилась в расписании и в журнале у каждого.
+    /// </summary>
+    private static List<IncomingTeacher> ResolveIncomingTeachers(
+        Guid? teacherId,
+        string? teacherName,
+        IReadOnlyDictionary<string, Guid> byFullName,
+        IReadOnlyDictionary<string, List<Guid>> bySurname,
+        IReadOnlyDictionary<Guid, Teacher> byId
+    )
+    {
+        var result = new List<IncomingTeacher>();
+
+        void Add(Guid id)
+        {
+            if (result.Any(t => t.Id == id))
+                return;
+
+            result.Add(
+                new IncomingTeacher(
+                    id,
+                    byId.TryGetValue(id, out var teacher) ? teacher.User.FullName : null
+                )
+            );
+        }
+
+        if (teacherId.HasValue)
+            Add(teacherId.Value);
+
+        if (!string.IsNullOrWhiteSpace(teacherName))
+        {
+            foreach (var variant in ScheduleImportService.TeacherNameVariants(teacherName))
+            {
+                if (
+                    ScheduleImportService.ResolveTeacherId(variant, byFullName, bySurname) is { } id
+                )
+                    Add(id);
+            }
+        }
+
+        if (result.Count == 0 && !string.IsNullOrWhiteSpace(teacherName))
+            result.Add(
+                new IncomingTeacher(null, ScheduleImportService.NormalizeTeacherName(teacherName))
+            );
+
+        return result;
+    }
+
+    private sealed record IncomingTeacher(Guid? Id, string? Name);
 
     private static ScheduleEntry CreateEntity(
         SimulatedEntry entry,
