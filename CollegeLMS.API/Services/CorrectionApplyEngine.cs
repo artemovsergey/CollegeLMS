@@ -896,6 +896,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             return;
 
         var isFirst = true;
+        var freedSources = new List<SimulatedEntry?>();
         foreach (var entry in addEntries)
         {
             ScheduleEntry? entity = null;
@@ -910,6 +911,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             // снято в паре назначения и откуда пришёл перенос — её поля Removed*.
             var freed =
                 MatchFreedSource(slotSources, entry) ?? MatchFreedSource(movedSources, entry);
+            freedSources.Add(freed);
             var history = BuildHistory(
                 position,
                 ScheduleChangeType.Add,
@@ -949,48 +951,57 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             );
         }
 
-        // Замена с переносом даёт вторую запись на каждого преподавателя
-        // пары «откуда»: занятие уходит из старого слота. При простом переносе
-        // хватает записей «добавлено» — в них уже записано, что освободилось.
-        if (movedSources.Count > 0 && slotSources.Count > 0)
-        {
-            foreach (var moved in movedSources)
-            {
-                var removeHistory = BuildHistory(
-                    position,
-                    ScheduleChangeType.Remove,
-                    moved.Subject,
-                    moved.TeacherId,
-                    moved.Room,
-                    moved.NumberPair,
-                    null,
-                    null,
-                    null,
-                    null,
-                    utcNow,
-                    appliedByUserId
-                );
-                db.ScheduleHistory.Add(removeHistory);
-                result.History.Add(removeHistory);
+        // Снятые занятия, о которых записи «добавлено» не рассказали. Замена с
+        // переносом даёт вторую запись на каждого преподавателя пары «откуда»:
+        // занятие уходит из старого слота. Если снимается составная пара, а
+        // вводится одна (или половины больше, чем вводимых), оставшиеся
+        // половины остаются без записи журнала — на каждую нужна своя
+        // «удалено», иначе второй преподаватель о снятии не узнает.
+        var removals = new List<SimulatedEntry>();
+        if (slotSources.Count > 0)
+            removals.AddRange(movedSources);
+        removals.AddRange(
+            (slotSources.Count > 0 ? slotSources : movedSources).Where(s =>
+                !freedSources.Contains(s)
+            )
+        );
 
-                result.Changes.Add(
-                    new ScheduleChangeDto
-                    {
-                        Id = removeHistory.Id,
-                        ChangeType = nameof(ScheduleChangeType.Remove),
-                        GroupId = group.Id,
-                        GroupName = group.Name,
-                        TeacherId = moved.TeacherId,
-                        TeacherName = moved.TeacherName,
-                        DayOfWeek = position.DayOfWeek,
-                        Week = position.Week,
-                        NumberPair = moved.NumberPair,
-                        Subject = moved.Subject,
-                        Note = position.Note,
-                        CorrectionDate = correctionDate,
-                    }
-                );
-            }
+        foreach (var moved in removals.Distinct())
+        {
+            var removeHistory = BuildHistory(
+                position,
+                ScheduleChangeType.Remove,
+                moved.Subject,
+                moved.TeacherId,
+                moved.Room,
+                moved.NumberPair,
+                null,
+                null,
+                null,
+                null,
+                utcNow,
+                appliedByUserId
+            );
+            db.ScheduleHistory.Add(removeHistory);
+            result.History.Add(removeHistory);
+
+            result.Changes.Add(
+                new ScheduleChangeDto
+                {
+                    Id = removeHistory.Id,
+                    ChangeType = nameof(ScheduleChangeType.Remove),
+                    GroupId = group.Id,
+                    GroupName = group.Name,
+                    TeacherId = moved.TeacherId,
+                    TeacherName = moved.TeacherName,
+                    DayOfWeek = position.DayOfWeek,
+                    Week = position.Week,
+                    NumberPair = moved.NumberPair,
+                    Subject = moved.Subject,
+                    Note = position.Note,
+                    CorrectionDate = correctionDate,
+                }
+            );
         }
     }
 

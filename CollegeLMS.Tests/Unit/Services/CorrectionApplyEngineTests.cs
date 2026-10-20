@@ -1421,4 +1421,57 @@ public class CorrectionApplyEngineTests : IDisposable
         outcome.History.Should().OnlyContain(h => h.NumberPair == 1 && h.RemovedNumberPair == 5);
         outcome.Changes.Should().HaveCount(2);
     }
+
+    /// <summary>
+    /// Замена составной пары одним преподавателем: снимаются обе половины, и
+    /// каждая попадает в журнал — вторая отдельной записью «удалено», иначе её
+    /// преподаватель о снятии не узнает.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBatchAsync_ReplaceSlashPairWithSingleTeacher_LogsRemovalForEachHalf()
+    {
+        var group = await SeedGroupAsync();
+        var first = await SeedTeacherAsync("Кривцова С.Н.");
+        var second = await SeedTeacherAsync("Степаненко А.В.");
+        var incoming = await SeedTeacherAsync("Николаенко И.Д.");
+        await SeedEntryAsync(group.Id, first.Id, "Ин.язык", 1, TestWeek);
+        await SeedEntryAsync(group.Id, second.Id, "Ин.язык", 1, TestWeek);
+        var teacherName = $"{first.User.FullName}/{second.User.FullName}";
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                1,
+                subject: "ТВиМС",
+                teacherId: incoming.Id,
+                removedSubject: "Ин.язык",
+                removedTeacherId: first.Id,
+                removedTeacherName: teacherName
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        errors.Should().BeEmpty();
+
+        var outcome = await _sut.ExecuteBatchAsync(batch, Guid.NewGuid(), CancellationToken.None);
+        await _db.SaveChangesAsync();
+
+        var entries = _db.ScheduleEntries.ToList();
+        entries.Should().ContainSingle().Which.TeacherId.Should().Be(incoming.Id);
+
+        outcome.History.Should().HaveCount(2);
+        outcome
+            .History.Should()
+            .ContainSingle(h => h.ChangeType == ScheduleChangeType.Add)
+            .Which.TeacherId.Should()
+            .Be(incoming.Id);
+        var removal = outcome
+            .History.Should()
+            .ContainSingle(h => h.ChangeType == ScheduleChangeType.Remove)
+            .Subject;
+        removal.TeacherId.Should().Be(second.Id);
+        removal.NumberPair.Should().Be(1);
+    }
 }
