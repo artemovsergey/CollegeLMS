@@ -33,6 +33,7 @@ public class SubjectNormalizeTests
     [InlineData("Общ.энерг.")]
     [InlineData("Менеджм.вПД")]
     [InlineData("Основы web-прогр.")]
+    [InlineData("Web-прогр.")]
     [InlineData("ОБПиЗР")]
     [InlineData("ОПиФГ")]
     [InlineData("ОСиС")]
@@ -79,6 +80,7 @@ public class SubjectNormalizeTests
     [InlineData("Охрана труда", "ОхранаТруда")]
     [InlineData("Эконом.отр.", "ЭкономОтр.")]
     [InlineData("Осн.web.пр.", "Основы web-прогр.")]
+    [InlineData("Eeb-прогр.", "Web-прогр.")]
     [InlineData("ТЭС", "ТЭЦ")]
     [InlineData("МДК.01.02.", "МДК.01.02")]
     [InlineData("ОБП и ЗР", "ОБПиЗР")]
@@ -135,6 +137,7 @@ public class SubjectNormalizeTests
     [InlineData("Электротех.и Э.")]
     [InlineData("МДК.01.02.")]
     [InlineData("ОА и П")]
+    [InlineData("Eeb-прогр.")]
     public void Повторная_нормализация_ничего_не_меняет(string written)
     {
         var once = ScheduleImportService.NormalizeSubject(written);
@@ -153,6 +156,7 @@ public class SubjectNormalizeTests
     [InlineData("ОА и П", "ОАиП")]
     [InlineData("Электротех.и Э.", "ЭлектрТех.")]
     [InlineData("МДК.04.02.", "МДК.04.02")]
+    [InlineData("Eeb-прогр.", "Web-прогр.")]
     public void Один_предмет_даёт_один_ключ_независимо_от_написания(
         string written,
         string canonical
