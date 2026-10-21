@@ -121,7 +121,12 @@ public class ScheduleCorrectionService(
             sheet.Cell(row, 3).Value = FormatTeacherCell(item.RemovedTeacherName);
             sheet.Cell(row, 4).Value = item.AddedSubject?.Trim() ?? string.Empty;
             sheet.Cell(row, 5).Value = FormatTeacherCell(item.AddedTeacherName);
-            sheet.Cell(row, 6).Value = item.NumberPair;
+            // Пустая пара в исходном файле — это не «нулевая» пара, а отсутствие
+            // номера: так выгружаем обратно пустую ячейку, а не числовой 0.
+            if (item.NumberPair > 0)
+                sheet.Cell(row, 6).Value = item.NumberPair;
+            else
+                sheet.Cell(row, 6).Value = string.Empty;
             sheet.Cell(row, 7).Value = item.Note?.Trim() ?? string.Empty;
         }
 
@@ -159,7 +164,7 @@ public class ScheduleCorrectionService(
     /// «Иванов Иван Иванович» → «Иванов И.И.». Уже сокращённое «Абатуров С.А.»
     /// остаётся как есть: инициалы узнаём по одиночной букве и точке.
     /// </summary>
-    private static string ShortenTeacherName(string fullName)
+    internal static string ShortenTeacherName(string fullName)
     {
         var parts = fullName.Split(
             ' ',

@@ -38,14 +38,17 @@ public class CorrectionRoundTripTests : IDisposable
 
     public void Dispose() => _db.Dispose();
 
-    public static IEnumerable<object[]> CorrectionFiles() =>
-        Directory
-            .GetFiles(
-                FindRepositoryPath(Path.Combine("import", "schedule", "Корректировки")),
-                "*.xlsx"
-            )
-            .OrderBy(f => f)
-            .Select(f => new object[] { Path.GetFileName(f) });
+    public static IEnumerable<object[]> CorrectionFiles()
+    {
+        var root = FindRepositoryPath(Path.Combine("import", "schedule", "Корректировки"));
+
+        return Directory
+            .EnumerateFiles(root, "*.xlsx", SearchOption.AllDirectories)
+            // Excel оставляет рядом временный файл «~$имя.xlsx», пока книга открыта.
+            .Where(f => !Path.GetFileName(f).StartsWith("~$", StringComparison.Ordinal))
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .Select(f => new object[] { Path.GetRelativePath(root, f) });
+    }
 
     [Theory]
     [MemberData(nameof(CorrectionFiles))]
@@ -112,6 +115,10 @@ public class CorrectionRoundTripTests : IDisposable
             // Сравнивать надо названия, а не написание: в этом и смысл выгрузки.
             values[1] = NormalizeSubject(values[1]);
             values[3] = NormalizeSubject(values[3]);
+            // «Федоренко С.В» в файле и «Федоренко С.» в справочнике — один
+            // преподаватель; выгрузка пишет каноническое имя из базы.
+            values[2] = NormalizeTeacher(values[2]);
+            values[4] = NormalizeTeacher(values[4]);
 
             rows.Add(values);
         }
@@ -127,6 +134,9 @@ public class CorrectionRoundTripTests : IDisposable
 
     private static string NormalizeSubject(string text) =>
         text.Length == 0 ? text : ScheduleImportService.NormalizeSubject(text);
+
+    private static string NormalizeTeacher(string text) =>
+        text.Length == 0 ? text : ScheduleCorrectionService.ShortenTeacherName(text);
 
     private static string FindRepositoryPath(string relativePath)
     {
