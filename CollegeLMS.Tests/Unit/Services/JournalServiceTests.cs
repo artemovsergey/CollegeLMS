@@ -198,7 +198,9 @@ public class JournalServiceTests : IDisposable
         ScheduleChangeType changeType,
         string? note = null,
         int week = 1,
-        DayOfWeek day = DayOfWeek.Tuesday
+        DayOfWeek day = DayOfWeek.Tuesday,
+        Guid? groupId = null,
+        int pair = 2
     )
     {
         var utcNow = DateTime.UtcNow;
@@ -209,12 +211,12 @@ public class JournalServiceTests : IDisposable
                 ChangeType = changeType,
                 AppliedAt = utcNow,
                 AppliedByUserId = Guid.NewGuid(),
-                GroupId = Guid.NewGuid(),
+                GroupId = groupId ?? Guid.NewGuid(),
                 TeacherId = teacherId,
                 Subject = subject,
                 Room = "303",
                 DayOfWeek = day,
-                NumberPair = 2,
+                NumberPair = pair,
                 Week = week,
                 Note = note,
                 CreatedAt = utcNow,
@@ -383,5 +385,62 @@ public class JournalServiceTests : IDisposable
         var card = result.Data!.Subjects.Single();
         card.GroupId.Should().Be(group.Id);
         card.GroupName.Should().Be("ПКС-20");
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_InformationalPair_ComesFromHistory()
+    {
+        var teacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ИВ 254");
+        // Пара стоит в расписании на 3–5 неделях; на 6-й её сняли и оставили
+        // только пометку «сам.р.» (см. «вм.2 п.сам/р.»): в расписании она видна,
+        // а в базе расписания её нет — журнал должен взять её из истории.
+        await SeedEntryAsync(teacher.Id, "ОСиС", 2, [3, 4, 5], group.Id, day: DayOfWeek.Wednesday);
+        await SeedHistoryAsync(
+            teacher.Id,
+            "ОСиС",
+            ScheduleChangeType.Add,
+            note: "вм.2 п.сам/р.",
+            week: 6,
+            day: DayOfWeek.Wednesday,
+            groupId: group.Id,
+            pair: 1
+        );
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, group.Id, default);
+
+        result.IsSuccess.Should().BeTrue();
+        var card = result.Data!.Subjects.Single();
+        card.PairCount.Should().Be(4);
+        result.Data.TotalPairCount.Should().Be(4);
+        var week6 = card.Items.Single(i => i.Week == 6);
+        week6.NumberPairs.Should().BeEquivalentTo([1]);
+        week6.ChangeTypes.Should().Contain(["Add", "SelfStudy"]);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_InformationalPairOfAnotherTeacher_IsNotAdded()
+    {
+        var teacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ИВ 254");
+        await SeedEntryAsync(teacher.Id, "ОСиС", 2, [3], group.Id, day: DayOfWeek.Wednesday);
+        await SeedHistoryAsync(
+            Guid.NewGuid(),
+            "ОСиС",
+            ScheduleChangeType.Add,
+            note: "сам/р.",
+            week: 6,
+            day: DayOfWeek.Wednesday,
+            groupId: group.Id,
+            pair: 1
+        );
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, group.Id, default);
+
+        result.IsSuccess.Should().BeTrue();
+        var card = result.Data!.Subjects.Single();
+        card.Items.Should().ContainSingle();
+        card.Items[0].Week.Should().Be(3);
+        result.Data.TotalPairCount.Should().Be(1);
     }
 }
