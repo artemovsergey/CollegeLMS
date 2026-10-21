@@ -380,24 +380,57 @@ public class ScheduleService(
                 (Guid GroupId, string Subject, int Week, DayOfWeek DayOfWeek),
                 List<int>
             >();
+
+        // Пары «только для информирования» («сам.р.» без «+») в базе расписания
+        // не лежат — они остаются записью журнала. Добавляем их в карточки, иначе
+        // на неделе с такой пометкой журнал выглядел бы пустым, хотя в расписании
+        // пара есть.
+        var informational = history
+            .Where(h => h.TeacherId == teacherId)
+            .Where(h => h.ChangeType == ScheduleChangeType.Add)
+            .Where(h => CorrectionNotes.IsInformational(h.Note))
+            .Where(h => !groupId.HasValue || h.GroupId == groupId.Value)
+            .Where(h => string.IsNullOrEmpty(subjectFilter) || h.Subject == subjectFilter)
+            .ToList();
+
+        void AddPair(
+            Guid entryGroupId,
+            string entrySubject,
+            int week,
+            DayOfWeek dayOfWeek,
+            int pair
+        )
+        {
+            var dayIndex = ((int)dayOfWeek + 6) % 7;
+            var date = mondayOfWeek1.AddDays((week - 1) * 7 + dayIndex);
+            if (date < semesterFirstDate || date > utcToday)
+                return;
+
+            var key = (entryGroupId, entrySubject, week, dayOfWeek);
+            if (!itemMap.TryGetValue(key, out var pairs))
+            {
+                pairs = new List<int>();
+                itemMap[key] = pairs;
+            }
+            pairs.Add(pair);
+        }
+
         foreach (var entry in entries)
         {
             foreach (var week in entry.Weeks.Where(w => w >= 1 && w <= StudyWeek.TotalWeeks))
-            {
-                var dayIndex = ((int)entry.DayOfWeek + 6) % 7;
-                var date = mondayOfWeek1.AddDays((week - 1) * 7 + dayIndex);
-                if (date < semesterFirstDate || date > utcToday)
-                    continue;
-
-                var key = (entry.GroupId, entry.Subject, week, entry.DayOfWeek);
-                if (!itemMap.TryGetValue(key, out var pairs))
-                {
-                    pairs = new List<int>();
-                    itemMap[key] = pairs;
-                }
-                pairs.Add(entry.NumberPair);
-            }
+                AddPair(entry.GroupId, entry.Subject, week, entry.DayOfWeek, entry.NumberPair);
         }
+
+        foreach (
+            var record in informational.Where(h => h.Week >= 1 && h.Week <= StudyWeek.TotalWeeks)
+        )
+            AddPair(
+                record.GroupId,
+                record.Subject,
+                record.Week,
+                record.DayOfWeek,
+                record.NumberPair
+            );
 
         var subjects = itemMap
             .OrderBy(x => groupNames.GetValueOrDefault(x.Key.GroupId, string.Empty))
