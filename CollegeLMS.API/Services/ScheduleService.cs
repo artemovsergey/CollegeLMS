@@ -368,7 +368,9 @@ public class ScheduleService(
             .Where(h => h.TeacherId == teacherId || h.RemovedTeacherId == teacherId)
             .ToListAsync(ct);
 
-        // Группировка по (группа, предмет, неделя, день недели) с фактической датой дня.
+        // Группировка по (группа, предмет, неделя, день недели, номер пары):
+        // каждая пара дня выводится отдельной записью журнала — без «Пары 4, 5»
+        // в одной строке. Дата дня считается по календарю семестра.
         // Показываем только проведённые занятия — дата не позже сегодняшнего дня (UTC).
         // Нижняя граница — начало семестра: неделя 1 начинается в понедельник перед
         // 1 сентября, и без этого фильтра в журнал попадали пары августа.
@@ -376,10 +378,13 @@ public class ScheduleService(
         var mondayOfWeek1 = StudyWeek.MondayOf(StudyWeek.SemesterStart);
         var semesterFirstDate = StudyWeek.SemesterStart.Date;
         var itemMap =
-            new Dictionary<
-                (Guid GroupId, string Subject, int Week, DayOfWeek DayOfWeek),
-                List<int>
-            >();
+            new HashSet<(
+                Guid GroupId,
+                string Subject,
+                int Week,
+                DayOfWeek DayOfWeek,
+                int NumberPair
+            )>();
 
         // Пары «только для информирования» («сам.р.» без «+») в базе расписания
         // не лежат — они остаются записью журнала. Добавляем их в карточки, иначе
@@ -406,13 +411,7 @@ public class ScheduleService(
             if (date < semesterFirstDate || date > utcToday)
                 return;
 
-            var key = (entryGroupId, entrySubject, week, dayOfWeek);
-            if (!itemMap.TryGetValue(key, out var pairs))
-            {
-                pairs = new List<int>();
-                itemMap[key] = pairs;
-            }
-            pairs.Add(pair);
+            itemMap.Add((entryGroupId, entrySubject, week, dayOfWeek, pair));
         }
 
         foreach (var entry in entries)
@@ -433,26 +432,26 @@ public class ScheduleService(
             );
 
         var subjects = itemMap
-            .OrderBy(x => groupNames.GetValueOrDefault(x.Key.GroupId, string.Empty))
-            .ThenBy(x => x.Key.Subject)
-            .ThenBy(x => x.Key.Week)
-            .ThenBy(x => x.Key.DayOfWeek)
-            .GroupBy(x => (x.Key.GroupId, x.Key.Subject))
+            .OrderBy(x => groupNames.GetValueOrDefault(x.GroupId, string.Empty))
+            .ThenBy(x => x.Subject)
+            .ThenBy(x => x.Week)
+            .ThenBy(x => x.DayOfWeek)
+            .ThenBy(x => x.NumberPair)
+            .GroupBy(x => (x.GroupId, x.Subject))
             .Select(g =>
             {
                 var items = g.Select(x => new JournalEntryItem
                     {
-                        Week = x.Key.Week,
-                        DayOfWeek = (int)x.Key.DayOfWeek,
-                        Date = mondayOfWeek1.AddDays(
-                            (x.Key.Week - 1) * 7 + ((int)x.Key.DayOfWeek + 6) % 7
-                        ),
-                        NumberPairs = x.Value.Distinct().OrderBy(v => v).ToList(),
+                        Week = x.Week,
+                        DayOfWeek = (int)x.DayOfWeek,
+                        Date = mondayOfWeek1.AddDays((x.Week - 1) * 7 + ((int)x.DayOfWeek + 6) % 7),
+                        NumberPairs = [x.NumberPair],
                         ChangeTypes = BuildChangeTypes(
                             history,
-                            x.Key.Subject,
-                            x.Key.Week,
-                            x.Key.DayOfWeek,
+                            x.Subject,
+                            x.Week,
+                            x.DayOfWeek,
+                            x.NumberPair,
                             teacherId
                         ),
                     })
@@ -480,12 +479,13 @@ public class ScheduleService(
         );
     }
 
-    /// <summary>Бейджи корректировок для даты журнала: Add/Replace/Move/Remove/SelfStudy.</summary>
+    /// <summary>Бейджи корректировок для пары журнала: Add/Replace/Move/Remove/SelfStudy.</summary>
     private static List<string> BuildChangeTypes(
         List<Entities.ScheduleHistory> history,
         string subject,
         int week,
         DayOfWeek day,
+        int pair,
         Guid teacherId
     )
     {
@@ -493,7 +493,10 @@ public class ScheduleService(
 
         foreach (var h in history)
         {
-            if (h.Week != week || h.DayOfWeek != day)
+            // Бейдж относится к паре, которую тронула корректировка: у записей
+            // журнала NumberPair — целевая пара («добавлено»/«заменено»/«перенесено»)
+            // или пара снятия («удалено»).
+            if (h.Week != week || h.DayOfWeek != day || h.NumberPair != pair)
                 continue;
             if (!string.Equals(h.Subject, subject, StringComparison.OrdinalIgnoreCase))
                 continue;

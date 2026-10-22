@@ -707,14 +707,14 @@ test.describe("MAX mini-app", () => {
       ),
     )
 
-    await page.goto("/max/journal", { waitUntil: "networkidle" })
+    await page.goto("/max/journal", { waitUntil: "domcontentloaded" })
 
     // Заголовок «Журнал» из шапки убран, остаётся строка «ФИО · всего пар: N».
     await expect(page.getByRole("heading", { name: "Журнал" })).toHaveCount(0)
     await expect(page.getByText(/Петренко В\.Б\. · всего пар: 12/)).toBeVisible()
   })
 
-  test("Журнал: пары, идущие подряд, видны номерами, а не счётчиком", async ({
+  test("Журнал: каждая пара дня — отдельной записью", async ({
     page,
   }) => {
     await loginMaxProfile(page, {
@@ -742,7 +742,14 @@ test.describe("MAX mini-app", () => {
                     week: 1,
                     dayOfWeek: 2,
                     date: "2026-09-01T00:00:00",
-                    numberPairs: [4, 5],
+                    numberPairs: [4],
+                    changeTypes: [],
+                  },
+                  {
+                    week: 1,
+                    dayOfWeek: 2,
+                    date: "2026-09-01T00:00:00",
+                    numberPairs: [5],
                     changeTypes: [],
                   },
                   {
@@ -761,9 +768,11 @@ test.describe("MAX mini-app", () => {
       ),
     )
 
-    await page.goto("/max/journal", { waitUntil: "networkidle" })
+    await page.goto("/max/journal", { waitUntil: "domcontentloaded" })
 
-    await expect(page.getByText("Пары 4, 5")).toBeVisible()
+    await expect(page.getByText("Пара 4")).toBeVisible()
+    await expect(page.getByText("Пара 5")).toBeVisible()
+    await expect(page.getByText("Пары 4, 5")).toHaveCount(0)
     await expect(page.getByText("Пара 2")).toBeVisible()
     await expect(page.getByText(/Пар: /)).toHaveCount(0)
   })

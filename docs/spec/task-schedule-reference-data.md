@@ -155,7 +155,7 @@ GET /api/schedule/export?scope=day|week|semester&format=pdf|xlsx&layout=grid|day
 `GET /api/schedule/journal?teacherId=&subject=` — `Result<JournalResponse>`:
 `teacherId`, `teacherName`, `subjects[]` (`subject`, `items[]`, `pairCount`), `totalPairCount`.
 `subject` — новый фильтр по точному названию предмета. `items[]`: `week`, `dayOfWeek` (int),
-`date`, `numberPairs[]`, `changeTypes[]` — **бейджи корректировок**: `Add`, `Replace`, `Move`, `Remove`,
+`date`, `numberPairs[]` (одна пара на запись: каждая пара дня — отдельный элемент), `changeTypes[]` — **бейджи корректировок**: `Add`, `Replace`, `Move`, `Remove`,
 `SelfStudy` (для снятия с примечанием «сам.р.»). Показываются только проведённые занятия
 (начало семестра ≤ дата ≤ сегодня, UTC): неделя 1 начинается в понедельник перед 1 сентября,
 поэтому без нижней границы в журнал попадали пары августа.

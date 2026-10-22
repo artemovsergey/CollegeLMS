@@ -146,7 +146,7 @@ public class JournalServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetJournalAsync_SameSubjectDistinctPairs_AreAggregatedPerWeek()
+    public async Task GetJournalAsync_SameSubjectDistinctPairs_ReturnSeparateItems()
     {
         var teacher = await SeedTeacherAsync();
         var group = await SeedGroupAsync("ИС-21");
@@ -156,9 +156,11 @@ public class JournalServiceTests : IDisposable
         var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
 
         result.IsSuccess.Should().BeTrue();
-        var week1 = result.Data!.Subjects.Single().Items.Single();
-        week1.NumberPairs.Should().BeEquivalentTo([2, 3]);
-        result.Data!.TotalPairCount.Should().Be(2);
+        var card = result.Data!.Subjects.Single();
+        card.Items.Should().HaveCount(2);
+        card.Items.Select(i => i.NumberPairs.Single()).Should().Equal(2, 3);
+        card.PairCount.Should().Be(2);
+        result.Data.TotalPairCount.Should().Be(2);
     }
 
     [Fact]
@@ -275,6 +277,29 @@ public class JournalServiceTests : IDisposable
         var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
 
         result.Data!.Subjects.Single().Items.Single().ChangeTypes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_ChangeBadge_ShowsOnlyOnItsPair()
+    {
+        var teacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ИС-21");
+        await SeedEntryAsync(teacher.Id, "Математика", 2, [1], group.Id);
+        await SeedEntryAsync(teacher.Id, "Математика", 3, [1], group.Id);
+        await SeedHistoryAsync(
+            teacher.Id,
+            "Математика",
+            ScheduleChangeType.Add,
+            groupId: group.Id,
+            pair: 2
+        );
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
+
+        var items = result.Data!.Subjects.Single().Items;
+        items.Should().HaveCount(2);
+        items.Single(i => i.NumberPairs.Single() == 2).ChangeTypes.Should().Contain("Add");
+        items.Single(i => i.NumberPairs.Single() == 3).ChangeTypes.Should().BeEmpty();
     }
 
     [Fact]

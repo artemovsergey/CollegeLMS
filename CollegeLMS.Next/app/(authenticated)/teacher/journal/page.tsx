@@ -280,7 +280,11 @@ export default function TeacherJournalPage() {
     () =>
       subjectGroup
         ? [...subjectGroup.items].sort((a, b) =>
-            a.week !== b.week ? a.week - b.week : a.dayOfWeek - b.dayOfWeek,
+            a.week !== b.week
+              ? a.week - b.week
+              : a.dayOfWeek !== b.dayOfWeek
+                ? a.dayOfWeek - b.dayOfWeek
+                : (a.numberPairs[0] ?? 0) - (b.numberPairs[0] ?? 0),
           )
         : [],
     [subjectGroup],
@@ -454,7 +458,7 @@ export default function TeacherJournalPage() {
                 <ul className="divide-y">
                   {items.map((entry) => (
                     <li
-                      key={`${entry.week}:${entry.dayOfWeek}`}
+                      key={`${entry.week}:${entry.dayOfWeek}:${entry.numberPairs.join(",")}`}
                       className="flex items-center gap-3 py-3"
                     >
                       <JournalDayTile date={entry.date} />

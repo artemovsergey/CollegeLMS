@@ -192,7 +192,11 @@ export default function JournalView() {
 
   const items = subjectGroup
     ? [...subjectGroup.items].sort((a, b) =>
-        a.week !== b.week ? a.week - b.week : a.dayOfWeek - b.dayOfWeek,
+        a.week !== b.week
+          ? a.week - b.week
+          : a.dayOfWeek !== b.dayOfWeek
+            ? a.dayOfWeek - b.dayOfWeek
+            : (a.numberPairs[0] ?? 0) - (b.numberPairs[0] ?? 0),
       )
     : []
 
@@ -313,7 +317,7 @@ export default function JournalView() {
               >
                 {items.map((entry) => (
                   <CellSimple
-                    key={`${subjectGroup.subject}:${entry.week}:${entry.dayOfWeek}`}
+                    key={`${subjectGroup.subject}:${entry.week}:${entry.dayOfWeek}:${entry.numberPairs.join(",")}`}
                     separator
                     before={<JournalDayTile date={entry.date} />}
                     innerClassNames={{ title: "max-app__journal-meta" }}
