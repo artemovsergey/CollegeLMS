@@ -356,6 +356,20 @@
   color: var(--text-themed);
 }
 
+/* Вставка расписания (классный час, линейка) в общем списке по времени. */
+.max-schedule__insert-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: 1px dashed var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-subtle);
+  color: var(--color-primary);
+}
+
 .max-schedule__cell--current {
   background: var(--color-tint-primary);
 }
@@ -649,39 +663,6 @@
 .max-layers__practice-note {
   color: var(--color-text-muted);
   font-size: 13px;
-}
-
-.max-layers__inserts {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.max-layers__insert {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1px dashed var(--color-border);
-  border-radius: 10px;
-  background: var(--color-surface-subtle);
-  font-size: 14px;
-}
-
-.max-layers__insert svg {
-  flex: none;
-  color: var(--color-primary);
-}
-
-.max-layers__insert-time {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.max-layers__insert-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Рабочий день (перенос занятий на выходной) */

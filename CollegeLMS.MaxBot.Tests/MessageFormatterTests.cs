@@ -242,7 +242,7 @@ public class MessageFormatterTests
     }
 
     [Fact]
-    public void FormatDaySchedule_Inserts_RenderedBeforePairs()
+    public void FormatDaySchedule_InsertBeforeFirstPair_StaysFirst()
     {
         var text = MessageFormatter.FormatDaySchedule(
             Day(new DateTime(2026, 9, 7), [Pair()], inserts: [Insert("Линейка", 8, 0)]),
@@ -252,6 +252,35 @@ public class MessageFormatterTests
 
         text.Should().Contain("08:00–08:30 Линейка");
         text.IndexOf("08:00–08:30 Линейка").Should().BeLessThan(text.IndexOf("*1.* 📖 Математика"));
+    }
+
+    [Fact]
+    public void FormatDaySchedule_InsertBetweenPairs_PlacedByStartTime()
+    {
+        var entries = new List<ScheduleResponse>
+        {
+            Pair(numberPair: 1),
+            Pair(
+                numberPair: 4,
+                subject: "Физика",
+                start: new TimeSpan(12, 40, 0),
+                end: new TimeSpan(14, 10, 0)
+            ),
+        };
+
+        var text = MessageFormatter.FormatDaySchedule(
+            Day(new DateTime(2026, 9, 7), entries, inserts: [Insert("Классный час", 12, 20)]),
+            "Группа 101",
+            showGroup: false
+        );
+
+        var firstPair = text.IndexOf("*1.* 📖 Математика");
+        var insert = text.IndexOf("12:20–12:50 Классный час");
+        var latePair = text.IndexOf("*4.* 📖 Физика");
+
+        firstPair.Should().BeGreaterThanOrEqualTo(0);
+        insert.Should().BeGreaterThan(firstPair);
+        latePair.Should().BeGreaterThan(insert);
     }
 
     [Fact]
@@ -416,6 +445,36 @@ public class MessageFormatterTests
         );
 
         text.Should().Contain("Пар нет.");
+    }
+
+    [Fact]
+    public void FormatWeekSchedule_InsertBetweenPairs_PlacedByStartTime()
+    {
+        var weekStart = new DateTime(2026, 9, 7);
+        var entries = new List<ScheduleResponse>
+        {
+            Pair(numberPair: 1),
+            Pair(
+                numberPair: 4,
+                subject: "Физика",
+                start: new TimeSpan(12, 40, 0),
+                end: new TimeSpan(14, 10, 0)
+            ),
+        };
+
+        var text = MessageFormatter.FormatWeekSchedule(
+            Week(weekStart, Day(weekStart, entries, inserts: [Insert("Классный час", 12, 20)])),
+            "Группа 101",
+            showGroup: false
+        );
+
+        var firstPair = text.IndexOf("*1.* 📖 Математика");
+        var insert = text.IndexOf("12:20–12:50 Классный час");
+        var latePair = text.IndexOf("*4.* 📖 Физика");
+
+        firstPair.Should().BeGreaterThanOrEqualTo(0);
+        insert.Should().BeGreaterThan(firstPair);
+        latePair.Should().BeGreaterThan(insert);
     }
 
     [Fact]

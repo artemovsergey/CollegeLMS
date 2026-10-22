@@ -23,6 +23,41 @@ import { useMaxContext, type ViewContext } from "@/lib/max-context"
 import { journalHref } from "@/lib/journal"
 import ChangeBadge from "@/components/max/ChangeBadge"
 
+type FeedRow =
+  | { kind: "entry"; entry: ScheduleResponse }
+  | { kind: "insert"; insert: ScheduleInsert }
+
+function rowStartTime(row: FeedRow): string {
+  return row.kind === "entry" ? row.entry.startTime : row.insert.startTime
+}
+
+/**
+ * Пары и вставки дня — одним списком по времени начала, как в LMS.
+ * При равном времени пара идёт раньше вставки.
+ */
+function mergeFeedRows(
+  entries: ScheduleResponse[],
+  inserts: ScheduleInsert[],
+): FeedRow[] {
+  const rows: FeedRow[] = [
+    ...entries.map((entry): FeedRow => ({ kind: "entry", entry })),
+    ...inserts.map((insert): FeedRow => ({ kind: "insert", insert })),
+  ]
+
+  return rows.sort((a, b) => {
+    const aStart = rowStartTime(a)
+    const bStart = rowStartTime(b)
+    if (!aStart && !bStart) return 0
+    if (!aStart) return 1
+    if (!bStart) return -1
+    if (aStart === bStart) {
+      if (a.kind === b.kind) return 0
+      return a.kind === "entry" ? -1 : 1
+    }
+    return aStart < bStart ? -1 : 1
+  })
+}
+
 export default function DayFeed({
   entries,
   inserts = [],
@@ -54,6 +89,7 @@ export default function DayFeed({
   const router = useRouter()
 
   const sorted = [...entries].sort((a, b) => a.numberPair - b.numberPair)
+  const feedRows = mergeFeedRows(sorted, inserts)
   const now = new Date()
   const currentId = today
     ? sorted.find((e) => {
@@ -89,15 +125,13 @@ export default function DayFeed({
     setViewContext(target)
   }
 
+  // Слои — всё, кроме пар и вставок: они идут общим списком по времени.
   const hasLayers =
-    isNonWorking ||
-    isSunday ||
-    isWorkingDay ||
-    practices.length > 0 ||
-    inserts.length > 0
-  // «Нет пар» — для обычного дня без пар, но со слоями (например, только вставки).
+    isNonWorking || isSunday || isWorkingDay || practices.length > 0
+  // «Нет пар» — для обычного дня без пар, но со слоями (например, только практика).
   const showEmptyNote =
     sorted.length === 0 &&
+    inserts.length === 0 &&
     practices.length === 0 &&
     !isNonWorking &&
     !isSunday &&
@@ -168,22 +202,6 @@ export default function DayFeed({
                 )
               })}
 
-              {inserts.length > 0 ? (
-                <div className="max-layers__inserts">
-                  {inserts.map((insert) => (
-                    <div key={insert.id} className="max-layers__insert">
-                      <BellRing size={14} aria-hidden />
-                      <span className="max-layers__insert-time">
-                        {formatTime(insert.startTime)}–
-                        {formatTime(insert.endTime)}
-                      </span>
-                      <span className="max-layers__insert-title">
-                        {insert.title}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -193,9 +211,31 @@ export default function DayFeed({
         </div>
       ) : null}
 
-      {sorted.length > 0 ? (
+      {feedRows.length > 0 ? (
         <CellList mode="island">
-          {sorted.map((entry) => {
+          {feedRows.map((row) => {
+            if (row.kind === "insert") {
+              return (
+                <CellSimple
+                  key={`insert-${row.insert.id}`}
+                  separator
+                  title={row.insert.title}
+                  before={
+                    <div className="max-schedule__insert-badge">
+                      <BellRing size={16} aria-hidden />
+                    </div>
+                  }
+                  subtitle={
+                    <span className="max-schedule__subtitle">
+                      <Clock3 size={14} aria-hidden />{" "}
+                      {formatTime(row.insert.startTime)}–{formatTime(row.insert.endTime)}
+                    </span>
+                  }
+                />
+              )
+            }
+
+            const entry = row.entry
             const typeLabel = lessonTypeLabel(entry.lessonType)
             const isCurrent = entry.id === currentId
             const counterpart = isTeacherContext

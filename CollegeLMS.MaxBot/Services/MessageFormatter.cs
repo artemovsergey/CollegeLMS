@@ -121,7 +121,7 @@ public static class MessageFormatter
 
     /// <summary>
     /// День расписания из серверного вида view=day: практика заменяет пары,
-    /// вставки идут перед парами, нерабочий день и воскресенье — отдельными строками.
+    /// вставки идут в общем порядке по времени, нерабочий день и воскресенье — отдельными строками.
     /// </summary>
     public static string FormatDaySchedule(
         ScheduleDayViewDto day,
@@ -155,20 +155,22 @@ public static class MessageFormatter
         }
 
         sb.AppendLine();
-        if (day.Inserts.Count > 0)
-        {
-            AppendInsertLines(sb, day.Inserts);
-            sb.AppendLine();
-        }
-
-        if (day.Entries.Count == 0)
+        var rows = MergeScheduleRows(day.Entries, day.Inserts);
+        if (rows.Count == 0)
         {
             sb.AppendLine("Пар нет.");
             return sb.ToString().TrimEnd();
         }
 
-        foreach (var e in day.Entries.OrderBy(x => x.NumberPair))
+        foreach (var row in rows)
         {
+            if (row.Insert is not null)
+            {
+                sb.AppendLine(FormatInsertLine(row.Insert));
+                continue;
+            }
+
+            var e = row.Entry!;
             sb.AppendLine($"*{e.NumberPair}.* {LessonTypeIcon(e.LessonType)} {e.Subject}");
             sb.AppendLine($"    🕐 {e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}  📍 {e.Room}");
 
@@ -181,6 +183,9 @@ public static class MessageFormatter
             AppendChangeMarkers(sb, e);
             sb.AppendLine("────────");
         }
+
+        if (day.Entries.Count == 0)
+            sb.AppendLine("Пар нет.");
 
         return sb.ToString().TrimEnd();
     }
@@ -222,17 +227,22 @@ public static class MessageFormatter
             }
             else
             {
-                if (day.Inserts.Count > 0)
-                    AppendInsertLines(sb, day.Inserts);
-
-                if (day.Entries.Count == 0)
+                var rows = MergeScheduleRows(day.Entries, day.Inserts);
+                if (rows.Count == 0)
                 {
                     sb.AppendLine("Пар нет.");
                 }
                 else
                 {
-                    foreach (var e in day.Entries.OrderBy(x => x.NumberPair))
+                    foreach (var row in rows)
                     {
+                        if (row.Insert is not null)
+                        {
+                            sb.AppendLine(FormatInsertLine(row.Insert));
+                            continue;
+                        }
+
+                        var e = row.Entry!;
                         var pairLine =
                             $"*{e.NumberPair}.* {LessonTypeIcon(e.LessonType)} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})";
                         if (showGroup && e.GroupName.Length > 0)
@@ -240,6 +250,9 @@ public static class MessageFormatter
                         sb.AppendLine(pairLine);
                         AppendChangeMarkers(sb, e);
                     }
+
+                    if (day.Entries.Count == 0)
+                        sb.AppendLine("Пар нет.");
                 }
             }
 
@@ -262,16 +275,31 @@ public static class MessageFormatter
     private static string FormatNonWorkingLine(string? title) =>
         string.IsNullOrWhiteSpace(title) ? "🎉 Нерабочий день" : $"🎉 Нерабочий день: {title}";
 
-    private static void AppendInsertLines(
-        System.Text.StringBuilder sb,
+    private static string FormatInsertLine(ScheduleInsertDto insert) =>
+        $"{insert.StartTime:hh\\:mm}–{insert.EndTime:hh\\:mm} {insert.Title}";
+
+    /// <summary>
+    /// Пары и вставки дня в одном списке по времени начала. При равном времени
+    /// пара идёт раньше вставки — так же, как в расписании LMS.
+    /// </summary>
+    private static List<ScheduleRow> MergeScheduleRows(
+        List<ScheduleResponse> entries,
         List<ScheduleInsertDto> inserts
-    )
-    {
-        foreach (var ins in inserts.OrderBy(x => x.StartTime))
-        {
-            sb.AppendLine($"{ins.StartTime:hh\\:mm}–{ins.EndTime:hh\\:mm} {ins.Title}");
-        }
-    }
+    ) =>
+        entries
+            .OrderBy(x => x.NumberPair)
+            .Select(e => new ScheduleRow(e.StartTime, false, e, null))
+            .Concat(inserts.Select(i => new ScheduleRow(i.StartTime, true, null, i)))
+            .OrderBy(row => row.StartTime)
+            .ThenBy(row => row.IsInsert)
+            .ToList();
+
+    private readonly record struct ScheduleRow(
+        TimeSpan StartTime,
+        bool IsInsert,
+        ScheduleResponse? Entry,
+        ScheduleInsertDto? Insert
+    );
 
     public static string GetDayLabel(int dayOfWeek) => DayNames[dayOfWeek];
 

@@ -44,6 +44,15 @@ const INSERT = {
   isActive: true,
 }
 
+const LATE_ENTRY = {
+  ...ENTRY,
+  id: "s2",
+  subject: "Физика",
+  numberPair: 4,
+  startTime: "14:00:00",
+  endTime: "15:30:00",
+}
+
 const PRACTICE = {
   id: "p1",
   kind: "Pp",
@@ -251,7 +260,7 @@ test.describe("MAX mini-app", () => {
 
   test("Deep link на дату открывает день расписания", async ({ page }) => {
     await page.goto("/max/schedule?route=day&date=2026-09-07", {
-      waitUntil: "networkidle",
+      waitUntil: "domcontentloaded",
     })
 
     await expect(page.getByText("Расписание")).toBeVisible()
@@ -263,6 +272,35 @@ test.describe("MAX mini-app", () => {
     await expect(page.getByText("События")).toHaveCount(0)
     await expect(page.getByText("Кураторский час")).toBeVisible()
     await expect(page.getByText("12:20–13:00")).toBeVisible()
+  })
+
+  test("Вставка стоит между парами по времени", async ({ page }) => {
+    await page.route("**/api/schedule**", (route) => {
+      const url = route.request().url()
+      if (url.includes("/meta")) return route.fulfill(inlineJson(META))
+      if (url.includes("/journal"))
+        return route.fulfill(inlineJson(ok({ subjects: [], entries: [] })))
+      return route.fulfill(
+        inlineJson(ok(dayView({ entries: [ENTRY, LATE_ENTRY], inserts: [INSERT] }))),
+      )
+    })
+
+    await page.goto("/max/schedule?route=day&date=2026-09-07", {
+      waitUntil: "domcontentloaded",
+    })
+
+    const feed = page.locator(".max-feed")
+    await expect(feed.getByText("Математика")).toBeVisible()
+    await expect(feed.getByText("Кураторский час")).toBeVisible()
+    await expect(feed.getByText("Физика")).toBeVisible()
+
+    const text = await feed.innerText()
+    expect(text.indexOf("Математика")).toBeLessThan(
+      text.indexOf("Кураторский час"),
+    )
+    expect(text.indexOf("Кураторский час")).toBeLessThan(
+      text.indexOf("Физика"),
+    )
   })
 
   test("Полный ISO-формат метаданных не ломает даты", async ({ page }) => {
