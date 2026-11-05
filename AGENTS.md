@@ -1,6 +1,6 @@
 # CollegeLMS
 
-Проектные пути и команды репозитория. Общие правила — в глобальном `AGENTS.md`; проектные конвенции — ниже.
+Проектные пути и команды репозитория. Общие правила — в глобальном `AGENTS.md`; ниже — только проектное.
 
 ## Пути
 
@@ -8,6 +8,12 @@
 - Frontend: `CollegeLMS.Next/` (Next.js 14, App Router); бот Max: `CollegeLMS.MaxBot/`
 - Спека: `docs/spec/task.md`, `docs/spec/userstories.md`; дизайн: `DESIGN.md`, `PRODUCT.md`
 - Postman: `docs/spec/CollegeLMS.postman_collection.json`
+
+## Секреты
+
+- Локальный `.env` собирается из `collegelms.env` в приватном репозитории `secrets`; в git не коммитится.
+- `appsettings.json` содержит дефолтные JWT-ключ и пароль БД — на них не полагаться, рабочие значения приходят из `.env`.
+- `.env.bak-*` — устаревшие копии: не использовать и не добавлять в репозиторий.
 
 ## Ветки
 
