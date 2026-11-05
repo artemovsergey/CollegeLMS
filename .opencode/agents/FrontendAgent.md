@@ -1,7 +1,7 @@
 ---
 description: Frontend-разработчик CollegeLMS (Next.js 14, TypeScript, Tailwind CSS 4, shadcn/ui). Страницы, компоненты, интеграция API, состояния загрузки и ошибок. Вызывай для реализации или правки UI. Обязательно проверяет npm run build.
 mode: subagent
-# Временно, до подключения подписки. Вернуть: kimi-for-coding/k3.1-pro
+# Kimi Plus пока не подключён. Вернуть: kimi-for-coding/k3.1-pro
 model: opencode/deepseek-v4.1-flash-free
 color: "#22c55e"
 permissions:

@@ -41,7 +41,7 @@
 ## Агенты и модели
 
 - Целевые модели после подключения подписок: `BackendAgent` — `opencode-go/kimi-k2.7-code`, `FrontendAgent` — `kimi-for-coding/k3.1-pro`, `DevOpsAgent` — `opencode-go/glm-5.3-flash`, `TesterAgent` — `opencode-go/deepseek-v4.1-flash`, `plan` — `openai/gpt-6.1-sol`, `build` — `opencode-go/kimi-k2.7-code`.
-- Пока подписки не подключены, все агенты временно работают на `opencode/deepseek-v4.1-flash-free`.
+- OpenCode Go активна. Пока не подключены Codex и Kimi, `plan` и `FrontendAgent` временно работают на `opencode/deepseek-v4.1-flash-free`; остальные агенты уже на Go.
 - Агенты лежат в `.opencode/agents/`, проектные скиллы — в `.opencode/skills/`.
 
 ## Скиллы проекта

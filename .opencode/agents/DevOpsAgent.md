@@ -1,8 +1,7 @@
 ---
 description: DevOps-инженер CollegeLMS. Docker, docker-compose, Nginx, GitHub Actions CI/CD, деплой на VPS. Вызывай для инфраструктуры, пайплайнов и проверки полного compose. Обязательно проверяет docker compose up --build.
 mode: subagent
-# Временно, до подключения подписки. Вернуть: opencode-go/glm-5.3-flash
-model: opencode/deepseek-v4.1-flash-free
+model: opencode-go/glm-5.3-flash
 color: "#f59e0b"
 permissions:
   - action: edit

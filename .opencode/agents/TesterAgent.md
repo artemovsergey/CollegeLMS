@@ -1,8 +1,7 @@
 ---
 description: Инженер по тестированию CollegeLMS. Модульные тесты (xUnit, Moq, Bogus), интеграционные (WebApplicationFactory), E2E (Playwright). Вызывай для написания тестов и проверки покрытия. Обязательно запускает dotnet test.
 mode: subagent
-# Временно, до подключения подписки. Вернуть: opencode-go/deepseek-v4.1-flash
-model: opencode/deepseek-v4.1-flash-free
+model: opencode-go/deepseek-v4.1-flash
 color: "#10b981"
 permissions:
   - action: edit

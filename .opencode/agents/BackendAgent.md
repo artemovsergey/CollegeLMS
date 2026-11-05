@@ -1,8 +1,7 @@
 ---
 description: Backend-разработчик CollegeLMS (.NET 10). Сущности, EF Core миграции, сервисы, контроллеры, DTO, мапперы, валидаторы, Swagger. Вызывай для реализации или правки backend API. Обязательно проверяет dotnet build.
 mode: subagent
-# Временно, до подключения подписки. Вернуть: opencode-go/kimi-k2.7-code
-model: opencode/deepseek-v4.1-flash-free
+model: opencode-go/kimi-k2.7-code
 color: "#4f8cff"
 permissions:
   - action: edit
