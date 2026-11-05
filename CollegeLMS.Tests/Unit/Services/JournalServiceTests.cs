@@ -194,6 +194,78 @@ public class JournalServiceTests : IDisposable
         result.Data.TotalPairCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task GetJournalAsync_SkipsNonWorkingDate()
+    {
+        var teacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ИС-21");
+        var utcNow = DateTime.UtcNow;
+        // 4 ноября 2026 — среда 10-й недели (праздник), 5 ноября — четверг.
+        _db.NonWorkingDays.Add(
+            new NonWorkingDay
+            {
+                Id = Guid.NewGuid(),
+                DateFrom = new DateTime(2026, 11, 4),
+                DateTo = new DateTime(2026, 11, 4),
+                Title = "День народного единства",
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await SeedEntryAsync(teacher.Id, "Математика", 2, [10], group.Id, DayOfWeek.Wednesday);
+        await SeedEntryAsync(teacher.Id, "Математика", 3, [10], group.Id, DayOfWeek.Thursday);
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
+
+        result.IsSuccess.Should().BeTrue();
+        var card = result.Data!.Subjects.Single();
+        card.Items.Should().ContainSingle();
+        card.Items[0].Date.Should().Be(new DateTime(2026, 11, 5));
+        card.Items[0].NumberPairs.Should().BeEquivalentTo([3]);
+        card.PairCount.Should().Be(1);
+        result.Data.TotalPairCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_InformationalPairOnNonWorkingDate_IsSkipped()
+    {
+        var teacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ИВ 254");
+        var utcNow = DateTime.UtcNow;
+        // 7 октября 2026 — среда 6-й недели: пара из истории тоже не должна
+        // попасть в журнал, если день отмечен нерабочим.
+        _db.NonWorkingDays.Add(
+            new NonWorkingDay
+            {
+                Id = Guid.NewGuid(),
+                DateFrom = new DateTime(2026, 10, 7),
+                DateTo = new DateTime(2026, 10, 7),
+                Title = "Праздник",
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        await SeedEntryAsync(teacher.Id, "ОСиС", 2, [3, 4, 5], group.Id, day: DayOfWeek.Wednesday);
+        await SeedHistoryAsync(
+            teacher.Id,
+            "ОСиС",
+            ScheduleChangeType.Add,
+            note: "вм.2 п.сам/р.",
+            week: 6,
+            day: DayOfWeek.Wednesday,
+            groupId: group.Id,
+            pair: 1
+        );
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, group.Id, default);
+
+        result.IsSuccess.Should().BeTrue();
+        var card = result.Data!.Subjects.Single();
+        card.PairCount.Should().Be(3);
+        card.Items.Should().NotContain(i => i.Week == 6);
+        result.Data.TotalPairCount.Should().Be(3);
+    }
+
     private async Task SeedHistoryAsync(
         Guid teacherId,
         string subject,
