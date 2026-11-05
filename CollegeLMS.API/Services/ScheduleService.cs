@@ -377,6 +377,14 @@ public class ScheduleService(
         var utcToday = DateTime.UtcNow.Date;
         var mondayOfWeek1 = StudyWeek.MondayOf(StudyWeek.SemesterStart);
         var semesterFirstDate = StudyWeek.SemesterStart.Date;
+
+        // Праздники и выходные в журнал не попадают: в расписании такой день
+        // скрыт, а журнал строится только по датам, когда пары проводятся.
+        var nonWorkingDays = await db
+            .NonWorkingDays.AsNoTracking()
+            .Where(d => d.DateFrom <= utcToday && d.DateTo >= semesterFirstDate)
+            .ToListAsync(ct);
+
         var itemMap =
             new HashSet<(
                 Guid GroupId,
@@ -409,6 +417,9 @@ public class ScheduleService(
             var dayIndex = ((int)dayOfWeek + 6) % 7;
             var date = mondayOfWeek1.AddDays((week - 1) * 7 + dayIndex);
             if (date < semesterFirstDate || date > utcToday)
+                return;
+
+            if (nonWorkingDays.Any(d => d.DateFrom.Date <= date && d.DateTo.Date >= date))
                 return;
 
             itemMap.Add((entryGroupId, entrySubject, week, dayOfWeek, pair));
