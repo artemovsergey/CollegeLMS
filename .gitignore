@@ -21,9 +21,8 @@ next-env.d.ts
 .env.*.local
 appsettings.Production.json
 appsettings.*.local.json
-# Agent config dirs (глобальные в ~/.config/opencode, локальные не коммитим)
+# Agent config dirs (.opencode версионируется, остальные локальные)
 .mimocode/
-.opencode/
 .agents/
 .impeccable/
 .superpowers/   
