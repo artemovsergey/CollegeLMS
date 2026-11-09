@@ -11,7 +11,7 @@
 | Скиллы | 17 проектных + 4 новых (`collegelms-roles`, `course-materials`, `dsh-environment`, `vps-bb-status`), 29 глобальных OpenCode и 15 Superpowers — всего 65 в каталоге DSH (плюс встроенные office/sandbox). |
 | Агенты | Роли Backend/Frontend/Tester/DevOps/Docs описаны скиллом `collegelms-roles`; именованных агентов в DSH нет. |
 | Секреты | `.env` собран из `secrets/.env` + `secrets/collegelms.env`: 29 ключей, 15 добавлено, локальные `OPENCODE_*`/`AGENTBRIDGE_PORT` сохранены. |
-| Автоматизации | По решению пользователя не создавались; задачи расписания удалены. |
+| Автоматизации | «DSH Session Analytics» — разбор каждой сессии (модели, токены, скиллы, MCP, плагины) каждые 10 минут через планировщик Windows; «Радар плагинов DSH» — недельный отчёт. |
 | Свои плагины | Не разрабатывались; `dsh-collegelms` — конфигурационный bundle для MCP и моделей, не код-плагин. |
 
 ## Наработки OpenCode и bb
@@ -111,10 +111,25 @@ feature/course-pipeline` и PR (вручную или по отдельной п
 
 ## Автоматизации и свои плагины
 
-По решению пользователя (2026-11-09) не настраивались: задачи расписания
-удалены, разработка собственных плагинов отложена. При необходимости:
-`schedule_create` — для автоматизаций, `plugin_manager install_bundle` — для
-bundle, отдельный пакет — для host-плагина.
+Настроено:
+
+- **«DSH Session Analytics»** — задача планировщика Windows каждые 10 минут
+  (`schtasks`), разбирает `~/.dsh/sessions/**/session.v4.jsonl.zstd`:
+  модель и токены по каждой модели, ходы/шаги/ошибки, скиллы, MCP
+  (доступные и вызванные), операции `plugin_manager`, субагенты, профиль.
+  Отчёт — `~/.dsh/session-analytics/latest.md`, машинная сводка —
+  `data/summary.json`, метрики сессий — `data/sessions/<id>.json`.
+  Установка/обновление: `pwsh -File scripts/dsh/install-session-analytics.ps1`;
+  ручной запуск: `~/.dsh/session-analytics/run.cmd`.
+- **«Радар плагинов DSH»** — недельный отчёт по каталогу и npm-загрузкам,
+  задача DSH (`schedule_create`), `~/.dsh/plugin-radar/run.cmd`.
+
+Точные копии сессий и снимки диалога (`(2)`, `session/end-seed`) в отчёте
+помечаются `⧉` и учитываются в суммах один раз.
+
+`schedule_create` — для автоматизаций внутри DSH (доставка работает, только
+пока запущен хост); `plugin_manager install_bundle` — для bundle, отдельный
+пакет — для host-плагина.
 
 Идеи на будущее (без реализации): `dsh-vps`, `dsh-bb`, `dsh-coursekit`,
 `dsh-secrets-guard`, интеграция bb ↔ DSH через ACP.
@@ -134,6 +149,10 @@ list_subagent_models                  # 6 моделей opencode-go
 
 # секреты
 pwsh -File scripts/dsh/sync-secrets.ps1   # 29 ключей, 0 ошибок
+
+# аналитика сессий
+& "$env:USERPROFILE\.dsh\session-analytics\run.cmd"   # latest.md: модели, токены, скиллы, MCP, плагины
+schtasks /Query /TN "DSH Session Analytics"           # задача каждые 10 минут
 ```
 
 ## Риски и ограничения

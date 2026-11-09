@@ -74,8 +74,16 @@ description: Устройство рабочей среды DeepSeek Harness д�
 
 ## Автоматизации
 
-По решению пользователя не настроены, задачи расписания удалены. При явной
-просьбе — `schedule_create`; доставка работает, только пока запущен хост.
+- «Радар плагинов DSH» — недельный мониторинг, `~/.dsh/plugin-radar/run.cmd`
+  (задача DSH, понедельник 09:00).
+- «DSH Session Analytics» — раз в 10 минут разбирает сессии в
+  `~/.dsh/session-analytics`: модель, токены, скиллы, MCP, плагины, субагенты.
+  Отчёт — `latest.md`, ручной запуск — `run.cmd`, установка/обновление —
+  `pwsh -File scripts/dsh/install-session-analytics.ps1`. Работает через
+  планировщик Windows и не требует открытого DSH.
+
+При явной просьбе о новой автоматизации — `schedule_create` (доставка только
+пока запущен хост) или отдельная задача Windows, как у аналитики сессий.
 
 ## Проверка среды
 
@@ -85,6 +93,8 @@ description: Устройство рабочей среды DeepSeek Harness д�
 4. Каталог скиллов содержит `collegelms-roles`, `course-materials`,
    `dsh-environment`, `vps-bb-status`.
 5. `pwsh -File scripts/dsh/sync-secrets.ps1` — 29 ключей из secrets, 0 ошибок.
+6. `& "$env:USERPROFILE\.dsh\session-analytics\run.cmd"` — отчёт `latest.md`
+   содержит модели, токены, скиллы, MCP и плагины последних сессий.
 
 ## Ограничения
 
