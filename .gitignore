@@ -63,3 +63,8 @@ import/wp_data_full.json
 # Unknown binaries (do not commit)
 roots/
 xmrig*
+
+# DeepSeek Harness (project-local)
+.dsh/skills
+.dsh/cache/
+.npm-cache/

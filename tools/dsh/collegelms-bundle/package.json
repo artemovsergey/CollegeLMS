@@ -1,0 +1,22 @@
+{
+  "name": "dsh-collegelms",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP-подключения и политика моделей субагентов для CollegeLMS в DeepSeek Harness",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "exports": {
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ]
+}

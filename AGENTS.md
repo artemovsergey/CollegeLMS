@@ -50,6 +50,14 @@
 - OpenCode Go активна. Пока не подключены Codex и Kimi, `plan` и `FrontendAgent` временно работают на `opencode/deepseek-v4.1-flash-free`; остальные агенты уже на Go.
 - Агенты лежат в `.opencode/agents/`, проектные скиллы — в `.opencode/skills/`.
 
+### DeepSeek Harness
+
+- Профиль — `desktop`; bundle `dsh-collegelms` (`tools/dsh/collegelms-bundle`) подключает MCP `github`, `context7`, `ms_learn`, `playwright` и разрешает субагентам модели `opencode-go`.
+- Отдельных именованных агентов в DSH нет: роли задаёт скилл `collegelms-roles` (`deepseek-v4.1-flash` — основная, `kimi-k2.7-code` — backend, `kimi-k3` — frontend, `glm-5.3-flash` — devops, `gpt-6-luna` — документы). Выбор модели субагентом действует только в **новых** сессиях.
+- DSH видит проектные скиллы через junction `.dsh/skills → .opencode/skills`; глобальные OpenCode/Superpowers — junction'ы в `~/.dsh/skills` (создаются `scripts/dsh/link-skills.ps1`).
+- Секреты: `pwsh -File scripts/dsh/sync-secrets.ps1` собирает `.env` из `secrets/.env` + `secrets/collegelms.env`, локальные ключи (`OPENCODE_*`, `AGENTBRIDGE_PORT`) сохраняет.
+- Устройство среды, проверка и ограничения — скилл `dsh-environment`; отчёт — `docs/agents/dsh-environment.md`.
+
 ## Скиллы проекта
 
 - Backend: `dotnet-entity`, `dotnet-endpoint`, `dotnet-webapi`, `fluent-validation`, `swagger-docs`, `result-pattern`, `seed-data`, `cors-security`, `jwt-auth`
@@ -57,6 +65,8 @@
 - Frontend: `design-system`, `nextjs-page`
 - Process: `feature-workflow`, `project-reference`
 - DevOps: `docker-compose-dev`, `vps-deploy`, `cicd-pipeline`
+- Агентская среда: `collegelms-roles`, `dsh-environment`, `vps-bb-status`
+- Учебные материалы: `course-materials`
 
 ## Конвенции .NET / EF Core
 
