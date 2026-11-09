@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-collegelms}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -41,7 +41,7 @@ services:
     mem_limit: 128m
     memswap_limit: 256m
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -64,7 +64,7 @@ services:
     mem_limit: 1g
     memswap_limit: 2g
     ports:
-      - "${API_PORT:-5026}:8080"
+      - "127.0.0.1:${API_PORT:-5026}:8080"
     volumes:
       - ./import:/import
       - uploads_data:/app/uploads
@@ -94,7 +94,7 @@ services:
     mem_limit: 1g
     memswap_limit: 2g
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
     depends_on:
       - api
     restart: unless-stopped
