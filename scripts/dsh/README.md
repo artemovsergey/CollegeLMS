@@ -15,8 +15,26 @@
 pwsh -File scripts/dsh/setup.ps1
 ```
 
-Затем установить bundle `tools/dsh/collegelms-bundle` через `plugin_manager`
-(`install_bundle`, target — абсолютный путь) и открыть новую сессию.
+Затем скопировать актуальный конфиг профиля из репозитория `secrets`:
+
+```powershell
+Copy-Item <путь-к-secrets>\dsh.patch.yml `
+  "$env:USERPROFILE\.dsh\profiles\desktop\cordis.patch.yml"
+```
+
+И открыть **новую** сессию: политика моделей и права фиксируются при создании.
+Bundle в профиле не используется — все MCP-серверы и настройки находятся в
+этом одном `cordis.patch.yml`.
+
+## Конфиг профиля
+
+- Модель — `opencode-go/deepseek-v4.1-flash`, права — `danger-full-access` +
+  `approval: never`, MCP — `github`, `context7`, `ms_learn`, `playwright`.
+- Секретов в конфиге нет: `OPENCODE_GO_API_KEY` — в credential store DSH,
+  GitHub-токен — в keyring `gh`.
+- Проектные скиллы подключаются junction'ом `.dsh/skills` →
+  `~/.dsh/local/collegelms-skills` (или `.opencode/skills` в рабочей копии).
+  `customSkillDirs` в профиле пресетами не наследуется.
 
 ## Аналитика сессий
 
@@ -41,5 +59,4 @@ pwsh -File scripts/dsh/install-session-analytics.ps1   # установка + з
 
 - Значения секретов не печатаются и не коммитятся.
 - `.env` остаётся в `.gitignore`.
-- Скрипты не меняют профиль DSH и не устанавливают bundle — это делает
-  `plugin_manager`.
+- Скрипты не меняют профиль DSH: конфиг копируется из `secrets` отдельно.

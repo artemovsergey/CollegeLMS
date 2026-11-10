@@ -4,8 +4,12 @@ rem Токен не хранится в конфиге: он берётся из
 rem и передаётся дочернему процессу только через переменную окружения.
 setlocal DisableDelayedExpansion
 
-set "GH_EXE=C:\Users\asv\AppData\Local\Programs\GitHub CLI\bin\gh.exe"
-set "MCP_EXE=C:\Users\asv\.config\opencode\bin\github-mcp-server.exe"
+set "GH_EXE=gh"
+where gh >nul 2>nul
+if errorlevel 1 set "GH_EXE=%LOCALAPPDATA%\Programs\GitHub CLI\bin\gh.exe"
+
+set "MCP_EXE=%USERPROFILE%\.config\opencode\bin\github-mcp-server.exe"
+if defined GITHUB_MCP_SERVER_EXE set "MCP_EXE=%GITHUB_MCP_SERVER_EXE%"
 
 for /f "usebackq delims=" %%T in (`"%GH_EXE%" auth token 2^>nul`) do set "GITHUB_PERSONAL_ACCESS_TOKEN=%%T"
 if not defined GITHUB_PERSONAL_ACCESS_TOKEN (

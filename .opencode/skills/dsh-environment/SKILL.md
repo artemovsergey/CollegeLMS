@@ -1,6 +1,6 @@
 ---
 name: dsh-environment
-description: Устройство рабочей среды DeepSeek Harness для CollegeLMS — профиль desktop, bundle dsh-collegelms, MCP-серверы, политика моделей субагентов, каталоги скиллов, скрипты секретов и автоматизации; как добавить MCP/скилл и как проверить среду.
+description: Устройство рабочей среды DeepSeek Harness для CollegeLMS — единый cordis.patch.yml, MCP-серверы, политика моделей субагентов, скиллы через junction, секреты и локальные утилиты; как добавить MCP/скилл, проверить среду и перенести конфиг.
 ---
 
 # Среда DeepSeek Harness
@@ -9,36 +9,34 @@ description: Устройство рабочей среды DeepSeek Harness д�
 
 | Компонент | Где | Что даёт |
 |---|---|---|
-| Профиль `desktop` | `~/.dsh/profiles/desktop` | GUI-профиль, правится только через `plugin_manager` |
-| Bundle `dsh-collegelms` | `tools/dsh/collegelms-bundle` | MCP + политика моделей субагентов |
-| Скиллы проекта | `.opencode/skills` | 20+ проектных скиллов, видны и OpenCode, и DSH |
-| Junction `.dsh/skills` | `.dsh/skills → .opencode/skills` | проектное обнаружение скиллов в DSH |
-| Скиллы OpenCode/Superpowers | `~/.dsh/skills` (44 junction'а) | глобальные скиллы, включая planning/debugging/TDD |
-| Секреты | `scripts/dsh/sync-secrets.ps1` | `.env` из GitHub-репозитория `secrets` |
+| Профиль `desktop` | `~/.dsh/profiles/desktop` | GUI-профиль DSH |
+| Единый конфиг | `~/.dsh/profiles/desktop/cordis.patch.yml` (копия — `secrets/dsh.patch.yml`) | модель, права, MCP, модели субагентов |
+| Скиллы проекта | `~/.dsh/local/collegelms-skills` + junction `.dsh/skills` | 21 проектный скилл |
+| Скиллы OpenCode/Superpowers | `~/.dsh/skills` (44 junction'а) | planning/debugging/TDD и др. |
+| Секреты | `scripts/dsh/sync-secrets.ps1` | `.env` из репозитория `secrets` |
+
+Bundle `dsh-collegelms` больше не используется, отдельных код-плагинов нет.
+`dsh-our-free-model` удалён; провайдер — только `opencode-go`.
+Права по умолчанию — `danger-full-access` + `approval: never`.
 
 ## MCP-серверы
 
-После установки bundle доступны (проверено: 77 инструментов):
+В едином конфиге подключены (проверено: 77 инструментов):
 
-- `mcp__github__*` — issues, PR, Actions, код, релизы (46 инструментов);
-- `mcp__context7__*` — документация библиотек (2);
-- `mcp__ms_learn__*` — Microsoft Learn (3);
-- `mcp__playwright__*` — браузер и E2E (26).
+| Сервер | Транспорт | Инструментов |
+|---|---|---|
+| `github` | stdio через `scripts/dsh/github-mcp.cmd` | 46 |
+| `playwright` | stdio, `node` + `@playwright/mcp` | 26 |
+| `ms_learn` | streamable-http | 3 |
+| `context7` | streamable-http | 2 |
 
-Правила:
-
-- Инструменты `mcp__*` видны агентам, созданным после установки/перезагрузки;
-  в уже открытой сессии каталог может обновиться не сразу.
-- GitHub-токен не лежит в конфиге: `scripts/dsh/github-mcp.cmd` берёт его
-  через `gh auth token`.
-- Недоступный сервер не валит сессию (`failOnStartupError: false`), но его
-  инструментов не будет. Проверка: `gh auth status`, наличие
-  `C:\Users\asv\.config\opencode\bin\github-mcp-server.exe`,
-  `C:\Program Files\nodejs\node.exe`, `@playwright/mcp`.
+- Инструменты видны агентам, созданным после загрузки конфига; в открытой
+  сессии каталог может обновиться не сразу.
+- GitHub-токен не в конфиге: обёртка берёт его из `gh auth token`.
+- Недоступный сервер не валит сессию, но его инструментов не будет.
 - Добавление сервера: новый `insert`-ряд в
-  `tools/dsh/collegelms-bundle/cordis.patch.yml` → переустановка bundle через
-  `plugin_manager` → **новая** сессия. Вручную `cordis.patch.yml` профиля не
-  редактируй.
+  `~/.dsh/profiles/desktop/cordis.patch.yml` → HMR или перезапуск DSH →
+  **новая** сессия. Bundle и `plugin_manager` для этого не нужны.
 
 ## Модели субагентов
 
@@ -47,62 +45,70 @@ description: Устройство рабочей среды DeepSeek Harness д�
 (все `opencode-go`). В текущей сессии субагент наследует модель родителя.
 
 - Перед делегацией: `list_subagent_models`.
-- Модель передаётся в `subagent` полями `provider` + `model` (и при
-  необходимости `reasoning_effort`).
+- Модель передаётся в `subagent` полями `provider` + `model`.
 - Раскладка ролей — в скилле `collegelms-roles`.
-- `kimi-k3.1-pro` и `gpt-6.1-sol` из старого `AGENTS.md` в каталоге
-  `opencode-go` отсутствуют; используй `kimi-k3` и `gpt-6-luna`, пока они не
-  появятся.
+- `kimi-k3.1-pro` и `gpt-6.1-sol` в каталоге отсутствуют; используй `kimi-k3`
+  и `gpt-6-luna`, пока они не появятся.
 
-## Добавление скилла
+## Скиллы
 
-1. Создай `.opencode/skills/<kebab-name>/SKILL.md`.
-2. Frontmatter: `name` (kebab-case, совпадает с папкой) и `description`
-   (одно предложение с триггером «когда использовать»).
-3. Тело — до 8192 символов, иначе DSH обрежет результат.
-4. Скилл появится в каталоге без перезапуска (наблюдение за каталогом).
-5. Для глобального скилла — `~/.dsh/skills/<name>` (junction или копия).
+- Проектные: `.opencode/skills` (21), DSH видит через junction
+  `.dsh/skills` → `~/.dsh/local/collegelms-skills`.
+- `customSkillDirs` в профиле **не наследуется пресетами агентов**, поэтому
+  без junction проектные скиллы не видны.
+- Глобальные: `~/.dsh/skills` (44 junction'а на `~/.config/opencode/skills` и
+  Superpowers), создаются `scripts/dsh/link-skills.ps1`.
+- Новый скилл: `.opencode/skills/<kebab-name>/SKILL.md` с frontmatter `name` и
+  `description`; тело до 8192 символов. Скилл появляется без перезапуска.
 
 ## Секреты
 
-- `pwsh -File scripts/dsh/sync-secrets.ps1` — собирает `.env` из
+- `pwsh -File scripts/dsh/sync-secrets.ps1` собирает `.env` из
   `secrets/.env` + `secrets/collegelms.env`, сохраняя локальные ключи
-  (`OPENCODE_*`, `AGENTBRIDGE_PORT`). Значения не печатает, в git не пишет.
+  (`OPENCODE_*`, `AGENTBRIDGE_PORT`). Значения не печатает.
 - `.env` в `.gitignore`; `.env.bak-*` не создавать.
-- Токен GitHub — в keyring `gh`; в конфиги и чат не копировать.
+- `OPENCODE_GO_API_KEY` — в credential store DSH (Settings → Models).
+- GitHub-токен — в keyring `gh`; в конфиг и чат не копировать.
 - Прод-значения (`collegelms.prod.env`) локально не используются.
 
-## Автоматизации
+## Локальные утилиты
 
-- «Радар плагинов DSH» — недельный мониторинг, `~/.dsh/plugin-radar/run.cmd`
-  (задача DSH, понедельник 09:00).
-- «DSH Session Analytics» — раз в 10 минут разбирает сессии в
-  `~/.dsh/session-analytics`: модель, токены, скиллы, MCP, плагины, субагенты.
-  Отчёт — `latest.md`, ручной запуск — `run.cmd`, установка/обновление —
-  `pwsh -File scripts/dsh/install-session-analytics.ps1`. Работает через
-  планировщик Windows и не требует открытого DSH.
-
-При явной просьбе о новой автоматизации — `schedule_create` (доставка только
-пока запущен хост) или отдельная задача Windows, как у аналитики сессий.
+- **DSH Session Analytics** — `scripts/dsh/session-analytics.mjs`, задача
+  планировщика Windows каждые 10 минут; отчёт —
+  `~/.dsh/session-analytics/latest.md`.
+- **Радар плагинов DSH** — `~/.dsh/plugin-radar`, еженедельная задача DSH;
+  отчёт в `~/.dsh/plugin-radar/reports/`.
+- Это не часть профиля DSH и не меняет конфиг.
 
 ## Проверка среды
 
-1. `plugin_manager` → `list_bundles`: `dsh-collegelms` включён.
-2. Новый субагент перечисляет `mcp__*` — должны быть 4 сервера.
-3. `list_subagent_models` в новой сессии — шесть моделей.
+1. В `cordis.patch.yml` есть `mcp-github`, `mcp-context7`, `mcp-ms-learn`,
+   `mcp-playwright` и `subagent-model-selection-settings`.
+2. Новый субагент перечисляет `mcp__*` — 4 сервера, 77 инструментов.
+3. `list_subagent_models` в новой сессии — 6 моделей.
 4. Каталог скиллов содержит `collegelms-roles`, `course-materials`,
    `dsh-environment`, `vps-bb-status`.
 5. `pwsh -File scripts/dsh/sync-secrets.ps1` — 29 ключей из secrets, 0 ошибок.
-6. `& "$env:USERPROFILE\.dsh\session-analytics\run.cmd"` — отчёт `latest.md`
-   содержит модели, токены, скиллы, MCP и плагины последних сессий.
+
+## Перенос на другую машину
+
+1. Скопировать `secrets/dsh.patch.yml` в
+   `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml`.
+2. Скопировать `dsh/github-mcp.cmd` в
+   `%USERPROFILE%\.dsh\local\scripts\dsh\github-mcp.cmd`.
+3. Установить DSH, Node.js, `gh`, `@playwright/mcp`,
+   `github-mcp-server.exe`; выполнить `gh auth login`.
+4. Добавить `OPENCODE_GO_API_KEY` в Settings → Models.
+5. Скопировать `.opencode/skills` в `~/.dsh/local/collegelms-skills` и создать
+   junction `.dsh/skills` в проекте.
+6. Открыть новую сессию.
 
 ## Ограничения
 
-- Профиль `desktop` монопольно управляется Electron: CLI `dsh --profile
-  desktop` не годится, только `plugin_manager`.
-- Bundle установлен ссылкой на каталог репозитория: правки `cordis.patch.yml`
-  требуют переустановки/перезапуска, чтобы применились.
-- Пути к `node.exe`, `@playwright/mcp`, `github-mcp-server.exe` привязаны к
-  этой машине.
-- 77 MCP-инструментов + 80 скиллов заметно расходуют контекст; при работе на
-  слабых моделях отключай лишние серверы точечно.
+- Профиль `desktop` управляется Electron: CLI `dsh --profile desktop` не
+  годится. Конфиг правится в `cordis.patch.yml`, изменения подхватывает HMR.
+- Конфиг рассчитан на Windows (`cmd.exe`, `%USERPROFILE%`, `%APPDATA%`).
+- 77 MCP-инструментов и ~80 скиллов заметно расходуют контекст; лишние
+  серверы отключай точечно.
+- Права `danger-full-access`: подтверждений на действия нет — это осознанный
+  выбор пользователя.

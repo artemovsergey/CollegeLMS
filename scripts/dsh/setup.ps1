@@ -9,8 +9,7 @@
       3. собирает .env из приватного репозитория secrets;
       4. проверяет наличие gh, node, GitHub MCP server и Playwright MCP.
 
-    Bundle dsh-collegelms устанавливается отдельно через plugin_manager:
-    правка профиля в обход plugin manager не поддерживается.
+    Конфиг профиля DSH копируется отдельно из secrets/dsh.patch.yml.
 
 .EXAMPLE
     pwsh -File scripts/dsh/setup.ps1
@@ -63,7 +62,7 @@ try {
 
     Write-Host ''
     Write-Host 'Готово. Осталось:'
-    Write-Host '  * проверить plugin_manager -> list_bundles: dsh-collegelms enabled;'
+    Write-Host '  * скопировать secrets/dsh.patch.yml в ~/.dsh/profiles/desktop/cordis.patch.yml;'
     Write-Host '  * открыть новую сессию (политика моделей фиксируется при создании);'
     Write-Host '  * скилл dsh-environment — проверка и ограничения.'
 }
