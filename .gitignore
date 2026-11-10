@@ -19,11 +19,11 @@ next-env.d.ts
 .env
 .env.local
 .env.*.local
+.env.bak*
 appsettings.Production.json
 appsettings.*.local.json
-# Agent config dirs (глобальные в ~/.config/opencode, локальные не коммитим)
+# Agent config dirs (.opencode версионируется, остальные локальные)
 .mimocode/
-.opencode/
 .agents/
 .impeccable/
 .superpowers/   
@@ -63,3 +63,8 @@ import/wp_data_full.json
 # Unknown binaries (do not commit)
 roots/
 xmrig*
+
+# DeepSeek Harness (project-local)
+.dsh/skills
+.dsh/cache/
+.npm-cache/

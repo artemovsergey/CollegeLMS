@@ -1,6 +1,6 @@
 # CollegeLMS
 
-Проектные пути и команды репозитория. Общие правила и конвенции — в глобальном `AGENTS.md`.
+Проектные пути и команды репозитория. Общие правила — в глобальном `AGENTS.md`; ниже — только проектное.
 
 ## Пути
 
@@ -8,6 +8,12 @@
 - Frontend: `CollegeLMS.Next/` (Next.js 14, App Router); бот Max: `CollegeLMS.MaxBot/`
 - Спека: `docs/spec/task.md`, `docs/spec/userstories.md`; дизайн: `DESIGN.md`, `PRODUCT.md`
 - Postman: `docs/spec/CollegeLMS.postman_collection.json`
+
+## Секреты
+
+- Локальный `.env` собирается из `collegelms.env` в приватном репозитории `secrets`; в git не коммитится.
+- `appsettings.json` содержит дефолтные JWT-ключ и пароль БД — на них не полагаться, рабочие значения приходят из `.env`.
+- `.env.bak-*` — устаревшие копии: не использовать и не добавлять в репозиторий.
 
 ## Ветки
 
@@ -49,3 +55,40 @@
 - Логи контейнеров после деплоя: `docker compose --profile max-bot logs api --tail 50`.
 - Ручной `docker compose` из рабочего каталога после merge не нужен: деплой
   приезжает сам через CI/CD и пересобирает контейнеры в прод-каталоге.
+
+## Агенты и модели
+
+- Целевые модели после подключения подписок: `BackendAgent` — `opencode-go/kimi-k2.7-code`, `FrontendAgent` — `kimi-for-coding/k3.1-pro`, `DevOpsAgent` — `opencode-go/glm-5.3-flash`, `TesterAgent` — `opencode-go/deepseek-v4.1-flash`, `plan` — `openai/gpt-6.1-sol`, `build` — `opencode-go/kimi-k2.7-code`.
+- OpenCode Go активна. Пока не подключены Codex и Kimi, `plan` и `FrontendAgent` временно работают на `opencode/deepseek-v4.1-flash-free`; остальные агенты уже на Go.
+- Агенты лежат в `.opencode/agents/`, проектные скиллы — в `.opencode/skills/`.
+
+### DeepSeek Harness
+
+- Профиль — `desktop`; bundle `dsh-collegelms` (`tools/dsh/collegelms-bundle`) подключает MCP `github`, `context7`, `ms_learn`, `playwright` и разрешает субагентам модели `opencode-go`.
+- Отдельных именованных агентов в DSH нет: роли задаёт скилл `collegelms-roles` (`deepseek-v4.1-flash` — основная, `kimi-k2.7-code` — backend, `kimi-k3` — frontend, `glm-5.3-flash` — devops, `gpt-6-luna` — документы). Выбор модели субагентом действует только в **новых** сессиях.
+- DSH видит проектные скиллы через junction `.dsh/skills → .opencode/skills`; глобальные OpenCode/Superpowers — junction'ы в `~/.dsh/skills` (создаются `scripts/dsh/link-skills.ps1`).
+- Секреты: `pwsh -File scripts/dsh/sync-secrets.ps1` собирает `.env` из `secrets/.env` + `secrets/collegelms.env`, локальные ключи (`OPENCODE_*`, `AGENTBRIDGE_PORT`) сохраняет.
+- Устройство среды, проверка и ограничения — скилл `dsh-environment`; отчёт — `docs/agents/dsh-environment.md`.
+
+## Скиллы проекта
+
+- Backend: `dotnet-entity`, `dotnet-endpoint`, `dotnet-webapi`, `fluent-validation`, `swagger-docs`, `result-pattern`, `seed-data`, `cors-security`, `jwt-auth`
+- Тесты: `dotnet-test`
+- Frontend: `design-system`, `nextjs-page`
+- Process: `feature-workflow`, `project-reference`
+- DevOps: `docker-compose-dev`, `vps-deploy`, `cicd-pipeline`
+- Агентская среда: `collegelms-roles`, `dsh-environment`, `vps-bb-status`
+- Учебные материалы: `course-materials`
+
+## Конвенции .NET / EF Core
+
+- `Result<T>` везде; никаких try-catch в контроллерах/сервисах — исключения ловит middleware
+- `CancellationToken ct` на всех async-методах; `AsNoTracking()` на чтении; `FindAsync()` по PK; предпочитать `List<T>` вместо `IEnumerable<T>`
+- Primary constructor DI; плоские DTO; file-scoped namespaces; ручные мапперы (без AutoMapper)
+- `Program.cs` минимален: `Add*` → `Extensions/ServiceCollectionExtensions.cs`, `Use*` → `Extensions/ApplicationBuilderExtensions.cs`
+- Мапперы → корень `Mappers/`, интерфейсы сервисов → корень `Interfaces/`
+- Все entity наследуют базовый `Entities/Entity` (Guid Id, CreatedAt, UpdatedAt = `DateTime.UtcNow`)
+- БД: GUID PK `ValueGeneratedNever()`; строки `HasMaxLength()`; enum `HasConversion<string>()` + `HasMaxLength()`; nav `[JsonIgnore]`
+- Индексы (UNIQUE, простые) — в EF Configuration (`HasIndex` + `HasDatabaseName`); CHECK constraints — в `Data/DbConstraints.cs` (идемпотентный PL/pgSQL, не через миграции)
+- EF Configuration включают `HasData()` для seed-данных
+
