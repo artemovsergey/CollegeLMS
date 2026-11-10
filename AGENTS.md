@@ -64,11 +64,11 @@
 
 ### DeepSeek Harness
 
-- Профиль — `desktop`; bundle `dsh-collegelms` (`tools/dsh/collegelms-bundle`) подключает MCP `github`, `context7`, `ms_learn`, `playwright` и разрешает субагентам модели `opencode-go`.
+- Профиль — `desktop`; единый `cordis.patch.yml` (копия — `secrets/dsh.patch.yml`) задаёт модель `opencode-go/deepseek-v4.1-flash`, права `danger-full-access`/`approval: never`, MCP `github`, `context7`, `ms_learn`, `playwright` и список моделей субагентов. Bundle не используется.
 - Отдельных именованных агентов в DSH нет: роли задаёт скилл `collegelms-roles` (`deepseek-v4.1-flash` — основная, `kimi-k2.7-code` — backend, `kimi-k3` — frontend, `glm-5.3-flash` — devops, `gpt-6-luna` — документы). Выбор модели субагентом действует только в **новых** сессиях.
-- DSH видит проектные скиллы через junction `.dsh/skills → .opencode/skills`; глобальные OpenCode/Superpowers — junction'ы в `~/.dsh/skills` (создаются `scripts/dsh/link-skills.ps1`).
-- Секреты: `pwsh -File scripts/dsh/sync-secrets.ps1` собирает `.env` из `secrets/.env` + `secrets/collegelms.env`, локальные ключи (`OPENCODE_*`, `AGENTBRIDGE_PORT`) сохраняет.
-- Устройство среды, проверка и ограничения — скилл `dsh-environment`; отчёт — `docs/agents/dsh-environment.md`.
+- Проектные скиллы — `.opencode/skills`; DSH видит их через junction `.dsh/skills` → `~/.dsh/local/collegelms-skills`. Глобальные OpenCode/Superpowers — `~/.dsh/skills` (создаются `scripts/dsh/link-skills.ps1`).
+- Секреты: `scripts/dsh/sync-secrets.ps1` собирает `.env` из `secrets/.env` + `secrets/collegelms.env`; в конфиге секретов нет, `OPENCODE_GO_API_KEY` — в credential store, GitHub-токен — из `gh`.
+- Проверка: 4 MCP-сервера (77 инструментов), 6 моделей в новой сессии, скиллы `collegelms-roles`, `course-materials`, `dsh-environment`, `vps-bb-status`. Подробности — `docs/agents/dsh-environment.md`.
 
 ## Скиллы проекта
 
