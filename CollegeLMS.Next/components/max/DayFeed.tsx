@@ -131,11 +131,12 @@ export default function DayFeed({
   const practiceCards = practices.filter((practice) => practice.kind !== "Up")
   const hasLayers =
     isNonWorking || isSunday || isWorkingDay || practiceCards.length > 0
-  // «Нет пар» — для обычного дня без пар, но со слоями (например, только практика).
+  // «Нет пар» — для обычного дня без пар, но со слоями (например, только ПП).
+  // УП без пар в этот день сюда не относится: баннера у неё больше нет.
   const showEmptyNote =
     sorted.length === 0 &&
     inserts.length === 0 &&
-    practices.length === 0 &&
+    practiceCards.length === 0 &&
     !isNonWorking &&
     !isSunday &&
     !isWorkingDay
