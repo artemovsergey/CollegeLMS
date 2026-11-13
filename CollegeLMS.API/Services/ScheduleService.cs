@@ -386,12 +386,7 @@ public class ScheduleService(
             .Where(d => d.DateFrom <= utcToday && d.DateTo >= semesterFirstDate)
             .ToListAsync(ct);
 
-        var itemMap = new HashSet<(
-            Guid GroupId,
-            string Subject,
-            DateTime Date,
-            int NumberPair
-        )>();
+        var itemMap = new HashSet<(Guid GroupId, string Subject, DateTime Date, int NumberPair)>();
 
         // Пары «только для информирования» («сам.р.» без «+») в базе расписания
         // не лежат — они остаются записью журнала. Добавляем их в карточки, иначе
