@@ -374,6 +374,20 @@
   background: var(--color-tint-primary);
 }
 
+/* Пара учебной практики (УП): подсвечиваем фон ячейки вместо отдельного
+   баннера — день практики читается прямо в списке пар. */
+.max-schedule__cell--practice {
+  background: var(--color-tint-positive);
+}
+
+.max-schedule__cell--practice.max-schedule__cell--current {
+  background: color-mix(
+    in srgb,
+    var(--color-tint-positive) 70%,
+    var(--color-tint-primary)
+  );
+}
+
 /* Пара, открывающая карточку журнала: приём тот же, что у кликабельных
    ячеек MAX, но без чужой разметки — вкладку и карточку красит сам список. */
 .max-schedule__cell--link {
@@ -625,11 +639,6 @@
   background: var(--color-card);
 }
 
-.max-layers__practice--up {
-  border-color: color-mix(in srgb, var(--text-positive) 40%, transparent);
-  background: var(--color-tint-positive);
-}
-
 .max-layers__practice--pp {
   border-color: color-mix(
     in srgb,
@@ -637,11 +646,6 @@
     transparent
   );
   background: var(--color-tint-attention);
-}
-
-.max-layers__practice-badge--up {
-  color: var(--text-positive);
-  background: color-mix(in srgb, var(--text-positive) 18%, var(--color-card));
 }
 
 .max-layers__practice-badge--pp {

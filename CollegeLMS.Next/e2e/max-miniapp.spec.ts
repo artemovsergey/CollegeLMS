@@ -66,6 +66,27 @@ const PRACTICE = {
   note: null,
 }
 
+const UP_ENTRY = {
+  ...ENTRY,
+  id: "up1",
+  subject: "УП.01 Разработка программных модулей",
+  lessonType: "Practice",
+  isPractice: true,
+  practiceName: "УП.01 Разработка программных модулей",
+  numberPair: 3,
+  room: "",
+}
+
+const UP_PRACTICE = {
+  ...PRACTICE,
+  id: "p2",
+  kind: "Up",
+  name: "УП.01 Разработка программных модулей",
+  dateFrom: "2026-09-07T00:00:00Z",
+  dateTo: "2026-09-07T00:00:00Z",
+  days: [{ date: "2026-09-07T00:00:00Z", pairNumbers: [3] }],
+}
+
 function ok(data: unknown) {
   return { isSuccess: true, data, errorMessage: null, statusCode: 200 }
 }
@@ -960,6 +981,80 @@ test.describe("MAX mini-app", () => {
     expect(url.searchParams.get("groupId")).toBe("g1")
     expect(url.searchParams.get("subject")).toBe("Математика")
     await expect(page.getByText("ПО262 · Математика")).toBeVisible()
+  })
+
+  test("Расписание: УП — пара с подсветкой открывает журнал без баннера", async ({
+    page,
+  }) => {
+    await loginMaxProfile(page, {
+      maxUserId: 2,
+      role: "Teacher",
+      groupId: null,
+      groupName: null,
+      teacherId: "t1",
+      teacherName: "Петренко В.Б.",
+    })
+    // День с УП: бэкенд отдаёт и карточку практики, и синтезированные пары.
+    await page.route(/\/api\/schedule\?.*view=day/, (route) =>
+      route.fulfill(
+        inlineJson(ok(dayView({ entries: [UP_ENTRY], practices: [UP_PRACTICE] }))),
+      ),
+    )
+    await page.route("**/api/schedule/journal**", (route) =>
+      route.fulfill(
+        inlineJson(
+          ok({
+            teacherId: "t1",
+            teacherName: "Петренко В.Б.",
+            subjects: [
+              {
+                groupId: "g1",
+                groupName: "ПО262",
+                subject: "УП.01 Разработка программных модулей",
+                pairCount: 1,
+                items: [
+                  {
+                    week: 2,
+                    dayOfWeek: 1,
+                    date: "2026-09-07T00:00:00",
+                    numberPairs: [3],
+                    changeTypes: [],
+                  },
+                ],
+              },
+            ],
+            totalPairCount: 1,
+          }),
+        ),
+      ),
+    )
+
+    await page.goto("/max/schedule?route=today&groupId=g1", {
+      waitUntil: "networkidle",
+    })
+
+    // Отдельного зелёного баннера УП больше нет: день читается по парам.
+    await expect(page.locator(".max-layers__practice")).toHaveCount(0)
+
+    const practicePair = page.getByRole("button", {
+      name: "Журнал: ПО262 · УП.01 Разработка программных модулей",
+    })
+    await expect(practicePair).toHaveClass(/max-schedule__cell--practice/)
+    await practicePair.click()
+
+    // Клик по паре УП ведёт в ту же карточку журнала, что и обычная пара.
+    await expect(page).toHaveURL(/\/max\/journal\?/)
+    const url = new URL(page.url())
+    expect(url.searchParams.get("teacherId")).toBe("t1")
+    expect(url.searchParams.get("groupId")).toBe("g1")
+    expect(url.searchParams.get("subject")).toBe(
+      "УП.01 Разработка программных модулей",
+    )
+    await expect(
+      page.getByText("ПО262 · УП.01 Разработка программных модулей"),
+    ).toBeVisible()
+    // В карточке есть дата пары, а не только название практики.
+    await expect(page.getByText("Понедельник · Неделя 2")).toBeVisible()
   })
 
   test("Расписание: пара чужого преподавателя не открывает журнал", async ({

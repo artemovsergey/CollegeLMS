@@ -106,6 +106,56 @@ public class JournalServiceTests : IDisposable
         await _db.SaveChangesAsync();
     }
 
+    private async Task<Practice> SeedPracticeAsync(
+        Guid teacherId,
+        Guid groupId,
+        string name,
+        DateTime dateFrom,
+        DateTime dateTo,
+        params (DateTime Date, int[] Pairs)[] days
+    )
+    {
+        var utcNow = DateTime.UtcNow;
+        var practice = new Practice
+        {
+            Id = Guid.NewGuid(),
+            Kind = PracticeKind.Up,
+            Name = name,
+            GroupId = groupId,
+            DateFrom = dateFrom,
+            DateTo = dateTo,
+            Room = "202л",
+            Subgroup = 1,
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow,
+        };
+        _db.Practices.Add(practice);
+        _db.PracticeTeachers.Add(
+            new PracticeTeacher
+            {
+                Id = Guid.NewGuid(),
+                PracticeId = practice.Id,
+                TeacherId = teacherId,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+            }
+        );
+        foreach (var (date, pairs) in days)
+            _db.PracticeDays.Add(
+                new PracticeDay
+                {
+                    Id = Guid.NewGuid(),
+                    PracticeId = practice.Id,
+                    Date = date,
+                    PairNumbers = pairs,
+                    CreatedAt = utcNow,
+                    UpdatedAt = utcNow,
+                }
+            );
+        await _db.SaveChangesAsync();
+        return practice;
+    }
+
     [Fact]
     public async Task GetJournalAsync_UnknownTeacher_Returns404()
     {
@@ -113,6 +163,127 @@ public class JournalServiceTests : IDisposable
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_PracticeDays_IncludeAllDatesIncludingFuture()
+    {
+        var teacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ИП 245");
+        await SeedPracticeAsync(
+            teacher.Id,
+            group.Id,
+            "УП.01 Разработка программных модулей",
+            new DateTime(2026, 11, 16),
+            new DateTime(2026, 11, 27),
+            (new DateTime(2026, 11, 16), [3, 4, 5]),
+            (new DateTime(2026, 11, 17), [1, 2, 3, 4])
+        );
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, group.Id, default);
+
+        result.IsSuccess.Should().BeTrue();
+        var card = result.Data!.Subjects.Single();
+        card.GroupName.Should().Be("ИП 245");
+        card.Subject.Should().Be("УП.01 Разработка программных модулей");
+        // 3 пары в понедельник + 4 во вторник; будущие дни не отсекаются.
+        card.Items.Should().HaveCount(7);
+        card.PairCount.Should().Be(7);
+        result.Data.TotalPairCount.Should().Be(7);
+
+        var monday = card.Items.Where(i => i.Date == new DateTime(2026, 11, 16)).ToList();
+        monday.Should().HaveCount(3);
+        monday.SelectMany(i => i.NumberPairs).Should().BeEquivalentTo([3, 4, 5]);
+        monday[0].Week.Should().Be(12);
+        monday[0].DayOfWeek.Should().Be((int)DayOfWeek.Monday);
+
+        var tuesday = card.Items.Where(i => i.Date == new DateTime(2026, 11, 17)).ToList();
+        tuesday.SelectMany(i => i.NumberPairs).Should().BeEquivalentTo([1, 2, 3, 4]);
+        tuesday[0].DayOfWeek.Should().Be((int)DayOfWeek.Tuesday);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_PracticeFilterBySubjectAndGroup_ReturnsPracticeCard()
+    {
+        var teacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ИП 245");
+        await SeedEntryAsync(teacher.Id, "Математика", 2, [1], group.Id);
+        await SeedPracticeAsync(
+            teacher.Id,
+            group.Id,
+            "УП.01 Разработка программных модулей",
+            new DateTime(2026, 11, 16),
+            new DateTime(2026, 11, 27),
+            (new DateTime(2026, 11, 16), [3, 4, 5])
+        );
+
+        // Ровно так приходит ссылка из расписания: группа + предмет пары
+        // (для УП предмет — название практики).
+        var result = await _sut.GetJournalAsync(
+            teacher.Id,
+            "УП.01 Разработка программных модулей",
+            group.Id,
+            default
+        );
+
+        result.IsSuccess.Should().BeTrue();
+        var card = result.Data!.Subjects.Should().ContainSingle().Which;
+        card.GroupId.Should().Be(group.Id);
+        card.Subject.Should().Be("УП.01 Разработка программных модулей");
+        card.PairCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_PracticePairAlreadyInSchedule_IsNotDuplicated()
+    {
+        var teacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ИП 245");
+        // Пара 3 понедельника 12-й недели — та же, что и в графике УП.
+        await SeedEntryAsync(
+            teacher.Id,
+            "УП.01 Разработка программных модулей",
+            3,
+            [12],
+            group.Id,
+            DayOfWeek.Monday
+        );
+        await SeedPracticeAsync(
+            teacher.Id,
+            group.Id,
+            "УП.01 Разработка программных модулей",
+            new DateTime(2026, 11, 16),
+            new DateTime(2026, 11, 27),
+            (new DateTime(2026, 11, 16), [3, 4, 5])
+        );
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, group.Id, default);
+
+        var card = result.Data!.Subjects.Should().ContainSingle().Which;
+        card.Items.Should().HaveCount(3);
+        card.Items.SelectMany(i => i.NumberPairs).Should().BeEquivalentTo([3, 4, 5]);
+        card.PairCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetJournalAsync_PracticeOfAnotherTeacher_IsNotAdded()
+    {
+        var teacher = await SeedTeacherAsync();
+        var otherTeacher = await SeedTeacherAsync();
+        var group = await SeedGroupAsync("ИП 245");
+        await SeedPracticeAsync(
+            otherTeacher.Id,
+            group.Id,
+            "УП.01 Разработка программных модулей",
+            new DateTime(2026, 11, 16),
+            new DateTime(2026, 11, 27),
+            (new DateTime(2026, 11, 16), [3, 4, 5])
+        );
+
+        var result = await _sut.GetJournalAsync(teacher.Id, null, null, default);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Subjects.Should().BeEmpty();
+        result.Data.TotalPairCount.Should().Be(0);
     }
 
     [Fact]

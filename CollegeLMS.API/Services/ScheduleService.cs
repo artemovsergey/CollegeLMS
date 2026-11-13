@@ -368,10 +368,11 @@ public class ScheduleService(
             .Where(h => h.TeacherId == teacherId || h.RemovedTeacherId == teacherId)
             .ToListAsync(ct);
 
-        // Группировка по (группа, предмет, неделя, день недели, номер пары):
-        // каждая пара дня выводится отдельной записью журнала — без «Пары 4, 5»
-        // в одной строке. Дата дня считается по календарю семестра.
-        // Показываем только проведённые занятия — дата не позже сегодняшнего дня (UTC).
+        // Группировка по (группа, предмет, дата, номер пары): каждая пара дня
+        // выводится отдельной записью журнала — без «Пары 4, 5» в одной строке.
+        // Для пар расписания дата считается по календарю семестра, для УП
+        // берётся из графика практики.
+        // Обычные пары показываем только проведённые — не позже сегодняшнего дня (UTC).
         // Нижняя граница — начало семестра: неделя 1 начинается в понедельник перед
         // 1 сентября, и без этого фильтра в журнал попадали пары августа.
         var utcToday = DateTime.UtcNow.Date;
@@ -385,14 +386,12 @@ public class ScheduleService(
             .Where(d => d.DateFrom <= utcToday && d.DateTo >= semesterFirstDate)
             .ToListAsync(ct);
 
-        var itemMap =
-            new HashSet<(
-                Guid GroupId,
-                string Subject,
-                int Week,
-                DayOfWeek DayOfWeek,
-                int NumberPair
-            )>();
+        var itemMap = new HashSet<(
+            Guid GroupId,
+            string Subject,
+            DateTime Date,
+            int NumberPair
+        )>();
 
         // Пары «только для информирования» («сам.р.» без «+») в базе расписания
         // не лежат — они остаются записью журнала. Добавляем их в карточки, иначе
@@ -422,7 +421,7 @@ public class ScheduleService(
             if (nonWorkingDays.Any(d => d.DateFrom.Date <= date && d.DateTo.Date >= date))
                 return;
 
-            itemMap.Add((entryGroupId, entrySubject, week, dayOfWeek, pair));
+            itemMap.Add((entryGroupId, entrySubject, date, pair));
         }
 
         foreach (var entry in entries)
@@ -442,29 +441,60 @@ public class ScheduleService(
                 record.NumberPair
             );
 
+        // Учебная практика (УП) идёт по графику с конкретными датами, а не по
+        // решётке недель. В журнал попадают все её дни, включая будущие: иначе
+        // карточка практики была бы пустой до её начала, хотя пара уже стоит
+        // в расписании и на неё можно нажать.
+        var practicesQuery = db
+            .Practices.AsNoTracking()
+            .Include(p => p.Days)
+            .Where(p => p.Kind == PracticeKind.Up && p.Teachers.Any(t => t.TeacherId == teacherId));
+        if (groupId.HasValue)
+            practicesQuery = practicesQuery.Where(p => p.GroupId == groupId.Value);
+        if (!string.IsNullOrEmpty(subjectFilter))
+            practicesQuery = practicesQuery.Where(p => p.Name == subjectFilter);
+
+        var practices = await practicesQuery.ToListAsync(ct);
+        foreach (var practice in practices)
+        {
+            foreach (var day in practice.Days)
+            {
+                if (day.Date.Date < practice.DateFrom.Date || day.Date.Date > practice.DateTo.Date)
+                    continue;
+                if (!StudyWeek.IsInSemester(day.Date))
+                    continue;
+
+                foreach (var pair in day.PairNumbers.Where(p => p is >= 1 and <= 8))
+                    itemMap.Add((practice.GroupId, practice.Name, day.Date.Date, pair));
+            }
+        }
+
         var subjects = itemMap
             .OrderBy(x => groupNames.GetValueOrDefault(x.GroupId, string.Empty))
             .ThenBy(x => x.Subject)
-            .ThenBy(x => x.Week)
-            .ThenBy(x => x.DayOfWeek)
+            .ThenBy(x => x.Date)
             .ThenBy(x => x.NumberPair)
             .GroupBy(x => (x.GroupId, x.Subject))
             .Select(g =>
             {
-                var items = g.Select(x => new JournalEntryItem
+                var items = g.Select(x =>
                     {
-                        Week = x.Week,
-                        DayOfWeek = (int)x.DayOfWeek,
-                        Date = mondayOfWeek1.AddDays((x.Week - 1) * 7 + ((int)x.DayOfWeek + 6) % 7),
-                        NumberPairs = [x.NumberPair],
-                        ChangeTypes = BuildChangeTypes(
-                            history,
-                            x.Subject,
-                            x.Week,
-                            x.DayOfWeek,
-                            x.NumberPair,
-                            teacherId
-                        ),
+                        var week = StudyWeek.WeekOf(x.Date);
+                        return new JournalEntryItem
+                        {
+                            Week = week,
+                            DayOfWeek = (int)x.Date.DayOfWeek,
+                            Date = x.Date,
+                            NumberPairs = [x.NumberPair],
+                            ChangeTypes = BuildChangeTypes(
+                                history,
+                                x.Subject,
+                                week,
+                                x.Date.DayOfWeek,
+                                x.NumberPair,
+                                teacherId
+                            ),
+                        };
                     })
                     .ToList();
 

@@ -126,8 +126,11 @@ export default function DayFeed({
   }
 
   // Слои — всё, кроме пар и вставок: они идут общим списком по времени.
+  // УП показываем только парами с подсветкой: её дни уже пришли в entries,
+  // а отдельный баннер дублировал бы их.
+  const practiceCards = practices.filter((practice) => practice.kind !== "Up")
   const hasLayers =
-    isNonWorking || isSunday || isWorkingDay || practices.length > 0
+    isNonWorking || isSunday || isWorkingDay || practiceCards.length > 0
   // «Нет пар» — для обычного дня без пар, но со слоями (например, только практика).
   const showEmptyNote =
     sorted.length === 0 &&
@@ -170,7 +173,7 @@ export default function DayFeed({
                 </div>
               ) : null}
 
-              {practices.map((practice) => {
+              {practiceCards.map((practice) => {
                 const name = practiceName(practice)
                 const teachers = practiceTeacherNames(practice)
                 return (
@@ -250,6 +253,7 @@ export default function DayFeed({
                 : ""
             const cellClassName = [
               isCurrent ? "max-schedule__cell--current" : "",
+              entry.isPractice ? "max-schedule__cell--practice" : "",
               journalUrl ? "max-schedule__cell--link" : "",
             ]
               .filter(Boolean)
