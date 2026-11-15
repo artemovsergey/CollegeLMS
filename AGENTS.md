@@ -80,6 +80,11 @@
 - Агентская среда: `collegelms-roles`, `dsh-environment`, `vps-bb-status`
 - Учебные материалы: `course-materials`
 
+## Frontend
+
+- Перед правками HTML/CSS/клиентского JS — скилл `modern-web-guidance`: `npx modern-web-guidance search "<паттерн>"`, затем `retrieve <id>`. Скилл глобальный (`~/.agents/skills/modern-web-guidance`), в репозиторий не коммитится; ставится `npx -y skills add GoogleChrome/modern-web-guidance -g`.
+- Baseline проекта — **Widely available**: современные API применяем с фолбэками, рассчитанными на старые браузеры аудитории колледжа.
+
 ## Конвенции .NET / EF Core
 
 - `Result<T>` везде; никаких try-catch в контроллерах/сервисах — исключения ловит middleware
