@@ -47,6 +47,28 @@ public class ScheduleImportRealFileTests : IDisposable
             .NotBeNull("ячейка «203л ОПБД (12,13.) Буценко Е.В.» должна сохранить неделю 13");
     }
 
+    [Fact]
+    public void ParseScheduleMatrix_RealSchedule_ContainsMondayPeForIp245()
+    {
+        var path = FindRepositoryFile(Path.Combine("import", "schedule", "Расписание.xlsx"));
+        using var workbook = new XLWorkbook(path);
+
+        var (entries, errors) = _sut.ParseScheduleMatrix(workbook);
+
+        errors.Should().BeEmpty();
+
+        var pe = entries.SingleOrDefault(e =>
+            e.GroupName == "ИП 245"
+            && e.Day == "Monday"
+            && e.Pair == 3
+            && e.Subject == "Физкультура"
+            && e.TeacherName == "Волков В.В."
+        );
+        pe.Should().NotBeNull("в шаблоне должна быть пара «с.з. Физкультура (12,14) Волков В.В.»");
+        pe!.Weeks.Should().BeEquivalentTo(new[] { 12, 14 });
+        pe.Room.Should().Be("с.з.");
+    }
+
     private static string FindRepositoryFile(string relativePath)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
