@@ -65,7 +65,12 @@ public class ExamCorrectionXlsxTests : IDisposable
     }
 
     /// <summary>Строка диспетчера: A=«РЭУ242», D=«ЭКЗАМЕН», F — пустая/чужая пара.</summary>
-    private static MemoryStream BuildExamWorkbook(int? pairNumber)
+    private static MemoryStream BuildExamWorkbook(
+        int? pairNumber,
+        string? teacherName = null,
+        string? note = null,
+        string subject = "ЭКЗАМЕН"
+    )
     {
         var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Корректировка");
@@ -79,9 +84,13 @@ public class ExamCorrectionXlsxTests : IDisposable
         ws.Cell(5, 7).Value = "Примечание";
 
         ws.Cell(7, 1).Value = "РЭУ242";
-        ws.Cell(7, 4).Value = "ЭКЗАМЕН";
+        ws.Cell(7, 4).Value = subject;
+        if (teacherName is not null)
+            ws.Cell(7, 5).Value = teacherName;
         if (pairNumber is { } pair)
             ws.Cell(7, 6).Value = pair;
+        if (note is not null)
+            ws.Cell(7, 7).Value = note;
 
         var stream = new MemoryStream();
         workbook.SaveAs(stream);
@@ -120,6 +129,50 @@ public class ExamCorrectionXlsxTests : IDisposable
     {
         await SeedGroupAsync();
         using var stream = BuildExamWorkbook(pairNumber: 4);
+
+        var result = await _corrections.PreviewAsync(stream, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.ErrorMessage);
+        result.Data!.Errors.Should().BeEmpty();
+        result.Data.Entries.Should().ContainSingle();
+        var entry = result.Data.Entries[0];
+        entry.ChangeType.Should().Be(ScheduleChangeType.Exam);
+        entry.NumberPair.Should().Be(0);
+        entry.Subject.Should().Be("ЭКЗАМЕН");
+        entry.TeacherId.Should().BeNull();
+        entry.Note.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ImportExamRowIgnoresStrayTeacherAndMoveNote()
+    {
+        await SeedGroupAsync();
+        // Постороннее имя в «Вводится» не должно резолвиться в базе, а «вм.X»
+        // в примечании не должно превращать экзамен в перенос.
+        using var stream = BuildExamWorkbook(
+            pairNumber: null,
+            teacherName: "Несуществующий Преподаватель Ы.Ы.",
+            note: "вм.4"
+        );
+
+        var result = await _corrections.PreviewAsync(stream, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue(result.ErrorMessage);
+        result.Data!.Errors.Should().BeEmpty();
+        result.Data.Entries.Should().ContainSingle();
+        var entry = result.Data.Entries[0];
+        entry.ChangeType.Should().Be(ScheduleChangeType.Exam);
+        entry.NumberPair.Should().Be(0);
+        entry.Subject.Should().Be("ЭКЗАМЕН");
+        entry.TeacherId.Should().BeNull();
+        entry.Note.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ImportExamRowWithLowercaseSubjectStoresCanonicalSubject()
+    {
+        await SeedGroupAsync();
+        using var stream = BuildExamWorkbook(pairNumber: null, subject: "экзамен");
 
         var result = await _corrections.PreviewAsync(stream, CancellationToken.None);
 

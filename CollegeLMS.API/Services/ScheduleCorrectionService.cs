@@ -721,7 +721,9 @@ public class ScheduleCorrectionService(
             }
 
             Guid? addTeacherId = null;
-            if (addTeacher.Length > 0)
+            // Постороннее имя преподавателя в строке экзамена игнорируется:
+            // экзамен не имеет преподавателя, резолвить это имя не нужно.
+            if (!isExam && addTeacher.Length > 0)
             {
                 var t = await FindTeacherAsync(addTeacher, ct);
                 if (t is null)
@@ -763,7 +765,7 @@ public class ScheduleCorrectionService(
                         DayOfWeek = (int)date.DayOfWeek,
                         Week = week,
                         NumberPair = 0,
-                        Subject = addSubject,
+                        Subject = "ЭКЗАМЕН",
                         TeacherId = null,
                         TeacherName = null,
                         Note = null,
