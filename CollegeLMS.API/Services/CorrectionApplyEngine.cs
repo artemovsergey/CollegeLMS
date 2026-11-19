@@ -1431,9 +1431,11 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
         Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>> bellByDay
     )
     {
-        // Экзамен не привязан к звонку: он живёт в нулевой паре без времени.
+        // Экзамену не нужен звонок, но БД требует start_time < end_time:
+        // минимальный интервал в одну минуту проходит CHECK, а UI скрывает
+        // время для LessonType.Exam (карточка без номера пары и времени).
         var (start, end) =
-            entry.IsExam ? (TimeSpan.Zero, TimeSpan.Zero)
+            entry.IsExam ? (TimeSpan.Zero, TimeSpan.FromMinutes(1))
             : bellByDay.GetValueOrDefault(entry.DayOfWeek) is { } dayMap
             && dayMap.TryGetValue(entry.NumberPair, out var time)
                 ? time

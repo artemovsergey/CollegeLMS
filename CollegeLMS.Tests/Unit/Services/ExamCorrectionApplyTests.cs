@@ -204,7 +204,12 @@ public class ExamCorrectionApplyTests : IDisposable
         exam.Weeks.Should().BeEquivalentTo([week]);
         exam.TeacherId.Should().BeNull();
         exam.StartTime.Should().Be(TimeSpan.Zero);
-        exam.EndTime.Should().Be(TimeSpan.Zero);
+        exam.EndTime.Should().Be(TimeSpan.FromMinutes(1));
+        exam.StartTime.Should()
+            .BeLessThan(
+                exam.EndTime,
+                "продовый CHECK ck_schedule_entries_time_range требует start_time < end_time"
+            );
 
         var history = await _db.ScheduleHistory.SingleAsync();
         history.ChangeType.Should().Be(ScheduleChangeType.Exam);
