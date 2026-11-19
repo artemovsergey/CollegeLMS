@@ -72,6 +72,7 @@ export const CHANGE_TYPE_STYLE: Record<CorrectionChangeType, string> = {
   Remove: pill("destructive"),
   Replace: pill("primary"),
   Move: pill("warning"),
+  Exam: pill("success"),
 }
 
 /**

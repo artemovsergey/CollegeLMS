@@ -27,6 +27,7 @@ const PENDING_META: Record<
   Remove: { label: "Снято", className: CHANGE_TYPE_STYLE.Remove },
   Replace: { label: "Замена", className: CHANGE_TYPE_STYLE.Replace },
   Move: { label: "Перенос", className: CHANGE_TYPE_STYLE.Move },
+  Exam: { label: "Добавлено", className: CHANGE_TYPE_STYLE.Exam },
 }
 
 interface RemovePairPickerProps {

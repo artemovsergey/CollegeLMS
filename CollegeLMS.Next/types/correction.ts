@@ -1,6 +1,6 @@
 import type { PagedResponse } from "@/types"
 
-export type CorrectionChangeType = "Add" | "Remove" | "Replace" | "Move"
+export type CorrectionChangeType = "Add" | "Remove" | "Replace" | "Move" | "Exam"
 
 export interface CorrectionPreviewEntry {
   row: number

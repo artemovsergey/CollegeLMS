@@ -475,3 +475,37 @@ test.describe("Обратная операция: интерфейс → XLSX �
     })
   }
 })
+
+test.describe("Операция «Экзамен»", () => {
+  test.setTimeout(120000)
+
+  test("exam operation is available in position dialog", async ({
+    page,
+    request,
+  }) => {
+    const { token } = session
+    const created: string[] = []
+
+    try {
+      await correctionPage(page)
+      created.push(await createBatchByUi(page, ROUND_TRIP_DATES[0]))
+
+      await page.getByRole("button", { name: "Добавить позицию" }).click()
+      const dialog = page.getByRole("dialog")
+      await expect(dialog).toBeVisible()
+
+      const exam = dialog.getByRole("radio", { name: /^Экзамен/ })
+      await expect(exam, "в диалоге должна быть карточка «Экзамен»").toBeVisible()
+      await exam.click()
+
+      await expect(
+        dialog.getByText("ЭКЗАМЕН", { exact: true }),
+        "в предпросмотре строки должен появиться предмет «ЭКЗАМЕН»"
+      ).toBeVisible()
+    } finally {
+      for (const batchId of created) {
+        await deleteBatch(request, token, batchId).catch(() => undefined)
+      }
+    }
+  })
+})

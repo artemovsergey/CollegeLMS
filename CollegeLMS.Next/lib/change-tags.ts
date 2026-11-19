@@ -51,6 +51,7 @@ const CHANGE_LABEL: Record<CorrectionChangeType, string> = {
   // тем же, чем они и являются, — добавлением занятия в пару.
   Replace: "Добавлено",
   Move: "Добавлено",
+  Exam: "Добавлено",
 }
 
 function changeTypeLabel(changeType: CorrectionChangeType): string {
@@ -74,6 +75,7 @@ const PRIORITY: Record<CorrectionChangeType, number> = {
   Add: 3,
   Replace: 1,
   Move: 2,
+  Exam: 4,
 }
 
 function rank(tag: ChangeTag): number {
