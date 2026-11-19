@@ -57,7 +57,7 @@
 [Fact]
 public async Task ExamPositionWithZeroPairIsValid()
 {
-    var result = await service.CreatePositionAsync(batchId, new CreateCorrectionPositionRequest
+    var result = await service.AddPositionAsync(batchId, new CreateCorrectionPositionRequest
     {
         ChangeType = ScheduleChangeType.Exam, GroupId = group.Id, GroupName = group.Name,
         NumberPair = 0, Subject = "ЭКЗАМЕН",
@@ -136,7 +136,7 @@ public async Task ReapplyExamBatchNoDuplicate()
 
 [Fact]
 public async Task ApplyExamOnNonWorkingDateFails()
-// Дата из NonWorking → IsFailure, Leave "Дата является нерабочей", позиция остаётся Draft.
+// Дата из NonWorking → IsFailure, ошибка содержит «Дата нерабочая:», позиция остаётся Draft.
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -417,6 +417,7 @@ git commit -m "feat: exam operation in correction position dialog"
 ### Task 8: Отображение экзамена в расписании и редакторе позиций
 
 **Files:**
+- Modify: `CollegeLMS.Next/types/schedule.ts:69-77`
 - Modify: `CollegeLMS.Next/components/ScheduleDayView.tsx:155`
 - Modify: `CollegeLMS.Next/components/ScheduleWeekView.tsx:85`
 - Modify: `CollegeLMS.Next/components/ScheduleTable.tsx:141-145`
@@ -441,11 +442,12 @@ Expected: FAIL — массив `exams` не используется, карт�
 
 - [ ] **Step 3: Implement**
 
-1. `ScheduleDayView.tsx:155` — передать `exams={data.exams}` в компонент строк; отрисовать отдельную карточку «🎓 ЭКЗАМЕН» с цветом из токена `--lesson-exam` (уже есть в `app/globals.css`, строки 59/109/293) и без номера пары/времени.
-2. `ScheduleWeekView.tsx:85`, `ScheduleTable.tsx:141-145`, `ScheduleSemesterMatrix.tsx:73`, `lib/schedule-merge.ts:105` — по образцу `inserts`: merged-строки экзамена идут отдельной строкой дня, не смешиваясь с `entries` (иначе сломается группировка 1–7).
-3. `CorrectionPositionEditor.tsx`: `CHANGE_TYPE_META` (76–80) дополнить `Exam` (подпись «Экзамен»), фильтр (524) — `["Add", "Remove", "Exam"]`; `PositionTypeBadge` и `renderTitle` должны показывать «Экзамен» и «Группа — ЭКЗАМЕН».
-4. `components/max/ScheduleView.tsx`, `DayFeed.tsx`, `WeekFeed.tsx` — передавать/отображать `exams` рядом с `inserts`, той же карточкой, что и в вебе (без `*0.*`).
-5. Новые CSS-классы не вводить — использовать существующий `--lesson-exam`.
+1. `types/schedule.ts:69-77` — добавить в `ScheduleDayView` поле `exams: ScheduleResponse[]` (ответ API Задачи 5).
+2. `ScheduleDayView.tsx:155` — передать `exams={data.exams}` в компонент строк; отрисовать отдельную карточку «🎓 ЭКЗАМЕН» с цветом из токена `--lesson-exam` (уже есть в `app/globals.css`, строки 59/109/293) и без номера пары/времени.
+3. `ScheduleWeekView.tsx:85`, `ScheduleTable.tsx:141-145`, `ScheduleSemesterMatrix.tsx:73`, `lib/schedule-merge.ts:105` — по образцу `inserts`: merged-строки экзамена идут отдельной строкой дня, не смешиваясь с `entries` (иначе сломается группировка 1–7).
+4. `CorrectionPositionEditor.tsx`: `CHANGE_TYPE_META` (76–80) дополнить `Exam` (подпись «Экзамен»), фильтр (524) — `["Add", "Remove", "Exam"]`; `PositionTypeBadge` и `renderTitle` должны показывать «Экзамен» и «Группа — ЭКЗАМЕН».
+5. `components/max/ScheduleView.tsx`, `DayFeed.tsx`, `WeekFeed.tsx` — передавать/отображать `exams` рядом с `inserts`, той же карточкой, что и в вебе (без `*0.*`).
+6. Новые CSS-классы не вводить — использовать существующий `--lesson-exam`.
 
 - [ ] **Step 4: Run test to verify it passes**
 
