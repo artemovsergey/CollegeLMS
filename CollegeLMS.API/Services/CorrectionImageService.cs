@@ -144,6 +144,12 @@ public class CorrectionImageService
 
     private static string PairLabel(CorrectionPosition position)
     {
+        // Экзамен хранится нулевой парой с техническим интервалом 00:00–00:01:
+        // это не номер пары, а обход CHECK(start_time < end_time) в БД.
+        // В таблице корректировки номер пары для экзамена не печатаем.
+        if (position.ChangeType == ScheduleChangeType.Exam)
+            return "—";
+
         if (CorrectionMoves.FromPair(position) is { } from)
         {
             return $"{from} {ChangeVocabulary.ChangeArrow} {position.NumberPair}";

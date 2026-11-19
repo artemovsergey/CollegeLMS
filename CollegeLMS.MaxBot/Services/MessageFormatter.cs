@@ -46,8 +46,15 @@ public static class MessageFormatter
                 _ => "📚",
             };
 
-            sb.AppendLine($"*{e.NumberPair}.* {type} {e.Subject}");
-            sb.AppendLine($"    🕐 {e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}  📍 {e.Room}");
+            if (IsExam(e))
+            {
+                sb.AppendLine($"🎓 {e.Subject}");
+            }
+            else
+            {
+                sb.AppendLine($"*{e.NumberPair}.* {type} {e.Subject}");
+                sb.AppendLine($"    🕐 {e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}  📍 {e.Room}");
+            }
 
             if (e.TeacherName is not null)
                 sb.AppendLine($"    👨‍🏫 {e.TeacherName}");
@@ -171,8 +178,15 @@ public static class MessageFormatter
             }
 
             var e = row.Entry!;
-            sb.AppendLine($"*{e.NumberPair}.* {LessonTypeIcon(e.LessonType)} {e.Subject}");
-            sb.AppendLine($"    🕐 {e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}  📍 {e.Room}");
+            if (IsExam(e))
+            {
+                sb.AppendLine($"🎓 {e.Subject}");
+            }
+            else
+            {
+                sb.AppendLine($"*{e.NumberPair}.* {LessonTypeIcon(e.LessonType)} {e.Subject}");
+                sb.AppendLine($"    🕐 {e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}  📍 {e.Room}");
+            }
 
             if (showGroup && e.GroupName.Length > 0)
                 sb.AppendLine($"    🏫 {e.GroupName}");
@@ -243,11 +257,18 @@ public static class MessageFormatter
                         }
 
                         var e = row.Entry!;
-                        var pairLine =
-                            $"*{e.NumberPair}.* {LessonTypeIcon(e.LessonType)} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})";
-                        if (showGroup && e.GroupName.Length > 0)
-                            pairLine += $" — {e.GroupName}";
-                        sb.AppendLine(pairLine);
+                        if (IsExam(e))
+                        {
+                            sb.AppendLine($"🎓 {e.Subject}");
+                        }
+                        else
+                        {
+                            var pairLine =
+                                $"*{e.NumberPair}.* {LessonTypeIcon(e.LessonType)} {e.Subject} ({e.StartTime:hh\\:mm}–{e.EndTime:hh\\:mm}, {e.Room})";
+                            if (showGroup && e.GroupName.Length > 0)
+                                pairLine += $" — {e.GroupName}";
+                            sb.AppendLine(pairLine);
+                        }
                         AppendChangeMarkers(sb, e);
                     }
 
@@ -261,6 +282,12 @@ public static class MessageFormatter
 
         return sb.ToString().TrimEnd();
     }
+
+    /// <summary>
+    /// Экзамен в API — нулевая пара с техническим интервалом 00:00–00:01.
+    /// В выводе это событие, а не пара: времени, кабинета и номера нет.
+    /// </summary>
+    private static bool IsExam(ScheduleResponse entry) => entry.LessonType == "Exam";
 
     private static string LessonTypeIcon(string lessonType) =>
         lessonType switch
@@ -376,6 +403,7 @@ public static class MessageFormatter
             var marker =
                 isSelfStudy && isRemove ? "🟣 сам.р. (самостоятельная работа)"
                 : isRemove ? "🔴 снято"
+                : tag.ChangeType == "Exam" ? "🟢 ЭКЗАМЕН"
                 : "🟢 добавлено";
 
             var details = new List<string>();
@@ -397,6 +425,7 @@ public static class MessageFormatter
         {
             "Remove" => "снята",
             "Add" or "Replace" or "Move" => "добавлена",
+            "Exam" => "экзамен добавлен",
             _ => "изменена",
         };
     }
@@ -460,9 +489,18 @@ public static class MessageFormatter
         badges.Add($"{r.DayOfWeek}, {r.Week}-я неделя");
         sb.AppendLine(string.Join(" · ", badges));
 
-        var details = new List<string> { $"🏫 **{r.GroupName}**", $"🕐 {FormatPairLabel(r)}" };
-        if (!string.IsNullOrWhiteSpace(r.Room))
-            details.Add($"📍 ауд. {r.Room}");
+        var details = new List<string> { $"🏫 **{r.GroupName}**" };
+        if (r.ChangeType == "Exam")
+        {
+            // Экзамен пришёл нулевой парой — в карточке её не показываем.
+            details.Add("🎓 ЭКЗАМЕН");
+        }
+        else
+        {
+            details.Add($"🕐 {FormatPairLabel(r)}");
+            if (!string.IsNullOrWhiteSpace(r.Room))
+                details.Add($"📍 ауд. {r.Room}");
+        }
         sb.AppendLine(string.Join(" · ", details));
 
         // Преподаватель идёт вместе с предметом — отдельной строкой не нужен.
