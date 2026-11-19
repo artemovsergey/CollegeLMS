@@ -22,6 +22,9 @@ public sealed class SimulatedEntry
     public string? Note { get; set; }
     public bool IsSelfStudy { get; set; }
 
+    /// <summary>Экзамен: отдельная запись в нулевой паре без преподавателя и времени.</summary>
+    public bool IsExam { get; set; }
+
     /// <summary>
     /// Пара только для информирования («сам.р.» без «+»): в расписании её нет,
     /// она показана, чтобы диспетчер видел уже существующую пометку.
@@ -335,6 +338,29 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                     );
                     continue;
                 }
+
+                // Экзамен — это событие группы без преподавателя, примечания и
+                // снимаемого занятия. Заполненные поля здесь означают ошибку в
+                // исходных данных, а не особый вид экзамена.
+                if (
+                    position.TeacherId.HasValue
+                    || !string.IsNullOrWhiteSpace(position.TeacherName)
+                    || !string.IsNullOrWhiteSpace(position.Note)
+                    || !string.IsNullOrWhiteSpace(position.RemovedSubject)
+                    || position.RemovedTeacherId.HasValue
+                    || !string.IsNullOrWhiteSpace(position.RemovedTeacherName)
+                    || position.RemovedNumberPair.HasValue
+                )
+                {
+                    result.Errors.Add(
+                        Error(
+                            position.Row,
+                            4,
+                            "Для экзамена не указываются преподаватель, примечание и снимаемое занятие."
+                        )
+                    );
+                    continue;
+                }
             }
             else if (position.ChangeType != ScheduleChangeType.Remove && !hasSubject)
             {
@@ -425,6 +451,42 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
 
             switch (position.ChangeType)
             {
+                // Экзамен — событие группы в нулевой паре: одна запись без
+                // преподавателя, аудитории и времени, с собственным типом журнала.
+                case ScheduleChangeType.Exam:
+                {
+                    var examEntry = new SimulatedEntry
+                    {
+                        GroupId = group.Id,
+                        GroupName = group.Name,
+                        DayOfWeek = day,
+                        Week = position.Week,
+                        NumberPair = 0,
+                        Subject = "ЭКЗАМЕН",
+                        Room = string.Empty,
+                        TeacherId = null,
+                        TeacherName = null,
+                        Note = null,
+                        IsExam = true,
+                        PendingChangeType = nameof(ScheduleChangeType.Exam),
+                    };
+                    list.Add(examEntry);
+
+                    if (execute)
+                        ApplyCreatedEntry(
+                            position,
+                            group,
+                            examEntry,
+                            utcNow,
+                            correctionDate,
+                            appliedByUserId,
+                            ScheduleChangeType.Exam,
+                            bellByDay,
+                            result
+                        );
+                    break;
+                }
+
                 case ScheduleChangeType.Add:
                 {
                     // Одна операция «Добавить» покрывает три исхода: новое
@@ -527,48 +589,18 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
 
                     if (execute)
                     {
-                        var isFirst = true;
                         foreach (var entry in addEntries)
-                        {
-                            var entity = CreateEntity(entry, utcNow, bellByDay);
-                            entry.Entity = entity;
-                            db.ScheduleEntries.Add(entity);
-
-                            var history = BuildHistory(
+                            ApplyCreatedEntry(
                                 position,
-                                ScheduleChangeType.Add,
-                                entry.Subject,
-                                entry.TeacherId,
-                                entity.Room,
-                                entry.NumberPair,
-                                null,
-                                null,
-                                null,
-                                null,
+                                group,
+                                entry,
                                 utcNow,
-                                appliedByUserId
+                                correctionDate,
+                                appliedByUserId,
+                                ScheduleChangeType.Add,
+                                bellByDay,
+                                result
                             );
-                            ApplyOrAppendHistory(position, history, isFirst, result);
-                            isFirst = false;
-
-                            result.Changes.Add(
-                                new ScheduleChangeDto
-                                {
-                                    Id = history.Id,
-                                    ChangeType = nameof(ScheduleChangeType.Add),
-                                    GroupId = group.Id,
-                                    GroupName = group.Name,
-                                    TeacherId = entry.TeacherId,
-                                    TeacherName = entry.TeacherName,
-                                    DayOfWeek = position.DayOfWeek,
-                                    Week = position.Week,
-                                    NumberPair = entry.NumberPair,
-                                    Subject = entry.Subject,
-                                    Note = position.Note,
-                                    CorrectionDate = correctionDate,
-                                }
-                            );
-                        }
                     }
                     break;
                 }
@@ -1115,6 +1147,62 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
         result.History.Add(history);
     }
 
+    /// <summary>
+    /// Создаёт запись расписания, журнал и уведомление для одной добавленной
+    /// строки (обычной пары или экзамена). Первая запись позиции — та, по
+    /// которой позиция откатывается; остальные идут в журнал как обычные.
+    /// </summary>
+    private void ApplyCreatedEntry(
+        CorrectionPosition position,
+        Group group,
+        SimulatedEntry entry,
+        DateTime utcNow,
+        DateTime? correctionDate,
+        Guid appliedByUserId,
+        ScheduleChangeType changeType,
+        Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>> bellByDay,
+        SimulationResult result
+    )
+    {
+        var entity = CreateEntity(entry, utcNow, bellByDay);
+        entry.Entity = entity;
+        db.ScheduleEntries.Add(entity);
+
+        var history = BuildHistory(
+            position,
+            changeType,
+            entry.Subject,
+            entry.TeacherId,
+            entity.Room,
+            entry.NumberPair,
+            null,
+            null,
+            null,
+            null,
+            utcNow,
+            appliedByUserId
+        );
+        ApplyOrAppendHistory(position, history, position.HistoryId is null, result);
+
+        result.Changes.Add(
+            new ScheduleChangeDto
+            {
+                Id = history.Id,
+                ChangeType = changeType.ToString(),
+                GroupId = group.Id,
+                GroupName = group.Name,
+                TeacherId = entry.TeacherId,
+                TeacherName = entry.TeacherName,
+                DayOfWeek = position.DayOfWeek,
+                Week = position.Week,
+                NumberPair = entry.NumberPair,
+                Subject = entry.Subject,
+                Note = position.Note,
+                CorrectionDate = correctionDate,
+            }
+        );
+    }
+
     private static ScheduleHistory BuildHistory(
         CorrectionPosition position,
         ScheduleChangeType changeType,
@@ -1343,11 +1431,13 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
         Dictionary<DayOfWeek, Dictionary<int, (TimeSpan Start, TimeSpan End)>> bellByDay
     )
     {
+        // Экзамен не привязан к звонку: он живёт в нулевой паре без времени.
         var (start, end) =
-            bellByDay.GetValueOrDefault(entry.DayOfWeek) is { } dayMap
+            entry.IsExam ? (TimeSpan.Zero, TimeSpan.Zero)
+            : bellByDay.GetValueOrDefault(entry.DayOfWeek) is { } dayMap
             && dayMap.TryGetValue(entry.NumberPair, out var time)
                 ? time
-                : ScheduleImportService.GetPairTime(entry.DayOfWeek, entry.NumberPair);
+            : ScheduleImportService.GetPairTime(entry.DayOfWeek, entry.NumberPair);
         return new ScheduleEntry
         {
             Id = Guid.NewGuid(),
@@ -1360,7 +1450,7 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             StartTime = start,
             EndTime = end,
             Weeks = [entry.Week],
-            LessonType = LessonType.None,
+            LessonType = entry.IsExam ? LessonType.Exam : LessonType.None,
             CreatedAt = utcNow,
             UpdatedAt = utcNow,
         };
