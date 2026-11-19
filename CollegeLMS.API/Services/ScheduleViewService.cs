@@ -502,6 +502,7 @@ public class ScheduleViewService(
                 BigBreak = bell?.BigBreak,
                 Practices = practices,
                 Inserts = inserts,
+                Exams = BuildExams(data, target, week, effectiveDay),
                 Entries = entries,
             };
         }
@@ -551,6 +552,7 @@ public class ScheduleViewService(
                 DayOfWeek = (int)target.DayOfWeek,
                 Practices = practices,
                 Inserts = inserts,
+                Exams = BuildExams(data, target, week, target.DayOfWeek),
                 Entries = entries,
                 BigBreak = dayBell?.BigBreak,
             };
@@ -562,6 +564,7 @@ public class ScheduleViewService(
             Week = week,
             DayOfWeek = (int)target.DayOfWeek,
             Inserts = data.InsertsByDay.GetValueOrDefault(target.DayOfWeek) ?? [],
+            Exams = BuildExams(data, target, week, target.DayOfWeek),
             Entries = BuildEntries(data, target, week, target.DayOfWeek),
             BigBreak = dayBell?.BigBreak,
         };
@@ -610,7 +613,11 @@ public class ScheduleViewService(
         var times = data.BellByDate.GetValueOrDefault(target.Date)?.Times ?? new();
 
         var entries = data
-            .Entries.Where(e => e.DayOfWeek == effectiveDay && e.Weeks.Contains(week))
+            .Entries.Where(e =>
+                e.DayOfWeek == effectiveDay
+                && e.Weeks.Contains(week)
+                && e.LessonType != LessonType.Exam
+            )
             .Select(e =>
             {
                 var tags = data
@@ -686,6 +693,38 @@ public class ScheduleViewService(
         }
 
         return entries.OrderBy(e => e.NumberPair).ThenBy(e => e.StartTime).ToList();
+    }
+
+    /// <summary>Экзамены — отдельная карточка без номера пары и технического интервала.</summary>
+    private static List<ScheduleResponse> BuildExams(
+        ScheduleRangeData data,
+        DateTime target,
+        int week,
+        DayOfWeek effectiveDay
+    )
+    {
+        return data
+            .Entries.Where(e =>
+                e.DayOfWeek == effectiveDay
+                && e.Weeks.Contains(week)
+                && e.LessonType == LessonType.Exam
+            )
+            .Select(e =>
+            {
+                var tags = data
+                    .ChangeTags.GetValueOrDefault((e.GroupId, e.DayOfWeek, e.NumberPair))
+                    ?.Where(t => t.Week == week)
+                    .ToList();
+                var dto = e.ToDto(
+                    ScheduleChangeTags.ForPair(tags, e.Subject, e.Teacher?.User?.FullName)
+                );
+                dto.LessonType = nameof(LessonType.Exam);
+                dto.StartTime = TimeSpan.Zero;
+                dto.EndTime = TimeSpan.Zero;
+                dto.NumberPair = 0;
+                return dto;
+            })
+            .ToList();
     }
 
     /// <summary>Пары УП: синтезируются по PracticeDay (номера из PairNumbers, время из звонков дня).</summary>

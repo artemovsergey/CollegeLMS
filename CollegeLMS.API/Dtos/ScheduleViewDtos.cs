@@ -23,6 +23,10 @@ public class ScheduleDayViewResponse
 
     public List<PracticeResponse> Practices { get; set; } = [];
     public List<ScheduleInsertResponse> Inserts { get; set; } = [];
+
+    /// <summary>Экзамены — отдельно от нумерованных пар (без номера пары и времени).</summary>
+    public List<ScheduleResponse> Exams { get; set; } = [];
+
     public List<ScheduleResponse> Entries { get; set; } = [];
 }
 
