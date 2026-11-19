@@ -596,6 +596,10 @@ public class ScheduleCorrectionService(
             var note = ws.Cell(row, 7).GetString().Trim();
 
             var pairNumber = ParsePair(pairValue);
+            // Экзамен приходит из файла диспетчера без номера пары: «ЭКЗАМЕН» —
+            // отдельная операция с парой 0, преподаватель ей не нужен.
+            var isExam = string.Equals(addSubject, "ЭКЗАМЕН", StringComparison.OrdinalIgnoreCase);
+            var pair = pairNumber ?? 0;
 
             var anyContent =
                 groupName.Length > 0
@@ -615,7 +619,7 @@ public class ScheduleCorrectionService(
                 continue;
             }
 
-            if (pairNumber is not { } pair || pair < 1 || pair > 8)
+            if (!isExam && (pair < 1 || pair > 8))
             {
                 errors.Add(
                     Error(
@@ -644,7 +648,7 @@ public class ScheduleCorrectionService(
                 continue;
             }
 
-            if (hasAdd && (addSubject.Length > 0) != (addTeacher.Length > 0))
+            if (!isExam && hasAdd && (addSubject.Length > 0) != (addTeacher.Length > 0))
             {
                 errors.Add(
                     Error(
@@ -739,9 +743,38 @@ public class ScheduleCorrectionService(
             var changeType = (hasRemove, hasAdd) switch
             {
                 (true, false) => ScheduleChangeType.Remove,
+                (false, true) when isExam => ScheduleChangeType.Exam,
                 (false, true) => ScheduleChangeType.Add,
                 _ => ScheduleChangeType.Replace,
             };
+
+            if (changeType == ScheduleChangeType.Exam)
+            {
+                // Пара в исходной строке экзамена может быть пустой или посторонней —
+                // в расписании экзамен всегда идёт с парой 0. Ни преподаватель, ни
+                // примечание «вм.X», ни «снимаемые» поля к нему не относятся.
+                entries.Add(
+                    new CorrectionPreviewEntry
+                    {
+                        Row = row,
+                        GroupId = group.Id,
+                        GroupName = group.Name,
+                        ChangeType = ScheduleChangeType.Exam,
+                        DayOfWeek = (int)date.DayOfWeek,
+                        Week = week,
+                        NumberPair = 0,
+                        Subject = addSubject,
+                        TeacherId = null,
+                        TeacherName = null,
+                        Note = null,
+                        RemovedSubject = null,
+                        RemovedTeacherId = null,
+                        RemovedTeacherName = null,
+                        RemovedNumberPair = null,
+                    }
+                );
+                continue;
+            }
 
             var noteOldPair = CorrectionNotes.MovePair(note);
             var rowEntries = new List<CorrectionPreviewEntry>();
