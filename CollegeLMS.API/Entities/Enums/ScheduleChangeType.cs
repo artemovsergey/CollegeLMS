@@ -6,4 +6,5 @@ public enum ScheduleChangeType
     Remove,
     Replace,
     Move,
+    Exam,
 }

@@ -813,7 +813,21 @@ public class CorrectionBatchService(
         CancellationToken ct
     )
     {
-        if (request.NumberPair < 1 || request.NumberPair > CorrectionApplyEngine.MaxPair)
+        if (request.ChangeType == ScheduleChangeType.Exam)
+        {
+            if (request.NumberPair != 0)
+                return "Пара для экзамена должна быть 0.";
+
+            if (
+                !string.Equals(
+                    request.Subject?.Trim(),
+                    "ЭКЗАМЕН",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+                return "Предмет экзамена должен быть «ЭКЗАМЕН».";
+        }
+        else if (request.NumberPair < 1 || request.NumberPair > CorrectionApplyEngine.MaxPair)
             return $"Номер пары должен быть от 1 до {CorrectionApplyEngine.MaxPair}.";
 
         if (

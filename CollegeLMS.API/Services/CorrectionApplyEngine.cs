@@ -276,7 +276,15 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                 continue;
             }
 
-            if (position.NumberPair < 1 || position.NumberPair > MaxPair)
+            if (position.ChangeType == ScheduleChangeType.Exam)
+            {
+                if (position.NumberPair != 0)
+                {
+                    result.Errors.Add(Error(position.Row, 6, "Пара для экзамена должна быть 0."));
+                    continue;
+                }
+            }
+            else if (position.NumberPair < 1 || position.NumberPair > MaxPair)
             {
                 result.Errors.Add(
                     Error(position.Row, 6, $"некорректный № пары: ожидается число 1–{MaxPair}.")
@@ -299,7 +307,8 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
             var hasSubject = !string.IsNullOrWhiteSpace(position.Subject);
             var hasTeacher =
                 position.TeacherId.HasValue || !string.IsNullOrWhiteSpace(position.TeacherName);
-            if (hasSubject != hasTeacher)
+            var isExam = position.ChangeType == ScheduleChangeType.Exam;
+            if (!isExam && hasSubject != hasTeacher)
             {
                 result.Errors.Add(
                     Error(
@@ -311,7 +320,23 @@ public sealed class CorrectionApplyEngine(AppDbContext db, IBellScheduleService 
                 continue;
             }
 
-            if (position.ChangeType != ScheduleChangeType.Remove && !hasSubject)
+            if (isExam)
+            {
+                if (
+                    !string.Equals(
+                        position.Subject?.Trim(),
+                        "ЭКЗАМЕН",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    result.Errors.Add(
+                        Error(position.Row, 4, "Предмет экзамена должен быть «ЭКЗАМЕН».")
+                    );
+                    continue;
+                }
+            }
+            else if (position.ChangeType != ScheduleChangeType.Remove && !hasSubject)
             {
                 result.Errors.Add(
                     Error(position.Row, 4, "не заполнены предмет и преподаватель (вводится).")
