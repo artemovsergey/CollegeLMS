@@ -149,7 +149,9 @@ export const BATCH_STATUS_STYLE: Record<"Draft" | "Applied", string> = {
  * плотнее: это управляющий элемент, а не статус, и он должен читаться как
  * кнопка выбора.
  */
-export function choiceBlock(token: "success" | "destructive"): string {
+export function choiceBlock(
+  token: "success" | "destructive" | "warning",
+): string {
   return `border-${token}/40 bg-${token}/5 text-${token}`
 }
 

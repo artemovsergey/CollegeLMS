@@ -490,6 +490,18 @@ test.describe("Операция «Экзамен»", () => {
       await correctionPage(page)
       created.push(await createBatchByUi(page, ROUND_TRIP_DATES[0]))
 
+      // Группу берём из API: payload должен содержать ровно те id и имя,
+      // которые выбрал интерфейс.
+      const groupsResponse = await request.get("/api/groups?pageSize=200", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const groups = (await groupsResponse.json()).data as {
+        id: string
+        name: string
+      }[]
+      const group = groups[0]
+      expect(group, "в системе должна быть хотя бы одна группа").toBeTruthy()
+
       await page.getByRole("button", { name: "Добавить позицию" }).click()
       const dialog = page.getByRole("dialog")
       await expect(dialog).toBeVisible()
@@ -502,6 +514,54 @@ test.describe("Операция «Экзамен»", () => {
         dialog.getByText("ЭКЗАМЕН", { exact: true }),
         "в предпросмотре строки должен появиться предмет «ЭКЗАМЕН»"
       ).toBeVisible()
+
+      await dialog.locator("#position-group").click()
+      await page
+        .getByRole("textbox", { name: "Поиск группы по названию" })
+        .fill(group.name)
+      await page.getByRole("option", { name: group.name }).first().click()
+
+      // Экзамен — день группы: пары, преподавателя, предмета и примечания нет.
+      for (const step of ["Пара", "Преподаватель", "Предмет", "Примечание"]) {
+        await expect(
+          dialog.getByRole("heading", { name: step, exact: true }),
+          `шаг «${step}» не должен показываться для экзамена`
+        ).toHaveCount(0)
+      }
+
+      const submit = dialog.getByRole("button", { name: "Добавить позицию" })
+      await expect(submit).toBeEnabled()
+      const positionUrl = `/api/schedule/correction/batches/${created[0]}/positions`
+      const [postRequest, postResponse] = await Promise.all([
+        page.waitForRequest(
+          (request) => request.method() === "POST" && request.url().endsWith(positionUrl)
+        ),
+        page.waitForResponse(
+          (response) =>
+            response.request().method() === "POST" &&
+            response.url().endsWith(positionUrl)
+        ),
+        submit.click(),
+      ])
+      expect(
+        postResponse.status(),
+        `сервер должен принять позицию экзамена: ${await postResponse.text()}`
+      ).toBe(200)
+      expect(postRequest.postDataJSON()).toEqual({
+        changeType: "Exam",
+        groupId: group.id,
+        groupName: group.name,
+        numberPair: 0,
+        subject: "ЭКЗАМЕН",
+        teacherId: null,
+        teacherName: null,
+        removedSubject: null,
+        removedTeacherId: null,
+        removedTeacherName: null,
+        removedNumberPair: null,
+        note: null,
+      })
+      await expect(dialog).toBeHidden()
     } finally {
       for (const batchId of created) {
         await deleteBatch(request, token, batchId).catch(() => undefined)
