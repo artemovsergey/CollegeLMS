@@ -226,36 +226,53 @@ public class ScheduleExportService(
         !day.IsNonWorking
         && day.Practices.Count == 0
         && day.Inserts.Count == 0
+        && day.Exams.Count == 0
         && day.Entries.Count == 0;
 
-    /// <summary>Строки слоёв дня: события, практика (заменяет пары), пары с бейджами.</summary>
+    /// <summary>Строки слоёв дня: экзамены, события, практика (заменяет пары), пары с бейджами.</summary>
     private static List<string> DayLines(ScheduleDayViewResponse day)
     {
         if (day.IsNonWorking)
             return [$"Не работает: {day.NonWorkingTitle}"];
         if (day.Practices.Count > 0)
-            return day.Practices.Select(PracticeLine).ToList();
+            return day.Practices.Select(PracticeLine).Concat(day.Exams.Select(ExamLine)).ToList();
 
-        var lines = day
-            .Inserts.OrderBy(i => i.StartTime)
-            .Select(i => $"{i.StartTime:hh\\:mm}–{i.EndTime:hh\\:mm} {i.Title}")
-            .ToList();
+        var lines = day.Exams.Select(ExamLine).ToList();
+        lines.AddRange(
+            day.Inserts.OrderBy(i => i.StartTime)
+                .Select(i => $"{i.StartTime:hh\\:mm}–{i.EndTime:hh\\:mm} {i.Title}")
+        );
         lines.AddRange(day.Entries.OrderBy(e => e.NumberPair).Select(EntryLine));
         return lines;
     }
 
-    /// <summary>Строки без пар: события, практики и пометка нерабочего дня.</summary>
+    /// <summary>Строки без пар: экзамены, события, практики и пометка нерабочего дня.</summary>
     private static string SpecialLines(ScheduleDayViewResponse day)
     {
         var lines = new List<string>();
         if (day.IsNonWorking)
             lines.Add($"Не работает: {day.NonWorkingTitle}");
+        lines.AddRange(day.Exams.Select(ExamLine));
         lines.AddRange(day.Practices.Select(PracticeLine));
         lines.AddRange(
             day.Inserts.OrderBy(i => i.StartTime)
                 .Select(i => $"{i.StartTime:hh\\:mm}–{i.EndTime:hh\\:mm} {i.Title}")
         );
         return string.Join("\n", lines);
+    }
+
+    /// <summary>Экзамен — отдельная строка без номера пары, времени и кабинета.</summary>
+    private static string ExamLine(ScheduleResponse exam)
+    {
+        var parts = new List<string> { $"🎓 {exam.Subject}" };
+        if (!string.IsNullOrWhiteSpace(exam.GroupName))
+            parts.Add(exam.GroupName);
+
+        var marks = BuildMarks(exam.ChangeTags);
+        if (marks.Length > 0)
+            parts.Add(marks);
+
+        return string.Join(" · ", parts);
     }
 
     private static string PracticeLine(PracticeResponse practice)
@@ -299,6 +316,7 @@ public class ScheduleExportService(
                 ScheduleChangeType.Remove => "снято",
                 ScheduleChangeType.Replace => "замена",
                 ScheduleChangeType.Move => "перенос",
+                ScheduleChangeType.Exam => "экзамен",
                 _ => null,
             };
             if (label is not null && !labels.Contains(label))
