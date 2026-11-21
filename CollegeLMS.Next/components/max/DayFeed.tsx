@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { BellRing, CalendarCheck, CalendarOff, Clock3 } from "lucide-react"
+import { BellRing, CalendarCheck, CalendarOff, Clock3, GraduationCap } from "lucide-react"
 import { CellList, CellSimple, Typography } from "@maxhub/max-ui"
 import type { ScheduleResponse } from "@/types/schedule"
 import type { Practice } from "@/api/practices"
@@ -26,8 +26,10 @@ import ChangeBadge from "@/components/max/ChangeBadge"
 type FeedRow =
   | { kind: "entry"; entry: ScheduleResponse }
   | { kind: "insert"; insert: ScheduleInsert }
+  | { kind: "exam"; exam: ScheduleResponse }
 
 function rowStartTime(row: FeedRow): string {
+  if (row.kind === "exam") return ""
   return row.kind === "entry" ? row.entry.startTime : row.insert.startTime
 }
 
@@ -38,10 +40,12 @@ function rowStartTime(row: FeedRow): string {
 function mergeFeedRows(
   entries: ScheduleResponse[],
   inserts: ScheduleInsert[],
+  exams: ScheduleResponse[],
 ): FeedRow[] {
   const rows: FeedRow[] = [
     ...entries.map((entry): FeedRow => ({ kind: "entry", entry })),
     ...inserts.map((insert): FeedRow => ({ kind: "insert", insert })),
+    ...exams.map((exam): FeedRow => ({ kind: "exam", exam })),
   ]
 
   return rows.sort((a, b) => {
@@ -60,6 +64,7 @@ function mergeFeedRows(
 
 export default function DayFeed({
   entries,
+  exams = [],
   inserts = [],
   practices = [],
   isSunday = false,
@@ -73,6 +78,7 @@ export default function DayFeed({
   today = false,
 }: {
   entries: ScheduleResponse[]
+  exams?: ScheduleResponse[]
   inserts?: ScheduleInsert[]
   practices?: Practice[]
   isSunday?: boolean
@@ -89,7 +95,7 @@ export default function DayFeed({
   const router = useRouter()
 
   const sorted = [...entries].sort((a, b) => a.numberPair - b.numberPair)
-  const feedRows = mergeFeedRows(sorted, inserts)
+  const feedRows = mergeFeedRows(sorted, inserts, exams)
   const now = new Date()
   const currentId = today
     ? sorted.find((e) => {
@@ -135,6 +141,7 @@ export default function DayFeed({
   // УП без пар в этот день сюда не относится: баннера у неё больше нет.
   const showEmptyNote =
     sorted.length === 0 &&
+    exams.length === 0 &&
     inserts.length === 0 &&
     practiceCards.length === 0 &&
     !isNonWorking &&
@@ -218,6 +225,25 @@ export default function DayFeed({
       {feedRows.length > 0 ? (
         <CellList mode="island">
           {feedRows.map((row) => {
+            if (row.kind === "exam") {
+              return (
+                <CellSimple
+                  key={`exam-${row.exam.id}`}
+                  separator
+                  title="🎓 ЭКЗАМЕН"
+                  before={
+                    <div className="max-schedule__insert-badge">
+                      <GraduationCap size={16} aria-hidden />
+                    </div>
+                  }
+                  subtitle={
+                    <span className="max-schedule__subtitle">
+                      {row.exam.groupName}
+                    </span>
+                  }
+                />
+              )
+            }
             if (row.kind === "insert") {
               return (
                 <CellSimple

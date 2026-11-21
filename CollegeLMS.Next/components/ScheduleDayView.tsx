@@ -149,10 +149,13 @@ export default function ScheduleDayView({
             workingDayTitle={data.workingDayTitle ?? null}
             substituteDayOfWeek={data.substituteDayOfWeek ?? null}
           />
-          {(isOrdinaryDay || data.entries.length > 0) && (
+          {(isOrdinaryDay ||
+            data.entries.length > 0 ||
+            data.exams.length > 0) && (
             <ScheduleTable
               entries={data.entries}
               inserts={data.inserts}
+              exams={data.exams}
               selectedDay={null}
               currentWeek={isToday ? data.week : undefined}
               filterGroupName={groupName}

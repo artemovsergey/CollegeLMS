@@ -4,6 +4,8 @@ import type { ScheduleResponse } from "@/types/schedule"
 export type DayRow =
   | { kind: "entry"; entry: MergedEntry }
   | { kind: "insert"; insert: ScheduleInsert }
+  /** Экзамен — отдельная строка дня, не номерованная пара. */
+  | { kind: "exam"; exam: ScheduleResponse }
 
 /**
  * Пара после слияния. Пара — это время, а не предмет: в одном слоте законно
@@ -18,6 +20,7 @@ export interface MergedEntry extends ScheduleResponse {
 }
 
 function startTimeOf(row: DayRow): string {
+  if (row.kind === "exam") return ""
   return row.kind === "entry" ? row.entry.startTime : row.insert.startTime
 }
 
@@ -96,13 +99,17 @@ export function mergeSharedEntries(entries: ScheduleResponse[]): MergedEntry[] {
 export function mergeDayRows(
   entries: ScheduleResponse[],
   inserts: ScheduleInsert[],
+  exams: ScheduleResponse[] = [],
 ): DayRow[] {
+  // Экзамен идёт отдельной строкой и не попадает в `entries`: иначе он встанет
+  // в нумерацию пар 1–7 и сломает группировку слота по номеру пары.
   const rows: DayRow[] = [
     ...mergeSharedEntries(entries).map((entry): DayRow => ({
       kind: "entry",
       entry,
     })),
     ...inserts.map((insert): DayRow => ({ kind: "insert", insert })),
+    ...exams.map((exam): DayRow => ({ kind: "exam", exam })),
   ]
 
   return rows.sort((a, b) => {

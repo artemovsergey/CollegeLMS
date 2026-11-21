@@ -66,18 +66,22 @@ import { CreateBatchDialog } from "@/components/CreateBatchDialog"
 import {
   BATCH_STATUS_STYLE,
   CHANGE_KIND_STYLE,
+  CHANGE_TYPE_STYLE,
   noticeBlock,
 } from "@/lib/status-style"
 import EmptyState from "@/components/EmptyState"
 
 const POSITION_PAGE_SIZE = 20
 
-/** Операций две: добавление и снятие. */
-const CHANGE_TYPE_META: Record<"Add" | "Remove", { label: string; className: string }> =
-  {
-    Add: { label: "Добавлено", className: CHANGE_KIND_STYLE.Add },
-    Remove: { label: "Снято", className: CHANGE_KIND_STYLE.Remove },
-  }
+/** Операции пакета: добавление, снятие и exam (день группы). */
+const CHANGE_TYPE_META: Record<
+  "Add" | "Remove" | "Exam",
+  { label: string; className: string }
+> = {
+  Add: { label: "Добавлено", className: CHANGE_KIND_STYLE.Add },
+  Remove: { label: "Снято", className: CHANGE_KIND_STYLE.Remove },
+  Exam: { label: "Экзамен", className: CHANGE_TYPE_STYLE.Exam },
+}
 
 const ALL_GROUPS = "__all__"
 const ALL_TYPES = "__all__"
@@ -123,6 +127,10 @@ function lessonLine(
  * вводимое занятие, поэтому стрелки нет.
  */
 function renderTitle(position: CorrectionPosition) {
+  // Экзамен — день группы: в заголовке нет ни пары, ни преподавателя.
+  if (position.changeType === "Exam") {
+    return <span className="font-medium">Группа — ЭКЗАМЕН</span>
+  }
   if (position.changeType === "Remove") {
     return (
       <span className="text-muted-foreground">
@@ -521,7 +529,7 @@ function plural(count: number, one: string, few: string, many: string): string {
                   }}
                   options={[
                     { value: ALL_TYPES, label: "Все операции" },
-                    ...(["Add", "Remove"] as const).map((type) => ({
+                    ...(["Add", "Remove", "Exam"] as const).map((type) => ({
                       value: type,
                       label: CHANGE_TYPE_META[type].label,
                     })),

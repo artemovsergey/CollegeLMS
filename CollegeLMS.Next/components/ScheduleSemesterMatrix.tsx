@@ -14,7 +14,7 @@ import {
   parseIsoDate,
   toIsoDate,
 } from "@/api/schedule"
-import { InsertRow, PracticeCard } from "@/components/ScheduleLayers"
+import { ExamRow, InsertRow, PracticeCard } from "@/components/ScheduleLayers"
 import ScheduleFilterPrompt from "@/components/ScheduleFilterPrompt"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
 import LoadingSpinner from "@/components/LoadingSpinner"
@@ -70,7 +70,7 @@ function CellContent({ day, week }: { day: ScheduleDayData; week: number }) {
     )
   }
 
-  const rows = mergeDayRows(day.entries, day.inserts)
+  const rows = mergeDayRows(day.entries, day.inserts, day.exams ?? [])
 
   if (rows.length === 0) {
     return <span className="text-muted-foreground">—</span>
@@ -85,6 +85,9 @@ function CellContent({ day, week }: { day: ScheduleDayData; week: number }) {
           return (
             <InsertRow key={`insert-${row.insert.id}`} insert={row.insert} compact />
           )
+        }
+        if (row.kind === "exam") {
+          return <ExamRow key={`exam-${row.exam.id}`} exam={row.exam} compact />
         }
 
         const entry = row.entry

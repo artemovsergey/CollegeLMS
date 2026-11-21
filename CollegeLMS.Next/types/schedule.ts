@@ -75,6 +75,8 @@ export interface ScheduleDayView {
   nonWorkingTitle: string | null
   practices: Practice[]
   inserts: ScheduleInsert[]
+  /** Экзамены дня — отдельный слой без номера пары и технического времени. */
+  exams: ScheduleResponse[]
   entries: ScheduleResponse[]
   /** День сделан рабочим (перенос с другого дня недели). */
   isWorkingDay?: boolean

@@ -16,6 +16,7 @@ import {
   CalendarOff,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import ChangeTagBadge from "@/components/ChangeTagBadge"
 import {
   NON_WORKING_BLOCK,
   PRACTICE_STYLE,
@@ -67,6 +68,37 @@ export function InsertRow({
         {formatTime(insert.startTime)}–{formatTime(insert.endTime)}
       </span>
       <span className="truncate">{insert.title}</span>
+    </div>
+  )
+}
+
+/**
+ * Карточка экзамена: это день группы, а не пара. Номер пары, время и аудитория
+ * не показываются намеренно — API отдаёт технические нули только для БД.
+ */
+export function ExamRow({
+  exam,
+  compact = false,
+}: {
+  exam: ScheduleResponse
+  compact?: boolean
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Экзамен"
+      className={cn(
+        "flex flex-wrap items-center gap-2 rounded-md border-l-2 bg-muted/40",
+        compact ? "px-2 py-1 text-[11px]" : "px-3 py-2 text-sm",
+      )}
+      style={{ borderLeftColor: "var(--lesson-exam)" }}
+    >
+      <span className="font-semibold" style={{ color: "var(--lesson-exam)" }}>
+        🎓 ЭКЗАМЕН
+      </span>
+      {exam.changeTags && exam.changeTags.length > 0 ? (
+        <ChangeTagBadge tags={exam.changeTags} />
+      ) : null}
     </div>
   )
 }

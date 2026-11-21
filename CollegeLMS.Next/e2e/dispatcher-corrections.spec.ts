@@ -568,4 +568,122 @@ test.describe("Операция «Экзамен»", () => {
       }
     }
   })
+
+  test("exam is visible in day schedule and position editor", async ({
+    page,
+    request,
+  }) => {
+    const { token } = session
+    const headers = { Authorization: `Bearer ${token}` }
+    const created: string[] = []
+
+    // Дата не пересекается с остальными тестами файла — в списке пакетов
+    // строку нашего пакета нельзя спутать с чужой.
+    const examDate = "2026-10-20"
+
+    try {
+      const groupsResponse = await request.get("/api/groups?pageSize=200", {
+        headers,
+      })
+      const groups = (await groupsResponse.json()).data as {
+        id: string
+        name: string
+      }[]
+      const group = groups[0]
+      expect(group, "в системе должна быть хотя бы одна группа").toBeTruthy()
+
+      // Пакеты от неудачных прогонов мешают открыть нужный по дате.
+      const listed = await request.get(
+        "/api/schedule/correction/batches?page=1&pageSize=100",
+        { headers }
+      )
+      const items =
+        ((await listed.json()).data as {
+          items: { id: string; correctionDate: string }[]
+        }).items ?? []
+      for (const batch of items.filter(
+        (batch) => batch.correctionDate.slice(0, 10) === examDate
+      )) {
+        await request.delete(`/api/schedule/correction/batches/${batch.id}`, {
+          headers,
+        })
+      }
+
+      // Экзамен — позиция пакета; применяем её через API, нас интересует
+      // отображение уже применённого экзамена.
+      const batchResponse = await request.post(
+        "/api/schedule/correction/batches",
+        { headers, data: { correctionDate: `${examDate}T00:00:00` } }
+      )
+      expect(batchResponse.ok()).toBeTruthy()
+      const batchId = ((await batchResponse.json()).data as { id: string }).id
+      created.push(batchId)
+
+      const positionResponse = await request.post(
+        `/api/schedule/correction/batches/${batchId}/positions`,
+        {
+          headers,
+          data: {
+            changeType: "Exam",
+            groupId: group.id,
+            groupName: group.name,
+            numberPair: 0,
+            subject: "ЭКЗАМЕН",
+            teacherId: null,
+            teacherName: null,
+            removedSubject: null,
+            removedTeacherId: null,
+            removedTeacherName: null,
+            removedNumberPair: null,
+            note: null,
+          },
+        }
+      )
+      expect(
+        positionResponse.ok(),
+        `позиция экзамена: ${await positionResponse.text()}`
+      ).toBeTruthy()
+
+      // Редактор позиций: в фильтре типов есть «Экзамен», а сама позиция
+      // помечена как добавление (вывод операции «Экзамен» в журнал).
+      await correctionPage(page)
+      const dateLabel = new Date(`${examDate}T00:00:00`).toLocaleDateString("ru-RU")
+      await page.getByLabel(`Открыть пакет за ${dateLabel}`).click()
+      await expect(page.getByText("Редактор пакета")).toBeVisible()
+
+      await page.getByRole("button", { name: "Фильтр по типу операции" }).click()
+      const examOption = page.getByRole("option", { name: "Экзамен" })
+      await expect(examOption).toBeVisible()
+      await examOption.click()
+      await expect(
+        page.getByText("Группа — ЭКЗАМЕН", { exact: true }),
+        "заголовок позиции экзамена"
+      ).toBeVisible()
+      await expect(
+        page.getByText("Добавлено", { exact: true }),
+        "бейдж позиции экзамена"
+      ).toBeVisible()
+
+      // Применяем пакет и смотрим день группы: экзамен — отдельная карточка
+      // без номера пары технического времени.
+      const applied = await request.post(
+        `/api/schedule/correction/batches/${batchId}/apply`,
+        { headers }
+      )
+      expect(applied.ok(), `применение пакета: ${await applied.text()}`).toBeTruthy()
+
+      await useDispatcherSession(page, session)
+      await page.goto(
+        `/schedule?view=day&date=${examDate}&groupId=${encodeURIComponent(group.id)}`
+      )
+      const examCard = page.getByRole("group", { name: "Экзамен" }).first()
+      await expect(examCard).toBeVisible()
+      await expect(examCard).toContainText("🎓 ЭКЗАМЕН")
+      await expect(examCard).not.toContainText("00:00")
+    } finally {
+      for (const batchId of created) {
+        await deleteBatch(request, token, batchId).catch(() => undefined)
+      }
+    }
+  })
 })

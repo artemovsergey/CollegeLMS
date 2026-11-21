@@ -24,6 +24,7 @@ export default function WeekFeed({
     (day) =>
       (day.dayOfWeek >= 1 && day.dayOfWeek <= 5) ||
       day.entries.length > 0 ||
+      day.exams.length > 0 ||
       day.inserts.length > 0 ||
       day.practices.length > 0 ||
       day.isNonWorking ||
@@ -39,6 +40,7 @@ export default function WeekFeed({
         const dayDate = formatDay(iso)
         const hasContent =
           day.entries.length > 0 ||
+          day.exams.length > 0 ||
           day.inserts.length > 0 ||
           day.practices.length > 0 ||
           day.isNonWorking ||
@@ -61,6 +63,7 @@ export default function WeekFeed({
           <DayFeed
             key={iso || String(day.dayOfWeek)}
             entries={day.entries}
+            exams={day.exams ?? []}
             inserts={day.inserts}
             practices={day.practices}
             isSunday={day.isSunday}

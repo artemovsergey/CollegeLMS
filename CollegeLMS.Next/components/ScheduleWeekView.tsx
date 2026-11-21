@@ -16,6 +16,7 @@ import {
   toIsoDate,
 } from "@/api/schedule"
 import {
+  ExamRow,
   InsertRow,
   PracticeCard,
   PracticePairBadge,
@@ -82,7 +83,7 @@ function DayColumn({
   const info = DAYS.find((d) => d.value === day.dayOfWeek)
   const dateLabel = formatDate(parseIsoDate(iso))
   const isToday = iso !== "" && iso === toIsoDate(new Date())
-  const rows = mergeDayRows(day.entries, day.inserts)
+  const rows = mergeDayRows(day.entries, day.inserts, day.exams ?? [])
 
   return (
     <div
@@ -133,6 +134,9 @@ function DayColumn({
               return (
                 <InsertRow key={`insert-${row.insert.id}`} insert={row.insert} compact />
               )
+            }
+            if (row.kind === "exam") {
+              return <ExamRow key={`exam-${row.exam.id}`} exam={row.exam} compact />
             }
 
             const entry = row.entry

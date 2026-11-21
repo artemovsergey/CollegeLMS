@@ -208,6 +208,7 @@ export default function ScheduleView() {
   const dayHasContent =
     dayData !== null &&
     (dayData.entries.length > 0 ||
+      dayData.exams.length > 0 ||
       dayData.inserts.length > 0 ||
       dayData.practices.length > 0 ||
       dayData.isNonWorking ||
@@ -219,6 +220,7 @@ export default function ScheduleView() {
     weekData.days.some(
       (day) =>
         day.entries.length > 0 ||
+        day.exams.length > 0 ||
         day.inserts.length > 0 ||
         day.practices.length > 0 ||
         day.isNonWorking ||
@@ -459,6 +461,7 @@ export default function ScheduleView() {
         ) : dayData && dayHasContent ? (
             <DayFeed
               entries={dayData.entries}
+              exams={dayData.exams ?? []}
               inserts={dayData.inserts}
               practices={dayData.practices}
               isSunday={dayData.isSunday}

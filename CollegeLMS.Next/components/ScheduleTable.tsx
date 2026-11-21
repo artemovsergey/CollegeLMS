@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import ChangeTagBadge from "@/components/ChangeTagBadge"
 import {
+  ExamRow,
   InsertRow,
   PracticePairBadge,
   practicePairName,
@@ -28,6 +29,7 @@ import { PRACTICE_CELL, PRACTICE_PAIR_NUMBER } from "@/lib/status-style"
 interface ScheduleCardsProps {
   entries: ScheduleResponse[]
   inserts: ScheduleInsert[]
+  exams?: ScheduleResponse[]
   selectedDay: number | null
   /** Текущая учебная неделя — нужна для подсветки «Сейчас идёт». */
   currentWeek?: number
@@ -121,6 +123,7 @@ export const TARGET_LINK_CLASS =
 export default function ScheduleCards({
   entries,
   inserts,
+  exams = [],
   selectedDay,
   currentWeek,
   filterGroupName,
@@ -142,7 +145,11 @@ export default function ScheduleCards({
     ? inserts.filter((i) => i.dayOfWeek === selectedDay)
     : inserts
 
-  const rows: DayRow[] = mergeDayRows(filteredEntries, filteredInserts)
+  const filteredExams = selectedDay
+    ? exams.filter((e) => e.dayOfWeek === selectedDay)
+    : exams
+
+  const rows: DayRow[] = mergeDayRows(filteredEntries, filteredInserts, filteredExams)
 
   const currentId =
     filteredEntries.find((entry) => isCurrentlyHappening(entry, currentWeek))
@@ -167,6 +174,9 @@ export default function ScheduleCards({
       {rows.map((row) => {
         if (row.kind === "insert") {
           return <InsertRow key={`insert-${row.insert.id}`} insert={row.insert} />
+        }
+        if (row.kind === "exam") {
+          return <ExamRow key={`exam-${row.exam.id}`} exam={row.exam} />
         }
 
         const entry = row.entry

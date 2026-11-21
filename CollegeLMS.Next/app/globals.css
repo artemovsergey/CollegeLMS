@@ -2,6 +2,9 @@
 
 @import "tw-animate-css";
 
+/* choiceBlock() собирает классы динамически — Tailwind их не видит сам. */
+@source inline("border-warning/40 bg-warning/5 text-warning text-success");
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
