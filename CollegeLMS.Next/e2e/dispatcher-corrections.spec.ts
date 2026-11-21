@@ -569,6 +569,53 @@ test.describe("Операция «Экзамен»", () => {
     }
   })
 
+  test("group search ignores spaces in exam position dialog", async ({
+    page,
+    request,
+  }) => {
+    const { token } = session
+    const created: string[] = []
+
+    try {
+      await correctionPage(page)
+      created.push(await createBatchByUi(page, ROUND_TRIP_DATES[0]))
+
+      const groupsResponse = await request.get("/api/groups?pageSize=200", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const groups = (await groupsResponse.json()).data as {
+        id: string
+        name: string
+      }[]
+      // Берём группу с пробелом в названии: пользователь часто вводит имя
+      // без пробела («РЭУ242» вместо «РЭУ 242») — поиск должен находить её.
+      const group = groups.find((item) => /\s/.test(item.name)) ?? groups[0]
+      expect(group, "в системе должна быть хотя бы одна группа").toBeTruthy()
+      const compactName = group.name.replace(/\s+/g, "")
+
+      await page.getByRole("button", { name: "Добавить позицию" }).click()
+      const dialog = page.getByRole("dialog")
+      await expect(dialog).toBeVisible()
+      await dialog.getByRole("radio", { name: /^Экзамен/ }).click()
+
+      await dialog.locator("#position-group").click()
+      const search = page.getByRole("textbox", {
+        name: "Поиск группы по названию",
+      })
+      await search.fill(compactName)
+
+      await expect(
+        page.getByRole("option", { name: group.name }).first(),
+        `поиск без пробелов («${compactName}») должен находить «${group.name}»`
+      ).toBeVisible()
+      await expect(dialog.getByText("Групп не найдено")).toHaveCount(0)
+    } finally {
+      for (const batchId of created) {
+        await deleteBatch(request, token, batchId).catch(() => undefined)
+      }
+    }
+  })
+
   test("exam is visible in day schedule and position editor", async ({
     page,
     request,

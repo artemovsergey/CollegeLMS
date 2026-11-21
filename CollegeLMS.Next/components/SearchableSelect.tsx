@@ -27,6 +27,14 @@ interface SearchableSelectProps {
 }
 
 /**
+ * Приводит строку к виду для сравнения при поиске: без регистра и без
+ * пробелов. Справочники содержат названия с пробелами («РЭУ 242»), а
+ * пользователь часто набирает их слитно («РЭУ242») — без нормализации такой
+ * поиск ничего не находил и показывал «Ничего не найдено».
+ */
+const normalizeSearch = (value: string) => value.toLowerCase().replace(/\s+/g, "")
+
+/**
  * Список с выбором и встроенным поиском по тексту. Нужен там, где групп или
  * преподавателей много: нативный выпадающий список не даёт найти нужное без
  * прокрутки, а примитив `Select` не умеет фильтровать. Поэтому контрол
@@ -52,12 +60,12 @@ export function SearchableSelect({
   const searchRef = useRef<HTMLInputElement>(null)
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = normalizeSearch(query)
     if (!q) return options
     return options.filter(
       (option) =>
-        option.label.toLowerCase().includes(q) ||
-        (option.description ?? "").toLowerCase().includes(q),
+        normalizeSearch(option.label).includes(q) ||
+        normalizeSearch(option.description ?? "").includes(q),
     )
   }, [options, query])
 
@@ -249,12 +257,12 @@ export function SearchableMultiSelect({
   const searchRef = useRef<HTMLInputElement>(null)
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = normalizeSearch(query)
     if (!q) return options
     return options.filter(
       (option) =>
-        option.label.toLowerCase().includes(q) ||
-        (option.description ?? "").toLowerCase().includes(q),
+        normalizeSearch(option.label).includes(q) ||
+        normalizeSearch(option.description ?? "").includes(q),
     )
   }, [options, query])
 
