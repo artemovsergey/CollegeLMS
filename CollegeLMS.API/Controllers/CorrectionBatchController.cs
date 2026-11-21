@@ -131,6 +131,35 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     }
 
     /// <summary>Добавить позицию в пакет.</summary>
+    /// <remarks>
+    /// Типы позиции: `Add`, `Remove`, `Exam` (значения `Replace`/`Move` из старых
+    /// данных приводятся к `Add`).
+    ///
+    /// Для `Add`/`Remove` поля `numberPair` и `removedNumberPair` — 1–7, иначе 400.
+    /// Экзамен — отдельная операция: `numberPair: 0` допустим только для `Exam`,
+    /// `subject: "ЭКЗАМЕН"`, преподаватель, примечание и поля `Removed*` — null.
+    ///
+    /// Пример тела позиции экзамена:
+    /// {
+    ///   "changeType": "Exam",
+    ///   "groupId": "...",
+    ///   "groupName": "ПО-262",
+    ///   "numberPair": 0,
+    ///   "subject": "ЭКЗАМЕН",
+    ///   "teacherId": null,
+    ///   "teacherName": null,
+    ///   "removedSubject": null,
+    ///   "removedTeacherId": null,
+    ///   "removedTeacherName": null,
+    ///   "removedNumberPair": null,
+    ///   "note": null
+    /// }
+    ///
+    /// Соответствующая строка XLSX (формат диспетчера):
+    /// Группа | (пусто) | ЭКЗАМЕН | (пусто) | (пусто «№») | (пусто)
+    /// — пустая ячейка «№»; случайно заполненный преподаватель или номер пары
+    /// при импорте игнорируются и нормализуются в `Exam` с null-полями.
+    /// </remarks>
     [HttpPost("{id:guid}/positions")]
     [SwaggerOperation(Summary = "Добавить позицию корректировки")]
     [SwaggerResponse(200, "Позиция добавлена", typeof(Result<CorrectionPositionResponse>))]
@@ -152,6 +181,10 @@ public class CorrectionBatchController(ICorrectionBatchService service) : Contro
     }
 
     /// <summary>Редактировать позицию.</summary>
+    /// <remarks>
+    /// Тело и правила те же, что у добавления позиции, включая экзамен:
+    /// `changeType: "Exam"`, `numberPair: 0`, `subject: "ЭКЗАМЕН"`, остальные поля — null.
+    /// </remarks>
     [HttpPut("{id:guid}/positions/{positionId:guid}")]
     [SwaggerOperation(Summary = "Редактировать позицию корректировки")]
     [SwaggerResponse(200, "Позиция обновлена", typeof(Result<CorrectionPositionResponse>))]

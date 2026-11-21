@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "CollegeLMS API",
-    "description": "API для управления учебным заведением. Требуется JWT-аутентификация.",
+    "description": "API для управления учебным заведением. Требуется JWT-аутентификация. Корректировки расписания: операции «Добавить», «Снять» и «Экзамен» (changeType=Exam, numberPair=0, subject=ЭКЗАМЕН; экзамены отдаются отдельным массивом Exams).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -1077,7 +1077,38 @@
               ]
             }
           },
-          "description": "Добавить позицию в пакет. Типов два: Add и Remove. Замена получается из заполненных removedSubject/removedTeacherId — это занятие снимается в выбранной паре. Перенос — из removedNumberPair: освобождается пара с тем же предметом и преподавателем. Примечание «сам.р» — только информирование (пара в расписание не встаёт), «сам.р+» — пара добавляется."
+          "description": "Добавить позицию в пакет. Типов три: Add, Remove и Exam. Замена получается из заполненных removedSubject/removedTeacherId — это занятие снимается в выбранной паре. Перенос — из removedNumberPair: освобождается пара с тем же предметом и преподавателем. Примечание «сам.р» — только информирование (пара в расписание не встаёт), «сам.р+» — пара добавляется. Экзамен: changeType=Exam, numberPair=0 (только для Exam), subject=ЭКЗАМЕН, преподаватель/примечание/Removed* — null; обычные позиции используют 1–7."
+        },
+        {
+          "name": "Add exam correction position",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"changeType\": \"Exam\",\n  \"groupId\": \"{{groupId}}\",\n  \"groupName\": \"ПО-262\",\n  \"numberPair\": 0,\n  \"subject\": \"ЭКЗАМЕН\",\n  \"teacherId\": null,\n  \"teacherName\": null,\n  \"removedSubject\": null,\n  \"removedTeacherId\": null,\n  \"removedTeacherName\": null,\n  \"removedNumberPair\": null,\n  \"note\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/correction/batches/{{batchId}}/positions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "correction",
+                "batches",
+                "{{batchId}}",
+                "positions"
+              ]
+            }
+          },
+          "description": "Экзамен — отдельная операция: numberPair=0 (только для Exam), subject=ЭКЗАМЕН, без преподавателя и примечания, все Removed*-поля null. Применение создаёт запись LessonType=Exam и журнал ChangeType=Exam; в дне/неделе экзамены отдаются массивом Exams, не Entries. XLSX-строка образца: Группа | (пусто) | ЭКЗАМЕН | (пусто) | (пусто «№») | (пусто). Пример ответа (200): {\n  \"isSuccess\": true,\n  \"data\": {\n    \"id\": \"...\",\n    \"row\": 1,\n    \"changeType\": \"Exam\",\n    \"groupId\": \"{{groupId}}\",\n    \"groupName\": \"ПО-262\",\n    \"dayOfWeek\": 4,\n    \"week\": 2,\n    \"numberPair\": 0,\n    \"subject\": \"ЭКЗАМЕН\",\n    \"teacherId\": null,\n    \"teacherName\": null,\n    \"removedSubject\": null,\n    \"removedTeacherId\": null,\n    \"removedTeacherName\": null,\n    \"removedNumberPair\": null,\n    \"note\": null,\n    \"status\": \"Draft\",\n    \"historyId\": null,\n    \"errors\": []\n  },\n  \"errorMessage\": null,\n  \"statusCode\": 200\n}"
         },
         {
           "name": "Update correction position",
