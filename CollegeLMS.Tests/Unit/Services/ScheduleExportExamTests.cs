@@ -148,4 +148,35 @@ public class ScheduleExportExamTests : IDisposable
                 );
         }
     }
+
+    /// <summary>
+    /// Семестровый экспорт читает записи напрямую из БД (включая экзамены с NumberPair=0
+    /// и техническим временем 00:00–00:01). Экзамен обязан печататься отдельной строкой
+    /// «🎓 ЭКЗАМЕН» без номера пары, времени и кабинета.
+    /// </summary>
+    [Fact]
+    public async Task SemesterExportRendersExamWithoutPairNumberOrTechnicalTime()
+    {
+        var groupId = await SeedExamOnlyDayAsync();
+
+        var result = await ExportAsync("semester", groupId, ExportLayout.Grid);
+
+        result
+            .IsSuccess.Should()
+            .BeTrue(
+                $"семестровый экспорт с экзаменом должен возвращать файл. Ошибка: {result.ErrorMessage}"
+            );
+
+        using var stream = new MemoryStream(result.Data!.FileContent);
+        using var workbook = new XLWorkbook(stream);
+        var allText = string.Join(
+            "\n",
+            workbook.Worksheets.SelectMany(ws => ws.CellsUsed()).Select(cell => cell.GetString())
+        );
+
+        allText.Should().Contain("🎓 ЭКЗАМЕН");
+        allText.Should().NotContain("0. ЭКЗАМЕН");
+        allText.Should().NotContain("00:00");
+        allText.Should().NotContain("00:01");
+    }
 }

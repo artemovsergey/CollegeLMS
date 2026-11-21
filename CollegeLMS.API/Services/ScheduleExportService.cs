@@ -876,9 +876,13 @@ public class ScheduleExportService(
         foreach (var insert in inserts.Where(i => i.DayOfWeek == day).OrderBy(i => i.StartTime))
             lines.Add($"{insert.StartTime:hh\\:mm}–{insert.EndTime:hh\\:mm} {insert.Title}");
 
+        var dayEntries = entries.Where(e => e.DayOfWeek == day && e.Weeks.Contains(week)).ToList();
+
+        // Обычные пары — как раньше. Экзамены (LessonType=Exam, NumberPair=0, техническое
+        // время 00:00–00:01) печатаются отдельной строкой без номера пары, времени и кабинета.
         foreach (
-            var entry in entries
-                .Where(e => e.DayOfWeek == day && e.Weeks.Contains(week))
+            var entry in dayEntries
+                .Where(e => e.LessonType != LessonType.Exam)
                 .OrderBy(e => e.NumberPair)
         )
         {
@@ -895,6 +899,19 @@ public class ScheduleExportService(
                 line += $" · {marks}";
 
             lines.Add(line);
+        }
+
+        foreach (var exam in dayEntries.Where(e => e.LessonType == LessonType.Exam))
+        {
+            var parts = new List<string> { $"🎓 {exam.Subject}" };
+            if (!string.IsNullOrEmpty(exam.Group?.Name))
+                parts.Add(exam.Group.Name);
+
+            var marks = BuildSemesterMarks(history, exam.GroupId, day, week, exam.NumberPair);
+            if (marks.Length > 0)
+                parts.Add(marks);
+
+            lines.Add(string.Join(" · ", parts));
         }
 
         return lines.Count == 0 ? "—" : string.Join("\n", lines);
