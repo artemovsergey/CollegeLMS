@@ -23,8 +23,10 @@ import {
   type JournalSubjectGroup,
 } from "@/api/schedule"
 import {
+  duplicateJournalSubjects,
   formatPairs,
   journalCardKey,
+  journalChipLabel,
   journalDateLabel,
   journalDateParts,
   parseJournalLink,
@@ -152,6 +154,10 @@ export default function TeacherJournalPage() {
   const linkedRef = useRef<JournalLink>({})
   // Список групп нужен один раз: с фильтром сервер отдаёт только выбранную группу.
   const groupsRequestedRef = useRef(false)
+  const duplicatedSubjects = useMemo(
+    () => duplicateJournalSubjects(journal?.subjects ?? []),
+    [journal],
+  )
 
   const roles = user?.roles ?? []
   const canPickTeacher = roles.some((role) => CAN_MANAGE_ROLES.includes(role))
@@ -434,7 +440,7 @@ export default function TeacherJournalPage() {
                       : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
-                  {group.subject}
+                  {journalChipLabel(group, duplicatedSubjects)}
                   <span className="text-xs opacity-70">{group.pairCount}</span>
                 </button>
               )

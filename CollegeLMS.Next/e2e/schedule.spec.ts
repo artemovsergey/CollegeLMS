@@ -554,4 +554,50 @@ test.describe("Расписание: из пары — в журнал и в р�
     await expect(page).toHaveURL(/\/teacher\/journal\?/)
     expect(new URL(page.url()).searchParams.get("subject")).toBe("Математика")
   })
+
+  test("Журнал: одинаковый предмет в разных группах подписан группой", async ({
+    page,
+  }) => {
+    await setup(page, TEACHER_CONTEXT)
+    await page.route("**/api/schedule/journal**", (route) =>
+      route.fulfill(
+        json({
+          ...JOURNAL,
+          data: {
+            ...JOURNAL.data,
+            subjects: [
+              {
+                ...JOURNAL.data.subjects[0],
+                groupId: "g-1",
+                groupName: "ИП 245",
+                subject: "УП.01 Разработка программных модулей",
+                pairCount: 1,
+              },
+              {
+                ...JOURNAL.data.subjects[0],
+                groupId: "g-2",
+                groupName: "ИП 246",
+                subject: "УП.01 Разработка программных модулей",
+                pairCount: 1,
+              },
+            ],
+            totalPairCount: 2,
+          },
+        }),
+      ),
+    )
+
+    await page.goto("/teacher/journal", { waitUntil: "domcontentloaded" })
+
+    const chips = page
+      .getByRole("group", { name: "Фильтр по предмету" })
+      .locator("button")
+    await expect(chips).toHaveCount(2)
+    await expect(chips.nth(0)).toContainText(
+      "ИП 245 · УП.01 Разработка программных модулей",
+    )
+    await expect(chips.nth(1)).toContainText(
+      "ИП 246 · УП.01 Разработка программных модулей",
+    )
+  })
 })

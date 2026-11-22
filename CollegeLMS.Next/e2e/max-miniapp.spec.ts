@@ -836,6 +836,77 @@ test.describe("MAX mini-app", () => {
     await expect(page.getByText(/Пар: /)).toHaveCount(0)
   })
 
+  test("Журнал: чипы с одинаковым предметом различаются группой", async ({
+    page,
+  }) => {
+    await loginMaxProfile(page, {
+      maxUserId: 2,
+      role: "Teacher",
+      groupId: null,
+      groupName: null,
+      teacherId: "t1",
+      teacherName: "Артёмов С.В.",
+    })
+    await page.route("**/api/schedule/journal**", (route) =>
+      route.fulfill(
+        inlineJson(
+          ok({
+            teacherId: "t1",
+            teacherName: "Артёмов С.В.",
+            subjects: [
+              {
+                groupId: "g-245",
+                groupName: "ИП 245",
+                subject: "УП.01 Разработка программных модулей",
+                pairCount: 18,
+                items: [
+                  {
+                    week: 12,
+                    dayOfWeek: 2,
+                    date: "2026-11-23T00:00:00Z",
+                    numberPairs: [3],
+                    changeTypes: [],
+                  },
+                ],
+              },
+              {
+                groupId: "g-246",
+                groupName: "ИП 246",
+                subject: "УП.01 Разработка программных модулей",
+                pairCount: 18,
+                items: [
+                  {
+                    week: 11,
+                    dayOfWeek: 2,
+                    date: "2026-11-16T00:00:00Z",
+                    numberPairs: [3],
+                    changeTypes: [],
+                  },
+                ],
+              },
+            ],
+            totalPairCount: 36,
+          }),
+        ),
+      ),
+    )
+
+    await page.goto("/max/journal", { waitUntil: "domcontentloaded" })
+
+    const chips = page
+      .getByRole("group", { name: "Фильтр по предмету" })
+      .locator("button")
+    await expect(chips).toHaveCount(2)
+    await expect(chips.nth(0)).toContainText(
+      "ИП 245 · УП.01 Разработка программных модулей",
+    )
+    await expect(chips.nth(1)).toContainText(
+      "ИП 246 · УП.01 Разработка программных модулей",
+    )
+    const labels = await chips.allTextContents()
+    expect(new Set(labels).size).toBe(labels.length)
+  })
+
   test("MAX initData: поздняя загрузка бриджа всё равно логинит", async ({ page }) => {
     let authRequests = 0
     const MAX_TOKEN = "max-jwt-late"

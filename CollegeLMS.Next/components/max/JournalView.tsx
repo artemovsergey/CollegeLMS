@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
 import {
@@ -21,8 +21,10 @@ import { fetchJournal } from "@/api/schedule"
 import type { JournalResponse, JournalSubjectGroup } from "@/api/schedule"
 import { useMaxContext } from "@/lib/max-context"
 import {
+  duplicateJournalSubjects,
   formatPairs,
   journalCardKey,
+  journalChipLabel,
   journalDateLabel,
   journalDateParts,
   parseJournalLink,
@@ -114,6 +116,10 @@ export default function JournalView() {
   const [error, setError] = useState<string | null>(null)
   // Список групп нужен один раз: с фильтром сервер отдаёт только выбранную группу.
   const groupsRequestedRef = useRef(false)
+  const duplicatedSubjects = useMemo(
+    () => duplicateJournalSubjects(journal?.subjects ?? []),
+    [journal],
+  )
 
   // Ссылка с парой приходит из расписания, выбор — из этого же экрана.
   useEffect(() => {
@@ -294,7 +300,7 @@ export default function JournalView() {
                     }
                     onClick={() => setSubjectKey(key)}
                   >
-                    {group.subject}
+                    {journalChipLabel(group, duplicatedSubjects)}
                     <span className="max-app__note">{group.pairCount}</span>
                   </button>
                 )

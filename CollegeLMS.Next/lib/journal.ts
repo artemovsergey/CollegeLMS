@@ -17,6 +17,43 @@ export function journalCardKey(group: {
   return `${group.groupId}::${group.subject}`
 }
 
+/** Минимум карточки, нужный для подписи чипа фильтра журнала. */
+export interface JournalChipGroup {
+  groupId: string
+  groupName: string
+  subject: string
+}
+
+/**
+ * Предметы, встречающиеся более чем в одной карточке журнала.
+ *
+ * Одно только имя предмета не различает чипы, когда преподаватель ведёт его в
+ * нескольких группах (например, УП с одинаковым названием в ИП 245 и ИП 246).
+ */
+export function duplicateJournalSubjects(
+  groups: readonly JournalChipGroup[],
+): Set<string> {
+  const counts = new Map<string, number>()
+  for (const group of groups) {
+    counts.set(group.subject, (counts.get(group.subject) ?? 0) + 1)
+  }
+  const duplicates = new Set<string>()
+  for (const [subject, count] of counts) {
+    if (count > 1) duplicates.add(subject)
+  }
+  return duplicates
+}
+
+/** Подпись чипа: группа добавляется только для неоднозначного предмета. */
+export function journalChipLabel(
+  group: JournalChipGroup,
+  duplicates: ReadonlySet<string>,
+): string {
+  return duplicates.has(group.subject)
+    ? `${group.groupName} · ${group.subject}`
+    : group.subject
+}
+
 /** Часть пары, достаточная для адреса журнала. */
 export interface JournalTarget {
   teacherId: string | null
