@@ -1114,6 +1114,36 @@ public class CorrectionApplyEngineTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateBatchAsync_MoveAbbreviatedSubject_MatchesScheduleSpelling()
+    {
+        var group = await SeedGroupAsync("ИВ-244");
+        var teacher = await SeedTeacherAsync("Волошина Т.К.");
+        var replacedTeacher = await SeedTeacherAsync("Артемов С.В.");
+        await SeedEntryAsync(group.Id, replacedTeacher.Id, "МДК.09.01", 2, TestWeek);
+        await SeedEntryAsync(group.Id, teacher.Id, "Псих.общения", 4, TestWeek);
+        var batch = await SeedBatchAsync(
+            group,
+            Pos(
+                1,
+                ScheduleChangeType.Add,
+                2,
+                subject: "Псих.общ.",
+                teacherId: teacher.Id,
+                teacherName: teacher.User.FullName,
+                removedSubject: "МДК.09.01",
+                removedTeacherId: replacedTeacher.Id,
+                removedTeacherName: replacedTeacher.User.FullName,
+                removedNumberPair: 4,
+                note: "вм.4 п."
+            )
+        );
+
+        var errors = await _sut.ValidateBatchAsync(batch, CancellationToken.None);
+
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task ValidateBatchAsync_PairOutsideDayRange_ReturnsRowError()
     {
         var group = await SeedGroupAsync();

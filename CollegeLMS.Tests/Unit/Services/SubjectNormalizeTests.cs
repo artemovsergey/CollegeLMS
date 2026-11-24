@@ -46,6 +46,7 @@ public class SubjectNormalizeTests
     [InlineData("МДК.01.02")]
     [InlineData("Материал.")]
     [InlineData("Рус.язык")]
+    [InlineData("Псих.общения")]
     public void Название_из_расписания_не_меняется(string subject)
     {
         Assert.Equal(subject, ScheduleImportService.NormalizeSubject(subject));
@@ -74,6 +75,8 @@ public class SubjectNormalizeTests
     [InlineData("Физ.культура", "Физкультура")]
     [InlineData("Физ.кул.", "Физкультура")]
     [InlineData("Физ.культ", "Физкультура")]
+    [InlineData("Псих.общ.", "Псих.общения")]
+    [InlineData("Псих.обющ.", "Псих.общения")]
     [InlineData("Мен.в ПД", "Менеджм.вПД")]
     [InlineData("Менеджм.в ПД", "Менеджм.вПД")]
     [InlineData("ТЭС", "ТЭЦ")]
@@ -138,6 +141,7 @@ public class SubjectNormalizeTests
     [InlineData("МДК.01.02.")]
     [InlineData("ОА и П")]
     [InlineData("Eeb-прогр.")]
+    [InlineData("Псих.общ.")]
     public void Повторная_нормализация_ничего_не_меняет(string written)
     {
         var once = ScheduleImportService.NormalizeSubject(written);
@@ -157,6 +161,8 @@ public class SubjectNormalizeTests
     [InlineData("Электротех.и Э.", "ЭлектрТех.")]
     [InlineData("МДК.04.02.", "МДК.04.02")]
     [InlineData("Eeb-прогр.", "Web-прогр.")]
+    [InlineData("Псих.общ.", "Псих.общения")]
+    [InlineData("Псих.обющ.", "Псих.общения")]
     public void Один_предмет_даёт_один_ключ_независимо_от_написания(
         string written,
         string canonical
