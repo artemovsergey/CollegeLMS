@@ -89,7 +89,7 @@ CollegeLMS.Tests/Integration/Controllers/{Name}ControllerTests.cs
 
 ## Phase 3: Frontend (FrontendAgent)
 
-Load: `impeccable`, `design-system`, `nextjs-page`
+Load: `design-system`, `nextjs-page`, `modern-web-guidance`
 
 ```
 CollegeLMS.Next/app/{route}/page.tsx
@@ -99,7 +99,6 @@ CollegeLMS.Next/components/{Name}*.tsx
 CollegeLMS.Next/lib/{name}.ts
 ```
 
-- Дизайн-бриф (shape) → реализация (craft) → polish → audit (`impeccable`).
 - Токены и компоненты (`design-system`), интеграция API с типами.
 - Mobile-first, touch 44×44px, адаптив 393px ↔ 1920px (DESIGN.md §6).
 
@@ -139,6 +138,13 @@ Load: `verification-before-completion`, `requesting-code-review`, `yeet`
 
 - `verification-before-completion`: свежая проверка (build/tests на актуальном состоянии, не по памяти).
 - `requesting-code-review`: ревью всех изменений; замечания → исправить и перезапустить фазы.
+- Независимое ревью в чистом контексте: один reviewer-субагент в **новой сессии**.
+  Передать только `git diff master...HEAD`, спецификацию и чек-лист
+  `requesting-code-review`; не передавать историю переписки разработки.
+  Субагент только читает: проверяет соответствие спецификации, качество тестов,
+  конвенции `AGENTS.md`, секреты в diff, риск миграций и деплоя; отдаёт отчёт
+  по тяжести `blocker`/`major`/`minor` без правки файлов и без git-операций.
+  При `blocker` или `major` архитектор исправляет замечания и повторяет ревью.
 - Слияние и пуш:
   ```
   git checkout master
@@ -160,6 +166,7 @@ Load: `verification-before-completion`, `requesting-code-review`, `yeet`
 | **G3** | `npm run dev` рендерится | FrontendAgent | 3 |
 | **G4** | затронутый Playwright-спек | TesterAgent | 4 |
 | **G5** | CI (build + full test + E2E) зелёный | CI | 6 |
+| **G6** | ревью в чистом контексте: нет blocker/major | reviewer-субагент | 6 |
 
 ## Definition of Done
 
