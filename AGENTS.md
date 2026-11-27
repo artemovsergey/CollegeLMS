@@ -45,30 +45,14 @@
 | Merge в master + деплой | `git checkout master && git merge {ветка} && git push origin master` |
 | Формат | `dotnet csharpier format .` (проверка — `dotnet csharpier check .`) |
 
-## Прод и стенд
+## Прод и стенд, агенты и среда
 
-- Прод — **тот же хост**, что и рабочий каталог: сервисы живут в `/home/user1/CollegeLMS`. Оба каталога называются `CollegeLMS`, поэтому compose-проект один и тот же (`collegelms`), а имена контейнеров заданы явно. `docker compose` из рабочего каталога пересоздаёт боевые контейнеры и ссорится с деплоем.
-- Значит, docker-команды — только из прод-каталога:
-  `cd /home/user1/CollegeLMS && docker compose --profile max-bot up -d --build {api|collegelms-next|maxbot|loadbalancer}`
-- Playwright по стенду — с `baseURL: http://localhost` (через loadbalancer). Напрямую на `:3000` пути `/api/*` отдают 404, а `next dev` поднимается на 3001 и без CORS не логинится.
-- Перед сборкой Next на `/` нужно минимум 3 ГБ — это порог деплоя. Место чаще всего съедает не Docker, а архив systemd: `sudo journalctl --disk-usage`, чистка `sudo journalctl --vacuum-size=300M` (лимит `SystemMaxUse=300M` уже прописан в `/etc/systemd/journald.conf`).
-- Логи контейнеров после деплоя: `docker compose --profile max-bot logs api --tail 50`.
-- Ручной `docker compose` из рабочего каталога после merge не нужен: деплой
-  приезжает сам через CI/CD и пересобирает контейнеры в прод-каталоге.
-
-## Агенты и модели
-
-- Целевые модели после подключения подписок: `BackendAgent` — `opencode-go/kimi-k2.7-code`, `FrontendAgent` — `kimi-for-coding/k3.1-pro`, `DevOpsAgent` — `opencode-go/glm-5.3-flash`, `TesterAgent` — `opencode-go/deepseek-v4.1-flash`, `plan` — `openai/gpt-6.1-sol`, `build` — `opencode-go/kimi-k2.7-code`.
-- OpenCode Go активна. Пока не подключены Codex и Kimi, `plan` и `FrontendAgent` временно работают на `opencode/deepseek-v4.1-flash-free`; остальные агенты уже на Go.
-- Агенты лежат в `.opencode/agents/`, проектные скиллы — в `.opencode/skills/`.
-
-### DeepSeek Harness
-
-- Профиль — `desktop`; единый `cordis.patch.yml` (копия — `secrets/dsh.patch.yml`) задаёт модель `opencode-go/deepseek-v4.1-flash`, права `danger-full-access`/`approval: never`, MCP `github`, `context7`, `ms_learn`, `playwright` и список моделей субагентов. Bundle не используется.
-- Отдельных именованных агентов в DSH нет: роли задаёт скилл `collegelms-roles` (`deepseek-v4.1-flash` — основная, `kimi-k2.7-code` — backend, `kimi-k3` — frontend, `glm-5.3-flash` — devops, `gpt-6-luna` — документы). Выбор модели субагентом действует только в **новых** сессиях.
-- Проектные скиллы — `.opencode/skills`; DSH видит их через junction `.dsh/skills` → `~/.dsh/local/collegelms-skills`. Глобальные OpenCode/Superpowers — `~/.dsh/skills` (создаются `scripts/dsh/link-skills.ps1`).
-- Секреты: `scripts/dsh/sync-secrets.ps1` собирает `.env` из `secrets/.env` + `secrets/collegelms.env`; в конфиге секретов нет, `OPENCODE_GO_API_KEY` — в credential store, GitHub-токен — из `gh`.
-- Проверка: 4 MCP-сервера (77 инструментов), 6 моделей в новой сессии, скиллы `collegelms-roles`, `course-materials`, `dsh-environment`, `vps-bb-status`. Подробности — `docs/agents/dsh-environment.md`.
+- Прод, docker-команды, порог диска и логи — `.opencode/skills/vps-bb-status/SKILL.md`.
+- Playwright: `baseURL: http://localhost`, `:3000` отдаёт 404 на `/api/*`,
+  `next dev` поднимается на 3001 — `.bb/skills/collegelms-dev/SKILL.md`.
+- Модели, MCP, DSH-профиль и секреты агентской среды —
+  `.opencode/skills/dsh-environment/SKILL.md` и
+  `.opencode/skills/collegelms-roles/SKILL.md`.
 
 ## Скиллы проекта
 
