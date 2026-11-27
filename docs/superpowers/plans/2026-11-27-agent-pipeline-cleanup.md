@@ -62,12 +62,17 @@ Load: `design-system`, `nextjs-page`, `modern-web-guidance`
 После текущих пунктов `verification-before-completion` и `requesting-code-review`, до подшага «Слияние и пуш», вставить подшаг:
 
 ```markdown
-- Независимое ревью в чистом контексте: один reviewer-субагент в **новой сессии**.
-  Передать только `git diff master...HEAD`, спецификацию и чек-лист
-  `requesting-code-review`; не передавать историю переписки разработки.
+- Независимое ревью в чистом контексте: один субагент `general` в **новой сессии**.
+  Передать только `git diff master...HEAD`, спецификацию
+  `docs/spec/{feature}-design.md` (при необходимости `docs/spec/task.md`) и
+  чек-лист `requesting-code-review`; не передавать историю переписки разработки.
   Субагент только читает: проверяет соответствие спецификации, качество тестов,
   конвенции `AGENTS.md`, секреты в diff, риск миграций и деплоя; отдаёт отчёт
-  по тяжести `blocker`/`major`/`minor` без правки файлов и без git-операций.
+  по тяжести `blocker`/`major`/`minor` без правки файлов и без изменяющих git-операций
+  (commit/checkout/reset/merge/push); read-only команды
+  (`git diff`, `git show`, `git log`) разрешены.
+  Соответствие шкале `requesting-code-review`: `blocker ≈ Critical`,
+  `major ≈ Important`, `minor ≈ Minor`.
   При `blocker` или `major` архитектор исправляет замечания и повторяет ревью.
 ```
 
@@ -80,6 +85,11 @@ Load: `design-system`, `nextjs-page`, `modern-web-guidance`
 ```markdown
 | **G6** | ревью в чистом контексте: нет blocker/major | reviewer-субагент | 6 |
 ```
+
+Также уточнить ячейку **Gate** фазы 6: `G6 — чистое ревью пройдено (нет
+blocker/major); CI/CD зелёный, деплой на VPS выполнен`, и добавить в
+**Definition of Done** чекбокс `Чистое ревью в новом контексте пройдено:
+blocker/major исправлены`.
 
 - [ ] **Step 4: Проверить, что список changed-файлов ограничен задачей**
 

@@ -138,12 +138,17 @@ Load: `verification-before-completion`, `requesting-code-review`, `yeet`
 
 - `verification-before-completion`: свежая проверка (build/tests на актуальном состоянии, не по памяти).
 - `requesting-code-review`: ревью всех изменений; замечания → исправить и перезапустить фазы.
-- Независимое ревью в чистом контексте: один reviewer-субагент в **новой сессии**.
-  Передать только `git diff master...HEAD`, спецификацию и чек-лист
-  `requesting-code-review`; не передавать историю переписки разработки.
+- Независимое ревью в чистом контексте: один субагент `general` в **новой сессии**.
+  Передать только `git diff master...HEAD`, спецификацию
+  `docs/spec/{feature}-design.md` (при необходимости `docs/spec/task.md`) и
+  чек-лист `requesting-code-review`; не передавать историю переписки разработки.
   Субагент только читает: проверяет соответствие спецификации, качество тестов,
   конвенции `AGENTS.md`, секреты в diff, риск миграций и деплоя; отдаёт отчёт
-  по тяжести `blocker`/`major`/`minor` без правки файлов и без git-операций.
+  по тяжести `blocker`/`major`/`minor` без правки файлов и без изменяющих git-операций
+  (commit/checkout/reset/merge/push); read-only команды
+  (`git diff`, `git show`, `git log`) разрешены.
+  Соответствие шкале `requesting-code-review`: `blocker ≈ Critical`,
+  `major ≈ Important`, `minor ≈ Minor`.
   При `blocker` или `major` архитектор исправляет замечания и повторяет ревью.
 - Слияние и пуш:
   ```
@@ -153,7 +158,7 @@ Load: `verification-before-completion`, `requesting-code-review`, `yeet`
   ```
 - Проверить, что GitHub Actions (quality → deploy) запустился и прошёл.
 
-**Gate:** CI/CD зелёный, деплой на VPS выполнен.
+**Gate:** G6 — чистое ревью пройдено (нет blocker/major); CI/CD зелёный, деплой на VPS выполнен.
 
 ---
 
@@ -177,6 +182,7 @@ Load: `verification-before-completion`, `requesting-code-review`, `yeet`
 - [ ] Frontend работает (`npm run dev`), адаптив 393px ↔ 1920px
 - [ ] Затронутый E2E-спек проходит
 - [ ] Конфиги Docker/compose/workflow проверены (сборка стека — в CI/CD)
+- [ ] Чистое ревью в новом контексте пройдено: blocker/major исправлены
 - [ ] Feature-ветка слита в `master`, CI/CD зелёный, деплой на VPS выполнен
 
 ---
