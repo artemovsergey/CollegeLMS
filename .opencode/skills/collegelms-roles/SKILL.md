@@ -26,16 +26,19 @@ description: Распределение работы по ролям CollegeLMS 
 
 ## Обязательные скиллы по ролям
 
-- Backend: `dotnet-entity`, `dotnet-endpoint`, `dotnet-webapi`,
-  `fluent-validation`, `swagger-docs`, `result-pattern`, `aspnet-core`,
-  `efcore-patterns`.
-- Frontend: `design-system`, `nextjs-page`, `impeccable`, `frontend-design`,
-  `shadcn`, `vercel-react-best-practices`, `web-design-guidelines`.
-- Tester: `dotnet-test`, `test-driven-development`, `systematic-debugging`,
-  `playwright`, `playwright-interactive`.
-- DevOps: `docker-compose-dev`, `vps-deploy`, `cicd-pipeline`, `gh-fix-ci`.
-- Docs: `course-materials`, `office-docx`, `office-export-pdf`,
-  `office-render` (по необходимости).
+- Backend: `dotnet-entity`, `dotnet-endpoint`, `fluent-validation`, `swagger-docs`.
+- Frontend: `design-system`, `nextjs-page`; `modern-web-guidance` — по правилу
+  `AGENTS.md` перед правками HTML/CSS/клиентского JS.
+- Tester: `dotnet-test`, `test-driven-development`, `playwright`.
+- DevOps: `docker-compose-dev`, `vps-deploy`, `cicd-pipeline`.
+- Docs: по задаче (`course-materials` и скиллы экспорта — при необходимости).
+
+По необходимости (не обязательно на старте, но доступны): `dotnet-webapi`,
+`result-pattern`, `aspnet-core`, `efcore-patterns`, `seed-data`, `cors-security`,
+`jwt-auth`, `impeccable`, `frontend-design`, `shadcn`,
+`vercel-react-best-practices`, `web-design-guidelines`, `systematic-debugging`,
+`playwright-interactive`, `gh-fix-ci`, `office-docx`, `office-export-pdf`,
+`office-render`. Скиллы не удаляются: обязательный минимум сокращён, а не список.
 
 ## Шаблон промпта субагенту
 
